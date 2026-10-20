@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        overscroll-behavior-y: none;
+    }
+
+    /*
+     * Mobile-first: iOS Safari auto-zooms halaman saat fokus ke input
+     * dengan font-size < 16px. Pada layar kecil semua field form
+     * dipaksa minimal 16px agar viewport tetap stabil.
+     */
+    @media (max-width: 640px) {
+        input:not([type='checkbox']):not([type='radio']):not([type='file']),
+        select,
+        textarea {
+            font-size: 16px;
+        }
+    }
+
+    /* Area aman untuk iPhone (notch / home indicator). */
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .safe-area-top {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+}
+
+/*
+ * Tema gelap.
+ * Override utilitas permukaan yang paling sering dipakai agar seluruh halaman
+ * (termasuk komponen Blade lama) tetap terbaca tanpa menduplikasi setiap view.
+ */
+.dark body {
+    background-color: #0b1220;
+    color: #e2e8f0;
+}
+
+.dark .bg-white,
+.dark .bg-white\/95 {
+    background-color: #111c2e !important;
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+    background-color: #1a2740 !important;
+}
+
+.dark .bg-slate-100,
+.dark .bg-slate-200 {
+    background-color: #1e293b !important;
+}
+
+.dark .text-gray-800,
+.dark .text-gray-700,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+    color: #f1f5f9 !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-slate-600,
+.dark .text-slate-500 {
+    color: #94a3b8 !important;
+}
+
+.dark .text-gray-400,
+.dark .text-slate-400 {
+    color: #64748b !important;
+}
+
+.dark .border-gray-200,
+.dark .border-gray-100,
+.dark .border-slate-200 {
+    border-color: #26354d !important;
+}
+
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #26354d !important;
+}
+
+.dark header.bg-white,
+.dark nav.bg-white {
+    background-color: #0f1a2c !important;
+}
+
+.dark input:not([type='checkbox']):not([type='radio']),
+.dark select,
+.dark textarea {
+    background-color: #0b1220 !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: #64748b !important;
+}
+
+.dark table thead {
+    color: #94a3b8 !important;
+}
+
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-50:hover {
+    background-color: #1e293b !important;
+}
+
+.dark .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+}

@@ -1,0 +1,95 @@
+x-app-environment: &app-environment
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY:-}
+  APP_URL: ${APP_URL:-http://localhost:8000}
+  DB_CONNECTION: mysql
+  DB_HOST: db
+  DB_PORT: 3306
+  DB_DATABASE: ${DB_DATABASE:-inventaris_sekolah}
+  DB_USERNAME: ${DB_USERNAME:-inventaris_user}
+  DB_PASSWORD: ${DB_PASSWORD:-secret123}
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  QUEUE_CONNECTION: redis
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventaris_app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:80"
+    environment: *app-environment
+    volumes:
+      - ./storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  db:
+    image: mariadb:10.11
+    container_name: inventaris_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${DB_DATABASE:-inventaris_sekolah}
+      MYSQL_USER: ${DB_USERNAME:-inventaris_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-p${DB_ROOT_PASSWORD:-root123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: inventaris_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventaris_queue
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120"]
+    environment: *app-environment
+    volumes:
+      - ./storage:/var/www/html/storage
+    depends_on:
+      - app
+      - redis
+      - db
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventaris_scheduler
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+    environment: *app-environment
+    volumes:
+      - ./storage:/var/www/html/storage
+    depends_on:
+      - app
+      - db
+
+volumes:
+  db_data:
+  redis_data:

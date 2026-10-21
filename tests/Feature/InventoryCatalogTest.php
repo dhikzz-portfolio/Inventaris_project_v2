@@ -39,15 +39,33 @@ class InventoryCatalogTest extends TestCase
         $this->admin = User::where('username', 'admin.sarpras')->firstOrFail();
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
         $this->guru = User::where('username', 'guru.budi')->firstOrFail();
-        $this->category = Category::where('is_consumable', false)->firstOrFail();
+        $this->category = Category::firstOrFail();
         $this->room = Room::firstOrFail();
     }
 
     public function test_generator_id_internal_dan_nomor_register(): void
     {
-        $id1 = IdGenerator::internalId('Laptop Lenovo Thinkpad', $this->room->code);
-        $this->assertStringStartsWith('LAPTOP-', $id1);
-        $this->assertStringContainsString($this->room->code, $id1);
+        $id1 = IdGenerator::internalId($this->room);
+        $this->assertMatchesRegularExpression('/^g\d+-\d{2}-\d{2}$/', $id1);
+        $this->assertStringStartsWith(IdGenerator::roomPrefix($this->room), $id1);
+
+        // Setelah ID tersimpan di database, barang berikutnya mendapat urutan berikutnya.
+        Item::create([
+            'internal_id' => $id1,
+            'location_code' => InstitutionSetting::current()->location_code,
+            'asset_code' => $this->category->code,
+            'register_no' => '9001',
+            'name' => 'Meja Uji Format ID',
+            'category_id' => $this->category->id,
+            'room_id' => $this->room->id,
+            'acquisition_year' => now()->year,
+            'funding_source' => 'BOS',
+            'quantity' => 1,
+            'unit' => 'unit',
+            'status' => ItemStatus::BAIK->value,
+            'acquisition_status' => 'APPROVED',
+        ]);
+        $this->assertNotSame($id1, IdGenerator::internalId($this->room));
 
         $reg1 = IdGenerator::register($this->category->code);
         $this->assertSame($this->category->code, $reg1['asset_code']);
@@ -70,7 +88,6 @@ class InventoryCatalogTest extends TestCase
             'funding_source' => 'BOS Kinerja',
             'quantity' => 2,
             'unit' => 'unit',
-            'min_stock' => 1,
             'is_high_value' => true,
             'location_code' => InstitutionSetting::current()->location_code,
             'photo' => $photo,

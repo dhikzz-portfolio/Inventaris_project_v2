@@ -49,7 +49,7 @@ Tidak ada test yang di-skip. Dua test `AdminPagesAccessibilityTest` yang sebelum
 | QR, label, scan                   | `LabelAndQrTest`, R5                                                                                    |
 | BAST & PDF                        | `EventAndBastTest`, `InventoryFlowTest`                                                                 |
 | Laporan PDF/Excel                 | `DashboardAndReportingTest`, `SecurityAccessTest`                                                       |
-| Notifikasi & job                  | `CheckOverdueLoans`, `CheckLowStock`, `CheckDueSoonLoans`, `GenerateMonthlyReport`                      |
+| Notifikasi & job                  | `CheckOverdueLoans`, `CheckDueSoonLoans`, `GenerateMonthlyReport`                                       |
 | Audit log immutable               | R9                                                                                                      |
 | File privat                       | `SecurityAccessTest`                                                                                    |
 
@@ -64,7 +64,7 @@ Alur end-to-end yang dijalankan pada aplikasi nyata (MySQL, bukan test DB):
 5. Klik **Serahkan Barang** (status **Sedang Dipinjam**, timestamp petugas tercatat).
 6. Buka form pengembalian → submit semua barang → status **Selesai**.
 7. Katalog menampilkan barang kembali tersedia.
-8. Scan QR fallback manual `MEJA-G1-01-01` → redirect ke detail barang.
+8. Scan QR fallback manual `g1-01-01` → redirect ke detail barang.
 
 Hasil: seluruh langkah berhasil, **0 error JavaScript** setelah perbaikan Alpine/Livewire dan selector label.
 
@@ -128,7 +128,7 @@ Tidak ada test yang dihapus, di-skip, atau dilemahkan untuk membuat hasil lulus.
 | `php artisan config:cache`                                    | Berhasil                                                                                 |
 | `php artisan route:cache`                                     | Berhasil (route closure dihapus, PWA memakai controller)                                 |
 | `php artisan view:cache`                                      | Berhasil                                                                                 |
-| `php artisan schedule:list`                                   | 4 job terjadwal: overdue 07:00, due soon 07:30, low stock 07:15, laporan tanggal 1 01:00 |
+| `php artisan schedule:list`                                   | 3 job terjadwal: overdue 07:00, due soon 07:30, laporan tanggal 1 01:00                 |
 | Dispatch `CheckDueSoonLoans` + `queue:work --stop-when-empty` | Job DONE 71,73 ms, `failed_jobs=0`                                                       |
 
 > Catatan: jangan menjalankan `php artisan test` saat config sedang di-cache, karena `phpunit.xml` tidak dapat menimpa konfigurasi production. Jalankan `php artisan optimize:clear` terlebih dahulu.

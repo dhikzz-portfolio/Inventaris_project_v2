@@ -8,7 +8,7 @@
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700">{{ $unreadCount }} BARU</span>
                     @endif
                 </div>
-                <p class="text-sm text-gray-500">Alert keterlambatan, stok menipis, persetujuan, dan aktivitas penting</p>
+                <p class="text-sm text-gray-500">Alert keterlambatan, persetujuan, dan aktivitas penting</p>
             </div>
             @if ($unreadCount > 0)
                 <form method="POST" action="{{ route('notifications.read-all') }}">
@@ -30,7 +30,6 @@
                     <span @class([
                         'mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full',
                         'bg-red-100 text-red-600' => $notification->type->value === 'TERLAMBAT',
-                        'bg-orange-100 text-orange-600' => $notification->type->value === 'STOK_MENIPIS',
                         'bg-indigo-100 text-indigo-600' => $notification->type->value === 'PERSETUJUAN',
                         'bg-green-100 text-green-600' => $notification->type->value === 'PENGEMBALIAN',
                         'bg-blue-100 text-blue-600' => $notification->type->value === 'PENGADAAN',
@@ -39,7 +38,6 @@
                         <span class="material-icons-round text-lg">
                             @switch($notification->type->value)
                                 @case('TERLAMBAT') alarm @break
-                                @case('STOK_MENIPIS') inventory @break
                                 @case('PERSETUJUAN') how_to_reg @break
                                 @case('PENGEMBALIAN') assignment_return @break
                                 @case('PENGADAAN') add_box @break

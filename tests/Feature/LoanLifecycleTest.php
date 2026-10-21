@@ -54,7 +54,7 @@ class LoanLifecycleTest extends TestCase
         $this->guruSari = User::where('username', 'guru.sari')->firstOrFail();
         $this->roomTkj = Room::where('major_id', Major::where('code', 'TKJ')->value('id'))->firstOrFail();
         $this->roomRpl = Room::where('major_id', Major::where('code', 'RPL')->value('id'))->firstOrFail();
-        $this->category = Category::where('is_consumable', false)->firstOrFail();
+        $this->category = Category::firstOrFail();
     }
 
     private function makeItem(string $name, int $qty, ?Room $room = null): Item

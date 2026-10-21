@@ -11,10 +11,8 @@ Dokumen ini mencatat keputusan arsitektur, asumsi teknis, dan trade-off implemen
 
 ## 2. Model Barang & Kuantitas (Asumsi 2)
 
-- **Keputusan**:
-    - Barang aset/investasi (`is_consumable = false`): dicatat per unit fisik unik (`quantity = 1` atau kuantitas batch unik dengan ID internal dan nomor register).
-    - Bahan habis pakai (`is_consumable = true`): dicatat dalam satu baris dengan kolom `quantity` sebagai representasi stok berjalan serta `min_stock` untuk memicu notifikasi `STOK_MENIPIS`.
-- **Rasional**: Menjaga integritas nomor register aset pemerintah untuk barang bernilai sekaligus mempermudah pencatatan stok bahan praktikum (misal kertas, spidol, kabel rol).
+- **Keputusan**: Barang inventaris dicatat per unit fisik unik (kuantitas batch unik) dengan ID internal dan nomor register.
+- **Rasional**: Menjaga integritas nomor register aset pemerintah untuk barang bernilai.
 
 ## 3. Perhitungan Ketersediaan & Anti-Bentrok Jadwal (Asumsi 3, R4)
 
@@ -25,7 +23,7 @@ Dokumen ini mencatat keputusan arsitektur, asumsi teknis, dan trade-off implemen
 
 - **Keputusan**:
     - Mutasi dilakukan langsung oleh Admin Sarpras atau Super Admin (Wakasek).
-    - Ketika barang dipindahkan ke ruangan baru, `items.room_id` dan `items.internal_id` (format `PREFIX-KODERUANGAN-URUTAN`, misal `PC-G1-01-01`) diperbarui secara otomatis dalam satu `DB::transaction`, disertai pencatatan riwayat pada tabel `item_movements`.
+    - Ketika barang dipindahkan ke ruangan baru, `items.room_id` dan `items.internal_id` (format `HURUFGEDUNG-LANTAI-RUANGANKE-URUTAN`, misal `g1-01-01` = gedung G Lt.1, ruangan ke-01, barang ke-01) diperbarui secara otomatis dalam satu `DB::transaction`, disertai pencatatan riwayat pada tabel `item_movements`.
 - **Rasional**: Menjamin konsistensi spasial antara fisik barang di lapangan dan ID yang tertera pada sistem maupun stiker QR.
 
 ## 5. Nomor Register Otomatis (Asumsi 5)

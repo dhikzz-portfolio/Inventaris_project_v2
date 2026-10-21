@@ -53,18 +53,16 @@ class DatabaseSeeder extends Seeder
 
         // ---------- Kategori ----------
         $categories = collect([
-            ['name' => 'Furnitur', 'code' => '01.01.09.01.01', 'is_consumable' => false],
-            ['name' => 'Elektronik & Komputer', 'code' => '01.01.11.04.01', 'is_consumable' => false],
-            ['name' => 'Alat Laboratorium', 'code' => '01.01.15.02.01', 'is_consumable' => false],
-            ['name' => 'Alat Peraga / Kamera', 'code' => '01.01.16.03.01', 'is_consumable' => false],
-            ['name' => 'Bahan Habis Pakai', 'code' => '01.03.02.01.01', 'is_consumable' => true],
+            ['name' => 'Furnitur', 'code' => '01.01.09.01.01'],
+            ['name' => 'Elektronik & Komputer', 'code' => '01.01.11.04.01'],
+            ['name' => 'Alat Laboratorium', 'code' => '01.01.15.02.01'],
+            ['name' => 'Alat Peraga / Kamera', 'code' => '01.01.16.03.01'],
         ])->map(fn ($c) => Category::firstOrCreate(['name' => $c['name']], $c));
 
         $furnitur = $categories[0];
         $elektronik = $categories[1];
         $lab = $categories[2];
         $peraga = $categories[3];
-        $habispakai = $categories[4];
 
         // ---------- Pengguna (4 role) ----------
         $users = [
@@ -98,7 +96,7 @@ class DatabaseSeeder extends Seeder
 
         // ---------- Barang ----------
         if (Item::count() === 0) {
-            $this->seedItems($setting, $rooms, $furnitur, $elektronik, $lab, $peraga, $habispakai);
+            $this->seedItems($setting, $rooms, $furnitur, $elektronik, $lab, $peraga);
         }
 
         // ---------- Kegiatan ----------
@@ -117,30 +115,28 @@ class DatabaseSeeder extends Seeder
         }
     }
 
-    private function seedItems($setting, $rooms, $furnitur, $elektronik, $lab, $peraga, $habispakai): void
+    private function seedItems($setting, $rooms, $furnitur, $elektronik, $lab, $peraga): void
     {
         $defs = [
-            // name, category, room idx, qty, unit, year, funding, high_value, spec, status, min_stock
-            ['Meja Kerja', $furnitur, 0, 1, 'unit', 2022, 'BOS', false, 'Meja kayu 120x60cm', 'BAIK', null],
-            ['Kursi Kantor', $furnitur, 0, 2, 'unit', 2022, 'BOS', false, 'Kursi ergonomis hitam', 'BAIK', null],
-            ['Komputer PC', $elektronik, 0, 12, 'unit', 2023, 'BOS', false, 'Core i5, RAM 8GB, SSD 256GB', 'BAIK', null],
-            ['Laptop Acer Nitro', $elektronik, 0, 3, 'unit', 2024, 'Komite Sekolah', true, 'Core i7, RAM 16GB, RTX 3050', 'BAIK', null],
-            ['Switch Jaringan 24 Port', $elektronik, 1, 2, 'unit', 2023, 'BOS', false, 'Managed switch gigabit', 'BAIK', null],
-            ['Router Mikrotik', $elektronik, 1, 4, 'unit', 2023, 'hibah', false, 'RB951G-2HnD', 'RUSAK_RINGAN', null],
-            ['PC Rakitan RPL', $elektronik, 2, 10, 'unit', 2024, 'BOS', false, 'Ryzen 5, RAM 16GB', 'BAIK', null],
-            ['Oscilloscope', $lab, 1, 1, 'unit', 2021, 'BOS', true, 'Digital 100MHz', 'BAIK', null],
-            ['Kamera DSLR Canon', $peraga, 3, 2, 'unit', 2024, 'Dana DAU', true, 'EOS 90D + lensa 18-135mm', 'BAIK', null],
-            ['Proyektor Epson', $elektronik, 4, 3, 'unit', 2022, 'BOS', false, '3500 lumen XGA', 'RUSAK_BERAT', null],
-            ['Kertas HVS A4 80gr', $habispakai, 5, 40, 'lembar', 2026, 'BOS', false, 'Kertas ukuran A4', 'BAIK', 10],
-            ['Tinta Printer Hitam', $habispakai, 5, 6, 'botol', 2026, 'komite', false, 'Tinta infus hitam 100ml', 'BAIK', 5],
+            // name, category, room idx, qty, unit, year, funding, high_value, spec, status
+            ['Meja Kerja', $furnitur, 0, 1, 'unit', 2022, 'BOS', false, 'Meja kayu 120x60cm', 'BAIK'],
+            ['Kursi Kantor', $furnitur, 0, 2, 'unit', 2022, 'BOS', false, 'Kursi ergonomis hitam', 'BAIK'],
+            ['Komputer PC', $elektronik, 0, 12, 'unit', 2023, 'BOS', false, 'Core i5, RAM 8GB, SSD 256GB', 'BAIK'],
+            ['Laptop Acer Nitro', $elektronik, 0, 3, 'unit', 2024, 'Komite Sekolah', true, 'Core i7, RAM 16GB, RTX 3050', 'BAIK'],
+            ['Switch Jaringan 24 Port', $elektronik, 1, 2, 'unit', 2023, 'BOS', false, 'Managed switch gigabit', 'BAIK'],
+            ['Router Mikrotik', $elektronik, 1, 4, 'unit', 2023, 'hibah', false, 'RB951G-2HnD', 'RUSAK_RINGAN'],
+            ['PC Rakitan RPL', $elektronik, 2, 10, 'unit', 2024, 'BOS', false, 'Ryzen 5, RAM 16GB', 'BAIK'],
+            ['Oscilloscope', $lab, 1, 1, 'unit', 2021, 'BOS', true, 'Digital 100MHz', 'BAIK'],
+            ['Kamera DSLR Canon', $peraga, 3, 2, 'unit', 2024, 'Dana DAU', true, 'EOS 90D + lensa 18-135mm', 'BAIK'],
+            ['Proyektor Epson', $elektronik, 4, 3, 'unit', 2022, 'BOS', false, '3500 lumen XGA', 'RUSAK_BERAT'],
         ];
 
-        foreach ($defs as [$name, $category, $roomIdx, $qty, $unit, $year, $funding, $high, $spec, $status, $minStock]) {
+        foreach ($defs as [$name, $category, $roomIdx, $qty, $unit, $year, $funding, $high, $spec, $status]) {
             $room = $rooms[$roomIdx];
             $register = IdGenerator::register($category->code);
 
             Item::create([
-                'internal_id' => IdGenerator::internalId($name, $room->code),
+                'internal_id' => IdGenerator::internalId($room),
                 'location_code' => $setting->location_code,
                 'asset_code' => $register['asset_code'],
                 'register_no' => $register['register_no'],
@@ -154,7 +150,6 @@ class DatabaseSeeder extends Seeder
                 'qty_damaged' => $status === 'RUSAK_RINGAN' ? min(1, $qty) : ($status === 'RUSAK_BERAT' ? $qty : 0),
                 'qty_lost' => $status === 'HILANG' ? $qty : 0,
                 'unit' => $unit,
-                'min_stock' => $minStock,
                 'is_high_value' => $high,
                 'status' => $status,
                 'acquisition_status' => 'APPROVED',
@@ -167,7 +162,6 @@ class DatabaseSeeder extends Seeder
         $laptop = Item::where('name', 'Laptop Acer Nitro')->first();
         $pcs = Item::where('name', 'Komputer PC')->first();
         $kamera = Item::where('name', 'Kamera DSLR Canon')->first();
-        $kertas = Item::where('name', 'Kertas HVS A4 80gr')->first();
 
         if (! $laptop || ! $pcs) {
             return;
@@ -187,11 +181,6 @@ class DatabaseSeeder extends Seeder
             'loan_id' => $done->id, 'item_id' => $pcs->id, 'qty_borrowed' => 3, 'qty_returned' => 3,
             'condition_out' => Condition::BAIK->value, 'condition_in' => Condition::RUSAK_RINGAN->value,
             'returned_room_id' => $pcs->room_id,
-        ]);
-        LoanItem::create([
-            'loan_id' => $done->id, 'item_id' => $kertas->id, 'qty_borrowed' => 5, 'qty_returned' => 4, 'qty_lost' => 1,
-            'condition_out' => Condition::BAIK->value, 'condition_in' => Condition::BAIK->value,
-            'returned_room_id' => $kertas->room_id,
         ]);
         $done->approvals()->create([
             'approver_id' => $laboran->id, 'level' => 1, 'decision' => 'APPROVED', 'decided_at' => now()->subDays(21),

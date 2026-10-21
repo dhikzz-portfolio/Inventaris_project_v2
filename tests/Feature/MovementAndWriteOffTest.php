@@ -8,6 +8,7 @@ use App\Models\Item;
 use App\Models\Room;
 use App\Models\User;
 use App\Models\WriteOff;
+use App\Services\IdGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -39,7 +40,7 @@ class MovementAndWriteOffTest extends TestCase
         $this->room1 = $rooms[0];
         $this->room2 = $rooms[1];
 
-        $category = Category::where('is_consumable', false)->firstOrFail();
+        $category = Category::firstOrFail();
 
         $this->item = Item::create([
             'internal_id' => 'MOV-G1-01-01',
@@ -74,7 +75,7 @@ class MovementAndWriteOffTest extends TestCase
         $this->item->refresh();
         $this->assertSame($this->room2->id, $this->item->room_id);
         $this->assertNotSame($oldInternalId, $this->item->internal_id);
-        $this->assertStringContainsString($this->room2->code, $this->item->internal_id);
+        $this->assertStringStartsWith(IdGenerator::roomPrefix($this->room2), $this->item->internal_id);
 
         $this->assertDatabaseHas('item_movements', [
             'item_id' => $this->item->id,

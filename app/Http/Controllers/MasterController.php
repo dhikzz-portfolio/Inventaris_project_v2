@@ -53,13 +53,11 @@ class MasterController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100', 'unique:categories,name'],
             'code' => ['nullable', 'string', 'max:30', 'unique:categories,code'],
-            'is_consumable' => ['nullable', 'boolean'],
         ]);
 
         Category::create([
             'name' => $data['name'],
             'code' => $data['code'] ?: null,
-            'is_consumable' => $request->boolean('is_consumable'),
         ]);
 
         return back()->with('success', 'Kategori ditambahkan.');
@@ -123,13 +121,11 @@ class MasterController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100', Rule::unique('categories', 'name')->ignore($category->id)],
             'code' => ['nullable', 'string', 'max:30', Rule::unique('categories', 'code')->ignore($category->id)],
-            'is_consumable' => ['nullable', 'boolean'],
         ]);
 
         $category->update([
             'name' => $data['name'],
             'code' => $data['code'] ?: null,
-            'is_consumable' => $request->boolean('is_consumable'),
         ]);
         activity('master')->performedOn($category)->causedBy($request->user())->log('Mengubah kategori');
 

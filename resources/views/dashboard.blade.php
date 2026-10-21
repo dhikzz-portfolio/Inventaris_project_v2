@@ -23,7 +23,6 @@
                         'bg-blue-100 text-blue-600' => $stat['color'] === 'blue',
                         'bg-amber-100 text-amber-600' => $stat['color'] === 'amber',
                         'bg-red-100 text-red-600' => $stat['color'] === 'red',
-                        'bg-orange-100 text-orange-600' => $stat['color'] === 'orange',
                         'bg-purple-100 text-purple-600' => $stat['color'] === 'purple',
                         'bg-green-100 text-green-600' => $stat['color'] === 'green',
                     ])>
@@ -102,26 +101,8 @@
                 @endif
             </div>
 
-            {{-- Alert stok + aktivitas --}}
+            {{-- Aktivitas terakhir --}}
             <div class="space-y-5">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                    <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                        <span class="material-icons-round text-orange-500">low_priority</span> Stok Menipis
-                    </h3>
-                    @if ($lowStock->isEmpty())
-                        <p class="text-sm text-gray-400">Semua stok aman. ✅</p>
-                    @else
-                        <ul class="space-y-2 text-sm">
-                            @foreach ($lowStock as $item)
-                                <li class="flex items-center justify-between border-b border-dashed border-gray-100 pb-1.5">
-                                    <a href="{{ route('items.show', $item) }}" class="text-gray-700 hover:text-amber-700">{{ $item->name }}</a>
-                                    <span class="text-xs font-bold text-orange-600">{{ $item->quantity }}/{{ $item->min_stock }} {{ $item->unit }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </div>
-
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
                         <span class="material-icons-round text-amber-600">history</span> Aktivitas Terakhir

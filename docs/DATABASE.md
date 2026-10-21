@@ -13,7 +13,7 @@ Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan m
 | `majors`                                                                                          | Jurusan/kompetensi keahlian.                                    |
 | `users`                                                                                           | Akun pengguna + role utama + jurusan (untuk cakupan laboran).   |
 | `rooms`                                                                                           | Ruangan: gedung, lantai, kode unik, jurusan.                    |
-| `categories`                                                                                      | Kategori/klasifikasi barang, kode aset, flag habis pakai.       |
+| `categories`                                                                                      | Kategori/klasifikasi barang dan kode aset.                      |
 | `items`                                                                                           | Master aset (satu baris = satu kelompok unit).                  |
 | `item_movements`                                                                                  | Riwayat mutasi lokasi (asal, tujuan, petugas, waktu).           |
 | `events`                                                                                          | Kegiatan untuk mengikat peminjaman dan BAST gabungan.           |
@@ -35,7 +35,7 @@ Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan m
 | Kolom                                | Tipe             | Keterangan                                                                |
 | ------------------------------------ | ---------------- | ------------------------------------------------------------------------- |
 | `id`                                 | bigint PK        |                                                                           |
-| `internal_id`                        | varchar unique   | ID internal/spasial, contoh `MEJA-G1-01-01`. Berubah saat mutasi ruangan. |
+| `internal_id`                        | varchar unique   | ID internal/spasial, contoh `g1-01-01`. Berubah saat mutasi ruangan. |
 | `location_code`                      | varchar          | Kode lokasi/instansi (baris 1 label).                                     |
 | `asset_code`                         | varchar          | Kode barang/klasifikasi (dari kategori).                                  |
 | `register_no`                        | varchar          | Nomor register, unik bersama `asset_code`.                                |
@@ -46,7 +46,6 @@ Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan m
 | `qty_damaged`                        | int              | Unit rusak permanen (tidak dapat dipinjam).                               |
 | `qty_lost`                           | int              | Unit hilang permanen.                                                     |
 | `unit`                               | varchar          | Satuan (`unit`, `lembar`, `botol`, ...).                                  |
-| `min_stock`                          | int nullable     | Ambang notifikasi stok menipis.                                           |
 | `is_high_value`                      | bool             | Wajib approval level 1 + level 2.                                         |
 | `status`                             | enum string      | `BAIK`, `RUSAK_RINGAN`, `RUSAK_BERAT`, `HILANG`, `DIPINJAM`, `DIHAPUS`.   |
 | `photo_path`                         | varchar nullable | Foto publik (`storage/app/public/items`).                                 |

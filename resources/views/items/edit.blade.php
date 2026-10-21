@@ -72,11 +72,6 @@
             </div>
 
             <div>
-                <x-input-label for="min_stock" value="Ambang Stok Menipis" />
-                <x-text-input id="min_stock" name="min_stock" type="number" class="mt-1 block w-full" :value="old('min_stock', $item->min_stock)" />
-            </div>
-
-            <div>
                 <x-input-label for="photo" value="Ganti Foto (opsional)" />
                 <input id="photo" name="photo" type="file" accept="image/*"
                        class="mt-1 block w-full text-sm text-gray-600 file:me-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />

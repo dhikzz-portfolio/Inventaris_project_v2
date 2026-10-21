@@ -32,7 +32,7 @@
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h3 class="font-semibold text-gray-800 text-sm mb-3">Input Manual (ID Internal)</h3>
             <form @submit.prevent="goManual()" class="flex gap-2">
-                <input type="text" x-model="manual" placeholder="Contoh: MEJA-G1-01-01"
+                <input type="text" x-model="manual" placeholder="Contoh: g1-01-01"
                        class="flex-1 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500 font-mono">
                 <button class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Cari</button>
             </form>

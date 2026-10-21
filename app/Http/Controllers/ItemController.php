@@ -68,7 +68,6 @@ class ItemController extends Controller
             'funding_source' => ['required', 'string', 'max:100'],
             'quantity' => ['required', 'integer', 'min:1'],
             'unit' => ['required', 'string', 'max:30'],
-            'min_stock' => ['nullable', 'integer', 'min:0'],
             'is_high_value' => ['nullable', 'boolean'],
             'location_code' => ['required', 'string', 'max:50'],
             'photo' => ['nullable', 'image', 'max:2048'],
@@ -83,7 +82,7 @@ class ItemController extends Controller
             $isWakasek = $request->user()->isApproverLevel2();
 
             $item = Item::create([
-                'internal_id' => IdGenerator::internalId($data['name'], $room->code),
+                'internal_id' => IdGenerator::internalId($room),
                 'location_code' => $data['location_code'],
                 'asset_code' => $register['asset_code'],
                 'register_no' => $register['register_no'],
@@ -95,7 +94,6 @@ class ItemController extends Controller
                 'funding_source' => $data['funding_source'],
                 'quantity' => $data['quantity'],
                 'unit' => $data['unit'],
-                'min_stock' => $data['min_stock'] ?? null,
                 'is_high_value' => $request->boolean('is_high_value'),
                 'status' => ItemStatus::BAIK->value,
                 'photo_path' => $request->hasFile('photo') ? $request->file('photo')->store('items', 'public') : null,
@@ -142,7 +140,6 @@ class ItemController extends Controller
             'acquisition_year' => ['required', 'integer', 'min:1990', 'max:'.(now()->year + 1)],
             'funding_source' => ['required', 'string', 'max:100'],
             'unit' => ['required', 'string', 'max:30'],
-            'min_stock' => ['nullable', 'integer', 'min:0'],
             'is_high_value' => ['nullable', 'boolean'],
             'location_code' => ['required', 'string', 'max:50'],
             'photo' => ['nullable', 'image', 'max:2048'],

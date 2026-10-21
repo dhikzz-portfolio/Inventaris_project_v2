@@ -80,13 +80,6 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
-        $lowStock = $itemsQuery->clone()
-            ->whereNotNull('min_stock')
-            ->whereColumn('quantity', '<=', 'min_stock')
-            ->with('room')
-            ->limit(6)
-            ->get();
-
         $pendingScope = Loan::where('status', LoanStatus::PENDING->value);
         if ($user->isLaboran() && $user->major_id) {
             $pendingScope->whereHas('loanItems.item.room', fn ($q) => $q->where('major_id', $user->major_id));
@@ -95,7 +88,6 @@ class DashboardController extends Controller
         $pendingCount = $pendingScope->count();
         $activeCount = $activeLoans->clone()->count();
         $overdueCount = $activeLoans->clone()->where('due_date', '<', now())->count();
-        $lowStockCount = $itemsQuery->clone()->whereNotNull('min_stock')->whereColumn('quantity', '<=', 'min_stock')->count();
         $damagedCount = (int) $statusCounts->only(['RUSAK_RINGAN', 'RUSAK_BERAT', 'HILANG'])->sum();
 
         return [
@@ -105,7 +97,6 @@ class DashboardController extends Controller
                 ['label' => 'Sedang Dipinjam', 'value' => $activeCount, 'unit' => 'pinjaman', 'icon' => 'swap_horiz', 'color' => 'blue'],
                 ['label' => 'Menunggu Persetujuan', 'value' => $pendingCount, 'unit' => 'request', 'icon' => 'how_to_reg', 'color' => 'amber'],
                 ['label' => 'Terlambat', 'value' => $overdueCount, 'unit' => 'pinjaman', 'icon' => 'alarm', 'color' => 'red'],
-                ['label' => 'Stok Menipis', 'value' => $lowStockCount, 'unit' => 'barang', 'icon' => 'low_priority', 'color' => 'orange'],
                 ['label' => 'Rusak / Hilang', 'value' => $damagedCount, 'unit' => 'barang', 'icon' => 'report_problem', 'color' => 'purple'],
             ],
             'topBorrowed' => $topBorrowed,
@@ -113,7 +104,6 @@ class DashboardController extends Controller
             'loansPerMonth' => $loansPerMonth,
             'statusDistribution' => $statusDistribution,
             'overdue' => $overdue,
-            'lowStock' => $lowStock,
             'recentActivity' => Activity::with(['causer', 'subject'])
                 ->latest()
                 ->limit(8)

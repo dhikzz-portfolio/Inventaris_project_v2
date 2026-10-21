@@ -72,7 +72,7 @@
                 </div>
             </div>
             <p class="text-[11px] text-gray-400 mt-3">
-                QR berisi ID Internal barang (contoh: MEJA-G1-01-01) — dipakai untuk scan peminjaman & stock opname dari HP laboran.
+                QR berisi ID Internal barang (contoh: g1-01-01) — dipakai untuk scan peminjaman & stock opname dari HP laboran.
             </p>
         </div>
     </div>

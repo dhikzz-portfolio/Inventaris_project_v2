@@ -31,7 +31,7 @@ class SecurityAccessTest extends TestCase
         $wakasek = User::where('username', 'wakasek')->firstOrFail();
 
         $room = Room::where('major_id', Major::where('code', 'TKJ')->value('id'))->firstOrFail();
-        $category = Category::where('is_consumable', false)->firstOrFail();
+        $category = Category::firstOrFail();
 
         $item = Item::create([
             'internal_id' => 'SEC-G1-01-01',

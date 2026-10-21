@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\User;
 use App\Services\LabelService;
@@ -74,6 +75,24 @@ class LabelAndQrTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_pratinjau_label_di_detail_barang_mencerminkan_label_cetak(): void
+    {
+        $service = app(LabelService::class);
+        $dataUrl = $service->qrDataUrl($this->item);
+
+        $response = $this->actingAs($this->laboran)->get(route('items.show', $this->item));
+        $response->assertOk();
+
+        // Kode lokasi ditampilkan terpecah dua baris, persis seperti template pdf.label_single.
+        foreach ($service->splitLocationCode((string) $this->item->location_code) as $line) {
+            $response->assertSee($line, false);
+        }
+        // Kode barang + register, QR, dan footer nama instansi ikut tampil.
+        $response->assertSee($this->item->asset_code.'.'.$this->item->register_no, false);
+        $response->assertSee(substr($dataUrl, 0, 60), false);
+        $response->assertSee(InstitutionSetting::current()->institution_name, false);
     }
 
     public function test_scan_resolve_mengarahkan_ke_halaman_detail_barang(): void

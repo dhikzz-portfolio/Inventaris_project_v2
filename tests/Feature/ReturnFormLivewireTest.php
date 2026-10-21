@@ -42,7 +42,7 @@ class ReturnFormLivewireTest extends TestCase
         $this->laboran = User::where('username', 'laboran.tkj')->firstOrFail();
         $this->guru = User::where('username', 'guru.budi')->firstOrFail();
 
-        $category = Category::where('is_consumable', false)->firstOrFail();
+        $category = Category::firstOrFail();
         $rooms = Room::all();
         $this->origRoom = $rooms[0];
         $this->targetRoom = $rooms[1];

@@ -18,7 +18,7 @@ class Item extends Model
     protected $fillable = [
         'internal_id', 'location_code', 'asset_code', 'register_no', 'name',
         'category_id', 'room_id', 'specification', 'acquisition_year',
-        'funding_source', 'quantity', 'qty_damaged', 'qty_lost', 'unit', 'min_stock', 'is_high_value',
+        'funding_source', 'quantity', 'qty_damaged', 'qty_lost', 'unit', 'is_high_value',
         'status', 'photo_path', 'last_label_printed_at',
         'acquisition_status', 'acquisition_requested_by', 'acquisition_approved_by',
         'acquisition_decided_at', 'acquisition_note',
@@ -31,7 +31,6 @@ class Item extends Model
             'quantity' => 'integer',
             'qty_damaged' => 'integer',
             'qty_lost' => 'integer',
-            'min_stock' => 'integer',
             'is_high_value' => 'boolean',
             'status' => ItemStatus::class,
             'last_label_printed_at' => 'datetime',
@@ -193,16 +192,6 @@ class Item extends Model
         }
 
         return implode(' • ', $parts);
-    }
-
-    public function isConsumable(): bool
-    {
-        return (bool) ($this->category?->is_consumable);
-    }
-
-    public function isLowStock(): bool
-    {
-        return $this->min_stock !== null && $this->quantity <= $this->min_stock;
     }
 
     public function isAvailableStatus(): bool

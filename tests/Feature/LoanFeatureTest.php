@@ -42,7 +42,7 @@ class LoanFeatureTest extends TestCase
         $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
         $this->guruSari = User::where('username', 'guru.sari')->firstOrFail();
 
-        $category = Category::where('is_consumable', false)->firstOrFail();
+        $category = Category::firstOrFail();
         $room = Room::firstOrFail();
 
         $this->laptop = Item::create([

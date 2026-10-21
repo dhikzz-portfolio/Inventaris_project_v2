@@ -69,9 +69,6 @@
                         <div>{{ $item->category?->name }} • {{ $item->room?->code }} ({{ $item->room?->name }})</div>
                         <div>
                             Tersedia: <strong>{{ $item->availableQuantity() }}</strong> / {{ $item->quantity }} {{ $item->unit }}
-                            @if ($item->min_stock !== null && $item->quantity <= $item->min_stock)
-                                — ⚠ menipis
-                            @endif
                         </div>
                         @if ($item->qty_damaged > 0 || $item->qty_lost > 0)
                             <div class="text-[10px] text-red-600 font-semibold">

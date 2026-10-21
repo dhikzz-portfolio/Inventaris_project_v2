@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('items', function (Blueprint $table) {
             $table->id();
-            $table->string('internal_id')->unique(); // ID Internal/Spasial, contoh: MEJA-G1-01-01
+            $table->string('internal_id')->unique(); // ID Internal/Spasial (lihat migrasi regenerate_internal_ids_to_new_format)
             $table->string('location_code');         // Standar aset baris 1: Kode Lokasi/Instansi
             $table->string('asset_code');            // Standar aset baris 2: Kode Barang (klasifikasi)
             $table->string('register_no');           // Nomor Register

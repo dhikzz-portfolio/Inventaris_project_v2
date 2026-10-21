@@ -38,7 +38,7 @@
                    :class="menuOpen ? 'translate-x-0' : '-translate-x-full'">
                 <div class="h-16 flex items-center gap-2 px-4 border-b border-slate-800">
                     @if (\App\Models\InstitutionSetting::current()->logo_path)
-                        <img src="{{ asset('storage/'.\App\Models\InstitutionSetting::current()->logo_path) }}" alt="Logo" class="h-9 w-9 object-contain bg-white rounded">
+                        <img src="{{ asset('storage/'.\App\Models\InstitutionSetting::current()->logo_path) }}" alt="Logo" class="h-9 w-9 object-contain rounded">
                     @else
                         <span class="material-icons-round text-amber-400 text-3xl">school</span>
                     @endif

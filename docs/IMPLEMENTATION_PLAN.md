@@ -17,7 +17,7 @@ Legenda status: **NOT STARTED**, **IN PROGRESS**, **IMPLEMENTED**, **VERIFIED**,
 | 7    | Modul peminjaman: keranjang, kalender, approval, serah terima, pembatalan, pengembalian | VERIFIED | 9 tes lifecycle + E2E browser                             |
 | 8    | QR, label satuan/massal, scan, BAST, tanda tangan                                       | VERIFIED | tes label/QR/BAST + PDF dihasilkan                        |
 | 9    | Laporan bulanan PDF/Excel, filter, arsip                                                | VERIFIED | PDF 7 KB, XLSX 5 sheet, tes ekspor                        |
-| 10   | Notifikasi, queue, scheduler, retry, deduplikasi                                        | VERIFIED | tes job overdue/low stock/due soon/laporan                |
+| 10   | Notifikasi, queue, scheduler, retry, deduplikasi                                        | VERIFIED | tes job overdue/due soon/laporan                |
 | 11   | Integrasi end-to-end seluruh modul                                                      | VERIFIED | Playwright: ajukan → setujui → serah → kembali → selesai  |
 | 12   | Testing & bug fixing                                                                    | VERIFIED | 91 lulus, 0 skipped, 407 assertion                        |
 | 13   | Performance & security review                                                           | VERIFIED | pengukuran halaman/pencarian, tes otorisasi & file privat |

@@ -65,7 +65,6 @@ class LoanRequest extends Component
             'room' => $item->room?->code,
             'unit' => $item->unit,
             'is_high_value' => $item->is_high_value,
-            'is_consumable' => $item->isConsumable(),
             'max' => $item->quantity,
             'qty' => 1,
         ];

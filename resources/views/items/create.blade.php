@@ -35,7 +35,7 @@
                     <option value="">— pilih kategori —</option>
                     @foreach ($categories as $category)
                         <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>
-                            {{ $category->name }}{{ $category->is_consumable ? ' (habis pakai)' : '' }}
+                            {{ $category->name }}
                         </option>
                     @endforeach
                 </select>
@@ -79,11 +79,6 @@
             <div>
                 <x-input-label for="unit" value="Satuan *" />
                 <x-text-input id="unit" name="unit" type="text" class="mt-1 block w-full" :value="old('unit', 'unit')" placeholder="unit, pak, lembar..." required />
-            </div>
-
-            <div>
-                <x-input-label for="min_stock" value="Ambang Stok Menipis (opsional)" />
-                <x-text-input id="min_stock" name="min_stock" type="number" min="0" class="mt-1 block w-full" :value="old('min_stock')" placeholder="khusus barang habis pakai" />
             </div>
 
             <div>

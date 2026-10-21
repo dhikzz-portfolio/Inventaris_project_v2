@@ -72,9 +72,6 @@
                             <div><span class="text-gray-400">Ruangan:</span> <strong>{{ $item->room?->name }} ({{ $item->room?->code }}, Lt.{{ $item->room?->floor }})</strong></div>
                             <div><span class="text-gray-400">Jurusan:</span> <strong>{{ $item->room?->major?->name ?: '-' }}</strong></div>
                             <div><span class="text-gray-400">Tersedia:</span> <strong>{{ $item->availableQuantity() }} {{ $item->unit }}</strong></div>
-                            @if ($item->min_stock !== null)
-                                <div><span class="text-gray-400">Min. Stok:</span> <strong class="{{ $item->isLowStock() ? 'text-red-600' : '' }}">{{ $item->min_stock }} {{ $item->unit }} {{ $item->isLowStock() ? '⚠' : '' }}</strong></div>
-                            @endif
                         </div>
                     </div>
                 </div>
@@ -168,20 +165,33 @@
 
         {{-- Kolom kanan --}}
         <div class="space-y-5">
-            {{-- QR & label preview --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 text-center">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3">QR Code Label</h3>
-                <div class="inline-block border-2 border-slate-800 rounded-lg p-3 bg-white">
-                    <div class="flex items-center gap-3">
-                        @if (\App\Models\InstitutionSetting::current()->logo_path)
-                            <img src="{{ asset('storage/'.\App\Models\InstitutionSetting::current()->logo_path) }}" class="h-10 w-10 object-contain" alt="logo">
-                        @endif
-                        <div class="text-left leading-tight">
-                            <div class="text-[9px] font-bold">{{ \App\Models\InstitutionSetting::current()->institution_name }}</div>
-                            <div class="font-mono text-[9px]">{{ $item->location_code }}</div>
-                            <div class="font-mono text-[9px]">{{ $item->asset_code }}.{{ $item->register_no }}</div>
+            {{-- QR & label preview (cerminan dari label cetak pdf.label_single) --}}
+            @php($locationLines = app(\App\Services\LabelService::class)->splitLocationCode((string) $item->location_code))
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 text-center">
+                <h3 class="font-semibold text-gray-800 text-sm mb-3">Pratinjau Label Stiker</h3>
+                <div class="inline-block w-full max-w-[320px] border-2 border-slate-800 rounded-lg p-2.5 bg-white text-left">
+                    <div class="flex items-center gap-2.5">
+                        <div class="shrink-0 w-11 sm:w-14 flex items-center justify-center">
+                            @if (\App\Models\InstitutionSetting::current()->logo_path)
+                                <img src="{{ asset('storage/'.\App\Models\InstitutionSetting::current()->logo_path) }}" class="max-h-12 sm:max-h-14 w-auto object-contain" alt="logo">
+                            @else
+                                <span class="text-[9px] font-bold text-gray-400">LOGO<br>SEKOLAH</span>
+                            @endif
                         </div>
-                        <img src="{{ app(\App\Services\LabelService::class)->qrDataUrl($item) }}" alt="QR" class="h-16 w-16">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-mono font-bold text-gray-900 leading-tight text-[16px] sm:text-[19px] break-words">
+                                @foreach ($locationLines as $locationLine)
+                                    {{ $locationLine }}@unless($loop->last)<br>@endunless
+                                @endforeach
+                            </div>
+                            <div class="font-mono font-bold text-gray-900 leading-tight text-xs sm:text-sm mt-0.5 break-words">
+                                {{ $item->asset_code }}.{{ $item->register_no }}
+                            </div>
+                        </div>
+                        <img src="{{ app(\App\Services\LabelService::class)->qrDataUrl($item) }}" alt="QR" class="shrink-0 h-12 w-12 sm:h-14 sm:w-14">
+                    </div>
+                    <div class="mt-2 border-t border-slate-800 pt-1 text-center text-[9px] sm:text-[10px] font-bold uppercase text-gray-900">
+                        {{ \App\Models\InstitutionSetting::current()->institution_name }}
                     </div>
                 </div>
                 <a href="{{ route('items.label', $item) }}" target="_blank"

@@ -31,7 +31,6 @@ class ReturnForm extends Component
                 'item_name' => $li->item?->name,
                 'internal_id' => $li->item?->internal_id,
                 'unit' => $li->item?->unit,
-                'is_consumable' => $li->item?->isConsumable() ?? false,
                 'room_code' => $li->item?->room?->code,
                 'borrowed' => $li->qty_borrowed,
                 'already_returned' => (int) $li->qty_returned,

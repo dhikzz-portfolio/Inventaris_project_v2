@@ -46,7 +46,7 @@ Aplikasi ini menggantikan pencatatan manual tersebut dengan satu sistem web terp
 - Label QR satuan/massal, re-print, scan kamera + input manual.
 - BAST per peminjaman dan BAST gabungan kegiatan.
 - Laporan bulanan (PDF + Excel 5 sheet), filter kategori/ruangan/jurusan.
-- Notifikasi in-app dan job terjadwal (jatuh tempo, terlambat, stok menipis, laporan bulanan).
+- Notifikasi in-app dan job terjadwal (jatuh tempo, terlambat, laporan bulanan).
 - Tema terang/gelap, bottom navigation mobile, PWA manifest + service worker.
 - Audit log immutable, file internal privat, pengujian otomatis dan dokumentasi.
 
@@ -63,7 +63,6 @@ Aplikasi ini menggantikan pencatatan manual tersebut dengan satu sistem web terp
 - Satu sekolah, banyak gedung/jurusan; tidak multi-tenant.
 - Barang bernilai tinggi ditandai manual (`is_high_value`) dan wajib approval dua level.
 - Kode lokasi/instansi dan kode klasifikasi barang diisi sekolah melalui pengaturan/kategori; aplikasi tidak mengarang kode resmi.
-- Barang habis pakai dicatat sebagai stok (kuantitas + ambang minimum), bukan unit individual.
 - Waktu server menggunakan zona waktu aplikasi (`APP_TIMEZONE`, default `UTC` pada `config/app.php`).
 
 ## 6. Indikator keberhasilan

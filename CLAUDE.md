@@ -8,7 +8,7 @@ Panduan pengerjaan proyek Sistem Manajemen Inventaris & Aset Sekolah SMK berbasi
 - **Bahasa Antarmuka**: Bahasa Indonesia
 - **Kode, Variabel, Tabel, Komentar**: Bahasa Inggris / bilingual sesuai konvensi Laravel
 - **Tech Stack**: PHP 8.3, Laravel 13, Livewire 4, Alpine.js, Tailwind CSS, MySQL/MariaDB (Docker/Prod) / SQLite (Testing), Redis
-- **Arsitektur**: Modular MVC, Service Layer (`LoanService`, `BastService`, `LabelService`, `ReportService`, `IdGenerator`), Form Requests, In-App Notifications (`NotifyApp`), Background Jobs (`CheckOverdueLoans`, `CheckLowStock`, `GenerateMonthlyReport`).
+- **Arsitektur**: Modular MVC, Service Layer (`LoanService`, `BastService`, `LabelService`, `ReportService`, `IdGenerator`), Form Requests, In-App Notifications (`NotifyApp`), Background Jobs (`CheckOverdueLoans`, `CheckDueSoonLoans`, `GenerateMonthlyReport`).
 
 ---
 

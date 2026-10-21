@@ -1,7 +1,6 @@
 <?php
 
 use App\Jobs\CheckDueSoonLoans;
-use App\Jobs\CheckLowStock;
 use App\Jobs\CheckOverdueLoans;
 use App\Jobs\GenerateMonthlyReport;
 use Illuminate\Support\Facades\Schedule;
@@ -15,12 +14,6 @@ Schedule::job(new CheckOverdueLoans)
 // Pengingat tenggat pengembalian H-1.
 Schedule::job(new CheckDueSoonLoans)
     ->dailyAt('07:30')
-    ->withoutOverlapping(60)
-    ->appendOutputTo(storage_path('logs/scheduler.log'));
-
-// Alert stok barang habis pakai menipis.
-Schedule::job(new CheckLowStock)
-    ->dailyAt('07:15')
     ->withoutOverlapping(60)
     ->appendOutputTo(storage_path('logs/scheduler.log'));
 

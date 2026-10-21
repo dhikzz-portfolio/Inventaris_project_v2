@@ -13,6 +13,7 @@ use App\Models\Major;
 use App\Models\Room;
 use App\Models\User;
 use App\Models\WriteOff;
+use App\Services\IdGenerator;
 use App\Services\LoanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -61,7 +62,7 @@ class CriticalBusinessRulesTest extends TestCase
         $this->roomTkj = Room::where('major_id', $majorTkj->id)->firstOrFail();
         $this->roomRpl = Room::where('major_id', $majorRpl->id)->firstOrFail();
 
-        $category = Category::where('is_consumable', false)->firstOrFail();
+        $category = Category::firstOrFail();
 
         $this->highValueItem = Item::create([
             'internal_id' => 'CAM-G1-01-99',
@@ -156,7 +157,7 @@ class CriticalBusinessRulesTest extends TestCase
         $this->normalItem->refresh();
         $this->assertSame($targetRoom->id, $this->normalItem->room_id);
         $this->assertNotSame($oldInternalId, $this->normalItem->internal_id);
-        $this->assertStringContainsString($targetRoom->code, $this->normalItem->internal_id);
+        $this->assertStringStartsWith(IdGenerator::roomPrefix($targetRoom), $this->normalItem->internal_id);
     }
 
     /**

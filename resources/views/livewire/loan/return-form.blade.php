@@ -59,11 +59,7 @@
                             @if ($short > 0)
                                 <p class="text-[11px] text-red-600 font-semibold mt-1">
                                     ⚠ Selisih {{ $short }} {{ $row['unit'] }} —
-                                    @if ($row['is_consumable'])
-                                        dihitung terpakai (barang habis pakai)
-                                    @else
-                                        dicatat sebagai <strong>HILANG sementara</strong>; dapat dikembalikan menyusul atau ditutup oleh Wakasek
-                                    @endif
+                                    dicatat sebagai <strong>HILANG sementara</strong>; dapat dikembalikan menyusul atau ditutup oleh Wakasek
                                 </p>
                             @elseif ($row['already_returned'] > 0)
                                 <p class="text-[11px] text-gray-400 mt-1">Sisa unit akan kembali seluruhnya.</p>

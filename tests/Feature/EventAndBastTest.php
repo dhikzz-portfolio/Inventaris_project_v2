@@ -36,7 +36,7 @@ class EventAndBastTest extends TestCase
         $this->admin = User::where('username', 'admin.sarpras')->firstOrFail();
         $this->guru = User::where('username', 'guru.budi')->firstOrFail();
 
-        $category = Category::where('is_consumable', false)->firstOrFail();
+        $category = Category::firstOrFail();
         $room = Room::firstOrFail();
 
         $this->item = Item::create([

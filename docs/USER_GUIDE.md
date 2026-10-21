@@ -104,7 +104,7 @@ Status selalu disertai teks, tidak hanya warna. Angka **Tersedia** di katalog di
 
 ## 8. Notifikasi
 
-Ikon lonceng menampilkan notifikasi: pengajuan baru, persetujuan/penolakan, kebutuhan approval level 2, pengingat jatuh tempo, keterlambatan, stok menipis, kerusakan, dan selisih pengembalian. Klik notifikasi untuk membuka tautan terkait; **Tandai semua dibaca** tersedia di halaman notifikasi.
+Ikon lonceng menampilkan notifikasi: pengajuan baru, persetujuan/penolakan, kebutuhan approval level 2, pengingat jatuh tempo, keterlambatan, kerusakan, dan selisih pengembalian. Klik notifikasi untuk membuka tautan terkait; **Tandai semua dibaca** tersedia di halaman notifikasi.
 
 Notifikasi dihasilkan oleh queue worker. Jika tidak muncul, pastikan worker berjalan (lihat `INSTALLATION.md`).
 

@@ -67,7 +67,6 @@ class MasterDataTest extends TestCase
         $this->actingAs($this->admin)->post(route('masters.store-category'), [
             'name' => 'Perangkat Jaringan Nirkabel',
             'code' => '01.01.11.05.01',
-            'is_consumable' => false,
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('categories', ['name' => 'Perangkat Jaringan Nirkabel', 'code' => '01.01.11.05.01']);
     }

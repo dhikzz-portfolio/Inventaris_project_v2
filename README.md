@@ -22,7 +22,7 @@ Dibangun dengan **Laravel 13 + Livewire 4 + Blade + Alpine.js (bawaan Livewire) 
 - **Label stiker** satuan & massal (PDF), preview, dan re-print.
 - **Surat Peminjaman / BAST** PDF per pinjaman dan gabungan kegiatan.
 - **Laporan bulanan** PDF + **Excel 5 sheet**, filter sekolah/kategori/ruangan/jurusan, arsip snapshot.
-- **Notifikasi in-app** + job terjadwal (jatuh tempo, terlambat, stok menipis, laporan bulanan) dengan retry & deduplikasi.
+- **Notifikasi in-app** + job terjadwal (jatuh tempo, terlambat, laporan bulanan) dengan retry & deduplikasi.
 - **Keamanan**: CSRF, rate limit login, otorisasi route + query + cakupan jurusan, file internal privat, upload tervalidasi, audit log immutable.
 - **UI mobile-first**: bottom navigation, target sentuh besar, tema terang/gelap, PWA manifest.
 

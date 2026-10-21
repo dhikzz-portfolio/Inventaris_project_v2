@@ -10,12 +10,7 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'code', 'is_consumable'];
-
-    protected function casts(): array
-    {
-        return ['is_consumable' => 'boolean'];
-    }
+    protected $fillable = ['name', 'code'];
 
     public function items(): HasMany
     {

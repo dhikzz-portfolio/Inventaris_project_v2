@@ -120,11 +120,7 @@
                     <li class="border-b border-dashed border-gray-100 pb-1.5">
                         <details>
                             <summary class="flex items-center justify-between cursor-pointer list-none">
-                                <span class="text-gray-700">{{ $category->name }}
-                                    @if ($category->is_consumable)
-                                        <span class="text-[10px] bg-teal-50 text-teal-700 rounded px-1.5 py-0.5 font-bold">HABIS PAKAI</span>
-                                    @endif
-                                </span>
+                                <span class="text-gray-700">{{ $category->name }}</span>
                                 <span class="text-[11px] text-gray-400 font-mono">{{ $category->code ?: '—' }} • {{ $category->items_count }} brg</span>
                             </summary>
                             <form method="POST" action="{{ route('masters.update-category', $category) }}" class="mt-2 space-y-1">
@@ -132,9 +128,6 @@
                                 <input type="text" name="name" value="{{ $category->name }}" class="w-full rounded border-gray-300 text-xs" required>
                                 <div class="flex gap-1 items-center">
                                     <input type="text" name="code" value="{{ $category->code }}" class="flex-1 rounded border-gray-300 text-xs" placeholder="Kode">
-                                    <label class="flex items-center gap-1 text-[10px] text-gray-600">
-                                        <input type="checkbox" name="is_consumable" value="1" @checked($category->is_consumable) class="rounded border-gray-300 text-amber-600"> Habis pakai
-                                    </label>
                                     <button class="px-2 py-1 rounded bg-slate-800 text-white text-xs font-semibold">Simpan</button>
                                 </div>
                             </form>
@@ -150,9 +143,6 @@
                 @csrf
                 <input type="text" name="name" placeholder="Nama kategori *" class="w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" required>
                 <input type="text" name="code" placeholder="Kode klasifikasi aset (01.01.11.04.01)" class="w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
-                <label class="flex items-center gap-2 text-xs text-gray-600">
-                    <input type="checkbox" name="is_consumable" value="1" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"> Barang habis pakai (stok menipis)
-                </label>
                 <button class="w-full rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Tambah Kategori</button>
             </form>
         </div>

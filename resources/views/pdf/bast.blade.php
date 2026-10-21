@@ -3,7 +3,9 @@
 <head>
     <meta charset="utf-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @page { margin: 36pt 45pt; }
+        * { box-sizing: border-box; }
+        body { margin: 0; }
         body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #111; }
         .kop { width: 100%; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
         .kop td { vertical-align: middle; }
@@ -44,7 +46,7 @@
     </table>
 
     <div class="judul">{{ $title }}</div>
-    <div class="nomor">Nomor: BAST/{{ $loan->id }}/{{ now()->format('m/Y') }}</div>
+    <div class="nomor">Nomor: {{ $documentNumber }}</div>
 
     <table class="info">
         <tr><td>Nama Kegiatan</td><td>: {{ $loan->event?->name ?: '— (peminjaman rutin)' }}</td></tr>
@@ -82,7 +84,7 @@
     </table>
 
     <div class="catatan">
-        Demikian Berita Acara Serah Terima barang ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.
+        {{ $loan->event_id ? 'Demikian Berita Acara Serah Terima barang ini' : 'Demikian Surat Peminjaman barang ini' }} dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.
         Barang yang tidak dikembalikan sesuai jumlah/kondisi akan tercatat dalam sistem (selisih berflag Hilang, kerusakan dengan foto bukti).
     </div>
 
@@ -126,7 +128,7 @@
 
     <div class="footer">
         Dokumen digenerate otomatis oleh Sistem Manajemen Inventaris &amp; Aset Sekolah — {{ $setting->institution_name }}<br>
-        Diterbitkan oleh: {{ $loan->handoverOfficer?->name ?? $loan->approvals->last()?->approver?->name ?? 'Sistem' }} • {{ now()->format('d M Y H:i') }} • Ref: BAST/{{ $loan->id }}/{{ now()->format('m/Y') }}
+        Diterbitkan oleh: {{ $loan->handoverOfficer?->name ?? $loan->approvals->last()?->approver?->name ?? 'Sistem' }} • {{ now()->format('d M Y H:i') }} • Ref: {{ $documentNumber }}
     </div>
 </body>
 </html>

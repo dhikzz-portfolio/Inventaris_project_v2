@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ItemStatus;
+use App\Enums\LoanStatus;
 use App\Exports\MonthlyReportExport;
 use App\Models\Category;
 use App\Models\InstitutionSetting;
@@ -108,7 +109,12 @@ class ReportService
                     + $loansInPeriod->where('status', 'SELESAI')->count(),
                 'selesai' => $loansInPeriod->where('status', 'SELESAI')->count(),
                 'ditolak' => $loansInPeriod->where('status', 'DITOLAK')->count(),
-                'terlambat' => $loansInPeriod->filter(fn ($l) => $l->isOverdue() || $l->due_date->lt($l->returned_at ?? now()))->count(),
+                // Hanya pinjaman yang benar-benar disetujui/berjalan atau selesai yang bisa terlambat.
+                'terlambat' => $loansInPeriod->filter(fn (Loan $loan) => match ($loan->status) {
+                    LoanStatus::SELESAI => $loan->returned_at !== null && $loan->due_date->lt($loan->returned_at),
+                    LoanStatus::APPROVED, LoanStatus::DIPINJAM => $loan->isOverdue(),
+                    default => false,
+                })->count(),
                 'kerusakan' => $damageRows->count(),
                 'mutasi' => $movements->count(),
                 'penghapusan' => $writeOffs->count(),

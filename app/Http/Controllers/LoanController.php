@@ -304,6 +304,10 @@ class LoanController extends Controller
         // Selalu generate ulang agar BAST memuat tanda tangan/approval terbaru.
         $path = app(BastService::class)->generateForLoan($loan);
 
-        return \Storage::disk('local')->download($path, 'BAST-Peminjaman-'.$loan->id.'.pdf');
+        $filename = $loan->event_id
+            ? 'BAST-'.$loan->id.'.pdf'
+            : 'Surat-Peminjaman-'.$loan->id.'.pdf';
+
+        return \Storage::disk('local')->download($path, $filename);
     }
 }

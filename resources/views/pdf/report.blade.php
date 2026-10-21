@@ -3,8 +3,9 @@
 <head>
     <meta charset="utf-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #111; }
+        @page { margin: 30pt 36pt; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #111; }
         .kop { width: 100%; border-bottom: 3px solid #000; padding-bottom: 6px; margin-bottom: 12px; }
         .kop img { max-width: 56px; max-height: 56px; }
         .kop .instansi { font-size: 12pt; font-weight: bold; text-transform: uppercase; }

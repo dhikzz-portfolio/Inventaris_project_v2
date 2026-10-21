@@ -3,42 +3,36 @@
 <head>
     <meta charset="utf-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Helvetica, Arial, sans-serif; }
+        @page { margin: 0; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 2pt; font-family: Helvetica, Arial, sans-serif; }
+        /* width/height = content box; padding+border (14pt x 10pt) melengkapi 256x116pt */
         .label {
-            width: 256pt; height: 116pt;
+            width: 242pt; height: 106pt;
             border: 2pt solid #000;
             border-radius: 4pt;
-            display: table;
+            padding: 3pt 5pt;
         }
-        .logo-cell {
-            display: table-cell;
-            width: 62pt;
-            border-right: 1pt solid #999;
-            text-align: center;
-            vertical-align: middle;
-            padding: 4pt;
-        }
-        .logo-cell img { max-width: 52pt; max-height: 52pt; }
+        .head { height: 86pt; }
+        table.inner { width: 100%; border-collapse: collapse; }
+        table.inner td { vertical-align: top; padding: 0; }
+        .logo-cell { width: 48pt; text-align: center; vertical-align: middle; }
+        .logo-cell img { max-width: 44pt; max-height: 44pt; }
         .logo-fallback { font-size: 7pt; font-weight: bold; color: #333; }
-        .content-cell { display: table-cell; vertical-align: top; padding: 5pt 6pt 0 6pt; position: relative; }
-        .inner { display: table; width: 100%; }
-        .inner .codes { display: table-cell; vertical-align: top; }
-        .inner .qr { display: table-cell; width: 62pt; text-align: right; vertical-align: top; }
-        .inner .qr img { width: 56pt; height: 56pt; }
+        .codes { padding-left: 4pt !important; }
         .kode-lokasi {
             font-family: 'Courier New', monospace;
-            font-size: 14pt; font-weight: bold; letter-spacing: 0.5pt;
-            line-height: 1.1;
+            font-size: 14pt; font-weight: bold; line-height: 1.1;
         }
         .kode-barang {
             font-family: 'Courier New', monospace;
-            font-size: 11pt; font-weight: bold; letter-spacing: 0.4pt;
+            font-size: 11pt; font-weight: bold; line-height: 1.1;
             margin-top: 3pt;
         }
+        .qr-cell { width: 46pt; text-align: right; }
+        .qr-cell img { width: 42pt; height: 42pt; }
         .footer {
-            position: absolute;
-            left: 6pt; right: 6pt; bottom: 4pt;
+            margin-top: 5pt;
             border-top: 1pt solid #000;
             padding-top: 2pt;
             font-size: 7.5pt; font-weight: bold; text-align: center;
@@ -48,28 +42,30 @@
 </head>
 <body>
     <div class="label">
-        <div class="logo-cell">
-            @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
-                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
-            @else
-                <div class="logo-fallback">LOGO<br>SEKOLAH</div>
-            @endif
+        <div class="head">
+            <table class="inner">
+                <tr>
+                    <td width="48" class="logo-cell">
+                        @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
+                        @else
+                            <div class="logo-fallback">LOGO<br>SEKOLAH</div>
+                        @endif
+                    </td>
+                    <td class="codes">
+                        {{-- Kanan Atas: deret angka Kode Lokasi/Instansi (maks. 2 baris) --}}
+                        <div class="kode-lokasi">{!! implode('<br>', array_map('e', $locationLines)) !!}</div>
+                        {{-- Kanan Bawah: Kode Klasifikasi Barang + Nomor Urut Registrasi --}}
+                        <div class="kode-barang">{{ $item->asset_code }}.{{ $item->register_no }}</div>
+                    </td>
+                    <td width="46" class="qr-cell">
+                        <img src="{{ $qr }}" alt="QR">
+                    </td>
+                </tr>
+            </table>
         </div>
-        <div class="content-cell">
-            <div class="inner">
-                <div class="codes">
-                    {{-- Kanan Atas: deret angka Kode Lokasi/Instansi --}}
-                    <div class="kode-lokasi">{{ $item->location_code }}</div>
-                    {{-- Kanan Bawah: Kode Klasifikasi Barang + Nomor Urut Registrasi --}}
-                    <div class="kode-barang">{{ $item->asset_code }}.{{ $item->register_no }}</div>
-                </div>
-                <div class="qr">
-                    <img src="{{ $qr }}" alt="QR">
-                </div>
-            </div>
-            {{-- Footer: nama instansi --}}
-            <div class="footer">{{ $setting->institution_name }}</div>
-        </div>
+        {{-- Footer: nama instansi, mengalir normal agar tidak menabrak border --}}
+        <div class="footer">{{ $setting->institution_name }}</div>
     </div>
 </body>
 </html>

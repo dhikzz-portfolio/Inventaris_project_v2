@@ -1,43 +1,43 @@
 <div>
     {{-- Toolbar pencarian & filter --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-5">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div class="md:col-span-2 relative">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="relative col-span-full">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                 <input type="text" wire:model.live.debounce.400ms="search"
                        placeholder="Cari nama, ID internal, kode aset, register..."
                        class="w-full pl-10 pr-3 py-2.5 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
             </div>
-            <select wire:model.live="status" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+            <select wire:model.live="status" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
                 <option value="">Semua Status</option>
                 @foreach ($statuses as $s)
                     <option value="{{ $s->value }}">{{ $s->label() }}</option>
                 @endforeach
             </select>
-            <div class="flex flex-col sm:flex-row gap-2">
-                <select wire:model.live="category" class="flex-1 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
-                    <option value="">Semua Kategori</option>
-                    @foreach ($categories as $c)
-                        <option value="{{ $c->id }}">{{ $c->name }}</option>
-                    @endforeach
-                </select>
-                <select wire:model.live="room" class="flex-1 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
-                    <option value="">Semua Ruangan</option>
-                    @foreach ($rooms as $r)
-                        <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
-                    @endforeach
-                </select>
+            <select wire:model.live="category" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                <option value="">Semua Kategori</option>
+                @foreach ($categories as $c)
+                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                @endforeach
+            </select>
+            <select wire:model.live="room" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                <option value="">Semua Ruangan</option>
+                @foreach ($rooms as $r)
+                    <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+            <div class="flex items-center gap-2">
+                <span>{{ $items->total() }} barang ditemukan</span>
                 @if ($activeFilters > 0)
                     <button wire:click="resetFilters" title="Reset filter"
-                            class="w-full sm:w-auto px-3 py-2.5 sm:py-0 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600">
-                        <span class="material-icons-round text-lg">filter_alt_off</span>
+                            class="inline-flex items-center gap-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1">
+                        <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
                     </button>
                 @endif
             </div>
-        </div>
-
-        <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
-            <span>{{ $items->total() }} barang ditemukan</span>
             @if (\Illuminate\Support\Facades\Auth::user()->managesInventory())
                 <a href="{{ route('items.create') }}" class="inline-flex items-center gap-1 text-amber-700 font-semibold hover:underline">
                     <span class="material-icons-round text-base">add_box</span> Tambah Barang (Pengadaan)

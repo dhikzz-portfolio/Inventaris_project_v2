@@ -59,6 +59,37 @@ class LabelService
     }
 
     /**
+     * Pecah kode lokasi panjang menjadi (maksimal) dua baris agar muat di label.
+     *
+     * Pemecahan dilakukan pada titik terdekat dari tengah kode, misalnya
+     * `12.24.13.08.01.07.01.01` menjadi `['12.24.13.08', '01.07.01.01']`.
+     *
+     * @return list<string>
+     */
+    public function splitLocationCode(string $code): array
+    {
+        $code = trim($code);
+
+        if ($code === '' || ! str_contains($code, '.')) {
+            return [$code];
+        }
+
+        $groups = explode('.', $code);
+        $groupCount = count($groups);
+
+        if ($groupCount < 2) {
+            return [$code];
+        }
+
+        $splitAt = max(1, min($groupCount - 1, (int) round($groupCount / 2)));
+
+        return [
+            implode('.', array_slice($groups, 0, $splitAt)),
+            implode('.', array_slice($groups, $splitAt)),
+        ];
+    }
+
+    /**
      * Cetak label satuan — dipanggil ulang (re-print) dari halaman detail barang.
      */
     public function printSingle(Item $item): \Barryvdh\DomPDF\PDF
@@ -76,6 +107,7 @@ class LabelService
             'item' => $item,
             'setting' => $setting,
             'qr' => $this->qrDataUrl($item),
+            'locationLines' => $this->splitLocationCode((string) $item->location_code),
         ])->setPaper([0, 0, 260, 120], 'pt');
     }
 
@@ -96,8 +128,10 @@ class LabelService
         Item::whereIn('id', $items->pluck('id'))->update(['last_label_printed_at' => now()]);
 
         $qrMap = [];
+        $locationLinesMap = [];
         foreach ($items as $item) {
             $qrMap[$item->id] = $this->qrDataUrl($item);
+            $locationLinesMap[$item->id] = $this->splitLocationCode((string) $item->location_code);
         }
 
         activity('label')
@@ -107,6 +141,7 @@ class LabelService
             'items' => $items,
             'setting' => $setting,
             'qrMap' => $qrMap,
+            'locationLinesMap' => $locationLinesMap,
         ])->setPaper('a4');
     }
 }

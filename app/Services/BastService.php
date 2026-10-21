@@ -2,13 +2,27 @@
 
 namespace App\Services;
 
+use App\Enums\LoanStatus;
 use App\Models\Event;
 use App\Models\InstitutionSetting;
 use App\Models\Loan;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Collection;
 
 class BastService
 {
+    /** Nomor dokumen: SP untuk peminjaman rutin, BAST untuk kegiatan. */
+    public function documentNumber(Loan $loan): string
+    {
+        return sprintf('%s/%d/%s', $loan->event_id ? 'BAST' : 'SP', $loan->id, now()->format('m/Y'));
+    }
+
+    /** Judul dokumen yang sesuai dengan jenis peminjaman. */
+    public function documentTitle(Loan $loan): string
+    {
+        return $loan->event_id ? 'BERITA ACARA SERAH TERIMA (BAST)' : 'SURAT PEMINJAMAN BARANG';
+    }
+
     /**
      * Generate PDF Surat Peminjaman Resmi / BAST untuk satu peminjaman,
      * simpan ke storage dan simpan path-nya di loan.
@@ -24,7 +38,8 @@ class BastService
         $pdf = Pdf::loadView('pdf.bast', [
             'loan' => $loan,
             'setting' => $setting,
-            'title' => $loan->event_id ? 'BERITA ACARA SERAH TERIMA (BAST)' : 'SURAT PEMINJAMAN BARANG',
+            'title' => $this->documentTitle($loan),
+            'documentNumber' => $this->documentNumber($loan),
         ])->setPaper('a4');
 
         \Storage::disk('local')->put($path, $pdf->output());
@@ -44,15 +59,30 @@ class BastService
     }
 
     /**
+     * Peminjaman yang sah dimuat pada BAST gabungan kegiatan.
+     *
+     * Status DIBATALKAN/DITOLAK selalu dikecualikan, sekalipun loan tersebut
+     * pernah dibuatkan BAST sebelum dibatalkan.
+     *
+     * @return Collection<int, Loan>
+     */
+    public function loansForEvent(Event $event): Collection
+    {
+        $event->load(['loans.loanItems.item.category', 'loans.borrower', 'loans.approvals.approver']);
+
+        return $event->loans
+            ->reject(fn (Loan $loan) => in_array($loan->status, [LoanStatus::DIBATALKAN, LoanStatus::DITOLAK], true))
+            ->filter(fn (Loan $loan) => $loan->bast_path !== null
+                || in_array($loan->status, [LoanStatus::APPROVED, LoanStatus::DIPINJAM, LoanStatus::SELESAI], true))
+            ->values();
+    }
+
+    /**
      * Generate satu BAST gabungan untuk seluruh peminjaman dalam satu kegiatan.
      */
     public function generateForEvent(Event $event): ?string
     {
-        $event->load(['loans.loanItems.item.category', 'loans.borrower', 'loans.approvals.approver']);
-
-        $activeLoans = $event->loans->filter(
-            fn (Loan $loan) => $loan->bast_path !== null || in_array($loan->status->value, ['APPROVED', 'DIPINJAM', 'SELESAI'], true)
-        );
+        $activeLoans = $this->loansForEvent($event);
 
         if ($activeLoans->isEmpty()) {
             return null;
@@ -64,7 +94,7 @@ class BastService
 
         $pdf = Pdf::loadView('pdf.bast_event', [
             'event' => $event,
-            'loans' => $activeLoans->values(),
+            'loans' => $activeLoans,
             'setting' => $setting,
         ])->setPaper('a4', 'landscape');
 

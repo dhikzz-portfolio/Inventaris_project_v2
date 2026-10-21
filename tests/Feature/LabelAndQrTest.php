@@ -39,6 +39,18 @@ class LabelAndQrTest extends TestCase
         $this->assertSame("\x89PNG\r\n\x1a\n", substr($binary, 0, 8));
     }
 
+    public function test_split_location_code_memecah_kode_panjang_menjadi_dua_baris(): void
+    {
+        $service = app(LabelService::class);
+
+        $this->assertSame(
+            ['12.24.13.08', '01.07.01.01'],
+            $service->splitLocationCode('12.24.13.08.01.07.01.01')
+        );
+        $this->assertSame(['12.24', '13.08'], $service->splitLocationCode('12.24.13.08'));
+        $this->assertSame(['LOKASI-A'], $service->splitLocationCode('LOKASI-A'));
+    }
+
     public function test_cetak_label_satuan_menghasilkan_pdf(): void
     {
         $response = $this->actingAs($this->laboran)

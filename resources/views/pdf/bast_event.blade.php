@@ -3,8 +3,9 @@
 <head>
     <meta charset="utf-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #111; }
+        @page { margin: 30pt 36pt; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #111; }
         .kop { width: 100%; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
         .kop img { max-width: 64px; max-height: 64px; }
         .kop .instansi { font-size: 13pt; font-weight: bold; text-transform: uppercase; }
@@ -24,6 +25,9 @@
         .ttd img { max-height: 50px; max-width: 140px; }
         .ttd .nama { font-weight: bold; margin-top: 6px; }
         .footer { margin-top: 16px; font-size: 8pt; color: #555; border-top: 1px solid #ccc; padding-top: 5px; }
+        .loan-section { page-break-inside: avoid; }
+        table.data tr { page-break-inside: avoid; }
+        .ttd { page-break-inside: avoid; }
     </style>
 </head>
 <body>
@@ -56,6 +60,7 @@
     </table>
 
     @foreach ($loans as $loan)
+    <div class="loan-section">
         <h3 class="bagian">Peminjaman #{{ $loan->id }} — {{ $loan->borrower?->name }} ({{ $loan->borrower?->username }})</h3>
         <table class="data">
             <thead>
@@ -81,6 +86,7 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
     @endforeach
 
     <table class="ttd">

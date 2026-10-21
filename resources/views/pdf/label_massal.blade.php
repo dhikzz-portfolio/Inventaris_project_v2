@@ -3,69 +3,78 @@
 <head>
     <meta charset="utf-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Helvetica, Arial, sans-serif; }
+        @page { margin: 8mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Helvetica, Arial, sans-serif; }
         table.grid { width: 100%; border-collapse: collapse; }
-        table.grid td { width: 33.33%; padding: 4pt; vertical-align: top; }
+        table.grid td { width: 50%; padding: 4pt; vertical-align: top; }
+        table.grid tr { page-break-inside: avoid; }
 
+        /* width/height = content box; padding+border (14pt x 10pt) muat di sel 50% A4 */
         .label {
-            width: 100%; height: 104pt;
+            width: 252pt; height: 90pt;
             border: 2pt solid #000;
             border-radius: 4pt;
-            display: table;
+            padding: 3pt 5pt;
             page-break-inside: avoid;
         }
-        .logo-cell {
-            display: table-cell; width: 54pt;
-            border-right: 1pt solid #999;
-            text-align: center; vertical-align: middle; padding: 4pt;
-        }
-        .logo-cell img { max-width: 46pt; max-height: 46pt; }
+        .head { height: 70pt; }
+        table.inner { width: 100%; border-collapse: collapse; }
+        table.inner td { vertical-align: top; padding: 0; }
+        .logo-cell { width: 48pt; text-align: center; vertical-align: middle; }
+        .logo-cell img { max-width: 42pt; max-height: 42pt; }
         .logo-fallback { font-size: 6pt; font-weight: bold; color: #333; }
-        .content-cell { display: table-cell; vertical-align: top; padding: 5pt 5pt 0 5pt; position: relative; }
-        .inner { display: table; width: 100%; }
-        .inner .codes { display: table-cell; vertical-align: top; }
-        .inner .qr { display: table-cell; width: 52pt; text-align: right; vertical-align: top; }
-        .inner .qr img { width: 48pt; height: 48pt; }
-        .kode-lokasi { font-family: 'Courier New', monospace; font-size: 11.5pt; font-weight: bold; line-height: 1.1; }
-        .kode-barang { font-family: 'Courier New', monospace; font-size: 9pt; font-weight: bold; margin-top: 2pt; }
+        .codes { padding-left: 4pt !important; }
+        .kode-lokasi {
+            font-family: 'Courier New', monospace;
+            font-size: 13pt; font-weight: bold; line-height: 1.1;
+        }
+        .kode-barang {
+            font-family: 'Courier New', monospace;
+            font-size: 9pt; font-weight: bold; line-height: 1.1;
+            margin-top: 2pt;
+        }
+        .qr-cell { width: 46pt; text-align: right; }
+        .qr-cell img { width: 40pt; height: 40pt; }
         .footer {
-            position: absolute; left: 5pt; right: 5pt; bottom: 3pt;
+            margin-top: 5pt;
             border-top: 1pt solid #000; padding-top: 2pt;
-            font-size: 6.5pt; font-weight: bold; text-align: center; text-transform: uppercase;
+            font-size: 7pt; font-weight: bold; text-align: center; text-transform: uppercase;
         }
     </style>
 </head>
 <body>
     <table class="grid">
-        @foreach ($items->chunk(3) as $row)
+        @foreach ($items->chunk(2) as $row)
             <tr>
                 @foreach ($row as $item)
                     <td>
                         <div class="label">
-                            <div class="logo-cell">
-                                @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
-                                @else
-                                    <div class="logo-fallback">LOGO<br>SEKOLAH</div>
-                                @endif
+                            <div class="head">
+                                <table class="inner">
+                                    <tr>
+                                        <td width="48" class="logo-cell">
+                                            @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
+                                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
+                                            @else
+                                                <div class="logo-fallback">LOGO<br>SEKOLAH</div>
+                                            @endif
+                                        </td>
+                                        <td class="codes">
+                                            <div class="kode-lokasi">{!! implode('<br>', array_map('e', $locationLinesMap[$item->id] ?? [$item->location_code])) !!}</div>
+                                            <div class="kode-barang">{{ $item->asset_code }}.{{ $item->register_no }}</div>
+                                        </td>
+                                        <td width="46" class="qr-cell">
+                                            <img src="{{ $qrMap[$item->id] }}" alt="QR">
+                                        </td>
+                                    </tr>
+                                </table>
                             </div>
-                            <div class="content-cell">
-                                <div class="inner">
-                                    <div class="codes">
-                                        <div class="kode-lokasi">{{ $item->location_code }}</div>
-                                        <div class="kode-barang">{{ $item->asset_code }}.{{ $item->register_no }}</div>
-                                    </div>
-                                    <div class="qr">
-                                        <img src="{{ $qrMap[$item->id] }}" alt="QR">
-                                    </div>
-                                </div>
-                                <div class="footer">{{ $setting->institution_name }}</div>
-                            </div>
+                            <div class="footer">{{ $setting->institution_name }}</div>
                         </div>
                     </td>
                 @endforeach
-                @for ($i = 0; $i < (3 - $row->count()); $i++)
+                @for ($i = 0; $i < (2 - $row->count()); $i++)
                     <td></td>
                 @endfor
             </tr>

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+<<<<<<< HEAD
 @plugin "@tailwindcss/forms";
 
 @source "../views/**/*.blade.php";
@@ -9,6 +10,26 @@
 
 @theme {
     --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+=======
+
+@plugin "@tailwindcss/forms";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-brand-50: #eff7ff;
+    --color-brand-100: #dbeeff;
+    --color-brand-200: #bfe2ff;
+    --color-brand-300: #93ceff;
+    --color-brand-400: #5eaef5;
+    --color-brand-500: #2f8bdc;
+    --color-brand-600: #1f6fba;
+    --color-brand-700: #1a5b99;
+    --color-brand-800: #1a4c7d;
+    --color-brand-900: #1a416a;
+
+    --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+>>>>>>> 16aa8e7b592b3bb9cdd4754a53909110f157b6b1
 }
 
 @layer base {
@@ -40,6 +61,30 @@
 
     .safe-area-top {
         padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    /* Entrance animation for login form */
+    @keyframes slide-up {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-slide-up {
+        animation: slide-up 0.5s ease-out forwards;
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+        .animate-slide-up {
+            animation: none;
+            opacity: 1;
+        }
     }
 }
 

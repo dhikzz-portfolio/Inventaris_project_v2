@@ -1,46 +1,57 @@
-<x-guest-layout>
-    <div class="mb-6 text-center">
-        <h1 class="text-xl font-bold text-gray-800">Sistem Manajemen Inventaris &amp; Aset Sekolah</h1>
-        <p class="text-sm text-gray-500 mt-1">Masuk menggunakan akun yang diberikan administrator</p>
-    </div>
+@php
+    $usernameErrors = collect($errors->get('username'))
+        ->map(fn (string $message) => $message === 'auth.failed'
+            ? 'NIP/username atau kata sandi tidak sesuai.'
+            : $message)
+        ->all();
+@endphp
 
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+<x-guest-layout
+    heading="Selamat datang kembali"
+    subheading="Masuk untuk mengelola inventaris dan aset sekolah."
+    pageTitle="Masuk"
+>
+    <x-auth-session-status class="mb-5" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}">
+    <form method="POST" action="{{ route('login') }}" class="space-y-4 sm:space-y-5" data-auth-form>
         @csrf
 
-        <!-- Username -->
-        <div>
-            <x-input-label for="username" :value="__('Username')" />
-            <x-text-input id="username" class="block mt-1 w-full" type="text" name="username" :value="old('username')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('username')" class="mt-2" />
-        </div>
+        <x-auth-input
+            id="username"
+            label="Username"
+            type="text"
+            :value="old('username')"
+            placeholder="Masukkan username atau NIP"
+            autocomplete="username"
+            autofocus
+            icon="person"
+            :error="$usernameErrors[0] ?? null"
+        />
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+        <x-auth-input
+            id="password"
+            label="Kata sandi"
+            type="password"
+            placeholder="Masukkan kata sandi"
+            autocomplete="current-password"
+            toggleable
+            icon="lock"
+        />
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+        <label for="remember_me" class="inline-flex items-center gap-2.5 text-sm text-slate-600 sm:gap-3 sm:text-base">
+            <input
+                id="remember_me"
+                name="remember"
+                type="checkbox"
+                class="h-5 w-5 rounded border-slate-300 text-brand-600 shadow-sm focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+            >
+            <span class="select-none">Ingat saya</span>
+        </label>
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Ingat saya') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-6">
-            <x-primary-button class="ms-3 w-full justify-center">
-                {{ __('Masuk') }}
-            </x-primary-button>
-        </div>
+        <x-auth-button label="Masuk" />
     </form>
+
+    <p class="mt-5 text-center text-xs leading-relaxed text-slate-400">
+        Gunakan akun sekolah Anda. Hubungi administrator jika mengalami kendala masuk.
+    </p>
 </x-guest-layout>

@@ -126,6 +126,13 @@ Detail: [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Status
 
+<<<<<<< HEAD
 **Modul inti + revisi 2.1 (katalog + unit fisik, kode `G1-02-12`): IMPLEMENTED & VERIFIED** di lingkungan lokal (124 tes, build frontend, verifikasi browser desktop/mobile dan tema gelap).
 **Belum dikerjakan**: penugasan unit fisik pada peminjaman, penghapusan per unit, dan konfirmasi pemetaan gedung produksi — lihat `docs/KNOWN_ISSUES.md` serta `docs/IMPLEMENTATION_PLAN.md`.
 **Belum dideploy** ke server produksi — lihat `docs/DEPLOYMENT.md`.
+=======
+**IMPLEMENTED & VERIFIED** untuk seluruh modul inti di lingkungan lokal.
+**Belum dideploy** ke server produksi — lihat `docs/DEPLOYMENT.md` dan `docs/KNOWN_ISSUES.md` untuk langkah dan keterbatasan.
+
+nanti kita fokus-nya di front-end saja tampa kita ganggu back-end dan nanti pastikan kekita kita buat front end kita harus konsisten mengikuti alur yg sdh di buat oleh back-endnnya agar rapi dan konsiste apakah paham???
+>>>>>>> 16aa8e7b592b3bb9cdd4754a53909110f157b6b1

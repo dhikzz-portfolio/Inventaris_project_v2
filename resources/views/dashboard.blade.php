@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Dashboard</h2>
             <p class="text-sm text-gray-500">
                 @if ($mode === 'operational')
-                    Analitik inventaris sekolah — {{ \App\Enums\Role::tryFrom(auth()->user()->role)?->label() }}
+                    Analitik inventaris {{ $scopeLabel }} — {{ \App\Enums\Role::tryFrom(auth()->user()->role)?->label() }}
                 @else
                     Ringkasan peminjaman saya
                 @endif
@@ -171,8 +171,8 @@
                 </div>
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 text-sm">
                     <h3 class="font-semibold text-gray-800 text-sm mb-2">Jelajahi</h3>
-                    <p class="text-gray-500 text-xs mb-3">Terdapat {{ $catalogCount }} barang terdaftar di katalog sekolah.</p>
-                    <a href="{{ route('items.index') }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold">
+                    <p class="text-gray-500 text-xs mb-3">Terdapat {{ $catalogCount }} jenis barang terdaftar di katalog sekolah.</p>
+                    <a href="{{ route('catalogs.index') }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold">
                         <span class="material-icons-round text-sm">inventory_2</span> Buka Katalog
                     </a>
                 </div>

@@ -3,9 +3,9 @@
         <div class="flex items-center justify-between gap-3">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Pengadaan Barang Baru</h2>
-                <p class="text-sm text-gray-500">Nomor register & ID dibuat otomatis; menunggu approval Wakasek Sarpras</p>
+                <p class="text-sm text-gray-500">Katalog jenis barang + unit fisik otomatis; menunggu approval Wakasek Sarpras</p>
             </div>
-            <a href="{{ route('items.index') }}" class="text-sm text-gray-500 hover:text-gray-800">← Kembali ke katalog</a>
+            <a href="{{ route('catalogs.index') }}" class="text-sm text-gray-500 hover:text-gray-800">← Kembali ke katalog</a>
         </div>
     </x-slot>
 
@@ -72,8 +72,11 @@
             </div>
 
             <div>
-                <x-input-label for="quantity" value="Jumlah *" />
+                <x-input-label for="quantity" value="Jumlah Unit *" />
                 <x-text-input id="quantity" name="quantity" type="number" min="1" class="mt-1 block w-full" :value="old('quantity', 1)" required />
+                <p class="mt-1 text-xs text-gray-400">
+                    Kode inventaris per unit (mis. <span class="font-mono">G1-02-01</span>) diterbitkan otomatis setelah pengadaan disetujui — tidak diisi manual.
+                </p>
             </div>
 
             <div>
@@ -102,7 +105,7 @@
 
         <div class="mt-6 flex items-center gap-3">
             <x-primary-button class="bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">Ajukan Pengadaan</x-primary-button>
-            <a href="{{ route('items.index') }}" class="text-sm text-gray-500 hover:text-gray-800">Batal</a>
+            <a href="{{ route('catalogs.index') }}" class="text-sm text-gray-500 hover:text-gray-800">Batal</a>
         </div>
     </form>
 </x-app-layout>

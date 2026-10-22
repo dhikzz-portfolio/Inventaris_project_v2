@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AssetUnit;
 use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\User;
@@ -64,17 +65,86 @@ class LabelAndQrTest extends TestCase
         $this->assertNotNull($this->item->refresh()->last_label_printed_at);
     }
 
-    public function test_cetak_label_massal_menghasilkan_pdf(): void
+    public function test_cetak_label_massal_per_unit_menghasilkan_pdf(): void
     {
-        $items = Item::approved()->limit(3)->pluck('id')->all();
+        $units = AssetUnit::query()
+            ->visibleTo($this->laboran)
+            ->limit(3)
+            ->pluck('id')
+            ->all();
+
+        $this->assertCount(3, $units);
 
         $response = $this->actingAs($this->laboran)
             ->post(route('labels.print'), [
-                'item_ids' => $items,
+                'unit_ids' => $units,
             ]);
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
+
+        // Setiap unit yang dicetak mencatat waktu cetak terakhirnya sendiri.
+        foreach ($units as $unitId) {
+            $this->assertNotNull(AssetUnit::find($unitId)->last_label_printed_at);
+        }
+    }
+
+    public function test_label_massal_tidak_mencetak_unit_di_luar_cakupan_laboran(): void
+    {
+        $inScope = AssetUnit::query()->visibleTo($this->laboran)->firstOrFail();
+        $outOfScopeIds = AssetUnit::query()
+            ->whereDoesntHave('room', fn ($query) => $query->whereIn('id', $this->laboran->roomScopes()->select('room_id')))
+            ->limit(2)
+            ->pluck('id')
+            ->all();
+
+        $this->assertNotEmpty($outOfScopeIds);
+
+        $this->actingAs($this->laboran)
+            ->post(route('labels.print'), [
+                'unit_ids' => array_merge([$inScope->id], $outOfScopeIds),
+            ])
+            ->assertOk();
+
+        $this->assertNotNull($inScope->refresh()->last_label_printed_at);
+
+        foreach ($outOfScopeIds as $unitId) {
+            $this->assertNull(AssetUnit::find($unitId)->last_label_printed_at);
+        }
+    }
+
+    public function test_cetak_massal_dengan_select_all_hanya_mencetak_unit_sesuai_filter_dan_cakupan(): void
+    {
+        $this->actingAs($this->laboran)
+            ->post(route('labels.print'), ['select_all' => 1])
+            ->assertOk();
+
+        $scoped = AssetUnit::query()->visibleTo($this->laboran)->get();
+        $this->assertTrue($scoped->every(fn ($unit) => $unit->last_label_printed_at !== null));
+
+        $outside = AssetUnit::query()
+            ->whereDoesntHave('room', fn ($query) => $query->whereIn('id', $this->laboran->roomScopes()->select('room_id')))
+            ->get();
+        $this->assertNotEmpty($outside);
+        $this->assertTrue($outside->every(fn ($unit) => $unit->last_label_printed_at === null));
+    }
+
+    public function test_halaman_cetak_label_membatasi_daftar_unit_sesuai_cakupan(): void
+    {
+        $response = $this->actingAs($this->laboran)->get(route('labels.index'));
+
+        $response->assertOk();
+
+        foreach (AssetUnit::query()->visibleTo($this->laboran)->limit(5)->get() as $unit) {
+            $response->assertSee($unit->inventory_code);
+        }
+
+        $outsideCode = AssetUnit::query()
+            ->whereDoesntHave('room', fn ($query) => $query->whereIn('id', $this->laboran->roomScopes()->select('room_id')))
+            ->value('inventory_code');
+
+        $this->assertNotNull($outsideCode);
+        $response->assertDontSee($outsideCode);
     }
 
     public function test_pratinjau_label_di_detail_barang_mencerminkan_label_cetak(): void
@@ -95,12 +165,14 @@ class LabelAndQrTest extends TestCase
         $response->assertSee(InstitutionSetting::current()->institution_name, false);
     }
 
-    public function test_scan_resolve_mengarahkan_ke_halaman_detail_barang(): void
+    public function test_scan_resolve_mengarahkan_ke_halaman_detail_unit(): void
     {
+        $unit = AssetUnit::where('inventory_code', strtoupper($this->item->internal_id))->firstOrFail();
+
         $response = $this->actingAs($this->laboran)
             ->get(route('scan.resolve', ['internalId' => $this->item->internal_id]));
 
-        $response->assertRedirect(route('items.show', $this->item));
+        $response->assertRedirect(route('units.show', $unit));
     }
 
     public function test_scan_resolve_qr_tidak_dikenal_memberikan_pesan_error(): void

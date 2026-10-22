@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <style>
+    <meta charset="utf-8"><style>
         @page { margin: 8mm; }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: Helvetica, Arial, sans-serif; }
@@ -21,39 +20,39 @@
         .head { height: 70pt; }
         table.inner { width: 100%; border-collapse: collapse; }
         table.inner td { vertical-align: top; padding: 0; }
-        .logo-cell { width: 48pt; text-align: center; vertical-align: middle; }
-        .logo-cell img { max-width: 42pt; max-height: 42pt; }
+        .logo-cell { width: 44pt; text-align: center; vertical-align: middle; }
+        .logo-cell img { max-width: 40pt; max-height: 40pt; }
         .logo-fallback { font-size: 6pt; font-weight: bold; color: #333; }
         .codes { padding-left: 4pt !important; }
-        .kode-lokasi {
+        .kode-unit {
             font-family: 'Courier New', monospace;
-            font-size: 13pt; font-weight: bold; line-height: 1.1;
+            font-size: 15pt; font-weight: bold; line-height: 1.05;
         }
-        .kode-barang {
-            font-family: 'Courier New', monospace;
-            font-size: 9pt; font-weight: bold; line-height: 1.1;
-            margin-top: 2pt;
-        }
+        .nama { font-size: 8pt; font-weight: bold; margin-top: 2pt; }
+        .lokasi { font-size: 7pt; margin-top: 1pt; }
         .qr-cell { width: 46pt; text-align: right; }
         .qr-cell img { width: 40pt; height: 40pt; }
         .footer {
-            margin-top: 5pt;
-            border-top: 1pt solid #000; padding-top: 2pt;
-            font-size: 7pt; font-weight: bold; text-align: center; text-transform: uppercase;
-        }
-    </style>
+            margin-top: 4pt;
+            border-top: 1pt solid #000;
+            padding-top: 2pt;
+            font-size: 7pt;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+        }</style>
 </head>
 <body>
     <table class="grid">
-        @foreach ($items->chunk(2) as $row)
+        @foreach ($units->chunk(2) as $row)
             <tr>
-                @foreach ($row as $item)
+                @foreach ($row as $unit)
                     <td>
                         <div class="label">
                             <div class="head">
                                 <table class="inner">
                                     <tr>
-                                        <td width="48" class="logo-cell">
+                                        <td width="44" class="logo-cell">
                                             @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
                                                 <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
                                             @else
@@ -61,11 +60,14 @@
                                             @endif
                                         </td>
                                         <td class="codes">
-                                            <div class="kode-lokasi">{!! implode('<br>', array_map('e', $locationLinesMap[$item->id] ?? [$item->location_code])) !!}</div>
-                                            <div class="kode-barang">{{ $item->asset_code }}.{{ $item->register_no }}</div>
+                                            {{-- Kode inventaris unit fisik — unik per stiker --}}
+                                            <div class="kode-unit">{{ $unit->inventory_code }}</div>
+                                            <div class="nama">{{ $unit->catalog?->name }}</div>
+                                            <div class="lokasi">{{ $unit->locationLabel() }}</div>
                                         </td>
                                         <td width="46" class="qr-cell">
-                                            <img src="{{ $qrMap[$item->id] }}" alt="QR">
+                                            {{-- QR menunjuk ke detail unit berbasis ID stabil --}}
+                                            <img src="{{ $qrMap[$unit->id] }}" alt="QR">
                                         </td>
                                     </tr>
                                 </table>

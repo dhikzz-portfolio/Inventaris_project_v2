@@ -1,8 +1,10 @@
 # Dokumen Revisi — Perbaikan Cetak Label & Dokumen
 
-Status: **Menunggu implementasi**
+Status: **Sudah diimplementasikan** (audit 22 Oktober 2026 — semua butir bagian 4 dikerjakan; label massal kini per unit fisik)
 Tanggal audit: 21 Oktober 2026
-Ruang lingkup: label satuan, label massal, dokumen BAST/Surat Peminjaman, dan laporan PDF.
+
+> Catatan: dokumen ini mengacu pada model batch `items`. Bila revisi katalog + unit fisik (`PROJECT_BRIEF.md` 2.1) diterapkan lebih dulu, route detail menjadi `units.show` dan label dicetak per unit; perbaikan layout Dompdf pada dokumen ini tetap berlaku.
+> Ruang lingkup: label satuan, label massal, dokumen BAST/Surat Peminjaman, dan laporan PDF.
 
 Dokumen ini adalah acuan perbaikan yang **akan dan harus** dikerjakan. Semua temuan di bawah sudah diverifikasi dengan render Dompdf langsung (bukan asumsi).
 
@@ -120,6 +122,8 @@ File: `app/Services/ReportService.php:111`
 ---
 
 ## 4. Perbaikan yang harus dilakukan
+
+> **Catatan implementasi 22 Oktober 2026:** seluruh butir di bagian ini sudah diterapkan. Butir 4.3 (layout `label_massal.blade.php`) digantikan oleh `resources/views/pdf/unit_massal.blade.php` — cetak massal kini memilih **unit fisik** (keputusan 8 di `DECISIONS.md`), bukan baris katalog; layout grid 2 kolom A4, `@page margin 8mm`, dan footer normal flow dipertahankan. Rincian audit: `feature-sync-audit.md`.
 
 ### 4.1 `app/Services/LabelService.php`
 

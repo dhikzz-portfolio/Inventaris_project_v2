@@ -2,10 +2,10 @@
     <x-slot name="header">
         <div class="flex items-center justify-between gap-3">
             <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Ubah Data Barang</h2>
-                <p class="text-sm text-gray-500 font-mono">{{ $item->internal_id }}</p>
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Ubah Katalog Barang</h2>
+                <p class="text-sm text-gray-500">Identitas jenis barang — unit fisik dikelola terpisah.</p>
             </div>
-            <a href="{{ route('items.show', $item) }}" class="text-sm text-gray-500 hover:text-gray-800">← Kembali ke detail</a>
+            <a href="{{ route('catalogs.show', $item) }}" class="text-sm text-gray-500 hover:text-gray-800">← Kembali ke detail katalog</a>
         </div>
     </x-slot>
 
@@ -92,7 +92,7 @@
 
         <div class="mt-6 flex items-center gap-3">
             <x-primary-button class="bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">Simpan Perubahan</x-primary-button>
-            <a href="{{ route('items.show', $item) }}" class="text-sm text-gray-500 hover:text-gray-800">Batal</a>
+            <a href="{{ route('catalogs.show', $item) }}" class="text-sm text-gray-500 hover:text-gray-800">Batal</a>
         </div>
     </form>
 </x-app-layout>

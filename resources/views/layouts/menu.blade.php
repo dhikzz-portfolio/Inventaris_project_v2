@@ -8,7 +8,7 @@
 <x-menu-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" icon="dashboard" label="Dashboard" />
 
 {{-- Katalog untuk semua role --}}
-<x-menu-link :href="route('items.index')" :active="request()->routeIs('items.*')" icon="inventory_2" label="Katalog Barang" />
+<x-menu-link :href="route('catalogs.index')" :active="request()->routeIs('catalogs.*') || request()->routeIs('units.*')" icon="inventory_2" label="Katalog Barang" />
 
 {{-- Peminjaman --}}
 <x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" label="Ajukan Peminjaman" />
@@ -22,7 +22,10 @@
 
 @if ($canManage || $canApprove)
     <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Inventaris</div>
-    <x-menu-link :href="route('movements.index')" :active="request()->routeIs('movements.*')" icon="swap_horiz" label="Mutasi Lokasi" />
+    {{-- Mutasi memerlukan hak kelola; Laboran hanya dapat mencetak label. --}}
+    @if ($canManage)
+        <x-menu-link :href="route('movements.index')" :active="request()->routeIs('movements.*')" icon="swap_horiz" label="Mutasi Lokasi" />
+    @endif
     <x-menu-link :href="route('labels.index')" :active="request()->routeIs('labels.*')" icon="label" label="Cetak Label" />
 @endif
 

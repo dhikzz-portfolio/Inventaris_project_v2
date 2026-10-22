@@ -26,34 +26,33 @@ class MonthlyReportExport implements Export, WithMultipleSheets
 
                 public function title(): string
                 {
-                    return 'Barang';
+                    return 'Unit';
                 }
 
                 /** @return list<list<mixed>> */
                 public function array(): array
                 {
-                    return $this->data['items']->map(fn ($row) => [
-                        $row->internal_id,
-                        $row->name,
-                        $row->category?->name,
+                    return $this->data['units']->map(fn ($row) => [
+                        $row->inventory_code,
+                        $row->catalog?->name,
+                        $row->catalog?->category?->name,
                         $row->room?->name,
-                        ($row->room?->building ?? '').'/'.($row->room?->floor ?? ''),
-                        $row->quantity,
-                        $row->unit,
+                        $row->room?->building_letter,
+                        $row->room?->floor,
+                        $row->room?->room_no,
+                        $row->condition->label(),
+                        $row->status->label(),
                         $row->acquisition_year,
                         $row->funding_source,
-                        $row->status->label(),
-                        $row->location_code,
-                        $row->asset_code,
                         $row->register_no,
-                        $row->is_high_value ? 'Ya' : 'Tidak',
+                        $row->catalog?->is_high_value ? 'Ya' : 'Tidak',
                     ])->all();
                 }
 
                 /** @return list<string> */
                 public function headings(): array
                 {
-                    return ['ID Internal', 'Nama Barang', 'Kategori', 'Ruangan', 'Gedung/Lt', 'Jumlah', 'Satuan', 'Tahun', 'Sumber Dana', 'Status', 'Kode Lokasi', 'Kode Barang', 'No. Register', 'Nilai Tinggi'];
+                    return ['Kode Inventaris', 'Nama Barang', 'Kategori', 'Ruangan', 'Gedung', 'Lantai', 'No. Ruangan', 'Kondisi', 'Status', 'Tahun', 'Sumber Dana', 'No. Register', 'Nilai Tinggi'];
                 }
             },
             new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithTitle

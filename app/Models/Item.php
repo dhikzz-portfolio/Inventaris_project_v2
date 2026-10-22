@@ -15,8 +15,12 @@ class Item extends Model
 {
     use HasFactory, LogsActivity;
 
+    /** Katalog jenis barang (revisi 2.1; tabel lama `items`). */
+    protected $table = 'item_catalogs';
+
     protected $fillable = [
         'internal_id', 'location_code', 'asset_code', 'register_no', 'name',
+        'brand', 'model_type', 'description',
         'category_id', 'room_id', 'specification', 'acquisition_year',
         'funding_source', 'quantity', 'qty_damaged', 'qty_lost', 'unit', 'is_high_value',
         'status', 'photo_path', 'last_label_printed_at',
@@ -59,6 +63,39 @@ class Item extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(ItemMovement::class);
+    }
+
+    /** Unit inventaris fisik yang terhubung dengan katalog ini. */
+    public function units(): HasMany
+    {
+        return $this->hasMany(AssetUnit::class, 'item_catalog_id');
+    }
+
+    /**
+     * Katalog yang dapat dilihat pengguna. Katalog tanpa unit dalam cakupan
+     * hanya ditampilkan untuk Super Admin sebagai arsip.
+     */
+    public function scopeVisibleTo($query, ?User $user)
+    {
+        if ($user === null || $user->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function ($visible) use ($user) {
+            $visible->whereHas('units', fn ($unit) => $unit->visibleTo($user));
+
+            // Katalog lama/pengadaan yang belum memiliki unit tetap mengikuti
+            // lokasi katalognya agar data pra-migrasi tidak hilang dari tampilan.
+            $visible->orWhere(function ($legacy) use ($user) {
+                $legacy->whereDoesntHave('units');
+
+                if ($user->isAdminSarpras()) {
+                    $legacy->whereHas('room', fn ($room) => $room->where('is_lab', true));
+                } elseif ($user->isLaboran()) {
+                    $legacy->whereIn('room_id', $user->roomScopes()->select('room_id'));
+                }
+            });
+        });
     }
 
     public function loanItems(): HasMany

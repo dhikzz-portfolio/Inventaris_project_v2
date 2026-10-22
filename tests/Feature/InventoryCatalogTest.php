@@ -91,7 +91,7 @@ class InventoryCatalogTest extends TestCase
             'is_high_value' => true,
             'location_code' => InstitutionSetting::current()->location_code,
             'photo' => $photo,
-        ])->assertRedirect(route('items.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('catalogs.index'))->assertSessionHasNoErrors();
 
         $item = Item::where('name', 'Laptop Asus ROG Strix')->firstOrFail();
         $this->assertSame('PENDING', $item->acquisition_status);

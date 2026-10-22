@@ -62,7 +62,7 @@ class LoanController extends Controller
             'due_date' => ['required', 'date', 'after:start_date'],
             'event_id' => ['nullable', 'exists:events,id'],
             'lines' => ['required', 'array', 'min:1'],
-            'lines.*.item_id' => ['required', 'exists:items,id'],
+            'lines.*.item_id' => ['required', 'exists:item_catalogs,id'],
             'lines.*.qty' => ['required', 'integer', 'min:1'],
         ]);
 

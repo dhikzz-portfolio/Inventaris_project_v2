@@ -1,6 +1,6 @@
 # Testing Report
 
-Tanggal eksekusi terakhir: **20 Oktober 2026**
+Tanggal eksekusi terakhir: **22 Oktober 2026**
 Lingkungan: Windows 11, PHP 8.3.32, Laravel 13, MySQL 8.4.3, Node 24, Chrome headless.
 
 ## 1. Perintah
@@ -27,11 +27,13 @@ php artisan view:cache
 ## 2. Hasil otomatis
 
 ```
-Tests:    91 passed (407 assertions)
-Duration: 11.95s
+Tests:    130 passed (613 assertions)
+Duration: 34.34s
 ```
 
 Tidak ada test yang di-skip. Dua test `AdminPagesAccessibilityTest` yang sebelumnya di-skip karena mengandalkan seeder sekarang menjalankan `$this->seed()` sendiri sehingga selalu dieksekusi, dan path-nya disesuaikan dengan route sesungguhnya (`/pengguna`, `/pengaturan`, `/pengadaan`, `/inventaris-keluar/persetujuan`).
+
+Hasil ini mencakup revisi 2.1: pemisahan katalog/unit, mesin kode inventaris, scope akses katalog/unit/URL, mutasi unit, label per unit, backfill, serta pengetatan cakupan laporan & privasi data unit untuk Peminjam.
 
 ### Cakupan utama
 
@@ -46,9 +48,21 @@ Tidak ada test yang di-skip. Dua test `AdminPagesAccessibilityTest` yang sebelum
 | Serah terima & pembatalan         | `LoanLifecycleTest`                                                                                     |
 | Pengembalian parsial/rusak/hilang | R1, R2, R3, `ReturnFormLivewireTest`, `LoanLifecycleTest`                                               |
 | Mutasi & penghapusan              | `MovementAndWriteOffTest`, R7                                                                           |
+| Penghapusan mengarsip unit fisik  | `MovementAndWriteOffTest::test_persetujuan_penghapusan_mengarsipkan_unit_fisik_dan_sinkron_dengan_katalog` |
+| Cakupan mutasi/penghapusan        | `MovementAndWriteOffTest::test_ketua_laboran_tidak_dapat_mengajukan_penghapusan_barang_di_luar_laboratorium` |
 | QR, label, scan                   | `LabelAndQrTest`, R5                                                                                    |
+| Label massal per unit & cakupan   | `LabelAndQrTest::test_cetak_label_massal_per_unit_menghasilkan_pdf`, `test_label_massal_tidak_mencetak_unit_di_luar_cakupan_laboran`, `test_cetak_massal_dengan_select_all_hanya_mencetak_unit_sesuai_filter_dan_cakupan` |
+| Ringkasan laporan per unit fisik  | `ReportTest::test_ringkasan_laporan_menghitung_unit_fisik_bukan_baris_katalog`                          |
 | BAST & PDF                        | `EventAndBastTest`, `InventoryFlowTest`                                                                 |
 | Laporan PDF/Excel                 | `DashboardAndReportingTest`, `SecurityAccessTest`                                                       |
+| Cakupan laporan Ketua Laboran     | `ReportTest::test_ketua_laboran_hanya_mendapat_data_laporan_laboratorium`                               |
+| Arsip laporan seluruh sekolah     | `ReportTest::test_arsip_laporan_seluruh_sekolah_hanya_dapat_diakses_super_admin`                        |
+| Privasi data unit untuk Peminjam  | `SecurityAccessTest::test_peminjam_tidak_melihat_nilai_perolehan_catatan_dan_riwayat_mutasi_unit`       |
+| Dashboard sesuai cakupan role     | `DashboardAndReportingTest::test_dashboard_pengelola_menghitung_unit_sesuai_cakupan_akses`              |
+| Menu Laboran tanpa Mutasi         | `DashboardAndReportingTest::test_menu_laboran_tidak_menautkan_mutasi_yang_bukan_kewenangannya`          |
+| Katalog legacy & pengadaan lab    | `SecurityAccessTest::test_katalog_di_luar_cakupan_tidak_dapat_dibuka_lewat_url_legacy`, `test_ketua_laboran_tidak_dapat_mengajukan_pengadaan_ke_ruang_non_lab` |
+| Katalog & kode inventaris 2.1     | `InventoryCoreTest` (AC-01…AC-11, kapasitas 99, `inventory:verify-codes`)                               |
+| Ubah kondisi/status unit          | `InventoryCoreTest::test_laboran_dapat_mengubah_kondisi_unit_dalam_cakupan_dan_tercatat_audit`, `test_status_unit_hanya_dapat_diubah_pengelola`, `test_laboran_tidak_dapat_mengubah_unit_di_luar_cakupan` |
 | Notifikasi & job                  | `CheckOverdueLoans`, `CheckDueSoonLoans`, `GenerateMonthlyReport`                                       |
 | Audit log immutable               | R9                                                                                                      |
 | File privat                       | `SecurityAccessTest`                                                                                    |
@@ -64,9 +78,32 @@ Alur end-to-end yang dijalankan pada aplikasi nyata (MySQL, bukan test DB):
 5. Klik **Serahkan Barang** (status **Sedang Dipinjam**, timestamp petugas tercatat).
 6. Buka form pengembalian → submit semua barang → status **Selesai**.
 7. Katalog menampilkan barang kembali tersedia.
-8. Scan QR fallback manual `g1-01-01` → redirect ke detail barang.
+8. Scan QR fallback manual `g1-01-01` (format kode lama; setelah revisi 2.1 memakai kode per unit `G1-02-12`) → redirect ke detail barang.
 
 Hasil: seluruh langkah berhasil, **0 error JavaScript** setelah perbaikan Alpine/Livewire dan selector label.
+
+Verifikasi katalog/unit revisi 2.1 (22 Oktober 2026, server lokal + Chrome headless):
+
+1. Login `wakasek` → `/catalogs` menampilkan kartu katalog; tautan detail berfungsi.
+2. Detail katalog menampilkan total unit; kode unit berformat `G1-02-12`.
+3. Pencarian kode exact menyisakan satu unit; input tidak valid menampilkan pesan format dan empty state.
+4. Filter gedung hanya menampilkan unit gedung tersebut; menghapus filter mengembalikan daftar.
+5. Detail unit menampilkan identitas, lokasi, riwayat kode/pergerakan, dan tombol cetak label.
+6. Login `laboran.tkj`: unit laboratorium di luar cakupannya melalui URL langsung menghasilkan **404** (bukan 403); katalog tak dikenal juga 404.
+7. Viewport 390×844: bottom navigation tampil.
+8. Login `admin.sarpras` (Ketua Laboran) → `/laporan` menampilkan cakupan **"Seluruh laboratorium"**; ekspor PDF merespons `200 application/pdf`.
+
+Hasil: **PASS**, tanpa error JavaScript dan tanpa request gagal pada halaman katalog/unit. Pemeriksaan isi PDF bahwa barang non-laboratorium tidak ikut diekspor divalidasi di level data melalui `ReportTest` (bukan ekstraksi teks PDF).
+
+### 3.1 Audit UI/UX & visual regression (22 Oktober 2026)
+
+- Desain lama (sidebar slate gelap, aksen amber, kartu `rounded-xl`, toolbar filter, tabel detail) ditemukan di source Git HEAD dan dipertahankan pada halaman katalog/unit baru; tidak ada file mockup/screenshot desain di repository.
+- Tailwind CSS ditemukan memakai v4 tetapi stylesheet masih memakai direktif v3, sehingga utility tidak dihasilkan dan halaman tampil tanpa style. Setelah perbaikan, build CSS berisi utility lengkap (±78 KB) dan seluruh halaman mengikuti design system lama.
+- 19 halaman utama (dashboard, katalog, detail unit, peminjaman, kegiatan, laporan, label, scan, master, mutasi, inventaris keluar, persetujuan, pengembalian, pengguna, pengaturan, pengadaan, notifikasi, profil) merespons **200**, sidebar dan heading memakai style yang benar, tanpa error JavaScript.
+- Mobile 390×844 pada dashboard, katalog, peminjaman, form pinjam, dan pengguna: **tidak ada overflow horizontal** (0 px) dan bottom navigation tampil.
+- Tema gelap: class `dark` aktif, latar body `#0b1220`, kartu lebih terang, placeholder foto tidak lagi memakai gradient terang.
+- Dashboard 4 role diperiksa: Super Admin 10 katalog/40 unit, Ketua Laboran 9/37 (tanpa ruang umum), Laboran TKJ 7/25 (2 ruang), Peminjam mode personal — angka berasal dari database dan scope backend.
+- Detail unit diperiksa per role: Laboran hanya melihat form kondisi + catatan (tanpa pilihan status); Ketua Laboran melihat kondisi + status. Perubahan disimpan lewat `PATCH /units/{unit}` dan dicatat di audit log.
 
 Pemeriksaan 20 halaman sebagai Wakasek: dashboard, katalog, detail barang, daftar/detail pinjaman, form pinjam, kegiatan, laporan, label, scan, master, mutasi, inventaris keluar, approval, persetujuan, pengembalian, pengaturan, pengguna, notifikasi, pengadaan — semua **HTTP 200**.
 
@@ -102,7 +139,7 @@ Optimasi yang dilakukan:
 - PDF label satuan/massal: `Content-Type: application/pdf`, file dihasilkan.
 - BAST peminjaman: PDF dibuat ulang saat diunduh dan memuat data aktual.
 - Laporan PDF: 7.002 byte untuk data demo.
-- Laporan Excel: 13.095 byte, berisi **5 sheet** (Barang, Peminjaman, Kerusakan, Mutasi Lokasi, Penghapusan) — diverifikasi dengan `unzip -l`.
+- Laporan Excel: berisi **5 sheet** (Unit, Peminjaman, Kerusakan, Mutasi Lokasi, Penghapusan) — sheet Unit satu baris per unit fisik (kode inventaris, katalog, lokasi, kondisi, status).
 - File tersimpan di `storage/app/private` dan diakses lewat route ber-otorisasi.
 
 ## 6. Perubahan pengujian yang disengaja
@@ -123,13 +160,13 @@ Tidak ada test yang dihapus, di-skip, atau dilemahkan untuk membuat hasil lulus.
 
 ## 8. Verifikasi operasional
 
-| Perintah                                                      | Hasil                                                                                    |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `php artisan config:cache`                                    | Berhasil                                                                                 |
-| `php artisan route:cache`                                     | Berhasil (route closure dihapus, PWA memakai controller)                                 |
-| `php artisan view:cache`                                      | Berhasil                                                                                 |
-| `php artisan schedule:list`                                   | 3 job terjadwal: overdue 07:00, due soon 07:30, laporan tanggal 1 01:00                 |
-| Dispatch `CheckDueSoonLoans` + `queue:work --stop-when-empty` | Job DONE 71,73 ms, `failed_jobs=0`                                                       |
+| Perintah                                                      | Hasil                                                                   |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `php artisan config:cache`                                    | Berhasil                                                                |
+| `php artisan route:cache`                                     | Berhasil (route closure dihapus, PWA memakai controller)                |
+| `php artisan view:cache`                                      | Berhasil                                                                |
+| `php artisan schedule:list`                                   | 3 job terjadwal: overdue 07:00, due soon 07:30, laporan tanggal 1 01:00 |
+| Dispatch `CheckDueSoonLoans` + `queue:work --stop-when-empty` | Job DONE 71,73 ms, `failed_jobs=0`                                      |
 
 > Catatan: jangan menjalankan `php artisan test` saat config sedang di-cache, karena `phpunit.xml` tidak dapat menimpa konfigurasi production. Jalankan `php artisan optimize:clear` terlebih dahulu.
 
@@ -138,3 +175,60 @@ Tidak ada test yang dihapus, di-skip, atau dilemahkan untuk membuat hasil lulus.
 `tests/TestCase.php` sekarang **menolak menjalankan test** kecuali koneksi database benar-benar SQLite in-memory (`sqlite` + `:memory:`) dan bukan database MySQL produksi/lokal. Pengaman ini dibuat setelah kejadian nyata: saat config ter-cache, `phpunit.xml` tidak berlaku sehingga test mengosongkan data MySQL lokal (efek `migrate:fresh`/truncate). Tanpa pengaman ini, kegagalan konfigurasi bisa menghapus data pengguna.
 
 Jika muncul pesan `TEST ABORTED: ... SQLite in-memory ...`, jalankan `php artisan optimize:clear` lalu ulangi perintah test.
+
+---
+
+## 9. Pengujian revisi 2.1 (SUDAH DIEKSEKUSI)
+
+Rencana disusun: 21 Oktober 2026. Dieksekusi: **22 Oktober 2026**.
+
+> Acceptance criteria 2.1 diuji di `tests/Feature/InventoryCoreTest.php` (SQLite in-memory) dan diverifikasi di browser. Seluruh test lulus; lihat bagian 2 untuk hasil lengkap. Bagian 1–8 di atas memuat hasil baseline model batch dan sudah diperbarui pada bagian 2.
+
+### 9.1 Test otomatis yang harus dibuat
+
+| ID    | Skenario                                                                                                    | Jenis test           | File yang disarankan            |
+| ----- | ----------------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------- || AC-01 | 23 unit katalog sama → satu katalog, `jumlah_unit = 23`                                                     | Feature              | `InventoryCoreTest` → LULUS     |
+| AC-02 | Setiap unit punya baris dan kode sendiri; `unique(inventory_code)`                                          | Feature              | `InventoryCoreTest` → LULUS     |
+| AC-03 | `G1-02-12` diparse menjadi Gedung G/lantai 1/ruang 02/unit 12; format salah ditolak                         | Unit                 | `InventoryCoreTest` → LULUS     |
+| AC-04 | Dua unit tidak boleh memakai kode yang sama (termasuk percobaan bersamaan)                                  | Feature + konkurensi | `InventoryCoreTest` → LULUS     |
+| AC-05 | Kursi dan meja di ruangan sama mendapat nomor berbeda                                                       | Feature              | `InventoryCoreTest` → LULUS     |
+| AC-06 | Detail katalog Kursi hanya berisi unit kursi                                                                | Feature (Livewire)   | `InventoryCoreTest` → LULUS     |
+| AC-07 | Pencarian `F1-03-15` pada detail Kursi mengembalikan unit yang tepat                                        | Feature (Livewire)   | `InventoryCoreTest` → LULUS     |
+| AC-08 | Filter gedung/lantai/ruangan memakai lokasi aktif unit                                                      | Feature (Livewire)   | `InventoryCoreTest` → LULUS     |
+| AC-09 | Jumlah katalog = hitungan unit; unit `DIHAPUS` tidak dihitung; unit di luar scope tidak dihitung            | Feature              | `InventoryCoreTest` → LULUS     |
+| AC-10 | Role Laboran/K3 tidak dapat membaca unit lab lain lewat daftar, kode, URL, ekspor, atau QR (404)            | Feature (security)   | `InventoryCoreTest` + `SecurityAccessTest` → LULUS |
+| AC-11 | Mutasi menutup kode lama, menerbitkan kode baru, mencatat movement, dan kode lama resolve ke unit yang sama | Feature              | `InventoryCoreTest` → LULUS     |
+| AC-12 | Dokumen/ERD/AC konsisten (pemeriksaan statis pada `docs/`)                                                   | Pemeriksaan dokumen  | manual → LULUS (dokumen diselaraskan 22 Oktober 2026) |
+
+### 9.2 Skenario pinggir yang wajib diuji
+
+- Format: `g1-02-12` diterima setelah normalisasi; `G1/02/12`, `G1-2-12`, `G1-02-120` ditolak.
+- Kode tidak cocok lokasi (mis. unit di `F1-03` diberi kode `G1-03-05`) ditolak.
+- Ruangan berisi 99 nomor → pembuatan unit ke-100 ditolak `RUANGAN_PENUH`; nomor yang sudah pensiun tetap dihitung.
+- Mutasi unit yang sedang `DIPINJAM` ditolak.
+- Unit pindah lalu kembali ke ruangan asal mendapat nomor baru, bukan kode lama.
+- Scan kode pensiun menampilkan unit aktif + keterangan kode lama; kode tak dikenal → pesan tidak ditemukan.
+- Pencarian kode di luar cakupan menghasilkan pesan kosong yang sama dengan kode tidak ditemukan (tidak membocorkan data).
+- Pagination dan filter tetap konsisten setelah pindah halaman (query string dipertahankan).
+
+### 9.3 Perintah yang dijalankan setelah implementasi
+
+```bash
+php artisan test --compact --filter=InventoryCodeTest
+php artisan test --compact --filter=CatalogUnitGroupingTest
+php artisan test --compact --filter=CatalogDetailTest
+php artisan test --compact --filter=CatalogSearchFilterTest
+php artisan test --compact --filter=CatalogCountTest
+php artisan test --compact --filter=UnitAccessScopeTest
+php artisan test --compact --filter=UnitMovementCodeTest
+php artisan inventory:verify-codes
+vendor/bin/pint --dirty --format agent
+```
+
+### 9.4 Kriteria bukti selesai
+
+1. Semua test AC-01…AC-11 lulus di SQLite in-memory (saat eksekusi: 124 tes; kini 130 tes, 613 assertions setelah audit sinkronisasi 22 Oktober 2026). Pengujian di MySQL dilakukan melalui migrasi + seed dan verifikasi browser; stress test konkurensi tinggi belum dijalankan.
+2. Pemeriksaan browser: katalog → detail → pencarian kode → filter lokasi → detail unit → pembatasan role → mobile, tanpa error JavaScript (PASS).
+3. Rekonsiliasi pasca-migrasi 0 selisih (`inventory:verify-codes` diuji pada data seeder dan ledger rusak).
+4. Hasil pengukuran pencarian < 0,5 detik pada data uji minimal 5.000 unit: **belum diukur ulang pada 5.000 unit**; pengukuran sebelumnya pada data demo memenuhi target.
+5. `PROJECT_STATUS.md` diperbarui menjadi VERIFIED setelah butir 1–3 terpenuhi; butir 4 dicatat sebagai keterbatasan.

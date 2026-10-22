@@ -1,6 +1,6 @@
 # Sistem Manajemen Inventaris & Aset Sekolah
 
-Aplikasi web terpusat untuk mengelola inventaris dan aset sekolah: katalog aset, pengadaan, mutasi lokasi, peminjaman multi-item dengan anti-bentrok, approval berjenjang, pengembalian tervalidasi, label QR, BAST, laporan PDF/Excel, notifikasi, dan audit trail.
+Aplikasi web terpusat untuk mengelola inventaris dan aset sekolah: katalog jenis barang, unit inventaris fisik, pengadaan, mutasi lokasi, peminjaman multi-item dengan anti-bentrok, approval berjenjang, pengembalian tervalidasi, label QR, BAST, laporan PDF/Excel, notifikasi, dan audit trail.
 
 Dibangun dengan **Laravel 13 + Livewire 4 + Blade + Alpine.js (bawaan Livewire) + Tailwind CSS + Chart.js**, database **MySQL/MariaDB**, dan Role/Permission Spatie.
 
@@ -8,22 +8,27 @@ Dibangun dengan **Laravel 13 + Livewire 4 + Blade + Alpine.js (bawaan Livewire) 
 
 ## Fitur utama
 
-- **Autentikasi username/password** (bukan email), 4 role: `SUPER_ADMIN`, `ADMIN_SARPRAS`, `LABORAN`, `PEMINJAM`.
+> Fitur bertanda **(2.1)** telah diimplementasikan dan diverifikasi untuk katalog, unit fisik, kode inventaris, mutasi, cakupan akses, label, dan laporan. Status lengkap serta pekerjaan lanjutan ada di `docs/PROJECT_STATUS.md` dan `docs/KNOWN_ISSUES.md`.
+
+- **Autentikasi username/password** (bukan email), 4 role: `SUPER_ADMIN` (Super Admin), `ADMIN_SARPRAS` (Ketua Laboran), `LABORAN` (Laboran/K3), `PEMINJAM`.
 - **Dashboard berbeda per role** dengan statistik aktual dan grafik Chart.js.
 - **Katalog aset** dengan pencarian debounce, filter kategori/ruangan/status, pagination, stok tersedia per unit, dan riwayat lengkap.
-- **Identitas inventaris ganda**: ID internal/spasial, kode lokasi/instansi, kode barang, nomor register.
+- **(2.1) Katalog jenis barang terpisah dari unit fisik**: satu entri "Kursi" dengan jumlah 23, sementara setiap kursi memiliki baris unit, lokasi, kondisi, dan kode sendiri.
+- **(2.1) Kode inventaris `G1-02-12`** (Gedung G, lantai 1, ruang 02, unit 12), diterbitkan otomatis per ruangan dan divalidasi terhadap lokasi serta keunikan.
+- **(2.1) Detail katalog & pencarian unit**: daftar unit per katalog, pencarian kode lengkap/awalan, filter gedung/lantai/ruangan/kondisi/status/tahun, sorting kode, pagination, dan pembatasan cakupan akses.
+- **Identitas inventaris**: kode lokasi/instansi, kode barang, nomor register. **(2.1)** kode inventaris per unit (`G1-02-12`) menggantikan ID internal per baris batch.
 - **Pengadaan** dengan approval Wakasek; **penghapusan** dengan Berita Acara + approval dan riwayat tetap tersimpan.
-- **Mutasi ruangan atomik** yang memperbarui ID internal dan mencatat riwayat.
+- **Mutasi ruangan atomik** yang mencatat riwayat; **(2.1)** unit mendapat kode baru, kode lama disimpan dan dapat ditelusuri.
 - **Peminjaman multi-item**: keranjang, kalender ketersediaan, validasi bentrok jadwal di server + transaksi/lock database.
 - **Approval berjenjang**: Laboran level 1; Wakasek level 2 untuk barang bernilai tinggi (wajib tanda tangan).
 - **Siklus jelas**: Menunggu → Disetujui → **Serah terima** → Dipinjam → Selesai; bisa Ditolak/Dibatalkan.
 - **Pengembalian parsial akumulatif**, foto bukti kerusakan, deteksi kehilangan, mutasi jika ruangan berbeda, penutupan selisih oleh Wakasek.
 - **QR Code** berisi URL detail, scanner kamera (`html5-qrcode`) + fallback input manual.
-- **Label stiker** satuan & massal (PDF), preview, dan re-print.
+- **Label stiker** satuan & massal (PDF), preview, dan re-print; **(2.1)** label diterbitkan per unit.
 - **Surat Peminjaman / BAST** PDF per pinjaman dan gabungan kegiatan.
 - **Laporan bulanan** PDF + **Excel 5 sheet**, filter sekolah/kategori/ruangan/jurusan, arsip snapshot.
 - **Notifikasi in-app** + job terjadwal (jatuh tempo, terlambat, laporan bulanan) dengan retry & deduplikasi.
-- **Keamanan**: CSRF, rate limit login, otorisasi route + query + cakupan jurusan, file internal privat, upload tervalidasi, audit log immutable.
+- **Keamanan**: CSRF, rate limit login, otorisasi route + query + cakupan data, file internal privat, upload tervalidasi, audit log immutable. **(2.1)** cakupan katalog/unit berbasis laboratorium/ruangan.
 - **UI mobile-first**: bottom navigation, target sentuh besar, tema terang/gelap, PWA manifest.
 
 ---
@@ -106,7 +111,7 @@ Detail: [`docs/TESTING.md`](docs/TESTING.md).
 
 | Dokumen | Isi |
 | --- | --- |
-| [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) | Latar belakang, tujuan, cakupan, peran |
+| [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) | PRD: latar belakang, peran, katalog/unit, kode inventaris, pencarian/filter, acceptance criteria |
 | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) | Fase & status implementasi |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Keputusan arsitektur dan trade-off |
 | [`docs/DATABASE.md`](docs/DATABASE.md) | Kamus tabel, relasi, model kuantitas |
@@ -121,5 +126,6 @@ Detail: [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Status
 
-**IMPLEMENTED & VERIFIED** untuk seluruh modul inti di lingkungan lokal.
-**Belum dideploy** ke server produksi — lihat `docs/DEPLOYMENT.md` dan `docs/KNOWN_ISSUES.md` untuk langkah dan keterbatasan.
+**Modul inti + revisi 2.1 (katalog + unit fisik, kode `G1-02-12`): IMPLEMENTED & VERIFIED** di lingkungan lokal (124 tes, build frontend, verifikasi browser desktop/mobile dan tema gelap).
+**Belum dikerjakan**: penugasan unit fisik pada peminjaman, penghapusan per unit, dan konfirmasi pemetaan gedung produksi — lihat `docs/KNOWN_ISSUES.md` serta `docs/IMPLEMENTATION_PLAN.md`.
+**Belum dideploy** ke server produksi — lihat `docs/DEPLOYMENT.md`.

@@ -73,10 +73,15 @@
                                                 @endforeach
                                             </select>
                                             <input type="text" name="name" value="{{ $room->name }}" class="w-full rounded border-gray-300 text-[11px]" required>
-                                            <div class="flex gap-1">
+                                            <div class="flex flex-wrap gap-1">
                                                 <input type="text" name="code" value="{{ $room->code }}" class="w-16 rounded border-gray-300 text-[11px]" required>
                                                 <input type="text" name="building" value="{{ $room->building }}" class="w-12 rounded border-gray-300 text-[11px]" required>
-                                                <input type="number" name="floor" value="{{ $room->floor }}" class="w-12 rounded border-gray-300 text-[11px]" required>
+                                                <input type="number" name="floor" value="{{ $room->floor }}" min="1" max="9" class="w-12 rounded border-gray-300 text-[11px]" required>
+                                                <input type="text" name="building_letter" value="{{ $room->building_letter }}" maxlength="1" title="Huruf gedung" class="w-10 rounded border-gray-300 text-[11px] uppercase" required>
+                                                <input type="number" name="room_no" value="{{ $room->room_no }}" min="1" max="99" title="Nomor ruangan" class="w-12 rounded border-gray-300 text-[11px]" required>
+                                                <label class="flex items-center gap-1 text-[10px] text-gray-500">
+                                                    <input type="checkbox" name="is_lab" value="1" @checked($room->is_lab)> Lab
+                                                </label>
                                                 <button class="px-2 rounded bg-slate-800 text-white text-[10px] font-semibold">Simpan</button>
                                             </div>
                                         </form>
@@ -86,7 +91,10 @@
                                         </form>
                                     </details>
                                 </td>
-                                <td class="py-1.5 text-[11px] text-gray-400 text-right">{{ $room->building }} Lt.{{ $room->floor }}</td>
+                                <td class="py-1.5 text-[11px] text-gray-400 text-right">
+                                    {{ $room->building_letter }}{{ $room->floor }}-{{ str_pad((string) $room->room_no, 2, '0', STR_PAD_LEFT) }}
+                                    @if ($room->is_lab)<span class="ms-1 rounded bg-blue-50 text-blue-700 px-1">lab</span>@endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -100,12 +108,19 @@
                         <option value="{{ $major->id }}">{{ $major->name }}</option>
                     @endforeach
                 </select>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <input type="text" name="building" placeholder="Gedung * (G1)" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" required>
-                    <input type="number" name="floor" placeholder="Lantai *" min="0" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" required>
-                    <input type="text" name="code" placeholder="Kode * (G1-01)" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" required>
+                    <input type="text" name="building_letter" placeholder="Huruf * (G)" maxlength="1" class="rounded-lg border-gray-300 text-sm uppercase focus:ring-amber-500 focus:border-amber-500">
+                    <input type="number" name="floor" placeholder="Lantai *" min="1" max="9" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" required>
+                    <input type="number" name="room_no" placeholder="No. ruang *" min="1" max="99" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
                 </div>
-                <input type="text" name="name" placeholder="Nama ruangan *" class="w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" required>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input type="text" name="code" placeholder="Kode * (G1-01)" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" required>
+                    <input type="text" name="name" placeholder="Nama ruangan *" class="sm:col-span-2 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" required>
+                </div>
+                <label class="flex items-center gap-2 text-xs text-gray-600">
+                    <input type="checkbox" name="is_lab" value="1"> Ruangan laboratorium (cakupan Ketua Laboran)
+                </label>
                 <button class="w-full rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Tambah Ruangan</button>
             </form>
         </div>

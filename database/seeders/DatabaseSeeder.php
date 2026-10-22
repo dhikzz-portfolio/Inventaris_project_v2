@@ -14,6 +14,8 @@ use App\Models\LoanItem;
 use App\Models\Major;
 use App\Models\Room;
 use App\Models\User;
+use App\Models\UserRoomScope;
+use App\Services\AssetUnitService;
 use App\Services\IdGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -42,14 +44,16 @@ class DatabaseSeeder extends Seeder
         $mm = Major::firstOrCreate(['name' => 'Multimedia'], ['code' => 'MM']);
 
         // ---------- Ruangan ----------
+        // Pemetaan huruf gedung demo: G1=G, G2=H, G3=I. Pemetaan final sekolah
+        // wajib dikonfirmasi sebelum data produksi dimigrasikan (lihat docs).
         $rooms = collect([
-            ['major_id' => $tkj->id, 'building' => 'G1', 'floor' => 1, 'code' => 'G1-01', 'name' => 'Lab Komputer 1'],
-            ['major_id' => $tkj->id, 'building' => 'G1', 'floor' => 2, 'code' => 'G1-02', 'name' => 'Lab Jaringan'],
-            ['major_id' => $rpl->id, 'building' => 'G2', 'floor' => 1, 'code' => 'G2-01', 'name' => 'Lab RPL'],
-            ['major_id' => $mm->id, 'building' => 'G2', 'floor' => 2, 'code' => 'G2-02', 'name' => 'Studio Multimedia'],
-            ['major_id' => null, 'building' => 'G1', 'floor' => 1, 'code' => 'G1-03', 'name' => 'Ruang Guru'],
-            ['major_id' => null, 'building' => 'G3', 'floor' => 1, 'code' => 'G3-01', 'name' => 'Gudang Sarana Prasarana'],
-        ])->map(fn ($r) => Room::firstOrCreate(['code' => $r['code']], $r));
+            ['major_id' => $tkj->id, 'building' => 'G1', 'building_letter' => 'G', 'floor' => 1, 'room_no' => 1, 'is_lab' => true, 'code' => 'G1-01', 'name' => 'Lab Komputer 1'],
+            ['major_id' => $tkj->id, 'building' => 'G1', 'building_letter' => 'G', 'floor' => 2, 'room_no' => 2, 'is_lab' => true, 'code' => 'G1-02', 'name' => 'Lab Jaringan'],
+            ['major_id' => $rpl->id, 'building' => 'G2', 'building_letter' => 'H', 'floor' => 1, 'room_no' => 1, 'is_lab' => true, 'code' => 'G2-01', 'name' => 'Lab RPL'],
+            ['major_id' => $mm->id, 'building' => 'G2', 'building_letter' => 'H', 'floor' => 2, 'room_no' => 2, 'is_lab' => true, 'code' => 'G2-02', 'name' => 'Studio Multimedia'],
+            ['major_id' => null, 'building' => 'G1', 'building_letter' => 'G', 'floor' => 1, 'room_no' => 3, 'is_lab' => false, 'code' => 'G1-03', 'name' => 'Ruang Guru'],
+            ['major_id' => null, 'building' => 'G3', 'building_letter' => 'I', 'floor' => 1, 'room_no' => 1, 'is_lab' => false, 'code' => 'G3-01', 'name' => 'Gudang Sarana Prasarana'],
+        ])->map(fn ($r) => Room::updateOrCreate(['code' => $r['code']], $r));
 
         // ---------- Kategori ----------
         $categories = collect([
@@ -97,6 +101,24 @@ class DatabaseSeeder extends Seeder
         // ---------- Barang ----------
         if (Item::count() === 0) {
             $this->seedItems($setting, $rooms, $furnitur, $elektronik, $lab, $peraga);
+        }
+
+        // ---------- Unit fisik & kode inventaris (revisi 2.1) ----------
+        app(AssetUnitService::class)->provisionAll();
+
+        // Cakupan laboratorium untuk akun Laboran/K3.
+        $labRooms = $rooms->where('is_lab', true)->keyBy('code');
+        foreach ([$laboranTkj, $laboranRpl] as $laboran) {
+            $scoped = $laboran->is($laboranRpl)
+                ? $labRooms->only(['G2-01'])->values()
+                : $labRooms->only(['G1-01', 'G1-02'])->values();
+
+            foreach ($scoped as $room) {
+                UserRoomScope::firstOrCreate([
+                    'user_id' => $laboran->id,
+                    'room_id' => $room->id,
+                ], ['assigned_by' => $wakasek?->id]);
+            }
         }
 
         // ---------- Kegiatan ----------

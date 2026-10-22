@@ -24,7 +24,7 @@
             <div>
                 <x-input-label value="Cakupan" />
                 <select x-model="scope" x-on:change="scopeId = ''" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
-                    <option value="SEMUA">Seluruh sekolah</option>
+                    <option value="SEMUA">{{ auth()->user()->isSuperAdmin() ? 'Seluruh sekolah' : 'Seluruh laboratorium' }}</option>
                     <option value="KATEGORI">Per Kategori</option>
                     <option value="RUANGAN">Per Ruangan</option>
                     <option value="JURUSAN">Per Jurusan</option>
@@ -84,7 +84,12 @@
     </div>
 
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div class="px-5 py-3 border-b border-gray-100 font-semibold text-gray-700 text-sm">Arsip Laporan Tersimpan</div>
+        <div class="px-5 py-3 border-b border-gray-100 font-semibold text-gray-700 text-sm flex flex-wrap items-center gap-2">
+            Arsip Laporan Tersimpan
+            @unless (auth()->user()->isSuperAdmin())
+                <span class="font-normal text-[11px] text-gray-400">— hanya laporan yang Anda buat; laporan otomatis seluruh sekolah hanya dapat diunduh Super Admin.</span>
+            @endunless
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 text-xs uppercase text-gray-500">

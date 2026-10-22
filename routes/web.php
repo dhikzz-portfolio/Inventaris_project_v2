@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\ItemController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\PwaController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SecureFileController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WriteOffController;
 use Illuminate\Support\Facades\Route;
@@ -31,7 +33,13 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
     // File internal (foto bukti, BA, TTD, BAST, laporan) — akses diperiksa per peran.
     Route::get('/files', SecureFileController::class)->name('files.show');
 
-    // ================= KATALOG & BARANG (semua role melihat) =================
+    // ================= KATALOG & UNIT (semua role melihat, dibatasi scope) =================
+    Route::get('/catalogs', [CatalogController::class, 'index'])->name('catalogs.index');
+    Route::get('/catalogs/{catalog}', [CatalogController::class, 'show'])->name('catalogs.show');
+    Route::get('/units/{unit}', [UnitController::class, 'show'])->name('units.show');
+    Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:SUPER_ADMIN|ADMIN_SARPRAS|LABORAN')->name('units.label');
+
+    // Rute lama dipertahankan selama masa transisi.
     Route::get('/items', [ItemController::class, 'index'])->name('items.index');
     Route::get('/items/{item}', [ItemController::class, 'show'])->name('items.show');
     Route::get('/items/{item}/label', [ItemController::class, 'printLabel'])->name('items.label');
@@ -69,6 +77,8 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
         Route::post('/pengembalian/{loan}', [LoanController::class, 'processReturn'])->name('loans.return');
 
         // Label & Scan QR
+        Route::patch('/units/{unit}', [UnitController::class, 'update'])->name('units.update');
+
         Route::get('/label', [LabelController::class, 'index'])->name('labels.index');
         Route::post('/label/cetak', [LabelController::class, 'print'])->name('labels.print');
         Route::get('/scan', [LabelController::class, 'scan'])->name('scan');
@@ -92,6 +102,7 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
         // Mutasi lokasi
         Route::get('/mutasi', [MovementController::class, 'index'])->name('movements.index');
         Route::post('/mutasi', [MovementController::class, 'store'])->name('movements.store');
+        Route::post('/units/{unit}/move', [UnitController::class, 'move'])->name('units.move');
 
         // Inventaris keluar (penghapusan)
         Route::get('/inventaris-keluar', [WriteOffController::class, 'index'])->name('write-offs.index');

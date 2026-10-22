@@ -15,13 +15,23 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $user = $request->user();
+
+        $reports = Report::with('generator')
+            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('generated_by', $user->id))
+            ->latest('generated_at')
+            ->paginate(10);
+
         return view('reports.index', [
             'categories' => Category::orderBy('name')->get(),
-            'rooms' => Room::orderBy('code')->get(),
+            'rooms' => Room::query()
+                ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('is_lab', true))
+                ->orderBy('code')
+                ->get(),
             'majors' => Major::orderBy('name')->get(),
-            'reports' => Report::with('generator')->latest('generated_at')->paginate(10),
+            'reports' => $reports,
             'currentPeriod' => now()->format('Y-m'),
             'lastPeriod' => now()->subMonth()->format('Y-m'),
         ]);
@@ -36,7 +46,7 @@ class ReportController extends Controller
         $scopeId = $request->query('scope_id') ? (int) $request->query('scope_id') : null;
         abort_unless(in_array($scope, ['SEMUA', 'KATEGORI', 'RUANGAN', 'JURUSAN'], true), 404);
 
-        $data = $service->data($period, $scope, $scopeId);
+        $data = $service->data($period, $scope, $scopeId, $request->user());
         $suffix = $period.'-'.strtolower($scope).($scopeId ? '-'.$scopeId : '');
 
         if ($type === 'pdf') {
@@ -66,7 +76,8 @@ class ReportController extends Controller
             $data['period'],
             $data['scope'],
             ! empty($data['scope_id']) ? (int) $data['scope_id'] : null,
-            $request->user()->id
+            $request->user()->id,
+            $request->user()
         );
 
         return back()->with('success', "Laporan {$data['period']} tersimpan (PDF & Excel).");

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\NotificationType;
 use App\Jobs\CheckOverdueLoans;
 use App\Jobs\GenerateMonthlyReport;
+use App\Models\AssetUnit;
 use App\Models\Item;
 use App\Models\Report;
 use App\Models\User;
@@ -50,6 +51,43 @@ class DashboardAndReportingTest extends TestCase
         $response = $this->get(route('dashboard'));
         $response->assertOk();
         $response->assertViewHas('mode', 'personal');
+        $response->assertSee(route('catalogs.index'), false);
+    }
+
+    public function test_dashboard_pengelola_menghitung_unit_sesuai_cakupan_akses(): void
+    {
+        $wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $laboran = User::where('username', 'laboran.tkj')->firstOrFail();
+
+        $unitStat = function ($response): int {
+            return (int) collect($response->viewData('stats'))->firstWhere('label', 'Unit Inventaris')['value'];
+        };
+
+        $wakasekResponse = $this->actingAs($wakasek)->get(route('dashboard'))->assertOk();
+        $adminResponse = $this->actingAs($admin)->get(route('dashboard'))->assertOk();
+        $laboranResponse = $this->actingAs($laboran)->get(route('dashboard'))->assertOk();
+
+        $visible = fn (User $user) => AssetUnit::query()->visibleTo($user)->where('status', '!=', 'DIHAPUS')->count();
+
+        $this->assertSame($visible($wakasek), $unitStat($wakasekResponse));
+        $this->assertSame($visible($admin), $unitStat($adminResponse));
+        $this->assertSame($visible($laboran), $unitStat($laboranResponse));
+        $this->assertLessThan($unitStat($wakasekResponse), $unitStat($laboranResponse));
+
+        $wakasekResponse->assertSee('seluruh sekolah');
+        $adminResponse->assertSee('seluruh laboratorium');
+        $laboranResponse->assertSee('laboratorium dalam cakupan Anda');
+    }
+
+    public function test_menu_laboran_tidak_menautkan_mutasi_yang_bukan_kewenangannya(): void
+    {
+        $laboran = User::where('username', 'laboran.tkj')->firstOrFail();
+
+        $this->actingAs($laboran)->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee(route('movements.index'), false)
+            ->assertSee(route('labels.index'), false);
     }
 
     public function test_job_check_overdue_loans_mengirim_notifikasi(): void

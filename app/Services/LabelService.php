@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\UnitStatus;
+use App\Models\AssetUnit;
 use App\Models\InstitutionSetting;
 use App\Models\Item;
 use BaconQrCode\Common\ErrorCorrectionLevel;
 use BaconQrCode\Encoder\Encoder;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Collection;
 
 class LabelService
 {
@@ -18,6 +21,30 @@ class LabelService
     public function qrDataUrl(Item $item): string
     {
         return 'data:image/png;base64,'.base64_encode($this->renderQrPng(route('items.show', $item)));
+    }
+
+    public function unitQrDataUrl(AssetUnit $unit): string
+    {
+        return 'data:image/png;base64,'.base64_encode($this->renderQrPng(route('units.show', $unit)));
+    }
+
+    /** Label per unit fisik (revisi 2.1). */
+    public function printUnit(AssetUnit $unit): \Barryvdh\DomPDF\PDF
+    {
+        $setting = InstitutionSetting::current();
+
+        $unit->forceFill(['last_label_printed_at' => now()])->saveQuietly();
+
+        activity('label')
+            ->performedOn($unit)
+            ->causedBy(auth()->user())
+            ->log('Mencetak label unit '.$unit->inventory_code);
+
+        return Pdf::loadView('pdf.unit_label', [
+            'unit' => $unit->loadMissing(['catalog', 'room']),
+            'setting' => $setting,
+            'qr' => $this->unitQrDataUrl($unit),
+        ])->setPaper([0, 0, 260, 120], 'pt');
     }
 
     /**
@@ -112,36 +139,49 @@ class LabelService
     }
 
     /**
-     * Cetak label massal: banyak stiker dalam satu lembar A4.
+     * Cetak label massal per unit fisik: satu stiker untuk setiap unit yang
+     * dipilih, berisi kode inventaris unit tersebut (revisi 2.1 — keputusan 8).
      *
-     * @param  list<int>  $itemIds
+     * Hanya unit yang terlihat oleh pengguna aktif, bukan unit yang sudah
+     * dihapus, dan berasal dari katalog yang sudah disetujui yang dicetak.
+     * Unit di luar kewenangan pengguna tidak menghasilkan label apa pun.
+     *
+     * @param  list<int>  $unitIds
+     * @return array{0: \Barryvdh\DomPDF\PDF, 1: Collection} PDF dan unit yang benar-benar dicetak.
      */
-    public function printMassal(array $itemIds): \Barryvdh\DomPDF\PDF
+    public function printUnits(array $unitIds): array
     {
         $setting = InstitutionSetting::current();
 
-        $items = Item::with(['room', 'category'])
-            ->approved()
-            ->whereIn('id', $itemIds)
+        $units = AssetUnit::query()
+            ->visibleTo(auth()->user())
+            ->whereHas('catalog', fn ($query) => $query->approved())
+            ->where('status', '!=', UnitStatus::DIHAPUS->value)
+            ->with(['catalog.category', 'room'])
+            ->whereIn('id', $unitIds)
+            ->orderBy('inventory_code')
             ->get();
 
-        Item::whereIn('id', $items->pluck('id'))->update(['last_label_printed_at' => now()]);
+        if ($units->isEmpty()) {
+            abort(422, 'Tidak ada unit yang dapat dicetak dalam cakupan akses Anda.');
+        }
+
+        AssetUnit::whereIn('id', $units->pluck('id'))->update(['last_label_printed_at' => now()]);
 
         $qrMap = [];
-        $locationLinesMap = [];
-        foreach ($items as $item) {
-            $qrMap[$item->id] = $this->qrDataUrl($item);
-            $locationLinesMap[$item->id] = $this->splitLocationCode((string) $item->location_code);
+        foreach ($units as $unit) {
+            $qrMap[$unit->id] = $this->unitQrDataUrl($unit);
         }
 
         activity('label')
-            ->log('Mencetak label massal '.count($items).' stiker');
+            ->log('Mencetak label massal '.count($units).' unit');
 
-        return Pdf::loadView('pdf.label_massal', [
-            'items' => $items,
+        $pdf = Pdf::loadView('pdf.unit_massal', [
+            'units' => $units,
             'setting' => $setting,
             'qrMap' => $qrMap,
-            'locationLinesMap' => $locationLinesMap,
         ])->setPaper('a4');
+
+        return [$pdf, $units];
     }
 }

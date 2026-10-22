@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use App\Enums\UnitStatus;
+use App\Models\AssetUnit;
 use App\Models\Item;
 use App\Models\Loan;
 use App\Models\LoanItem;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -26,19 +30,32 @@ class DashboardController extends Controller
         return view('dashboard', $this->personalData($user));
     }
 
-    private function operationalData($user): array
+    private function operationalData(User $user): array
     {
         $startOfMonth = now()->startOfMonth();
         $endOfMonth = now()->endOfMonth();
 
-        $activeLoans = Loan::whereIn('status', [LoanStatus::APPROVED->value, LoanStatus::DIPINJAM->value]);
+        // Statistik memakai unit fisik dan menghormati cakupan akses: Super Admin
+        // melihat seluruh sekolah, Ketua Laboran seluruh lab, Laboran hanya ruangnya.
+        $unitScope = AssetUnit::query()
+            ->visibleTo($user)
+            ->where('status', '!=', UnitStatus::DIHAPUS->value);
 
-        $itemsQuery = Item::approved()->where('status', '!=', ItemStatus::DIHAPUS->value);
+        $catalogCount = Item::approved()
+            ->visibleTo($user)
+            ->where('status', '!=', ItemStatus::DIHAPUS->value)
+            ->count();
+
+        $scopedLoans = Loan::query()
+            ->whereHas('loanItems.item', fn ($q) => $q->visibleTo($user));
+        $activeLoans = (clone $scopedLoans)
+            ->whereIn('status', [LoanStatus::APPROVED->value, LoanStatus::DIPINJAM->value]);
 
         // Barang paling sering dipinjam bulan ini (kuantitas).
         $topBorrowed = LoanItem::query()
             ->selectRaw('item_id, SUM(qty_borrowed) as total')
             ->whereHas('loan', fn ($q) => $q->whereBetween('created_at', [$startOfMonth, $endOfMonth]))
+            ->whereHas('item', fn ($q) => $q->visibleTo($user))
             ->groupBy('item_id')
             ->orderByDesc('total')
             ->limit(5)
@@ -51,6 +68,7 @@ class DashboardController extends Controller
             ->whereNotNull('condition_in')
             ->where('condition_in', '!=', 'BAIK')
             ->whereHas('loan', fn ($q) => $q->whereNotNull('returned_at')->whereBetween('returned_at', [$startOfMonth, $endOfMonth]))
+            ->whereHas('item', fn ($q) => $q->visibleTo($user))
             ->groupBy('item_id')
             ->orderByDesc('total')
             ->limit(5)
@@ -58,20 +76,28 @@ class DashboardController extends Controller
             ->get();
 
         // Grafik peminjaman 6 bulan terakhir (satu query, dikelompokkan di PHP).
-        $loansPerMonth = $this->monthlyCounts(Loan::query());
+        $loansPerMonth = $this->monthlyCounts(clone $scopedLoans);
 
-        // Satu query agregat untuk seluruh status, dipakai kartu statistik & grafik distribusi.
-        $statusCounts = $itemsQuery->clone()
-            ->selectRaw('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
+        // Hitungan kondisi unit (dipisah agar portabel di MySQL maupun SQLite).
+        $baik = (clone $unitScope)->where('status', UnitStatus::AKTIF->value)
+            ->where('condition', Condition::BAIK->value)->count();
+        $rusakRingan = (clone $unitScope)
+            ->whereNotIn('status', [UnitStatus::HILANG->value, UnitStatus::DIPINJAM->value])
+            ->where('condition', Condition::RUSAK_RINGAN->value)->count();
+        $rusakBerat = (clone $unitScope)
+            ->whereNotIn('status', [UnitStatus::HILANG->value, UnitStatus::DIPINJAM->value])
+            ->where('condition', Condition::RUSAK_BERAT->value)->count();
+        $hilang = (clone $unitScope)->where('status', UnitStatus::HILANG->value)->count();
+        $dipinjam = (clone $unitScope)->where('status', UnitStatus::DIPINJAM->value)->count();
+        $unitTotal = $baik + $rusakRingan + $rusakBerat + $hilang + $dipinjam;
 
-        $statusDistribution = collect(ItemStatus::cases())
-            ->reject(fn ($s) => $s === ItemStatus::DIHAPUS)
-            ->map(fn ($s) => [
-                'label' => $s->label(),
-                'value' => (int) ($statusCounts[$s->value] ?? 0),
-            ])->values();
+        $statusDistribution = collect([
+            ['label' => Condition::BAIK->label(), 'value' => $baik],
+            ['label' => Condition::RUSAK_RINGAN->label(), 'value' => $rusakRingan],
+            ['label' => Condition::RUSAK_BERAT->label(), 'value' => $rusakBerat],
+            ['label' => UnitStatus::DIPINJAM->label(), 'value' => $dipinjam],
+            ['label' => UnitStatus::HILANG->label(), 'value' => $hilang],
+        ]);
 
         $overdue = $activeLoans->clone()
             ->where('due_date', '<', now())
@@ -80,24 +106,24 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
-        $pendingScope = Loan::where('status', LoanStatus::PENDING->value);
-        if ($user->isLaboran() && $user->major_id) {
-            $pendingScope->whereHas('loanItems.item.room', fn ($q) => $q->where('major_id', $user->major_id));
-        }
-
-        $pendingCount = $pendingScope->count();
-        $activeCount = $activeLoans->clone()->count();
-        $overdueCount = $activeLoans->clone()->where('due_date', '<', now())->count();
-        $damagedCount = (int) $statusCounts->only(['RUSAK_RINGAN', 'RUSAK_BERAT', 'HILANG'])->sum();
+        $activeCount = (clone $scopedLoans)->whereIn('status', [LoanStatus::APPROVED->value, LoanStatus::DIPINJAM->value])->count();
+        $pendingCount = (clone $scopedLoans)->where('status', LoanStatus::PENDING->value)->count();
+        $overdueCount = (clone $activeLoans)->where('due_date', '<', now())->count();
 
         return [
             'mode' => 'operational',
+            'scopeLabel' => match (true) {
+                $user->isSuperAdmin() => 'seluruh sekolah',
+                $user->isAdminSarpras() => 'seluruh laboratorium',
+                default => 'laboratorium dalam cakupan Anda',
+            },
             'stats' => [
-                ['label' => 'Barang Terdaftar', 'value' => (int) $statusCounts->sum(), 'unit' => 'item', 'icon' => 'inventory_2', 'color' => 'slate'],
+                ['label' => 'Katalog Barang', 'value' => $catalogCount, 'unit' => 'katalog', 'icon' => 'category', 'color' => 'slate'],
+                ['label' => 'Unit Inventaris', 'value' => $unitTotal, 'unit' => 'unit', 'icon' => 'inventory_2', 'color' => 'green'],
                 ['label' => 'Sedang Dipinjam', 'value' => $activeCount, 'unit' => 'pinjaman', 'icon' => 'swap_horiz', 'color' => 'blue'],
                 ['label' => 'Menunggu Persetujuan', 'value' => $pendingCount, 'unit' => 'request', 'icon' => 'how_to_reg', 'color' => 'amber'],
                 ['label' => 'Terlambat', 'value' => $overdueCount, 'unit' => 'pinjaman', 'icon' => 'alarm', 'color' => 'red'],
-                ['label' => 'Rusak / Hilang', 'value' => $damagedCount, 'unit' => 'barang', 'icon' => 'report_problem', 'color' => 'purple'],
+                ['label' => 'Rusak / Hilang', 'value' => $rusakRingan + $rusakBerat + $hilang, 'unit' => 'unit', 'icon' => 'report_problem', 'color' => 'purple'],
             ],
             'topBorrowed' => $topBorrowed,
             'topDamaged' => $topDamaged,
@@ -105,10 +131,10 @@ class DashboardController extends Controller
             'statusDistribution' => $statusDistribution,
             'overdue' => $overdue,
             'recentActivity' => Activity::with(['causer', 'subject'])
+                ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('causer_id', $user->id))
                 ->latest()
                 ->limit(8)
                 ->get(),
-            'pendingScope' => $pendingCount,
         ];
     }
 

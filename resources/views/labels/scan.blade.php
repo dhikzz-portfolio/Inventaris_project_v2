@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between gap-3">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Scan QR Inventaris</h2>
-                <p class="text-sm text-gray-500">Arahkan kamera ke stiker QR — langsung membuka detail barang (tanpa aplikasi tambahan)</p>
+                <p class="text-sm text-gray-500">Arahkan kamera ke stiker QR unit — langsung membuka detail unit (tanpa aplikasi tambahan)</p>
             </div>
             <a href="{{ route('labels.index') }}" class="text-sm text-gray-500 hover:text-gray-800">← Cetak Label</a>
         </div>
@@ -30,13 +30,13 @@
         </div>
 
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <h3 class="font-semibold text-gray-800 text-sm mb-3">Input Manual (ID Internal)</h3>
+            <h3 class="font-semibold text-gray-800 text-sm mb-3">Input Manual (Kode Inventaris)</h3>
             <form @submit.prevent="goManual()" class="flex gap-2">
-                <input type="text" x-model="manual" placeholder="Contoh: g1-01-01"
+                <input type="text" x-model="manual" placeholder="Contoh: G1-02-12"
                        class="flex-1 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500 font-mono">
                 <button class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Cari</button>
             </form>
-            <p class="text-[11px] text-gray-400 mt-2">Berguna saat stiker pudar / kamera bermasalah.</p>
+            <p class="text-[11px] text-gray-400 mt-2">Masukkan kode unit <span class="font-mono">G1-02-12</span> (ID internal lama tetap diterima). Berguna saat stiker pudar / kamera bermasalah.</p>
         </div>
     </div>
 

@@ -11,7 +11,19 @@ class Room extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['major_id', 'building', 'floor', 'code', 'name'];
+    protected $fillable = [
+        'major_id', 'building', 'floor', 'code', 'name',
+        'building_letter', 'room_no', 'is_lab',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'floor' => 'integer',
+            'room_no' => 'integer',
+            'is_lab' => 'boolean',
+        ];
+    }
 
     public function major(): BelongsTo
     {
@@ -21,6 +33,22 @@ class Room extends Model
     public function items(): HasMany
     {
         return $this->hasMany(Item::class);
+    }
+
+    public function units(): HasMany
+    {
+        return $this->hasMany(AssetUnit::class);
+    }
+
+    /** Prefix kode inventaris: huruf gedung + lantai, mis. G1. */
+    public function codePrefix(): string
+    {
+        return ($this->building_letter ?: 'G').(int) $this->floor;
+    }
+
+    public function roomLabel(): string
+    {
+        return sprintf('Gedung %s, Lantai %d, Ruang %02d', $this->building_letter, (int) $this->floor, (int) $this->room_no);
     }
 
     public function movementsFrom(): HasMany

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Loan;
+use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -34,7 +35,20 @@ class SecureFileController extends Controller
 
     private function allowed(string $path, $user): bool
     {
-        if (str_starts_with($path, 'write-offs/') || str_starts_with($path, 'reports/')) {
+        if (str_starts_with($path, 'reports/')) {
+            if ($user->isSuperAdmin()) {
+                return true;
+            }
+
+            // Arsip laporan hanya untuk pembuatnya; laporan seluruh sekolah oleh
+            // scheduler tidak boleh dibuka Ketua Laboran.
+            return Report::query()
+                ->where('generated_by', $user->id)
+                ->where(fn ($q) => $q->where('pdf_path', $path)->orWhere('excel_path', $path))
+                ->exists();
+        }
+
+        if (str_starts_with($path, 'write-offs/')) {
             return $user->managesInventory();
         }
 

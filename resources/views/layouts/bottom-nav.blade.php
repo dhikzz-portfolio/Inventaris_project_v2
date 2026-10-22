@@ -10,7 +10,7 @@
     <div class="grid grid-cols-5 h-16">
         @php($bottomItems = [
             ['href' => route('dashboard'), 'icon' => 'dashboard', 'label' => 'Beranda', 'active' => request()->routeIs('dashboard'), 'badge' => 0],
-            ['href' => route('items.index'), 'icon' => 'inventory_2', 'label' => 'Katalog', 'active' => request()->routeIs('items.index') || request()->routeIs('items.show'), 'badge' => 0],
+            ['href' => route('catalogs.index'), 'icon' => 'inventory_2', 'label' => 'Katalog', 'active' => request()->routeIs('catalogs.*') || request()->routeIs('units.*'), 'badge' => 0],
             ['href' => route('loans.create'), 'icon' => 'add_shopping_cart', 'label' => 'Pinjam', 'active' => request()->routeIs('loans.create'), 'badge' => 0],
             $canApprove
                 ? ['href' => route('loans.pending'), 'icon' => 'how_to_reg', 'label' => 'Persetujuan', 'active' => request()->routeIs('loans.pending'), 'badge' => 0]

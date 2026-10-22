@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <style>
+    <meta charset="utf-8"><style>
         @page { margin: 0; }
         * { box-sizing: border-box; }
         body { margin: 0; padding: 2pt; font-family: Helvetica, Arial, sans-serif; }
@@ -37,8 +36,7 @@
             padding-top: 2pt;
             font-size: 7.5pt; font-weight: bold; text-align: center;
             text-transform: uppercase;
-        }
-    </style>
+        }</style>
 </head>
 <body>
     <div class="label">

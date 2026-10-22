@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
-use App\Enums\ItemStatus;
+use App\Enums\Condition;
 use App\Enums\LoanStatus;
+use App\Enums\UnitStatus;
 use App\Exports\MonthlyReportExport;
+use App\Models\AssetUnit;
 use App\Models\Category;
 use App\Models\InstitutionSetting;
 use App\Models\Item;
@@ -14,6 +16,7 @@ use App\Models\LoanItem;
 use App\Models\Major;
 use App\Models\Report;
 use App\Models\Room;
+use App\Models\User;
 use App\Models\WriteOff;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
@@ -25,15 +28,21 @@ class ReportService
      * Data laporan bulanan.
      *
      * @param  string  $period  YYYY-MM
-     * @param  string  $scope  SEMUA | KATEGORI | RUANGAN
+     * @param  string  $scope  SEMUA | KATEGORI | RUANGAN | JURUSAN
+     * @param  User|null  $user  Pengguna yang meminta laporan; menentukan cakupan data.
      */
-    public function data(string $period, string $scope = 'SEMUA', ?int $scopeId = null): array
+    public function data(string $period, string $scope = 'SEMUA', ?int $scopeId = null, ?User $user = null): array
     {
         $start = Carbon::parse($period.'-01')->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
+        // Ketua Laboran mengelola seluruh laboratorium, tetapi bukan inventaris umum
+        // sekolah. Super Admin (dan pembuatan laporan oleh sistem) mencakup semua ruangan.
+        $labOnly = $user !== null && ! $user->isSuperAdmin();
+
         $items = Item::approved()
             ->with(['room.major', 'category'])
+            ->when($labOnly, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('is_lab', true)))
             ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->where('category_id', $scopeId))
             ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
             ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
@@ -41,7 +50,32 @@ class ReportService
             ->orderBy('name')
             ->get();
 
-        $loansInPeriod = Loan::whereBetween('created_at', [$start, $end]);
+        // Unit fisik dalam cakupan & scope yang sama — sumber angka kondisi/status.
+        $units = AssetUnit::query()
+            ->visibleTo($user)
+            ->where('status', '!=', UnitStatus::DIHAPUS->value)
+            ->whereHas('catalog', fn ($query) => $query->approved()
+                ->when($scope === 'KATEGORI' && $scopeId, fn ($qq) => $qq->where('category_id', $scopeId))
+                ->when($scope === 'JURUSAN' && $scopeId, fn ($qq) => $qq->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
+            )
+            ->when($scope === 'RUANGAN' && $scopeId, fn ($query) => $query->where('room_id', $scopeId))
+            ->with(['catalog.category', 'room'])
+            ->orderBy('inventory_code')
+            ->get();
+
+        // Rincian unit saling eksklusif mengikuti urutan prioritas PRD 5.5:
+        // DIHAPUS (keluar hitungan) → HILANG → DIPINJAM → rusak → baik.
+        $unitBuckets = $units->countBy(fn (AssetUnit $unit) => match (true) {
+            $unit->status === UnitStatus::HILANG => 'hilang',
+            $unit->status === UnitStatus::DIPINJAM => 'dipinjam',
+            $unit->condition === Condition::RUSAK_RINGAN => 'rusak_ringan',
+            $unit->condition === Condition::RUSAK_BERAT => 'rusak_berat',
+            default => 'baik',
+        });
+
+        $loansInPeriod = Loan::whereBetween('created_at', [$start, $end])
+            ->when($labOnly, fn ($q) => $q->whereHas('loanItems.item.room', fn ($r) => $r->where('is_lab', true)));
+
         if ($scope !== 'SEMUA' && $scopeId) {
             $loansInPeriod->whereHas('loanItems.item', function ($q) use ($scope, $scopeId) {
                 $q->when($scope === 'KATEGORI', fn ($qq) => $qq->where('category_id', $scopeId))
@@ -56,6 +90,7 @@ class ReportService
         $damageRows = LoanItem::whereNotNull('condition_in')
             ->where('condition_in', '!=', 'BAIK')
             ->whereHas('loan', fn ($q) => $q->whereNotNull('returned_at')->whereBetween('returned_at', [$start, $end]))
+            ->when($labOnly, fn ($q) => $q->whereHas('item.room', fn ($r) => $r->where('is_lab', true)))
             ->when($scope !== 'SEMUA' && $scopeId, fn ($q) => $q->whereHas('item', function ($qq) use ($scope, $scopeId) {
                 $qq->when($scope === 'KATEGORI', fn ($q3) => $q3->where('category_id', $scopeId))
                     ->when($scope === 'RUANGAN', fn ($q3) => $q3->where('room_id', $scopeId))
@@ -65,6 +100,7 @@ class ReportService
             ->get();
 
         $movements = ItemMovement::whereBetween('moved_at', [$start, $end])
+            ->when($labOnly, fn ($q) => $q->whereHas('item.room', fn ($r) => $r->where('is_lab', true)))
             ->when($scope !== 'SEMUA' && $scopeId, fn ($q) => $q->whereHas('item', function ($qq) use ($scope, $scopeId) {
                 $qq->when($scope === 'KATEGORI', fn ($q3) => $q3->where('category_id', $scopeId))
                     ->when($scope === 'RUANGAN', fn ($q3) => $q3->where('room_id', $scopeId))
@@ -75,6 +111,7 @@ class ReportService
 
         $writeOffs = WriteOff::where('status', 'APPROVED')
             ->whereBetween('updated_at', [$start, $end])
+            ->when($labOnly, fn ($q) => $q->whereHas('item.room', fn ($r) => $r->where('is_lab', true)))
             ->when($scope !== 'SEMUA' && $scopeId, fn ($q) => $q->whereHas('item', function ($qq) use ($scope, $scopeId) {
                 $qq->when($scope === 'KATEGORI', fn ($q3) => $q3->where('category_id', $scopeId))
                     ->when($scope === 'RUANGAN', fn ($q3) => $q3->where('room_id', $scopeId))
@@ -92,17 +129,25 @@ class ReportService
                 'KATEGORI' => 'Kategori: '.(Category::find($scopeId)?->name ?? '-'),
                 'RUANGAN' => 'Ruangan: '.(Room::find($scopeId)?->name ?? '-'),
                 'JURUSAN' => 'Jurusan: '.(Major::find($scopeId)?->name ?? '-'),
-                default => 'Seluruh sekolah',
+                default => $labOnly ? 'Seluruh laboratorium' : 'Seluruh sekolah',
             },
             'items' => $items,
-            'loans' => $loansInPeriod->load(['borrower', 'event', 'loanItems.item']),
+            'units' => $units,
+            'loans' => $loansInPeriod->load([
+                'borrower',
+                'event',
+                'loanItems' => fn ($q) => $q
+                    ->when($labOnly, fn ($qq) => $qq->whereHas('item.room', fn ($r) => $r->where('is_lab', true)))
+                    ->with('item'),
+            ]),
             'summary' => [
+                // Jumlah katalog (jenis barang) berbeda dari jumlah unit fisik.
                 'total_barang' => $items->count(),
-                'total_unit' => (int) $items->sum('quantity'),
-                'baik' => $items->where('status', ItemStatus::BAIK)->count(),
-                'rusak_ringan' => $items->where('status', ItemStatus::RUSAK_RINGAN)->count(),
-                'rusak_berat' => $items->where('status', ItemStatus::RUSAK_BERAT)->count(),
-                'hilang' => $items->where('status', ItemStatus::HILANG)->count(),
+                'total_unit' => $units->count(),
+                'baik' => (int) $unitBuckets->get('baik', 0),
+                'rusak_ringan' => (int) $unitBuckets->get('rusak_ringan', 0),
+                'rusak_berat' => (int) $unitBuckets->get('rusak_berat', 0),
+                'hilang' => (int) $unitBuckets->get('hilang', 0),
                 'pengajuan_pinjam' => $loansInPeriod->count(),
                 'disetujui' => $loansInPeriod->where('status', 'APPROVED')->count()
                     + $loansInPeriod->where('status', 'DIPINJAM')->count()
@@ -126,9 +171,9 @@ class ReportService
     }
 
     /** Simpan file PDF & Excel laporan bulanan (dipakai scheduler + tombol manual). */
-    public function generateMonthly(string $period, string $scope = 'SEMUA', ?int $scopeId = null, ?int $userId = null): Report
+    public function generateMonthly(string $period, string $scope = 'SEMUA', ?int $scopeId = null, ?int $userId = null, ?User $user = null): Report
     {
-        $data = $this->data($period, $scope, $scopeId);
+        $data = $this->data($period, $scope, $scopeId, $user);
 
         $pdfPath = 'reports/'.sprintf('laporan-%s-%s-%d.pdf', $period, strtolower($scope), $scopeId ?? 0);
         $xlsxPath = 'reports/'.sprintf('laporan-%s-%s-%d.xlsx', $period, strtolower($scope), $scopeId ?? 0);

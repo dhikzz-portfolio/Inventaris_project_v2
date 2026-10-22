@@ -46,6 +46,12 @@ class User extends Authenticatable
         return $this->hasMany(AppNotification::class);
     }
 
+    /** Cakupan laboratorium/ruangan untuk Laboran/K3. */
+    public function roomScopes(): HasMany
+    {
+        return $this->hasMany(UserRoomScope::class);
+    }
+
     public function hasRoleValue(Role $role): bool
     {
         return $this->role === $role->value;

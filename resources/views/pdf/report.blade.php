@@ -44,7 +44,7 @@
 
     <table class="summary">
         <tr>
-            <td><div class="val">{{ $summary['total_barang'] }}</div><div class="lbl">Barang Terdaftar</div></td>
+            <td><div class="val">{{ $summary['total_barang'] }}</div><div class="lbl">Katalog Barang</div></td>
             <td><div class="val">{{ $summary['total_unit'] }}</div><div class="lbl">Total Unit</div></td>
             <td><div class="val">{{ $summary['pengajuan_pinjam'] }}</div><div class="lbl">Pengajuan Pinjam</div></td>
             <td><div class="val">{{ $summary['kerusakan'] }}</div><div class="lbl">Kerusakan Dilaporkan</div></td>
@@ -52,10 +52,10 @@
             <td><div class="val">{{ $summary['penghapusan'] }}</div><div class="lbl">Penghapusan</div></td>
         </tr>
         <tr>
-            <td><div class="val" style="color:green;">{{ $summary['baik'] }}</div><div class="lbl">Kondisi Baik</div></td>
-            <td><div class="val" style="color:#ca8a04;">{{ $summary['rusak_ringan'] }}</div><div class="lbl">Rusak Ringan</div></td>
-            <td><div class="val" style="color:#ea580c;">{{ $summary['rusak_berat'] }}</div><div class="lbl">Rusak Berat</div></td>
-            <td><div class="val" style="color:red;">{{ $summary['hilang'] }}</div><div class="lbl">Hilang</div></td>
+            <td><div class="val" style="color:green;">{{ $summary['baik'] }}</div><div class="lbl">Unit Baik</div></td>
+            <td><div class="val" style="color:#ca8a04;">{{ $summary['rusak_ringan'] }}</div><div class="lbl">Unit Rusak Ringan</div></td>
+            <td><div class="val" style="color:#ea580c;">{{ $summary['rusak_berat'] }}</div><div class="lbl">Unit Rusak Berat</div></td>
+            <td><div class="val" style="color:red;">{{ $summary['hilang'] }}</div><div class="lbl">Unit Hilang</div></td>
             <td><div class="val">{{ $summary['selesai'] }}</div><div class="lbl">Pinjam Selesai</div></td>
             <td><div class="val" style="color:red;">{{ $summary['terlambat'] }}</div><div class="lbl">Terlambat</div></td>
         </tr>

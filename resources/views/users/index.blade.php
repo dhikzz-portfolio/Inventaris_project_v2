@@ -55,6 +55,15 @@
                         @endforeach
                     </select>
                 </div>
+                <div>
+                    <x-input-label value="Cakupan laboratorium (Laboran/K3)" />
+                    <select name="room_ids[]" multiple size="3" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                        @foreach ($labRooms as $labRoom)
+                            <option value="{{ $labRoom->id }}" @selected(in_array($labRoom->id, old('room_ids', [])))>{{ $labRoom->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-[11px] text-gray-400">Tahan Ctrl/Cmd untuk memilih lebih dari satu laboratorium.</p>
+                </div>
                 <x-primary-button class="w-full justify-center bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">Buat Pengguna</x-primary-button>
             </form>
         </div>
@@ -87,7 +96,12 @@
                                         'bg-gray-100 text-gray-600' => $user->role === 'PEMINJAM',
                                     ])>{{ \App\Enums\Role::tryFrom($user->role)?->label() }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-xs text-gray-500">{{ $user->major?->name ?: '—' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500">
+                                    {{ $user->major?->name ?: '—' }}
+                                    @if ($user->roomScopes->isNotEmpty())
+                                        <div class="text-[10px] text-blue-700 mt-0.5">{{ $user->roomScopes->pluck('room.name')->implode(', ') }}</div>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 text-center text-xs text-gray-400">{{ $user->last_login_at?->format('d M Y H:i') ?: 'belum pernah' }}</td>
                                 <td class="px-4 py-3 text-center">
                                     <div x-data="{ open: false }" class="relative inline-block">
@@ -108,6 +122,11 @@
                                                     <option value="">— tanpa jurusan —</option>
                                                     @foreach ($majors as $major)
                                                         <option value="{{ $major->id }}" @selected($user->major_id == $major->id)>{{ $major->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <select name="room_ids[]" multiple size="2" class="w-full rounded-lg border-gray-300 text-xs">
+                                                    @foreach ($labRooms as $labRoom)
+                                                        <option value="{{ $labRoom->id }}" @selected($user->roomScopes->contains('room_id', $labRoom->id))>{{ $labRoom->name }}</option>
                                                     @endforeach
                                                 </select>
                                                 <input type="password" name="password" class="w-full rounded-lg border-gray-300 text-xs" placeholder="Password baru (kosongkan bila tetap)">

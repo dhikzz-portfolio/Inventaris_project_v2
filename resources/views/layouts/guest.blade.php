@@ -46,19 +46,19 @@
 
     <main class="safe-area-bottom min-h-dvh">
 
-        {{-- Mobile Branding (Hidden on lg+) --}}
-        <div class="px-5 pt-4 lg:hidden">
-            <div class="flex items-center gap-3.5">
-                <div class="inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-600 shadow-lg shadow-brand-600/25 ring-1 ring-brand-500/20">
+        {{-- Mobile Branding Header (Hidden on lg+) --}}
+        <div class="safe-area-top border-b border-brand-700/60 bg-brand-600 lg:hidden">
+            <div class="flex w-full items-center gap-3.5 px-5 py-3">
+                <div class="inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-600 shadow-lg shadow-brand-900/20 ring-1 ring-white/20">
                     @if ($loginLogo)
-                        <img src="{{ $loginLogo }}" alt="{{ $loginLogoAlt }}" class="h-11 w-11 object-contain" />
+                        <img src="{{ $loginLogo }}" alt="{{ $loginLogoAlt }}" class="h-15 w-15 object-contain" />
                     @else
                         <span class="material-icons-round text-3xl text-white" aria-hidden="true">school</span>
                     @endif
                 </div>
-                <div class="min-w-0">
-                    <p class="line-clamp-2 break-words text-base font-bold leading-tight tracking-tight text-slate-900">{{ $institutionName }}</p>
-                    <p class="mt-0.5 truncate text-xs text-slate-500">{{ $brandTagline }}</p>
+                <div class="min-w-0 flex-1">
+                    <p class="line-clamp-2 break-words text-base font-bold leading-tight tracking-tight text-white">{{ $institutionName }}</p>
+                    <p class="mt-0.5 truncate text-xs text-white/80">{{ $brandTagline }}</p>
                 </div>
             </div>
         </div>
@@ -76,7 +76,7 @@
                     <div class="flex items-center gap-4">
                         <div class="inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/25 bg-white/15 shadow-lg backdrop-blur-sm">
                             @if ($loginLogo)
-                                <img src="{{ $loginLogo }}" alt="{{ $loginLogoAlt }}" class="h-11 w-11 object-contain" />
+                                <img src="{{ $loginLogo }}" alt="{{ $loginLogoAlt }}" class="h-15 w-15 object-contain" />
                             @else
                                 <span class="material-icons-round text-3xl text-white" aria-hidden="true">school</span>
                             @endif
@@ -135,7 +135,7 @@
         {{-- Login Form Column --}}
         <section class="relative z-10 flex items-start justify-center px-4 pb-8 pt-5 sm:px-6 sm:pb-10 sm:pt-10 lg:ml-[480px] lg:min-h-dvh lg:items-center lg:px-8 lg:py-12">
             <div class="w-full max-w-md animate-slide-up">
-                <div class="mb-5 sm:mb-8">
+                <div class="mb-5 sm:mb-8 w-full flex flex-col items-center justify-center text-center">
                     <h1 class="text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $heading }}</h1>
                     @if (! empty($subheading))
                         <p class="mt-2 text-pretty text-sm leading-relaxed text-slate-500">{{ $subheading }}</p>

@@ -2,7 +2,7 @@
 
 Dokumen ini mencatat keputusan arsitektur, asumsi teknis, dan trade-off implementasi Sistem Manajemen Inventaris & Aset Sekolah.
 
-Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang direvisi pada 21 Oktober 2026 diberi catatan "Direvisi 2.1". Keputusan baru ditambahkan mulai nomor 19.
+Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang direvisi pada 21 Oktober 2026 diberi catatan "Direvisi 2.1". Keputusan baru ditambahkan mulai nomor 19. Keputusan revisi lanjutan 22 Oktober 2026 (master gedung, penugasan unit, persetujuan Wakasek, status dokumen terpisah, validasi penugasan) diberi catatan "Revisi 2.2" dan berada di keputusan 27–30.
 
 ---
 
@@ -62,7 +62,7 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 
 - **Keputusan**: Lingkungan pengembangan v2 memakai MySQL 8.4 (`inventaris_sekolah_v2`) sesuai stack PRD. Automated test tetap memakai SQLite in-memory agar cepat dan terisolasi.
 - **Rasional**: PRD menyebut PostgreSQL di judul skema namun contoh migrasi dan stack menggunakan MySQL/MariaDB; MySQL dipilih agar konsisten dengan migrasi dan deployment Laragon/Docker. Perbedaan dialek tetap diuji lewat test suite.
-- **Konsekuensi**: Query yang hanya valid di MySQL tidak boleh dipakai tanpa fallback SQLite (test suite akan menangkapnya). Generated column `loan_item_units.open_flag` harus diuji di kedua dialek.
+- **Konsekuensi**: Query yang hanya valid di MySQL tidak boleh dipakai tanpa fallback SQLite (test suite akan menangkapnya). Perbedaan dialek pada unique index dengan kolom `NULL` (lihat `loan_item_units`) harus diuji di kedua dialek.
 
 ## 10. Model Kuantitas: Katalog + Unit, Bukan Batch — Direvisi 2.1
 
@@ -79,6 +79,7 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 - **Rasional**: Memisahkan "disetujui" dari "barang benar-benar dibawa" sehingga audit dan pengembalian tidak ambigu.
 - **Konsekuensi**: UI menampilkan aksi "Serahkan Barang" hanya untuk petugas berwenang; pembatalan ditolak setelah serah terima.
 - **Revisi 2.1**: Saat serah terima, petugas memilih/memindai unit fisik yang diserahkan sehingga `loan_item_units` terisi.
+- **Revisi 2.2**: Penugasan unit menjadi **wajib lengkap** saat serah terima: jumlah unit terpilih per baris harus sama dengan jumlah yang dipinjam, kecuali katalog yang belum memiliki unit fisik (data warisan). Lihat keputusan 30.
 
 ## 12. Pengembalian Akumulatif & Selisih
 
@@ -180,3 +181,40 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 - **Keputusan**: Identitas visual lama dipertahankan (sidebar slate gelap, aksen amber, kartu `rounded-xl`, toolbar filter, tabel detail, Figtree, ikon Material Round, bottom nav mobile). Stylesheet dimigrasikan ke sintaks Tailwind v4: `@import "tailwindcss"`, `@plugin "@tailwindcss/forms"`, `@source` untuk Blade dan pagination, `@theme` untuk font, serta `@custom-variant dark` karena tema memakai class `.dark`.
 - **Rasional**: Repository memakai Tailwind 4.3 tetapi CSS masih memakai direktif v3 (`@tailwind base/components/utilities`), sehingga utility tidak dihasilkan dan aplikasi tampil tanpa style meskipun build "berhasil". Desain lama tetap menjadi acuan agar pengguna mengenali aplikasi.
 - **Konsekuensi**: `tailwind.config.js` lama tidak lagi menjadi sumber utama; kelas baru harus ditulis di Blade/CSS dan build wajib menghasilkan utility (dicek di `public/build/assets`). Dashboard, statistik, dan menu memakai scope backend yang sama dengan katalog/unit agar UI tidak menampilkan data di luar kewenangan.
+
+## 27. Master Data Gedung Dipisah dari Ruangan (Revisi 22 Oktober 2026)
+
+- **Keputusan**: Identitas gedung dipisahkan dari ruangan.
+    - Tabel `buildings` menyimpan nama gedung dan kode satu huruf (A–Z); kode inilah yang dipakai generator kode lokasi dan kode inventaris.
+    - Ruangan terhubung ke **tepat satu** master gedung (`rooms.building_id`); `rooms.building_letter` menjadi salinan yang dijaga sinkron dan bukan sumber kebenaran.
+    - Formulir ruangan hanya meminta gedung (dropdown dari master), lantai, dan nomor ruangan; nama ruangan dan kode diturunkan sistem.
+- **Rasional**: Tanpa pemisahan, teks gedung diketik ulang tiap kali menambah ruangan dan dua ruangan berbeda bisa kebetulan pakai huruf yang sama meski dimaksud gedung berbeda.
+- **Konsekuensi**: Pengguna tidak perlu (dan tidak boleh) mengetik nama gedung saat menambah ruangan. Huruf gedung di kode inventaris selalu berasal dari master gedung. Data lama yang belum punya master gedung tetap muncul di filter sebagai pilihan terpisah tanpa nama.
+
+## 28. Penugasan Unit Fisik Saat Serah Terima (Revisi 22 Oktober 2026)
+
+- **Keputusan**: Saat serah terima, petugas memilih/memindai unit fisik yang diserahkan sehingga `loan_item_units` terisi.
+- **Konsekuensi**: Status unit `DIPINJAM` dan tercatat pada detail pinjaman.
+
+## 29. Persetujuan Wakasek Tanpa Admin Tambahan (Revisi 22 Oktober 2026)
+
+- **Keputusan**: Wakasek Sarpras berwenang penuh atas inventaris sekolah. Satu persetujuan sah darinya sudah cukup — tidak dituntut persetujuan Admin tambahan yang berulang.
+- **Konsekuensi**: Alur berjenjang tetap untuk pihak lain; hanya Wakasek yang bisa memutuskan level akhir sekaligus.
+
+## 30. Status Dokumen Terpisah dari Status Transaksi (Revisi 22 Oktober 2026)
+
+- **Keputusan**: Status dokumen peminjaman dipisahkan dari status transaksi.
+- **Rasional**: Status dokumen tidak memengaruhi kelayakan transaksi: dokumen belum dibuat, sudah dicetak, atau sudah ditandatangani secara fisik tidak menentukan apakah peminjaman sah.
+- **Konsekuensi**: Status dokumen tidak menentukan kelayakan transaksi: dokumen yang belum dibuat atau belum ditandatangani tidak memblokir serah terima, dan pencetakan dokumen tidak mengubah status peminjaman.
+
+## 31. Kolom Optional di Tabel Relasi (22 Oktober 2026)
+
+- **Keputusan**: `loan_item_units` dan kolom relasi lain yang perlu dukungan legacy membiarkan nilai `NULL` di kolom kunci asing saat data belum siap, dan hanya memberlakukan keunikan/validasi pada level service.
+- **Rasional**: Mengizinkan `NULL` memudahkan transisi dari pembukuan kuantitas warisan ke unit fisik tanpa memaksa migrasi sekaligus.
+- **Konsekuensi**: Pembatasan siklus unit dan keunikan hanya teroperasi penuh setelah aplikasi beralih ke mode unit; SQLite dan MySQL harus tetap konsisten pada constraint yang bersifat `NULL`-able.
+
+## 32. Validasi Penugasan Unit Wajib Lengkap per Baris (Revisi 22 Oktober 2026)
+
+- **Keputusan**: Saat serah terima dengan unit fisik, jumlah unit yang dipilih per baris peminjaman harus sama dengan jumlah yang dipinjam, kecuali katalog yang belum memiliki unit fisik (data warisan). Unit yang ditugaskan harus aktif, kondisi baik, belum dipinjam orang lain, dan belum pernah dikembalikan pada pinjaman yang sama.
+- **Rasional**: Penugasan parsial membuat pencatatan unit fisik dan pembukuan kuantitas tidak sinkron.
+- **Konsekuensi**: Sistem menolak serah terima dengan pesan yang menjelaskan masalahnya bila syarat tidak terpenuhi; serah terima tanpa unit masih tersedia untuk katalog warisan.

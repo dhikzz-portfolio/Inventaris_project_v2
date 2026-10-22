@@ -44,7 +44,7 @@ Pemetaan istilah: **Super Admin** = `SUPER_ADMIN` (Wakasek Sarpras), **Ketua Lab
 ### Membuka detail unit
 
 1. Klik nama katalog, mis. **Kursi**.
-2. Halaman detail menampilkan **hanya unit kursi**, lengkap dengan kode inventaris, lokasi, kondisi, dan status.
+2. Halaman detail menampilkan **hanya unit kursi** (barang fisik), lengkap dengan kode inventaris, lokasi, kondisi, dan status.
 3. Klik salah satu baris untuk melihat detail unit: kode aktif, kode lama, perolehan, foto, catatan, riwayat pemeliharaan, dan riwayat perpindahan (sesuai hak akses).
 4. Gunakan tombol **Cetak Label** pada detail unit untuk stiker satuan, atau tombol **Cetak Label Unit** di halaman katalog untuk memilih/mencetak massal unit katalog tersebut (termasuk "pilih semua sesuai filter").
 
@@ -105,7 +105,9 @@ Laboran hanya dapat memproses pinjaman yang seluruh barangnya berada dalam cakup
 
 Setelah disetujui, buka detail pinjaman → **Serahkan Barang**. Status berubah menjadi **Sedang Dipinjam** dan petugas/waktu tercatat. Jangan menyerahkan barang sebelum tombol ini ditekan agar audit benar.
 
-**⚠ 2.1:** saat serah terima, pindai/pilih unit fisik yang diserahkan. Unit yang dipinjam akan ditandai `DIPINJAM` dan tercatat pada detail pinjaman.
+**⚠ 2.1:** saat serah terima (rekomendasi), pindai atau pilih unit fisik yang sesungguhnya diserahkan. Unit yang dipilih akan dicatat pada `loan_item_units` (kondisi keluar, `opened_at`), ditandai `DIPINJAM`, dan muncul di detail pinjaman.
+
+> **Catatan wajib:** bila katalog belum memiliki unit fisik (data lama yang belum dimigrasikan), serah terima tetap dapat dilakukan hanya dengan mengklik **Serahkan Barang**, tanpa memilih unit. Ketentuan lengkap ada di bagian 10.
 
 ### Pengembalian
 
@@ -125,9 +127,33 @@ Tombol kamera mengambang / menu **Scan QR**. Arahkan kamera ke stiker. Jika kame
 - **Pengadaan Barang**: isi data katalog dan jumlah unit. Jika dibuat oleh Ketua Laboran, status pengadaan `PENDING` dan menunggu Wakasek; jika oleh Wakasek, langsung disetujui.
 - **Mutasi Lokasi** (⚠ 2.1): pilih unit dan ruangan tujuan. Kode baru diterbitkan, kode lama disimpan sebagai riwayat, dan label wajib dicetak ulang.
 - **Inventaris Keluar**: ajukan penghapusan per unit dengan alasan dan **Berita Acara** (PDF/gambar). Status unit baru berubah setelah disetujui Wakasek. Unit dengan riwayat tidak dihapus permanen.
-- **Master Data**: tambah/ubah/hapus jurusan, ruangan, kategori. Penghapusan ditolak jika masih dipakai.
+- **Master Data**: tambah/ubah/hapus jurusan, **gedung**, ruangan, kategori. Penghapusan ditolak jika masih dipakai.
 - **Label**: pilih satu/beberapa unit → **Cetak Massal**. Label satuan dan re-print ada di detail unit.
 - **Laporan**: pilih periode, cakupan (sekolah/kategori/ruangan/jurusan), lalu **PDF** atau **Excel**. **Simpan ke Arsip** membuat snapshot yang dapat diunduh kembali. Laporan selalu dibatasi cakupan laboratorium Anda.
+
+### 6.1 Master gedung (⚠ revisi terbaru)
+
+Master gedung memisahkan identitas gedung dari ruangan.
+
+- Halaman **Master Data** kini memiliki bagian **Gedung** terpisah.
+- Tiap gedung punya **nama** dan **kode satu huruf** (A–Z). Kode inilah yang dipakai generator kode lokasi dan kode inventaris.
+- Setiap ruangan terhubung ke **tepat satu** master gedung.
+- Formulir ruangan hanya meminta **gedung** (pilih dari dropdown master), **lantai**, dan **nomor ruangan**; nama ruangan dan kode diturunkan sistem secara otomatis.
+- Status gedung (aktif/nonaktif) mengontrol apakah gedung dapat dipakai untuk lokasi baru.
+- Gedung yang sudah terpakai unit/fisik tidak boleh dihapus; kode gedung yang sudah dipakai unit tidak boleh diubah kecuali setelah unit dipindah.
+
+⚠ **Catatan:** huruf gedung yang muncul di filter (termasuk pilihan tanpa nama seperti "Gedung G") berasal dari data yang sudah ada. Sekolah harus menetapkan nama gedung resmi di master agar pilihan tersebut memiliki nama yang tepat.
+
+### 6.2 Tombol baru pada detail pinjaman
+
+- **Serah Terima Unit** (rekomendasi): membuka form pilihan unit. Isi jumlah unit yang diserahkan per barang.
+- **Serah Terima Tanpa Unit** (opsional, untuk data lama): melanjutkan serah terima langsung tanpa memilih unit.
+- **Cetak Dokumen**: mencetak surat peminjaman/BAST (sesuai jenis pinjaman).
+- **Tandai Dokumen**: mencatat status dokumen (`Belum dibuat → Siap dicetak → Sudah dicetak → Ditandatangani (fisik/digital)`).
+
+Persetujuan level 2 (barang bernilai tinggi) melibatkan Wakasek. Wakasek dapat menyetujui langsung tanpa menunggu Admin lain; satu persetujuan Wakasek sudah cukup untuk menyelesaikan rangkaian persetujuan.
+
+**Tanda tangan digital bersifat opsional.** Dokumen dapat dicetak dan ditandatangani fisik tanpa menggambar tanda tangan digital. Status dokumen hanya mencatat apakah dokumen sudah dibuat, dicetak, atau ditandatangani — tidak memengaruhi kelayakan transaksi.
 
 ## 7. Super Admin (Wakasek Sarpras)
 
@@ -161,7 +187,25 @@ Ikon lonceng menampilkan notifikasi: pengajuan baru, persetujuan/penolakan, kebu
 
 Notifikasi dihasilkan oleh queue worker. Jika tidak muncul, pastikan worker berjalan (lihat `INSTALLATION.md`).
 
-## 10. Tips
+## 10. Catatan penting tentang unit fisik (⚠ revisi terbaru)
+
+Aplikasi kini mendukung dua cara serah terima, tergantung kesiapan data:
+
+- **Serah terima dengan unit fisik (direkomendasikan):** petugas memilih/memindai unit fisik yang diserahkan. Unit akan dicatat pada pinjaman, statusnya menjadi `DIPINJAM`, dan kondisi keluar tersimpan. Saat pengembalian, kondisi masuk dan ruangan tujuan tercatat; unit kembali ke `AKTIF`.
+- **Serah terima tanpa unit fisik (data lama):** bila katalog belum memiliki unit fisik, serah terima tetap dapat dilakukan dengan langsung menekan **Serahkan Barang**. Penugasan unit tidak wajib; pembukuan masih memakai jumlah katalog.
+
+Aturan penugasan unit:
+- Saat menugaskan unit, jumlah unit yang dipilih per barang **harus sama** dengan jumlah yang dipinjam (kecuali katalog tanpa unit fisik).
+- Unit yang ditugaskan harus aktif, dalam kondisi baik, dan belum dipinjam orang lain.
+- Unit yang sudah pernah dikembalikan pada pinjaman yang sama tidak boleh ditugaskan ulang.
+- Jika penugasan tidak lengkap atau unit tidak valid, sistem menolak serah terima dengan pesan yang menjelaskan masalahnya.
+
+Status dokumen peminjaman **terpisah** dari status transaksi:
+- Dokumen dapat dicetak setelah persetujuan lengkap, tanpa mengubah status pinjaman.
+- Tanda tangan fisik/digital hanya mencatat status dokumen, bukan persetujuan transaksi.
+- Dokumen yang belum dibuat tidak memblokir serah terima.
+
+## 11. Tips
 
 - Gunakan kode inventaris untuk menemukan unit cepat; gunakan nama katalog bila belum tahu kodenya.
 - Cetak ulang label segera setelah mutasi; waktu cetak terakhir tercatat.

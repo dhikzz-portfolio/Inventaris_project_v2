@@ -1,6 +1,6 @@
 # Project Brief & PRD — Sistem Manajemen Inventaris & Aset Sekolah
 
-Versi dokumen: **2.1** · Diperbarui: **22 Oktober 2026**
+Versi dokumen: **2.2** · Diperbarui: **22 Oktober 2026**
 Status: **spesifikasi final; inti katalog, unit, kode inventaris, cakupan akses, dan laporan telah diimplementasikan dan diverifikasi** (lihat `PROJECT_STATUS.md`)
 Dokumen ini adalah **PRD utama** dan sumber kebenaran untuk perilaku produk. Kamus data, keputusan arsitektur, dan status implementasi dirujuk ke `DATABASE.md`, `DECISIONS.md`, dan `PROJECT_STATUS.md`.
 
@@ -8,6 +8,7 @@ Riwayat revisi:
 
 | Versi | Tanggal    | Perubahan                                                                                                          |
 | ----- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| 2.2   | 2026-10-22 | Master gedung sebagai sumber kebenaran kode lokasi; tanda tangan digital opsional; status dokumen terpisah dari status transaksi; penugasan unit fisik saat serah terima; kewenangan persetujuan Wakasek |
 | 2.1   | 2026-10-21 | Katalog dipisahkan dari unit fisik; format kode `G1-02-12`; kebijakan mutasi; pencarian/filter sadar cakupan akses |
 | 2.0   | 2026-10-20 | Baseline implementasi v2 (model batch per baris barang)                                                            |
 
@@ -43,7 +44,7 @@ Kode peran pada aplikasi dipertahankan agar tidak memutus data dan otorisasi yan
 
 | Peran (kode sistem)             | Istilah produk     | Kebutuhan utama                                                                                                                |
 | ------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `SUPER_ADMIN` (Wakasek Sarpras) | Super Admin        | Akses penuh seluruh katalog, unit, lokasi (termasuk ruang umum), approval pengadaan/penghapusan, approval level 2, pengaturan. |
+| `SUPER_ADMIN` (Wakasek Sarpras) | Super Admin        | Akses penuh seluruh katalog, unit, lokasi (termasuk ruang umum), approval pengadaan/penghapusan, approval level 2, pengaturan. Mengelola penuh inventaris sekolah: pengajuan peminjaman miliknya sendiri **disetujui atas kewenangan penuh** tanpa menunggu persetujuan tambahan. |
 | `ADMIN_SARPRAS`                 | Ketua Laboran      | Mengelola inventaris **seluruh laboratorium di semua jurusan**; master data, mutasi, label, pengadaan, penghapusan, laporan.   |
 | `LABORAN`                       | Laboran/K3         | Mengelola pinjaman/pengembalian dan inventaris **laboratorium yang ditetapkan untuk akunnya**; scan QR, approval level 1.      |
 | `PEMINJAM`                      | Peminjam/Guru/Staf | Melihat katalog & ketersediaan, mengajukan multi-item, membatalkan pengajuan, melihat riwayat dan notifikasi sendiri.          |
@@ -73,11 +74,12 @@ Aturan yang mengikat:
 - **Katalog jenis barang** dan **unit inventaris fisik** sebagai dua entitas terpisah (bagian 5).
 - **Kode inventaris `G1-02-12`** yang dibentuk otomatis, divalidasi, dan tidak pernah dipakai ganda (bagian 6).
 - **Detail katalog** berisi daftar unit, pencarian kode, filter, sorting, dan pagination (bagian 8).
-- CRUD katalog, kategori, jurusan, ruangan; pencarian debounce, filter, sorting, pagination.
+- CRUD katalog, kategori, jurusan, **master gedung**, ruangan; pencarian debounce, filter, sorting, pagination.
 - Pengadaan barang dengan approval Wakasek.
 - Peminjaman multi-item, keranjang, kalender ketersediaan, anti-bentrok.
-- Approval berjenjang + tanda tangan gambar (signature pad).
-- Serah terima barang, pembatalan, pengembalian parsial/akumulatif, selisih hilang, kerusakan + foto bukti.
+- Approval berjenjang + tanda tangan gambar (signature pad) yang **opsional**.
+- Serah terima barang dengan **penugasan unit fisik**, pembatalan, pengembalian parsial/akumulatif, selisih hilang, kerusakan + foto bukti.
+- **Status dokumen** peminjaman terpisah dari status transaksi (belum dibuat → siap dicetak → dicetak → ditandatangani fisik/digital).
 - Mutasi unit dengan penerbitan kode baru dan riwayat kode/pergerakan yang dapat ditelusuri (bagian 7).
 - Penghapusan aset dengan Berita Acara dan approval.
 - Label QR per unit, satuan/massal, re-print, scan kamera + input manual.
@@ -234,7 +236,7 @@ Contoh normalisasi: `g1-02-12` → `G1-02-12` (valid); `G1/02/12`, `G1-2-12`, `G
 Algoritma (dijalankan di dalam transaksi):
 
 ```
-prefix   = huruf_gedung + lantai            # G1
+prefix   = buildings.code + lantai            # G1  (huruf dari master gedung)
 ruangan  = zeroPad(rooms.room_no, 2)         # 02
 nomor    = max(unit_no pada ruangan itu, termasuk kode yang sudah pensiun) + 1
 kode     = prefix + "-" + ruangan + "-" + zeroPad(nomor, 2)
@@ -252,7 +254,7 @@ Contoh: ruangan belum punya unit lain, 23 kursi dibuat berurutan `G1-02-01`, `G1
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Form/UI            | Kolom kode bersifat baca-saja; hanya menampilkan pratinjau sebelum simpan.                                                         |
 | Validasi server    | Pola `^[A-Z][1-9]-[0-9]{2}-[0-9]{2}$`, konsistensi segmen dengan ruangan terpilih, dan rentang nomor 01–99.                        |
-| Konsistensi lokasi | Segmen 1 harus sama dengan `rooms.building_letter + rooms.floor`; segmen 2 harus sama dengan `rooms.room_no`.                      |
+| Konsistensi lokasi | Segmen 1 harus sama dengan `rooms.building_letter + rooms.floor` (huruf dari `buildings.code`); segmen 2 harus sama dengan `rooms.room_no`. |
 | Keunikan           | Unique index `asset_units.inventory_code` dan unique `asset_unit_codes(room_id, unit_no)` serta `asset_unit_codes.inventory_code`. |
 | Konkurensi         | Kunci baris ruangan (`SELECT … FOR UPDATE`) + transaksi; bila unique index tetap bentrok, ulangi maksimal 3 kali.                  |
 | Impor/legacy       | Hanya lewat perintah khusus yang memakai validator yang sama; tidak ada jalur UI untuk memasukkan kode manual.                     |
@@ -276,6 +278,20 @@ Format resmi memakai dua digit, sehingga satu ruangan menampung maksimal **99 no
 3. Perubahan format (mis. tiga digit) **tidak boleh** dilakukan sebagai tambalan. Perubahan harus menjadi keputusan produk tersendiri yang memperbarui PRD, kamus data, label, dan alat scan, serta menyediakan migrasi kode lama.
 
 > **Perlu konfirmasi:** apakah sekolah membutuhkan lebih dari 99 unit dalam satu ruangan (mis. kursi aula/ruang rapat). Bila ya, format alternatif harus ditetapkan sebelum implementasi; gunakan asumsi aman (99) sampai ada keputusan.
+
+### 6.7 Sumber kebenaran identitas gedung
+
+Huruf gedung pada kode inventaris **tidak boleh diketik bebas** pada formulir ruangan. Identitas gedung berasal dari **master gedung** (`buildings`).
+
+Aturan yang mengikat:
+
+1. Satu master gedung = satu huruf A–Z (`buildings.code`) + nama (`buildings.name`) + status aktif (`is_active`).
+2. Setiap ruangan terikat ke **tepat satu** master gedung (`rooms.building_id`); `rooms.building_letter` adalah salinan yang dijaga sinkron dan bukan sumber kebenaran.
+3. Formulir ruangan hanya meminta **gedung (dropdown dari master), lantai, dan nomor ruangan**. Nama ruangan opsional (default `Ruang NN`); **kode lokasi diturunkan sistem** menjadi `{huruf gedung}{lantai}-{nomor 2 digit}`, mis. `C1-03`.
+4. Gedung nonaktif tidak dapat dipilih untuk lokasi baru, tetapi ruangannya yang sudah ada tetap utuh.
+5. **Kode gedung tidak boleh berubah diam-diam.** Perubahan kode ditolak bila gedung tersebut sudah punya unit inventaris; petugas harus memutasikan unit lebih dulu. Bila tidak ada unit, kode lokasi ruangan ikut diperbarui sementara **kode inventaris yang sudah terbit tidak disentuh**.
+6. Gedung tidak dapat dihapus selama masih memiliki ruangan.
+7. Migrasi data lama memetakan gedung warisan ke master gedung dan menulis ulang `rooms.code` & `rooms.building_letter` **tanpa mengubah kode unit yang sudah terbit** (`asset_unit_codes`).
 
 ## 7. Perpindahan unit dan kebijakan kode
 
@@ -406,7 +422,47 @@ Selama masa transisi, `/items` dan `/items/{item}` tetap melayani data legacy, l
 | Kode di luar cakupan      | Sama seperti tidak ditemukan (tidak membocorkan data).                            |
 | Format kode salah         | Pesan validasi inline, tanpa request ke server bila memungkinkan.                 |
 
-## 9. Kebutuhan non-fungsional
+## 9. Persetujuan, serah terima, dan dokumen
+
+### 9.1 Rantai persetujuan
+
+1. Level 1 = Laboran/Ketua Laboran; level 2 = Wakasek Sarpras, wajib untuk barang bernilai tinggi (`is_high_value`).
+2. **Satu sumber kebenaran kelayakan**: `Loan::isFullyApproved()` memeriksa apakah persetujuan pada **level akhir** sudah tercatat. Level akhir sekaligus menutup level di bawahnya.
+3. `Loan::nextApprovalLevelFor(User)` menentukan siapa yang berhak memutuskan berikutnya. **Wakasek (approver level 2) memutuskan pada level akhir**, sehingga satu persetujuan yang sah darinya sudah cukup — tidak dituntut persetujuan Admin tambahan yang berulang.
+4. **Pengajuan milik Wakasek disetujui atas kewenangan penuh** inventaris sekolah. Persetujuannya dicatat atas namanya sendiri (identitas aktor tidak dipalsukan sebagai approver lain) beserta entri audit log, dan dokumen kegiatan (BAST) otomatis dibuat bila peminjaman terkait kegiatan.
+5. Alur oleh role lain tetap berjenjang: Laboran/Ketua Laboran (level 1) → Wakasek (level 2).
+6. Penolakan wajib disertai alasan (`reject_reason`).
+7. Otorisasi keputusan ditentukan di **backend** dari peran pengguna (`User::isApproverLevel2()`, `User::canDecideAt()`), bukan dari parameter request.
+
+### 9.2 Serah terima dan penugasan unit fisik
+
+1. Serah terima hanya sah pada status `APPROVED`. Prasyarat yang belum terpenuhi ditampilkan sebagai **pesan di antarmuka** (`Loan::handoverBlocker()`), bukan halaman exception 422 mentah.
+2. **Penjagaan serah terima ganda**: baris peminjaman dikunci (`lockForUpdate`) dan `handed_over_at` yang sudah terisi ditolak. Satu peminjaman hanya dapat diserahterimakan sekali.
+3. Halaman serah terima (`/loans/{id}/serah-terima`) menampilkan **unit yang dapat diserahkan** per baris peminjaman: unit dalam cakupan akses petugas, `AKTIF`, kondisi `BAIK`, dan belum ditugaskan pada peminjaman lain yang terbuka.
+4. Jumlah unit yang dipilih **harus sama** dengan jumlah yang dipinjam pada baris tersebut. Penugasan parsial ditolak karena membuat pencatatan unit fisik dan pembukuan kuantitas tidak sinkron. Pengecualian: katalog tanpa unit fisik (data warisan) tetap memakai pembukuan kuantitas lama.
+5. Unit yang dipilih dicatat pada `loan_item_units` (waktu serah terima, kondisi keluar, `opened_at`), status unit menjadi `DIPINJAM`, dan audit log menyimpan daftar kode unit yang diserahkan.
+6. Saat pengembalian, penugasan ditutup (`returned_at`, `condition_in`, `closed_at`) dan unit kembali berstatus `AKTIF` dengan kondisi hasil pemeriksaan.
+
+### 9.3 Status dokumen terpisah dari status transaksi
+
+| Status dokumen            | Arti                                                              |
+| ------------------------- | ----------------------------------------------------------------- |
+| `BELUM_DIBUAT`            | Dokumen belum dibuat.                                             |
+| `SIAP_DICETAK`            | Dokumen siap dicetak.                                             |
+| `DICETAK`                 | Dokumen sudah dicetak.                                            |
+| `DITANDATANGANI_FISIK`    | Sudah ditandatangani manual oleh pihak terkait.                  |
+| `DITANDATANGANI_DIGITAL`  | Sudah ditandatangani dengan tanda tangan digital tersimpan.      |
+
+Aturan yang mengikat:
+
+1. Status dokumen **tidak menentukan kelayakan transaksi**. Dokumen yang belum dibuat atau belum ditandatangani tidak memblokir serah terima; pencetakan dokumen tidak membuat transaksi menjadi disetujui.
+2. **Tanda tangan digital bersifat opsional.** Dokumen resmi dapat dicetak dan ditandatangani fisik/manual; BAST menyediakan blok nama untuk tanda tangan manual.
+3. Pencatatan status dokumen hanya boleh dilakukan pengguna berwenang (`User::canManageLoanDocuments()`) dan hanya menyentuh kolom `document_status` — bukan status transaksi.
+4. Status dokumen **tidak boleh** bertukar dengan status transaksi. Contoh: menandai "sudah dicetak" tidak mengubah `PENDING` menjadi `APPROVED`.
+
+---
+
+## 10. Kebutuhan non-fungsional
 
 - **Kinerja**: halaman katalog/dashboard < 1 detik dan pencarian < 0,5 detik pada lingkungan uji untuk 5.000 unit. Query daftar unit wajib menghindari N+1 (eager load ruangan/katalog, agregat sekali jalan).
 - **Integritas**: pembentukan kode, mutasi, penghapusan, dan peminjaman berjalan dalam transaksi. Tidak boleh ada kode ganda meskipun dua petugas menyimpan bersamaan.
@@ -414,7 +470,7 @@ Selama masa transisi, `/items` dan `/items/{item}` tetap melayani data legacy, l
 - **Privasi**: nilai perolehan, catatan internal, dan dokumen privat tidak terlihat oleh Peminjam serta tidak dapat diakses lewat URL langsung.
 - **Aksesibilitas**: status/kondisi selalu disertai teks, bukan hanya warna; target sentuh memadai di ponsel.
 
-## 10. Acceptance criteria
+## 11. Acceptance criteria
 
 Status pada tabel ini adalah status **spesifikasi** (dokumen). Status implementasi dan bukti pengujian ada di `PROJECT_STATUS.md` dan `TESTING.md` §9.
 
@@ -434,29 +490,39 @@ Catatan AC-10: aplikasi belum memiliki API publik; aturan ini tetap mengikat unt
 | AC-10 | Pencarian, filter, URL langsung, API, dan ekspor tidak dapat membaca data di luar cakupan role.                                 | 3.1, 8.3 | Terpenuhi          |
 | AC-11 | Perubahan lokasi mengikuti kebijakan kode terdokumentasi dan menjaga keterlacakan riwayat.                                      | 7        | Terpenuhi          |
 | AC-12 | PRD, ERD, spesifikasi fitur, dan acceptance criteria tidak saling bertentangan.                                                 | Semua    | Terpenuhi          |
+| AC-13 | Kode lokasi dan kode inventaris diturunkan dari master gedung; pengguna tidak dapat mengetik bebas huruf gedung.              | 6.7      | Terpenuhi          |
+| AC-14 | Kode gedung tidak dapat diubah ketika gedung tersebut sudah memiliki unit inventaris.                                          | 6.7      | Terpenuhi          |
+| AC-15 | Peminjaman yang sudah disetujui dapat diserahterimakan; peminjaman yang belum disetujui ditolak dengan pesan yang jelas.        | 9.2      | Terpenuhi          |
+| AC-16 | Satu persetujuan sah Wakasek cukup menutup rantai persetujuan; role lain tetap berjenjang.                                       | 9.1      | Terpenuhi          |
+| AC-17 | Serah terima ganda atas peminjaman yang sama ditolak.                                                                          | 9.2      | Terpenuhi          |
+| AC-18 | Serah terima mencatat unit fisik yang diserahkan; jumlah unit terpilih harus sama dengan jumlah yang dipinjam.                | 9.2      | Terpenuhi          |
+| AC-19 | Tanda tangan digital tidak wajib; dokumen dapat ditandatangani secara fisik.                                                  | 9.3      | Terpenuhi          |
+| AC-20 | Status dokumen terpisah dari status transaksi dan tidak saling mengubah.                                                       | 9.3      | Terpenuhi          |
 
-## 11. Asumsi dan keputusan yang perlu dikonfirmasi
+## 12. Asumsi dan keputusan yang perlu dikonfirmasi
 
 Asumsi yang dipakai (aman dan konsisten dengan kebutuhan):
 
 1. Satu sekolah, banyak gedung/jurusan; tidak multi-tenant.
-2. Huruf gedung unik per sekolah (A–Z) dan kode gedung pada sistem lama tidak dipakai lagi sebagai string bebas. Normalisasi `rooms.building` dibahas di `DATABASE.md` §6.
+2. Huruf gedung unik per sekolah (A–Z) dan berasal dari **master gedung** (`buildings`), bukan string bebas pada formulir ruangan. Normalisasi data lama dibahas di `DATABASE.md` §6.
 3. Lantai yang dapat dikodekan adalah 1–9. Lantai 10 ke atas memerlukan perubahan format.
 4. Kapasitas 99 nomor unit per ruangan seumur hidup (termasuk kode pensiun).
 5. Kode inventaris diterbitkan ulang saat mutasi; nomor tidak pernah dipakai ulang.
 6. Laboratorium didefinisikan oleh `rooms.is_lab`; cakupan Laboran/K3 ditetapkan per ruangan melalui `user_room_scopes`.
 7. Hanya unit `AKTIF` + `BAIK` yang dapat dipinjam.
 8. Barang bernilai tinggi ditandai manual (`is_high_value`) dan wajib approval dua level.
+9. Wakasek Sarpras adalah pengelola penuh inventaris sekolah: pengajuan miliknya sendiri disetujui atas kewenangan, dan satu persetujuannya pada level akhir sudah cukup.
 
 Keputusan bisnis yang **masih perlu konfirmasi** (tidak menghambat revisi dokumen lain):
 
-- Pemetaan huruf gedung untuk data lama: `rooms.building` saat ini berisi `G1`, `G2`, `G3` sehingga dua gedung berbeda dapat menghasilkan prefix kode yang sama. Sekolah harus menetapkan huruf gedung final sebelum backfill (lihat `KNOWN_ISSUES.md`).
+- **Daftar gedung resmi sekolah** (nama + satu huruf) dan nomor ruangan per lantai. Data demo memakai pemetaan `G1`→G, `G2`→H, `G3`→I yang **wajib dikonfirmasi sebelum migrasi data produksi** (lihat `KNOWN_ISSUES.md` butir 5).
 - Kebutuhan lebih dari 99 unit per ruangan.
 - Apakah kode pensiun boleh dipakai ulang setelah unit dihapus permanen (asumsi saat ini: **tidak boleh**).
 - Apakah Ketua Laboran boleh melihat katalog laboratorium lintas jurusan untuk keperluan peminjaman saja, sementara laporan tetap dibatasi (asumsi saat ini: ya, seluruh lab).
 - Penetapan daftar ruangan laboratorium dan penugasan Laboran/K3.
+- Apakah diperlukan tanda tangan elektronik tersertifikasi (asumsi saat ini: **tidak**; TTD digital berupa gambar dan opsional).
 
-## 12. Indikator keberhasilan
+## 13. Indikator keberhasilan
 
 - Seluruh alur inti lulus pengujian otomatis dan verifikasi browser.
 - Tidak ada akses lintas laboratorium/IDOR pada halaman sensitif, termasuk pencarian kode dan ekspor.
@@ -464,10 +530,11 @@ Keputusan bisnis yang **masih perlu konfirmasi** (tidak menghambat revisi dokume
 - Jumlah unit katalog selalu sama dengan hasil hitung unit (tidak ada selisih manual).
 - Pengajuan yang ditolak/dibatalkan tidak memblokir ketersediaan.
 - Pengembalian parsial tidak menimpa jumlah sebelumnya.
+- Setiap serah terima mencatat unit fisik yang benar-benar diserahkan.
 - File bukti/BA/BAST hanya dapat diakses pengguna berwenang.
 - Halaman katalog/dashboard < 1 detik dan pencarian < 0,5 detik pada lingkungan uji (hasil aktual di `TESTING.md`).
 
-## 13. Referensi
+## 14. Referensi
 
 - `DATABASE.md` — kamus tabel, ERD, constraint, rencana migrasi.
 - `DECISIONS.md` — rasional keputusan arsitektur, termasuk kebijakan kode dan mutasi.

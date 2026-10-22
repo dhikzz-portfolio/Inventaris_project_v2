@@ -3,6 +3,8 @@
 Tanggal eksekusi terakhir: **22 Oktober 2026**
 Lingkungan: Windows 11, PHP 8.3.32, Laravel 13, MySQL 8.4.3, Node 24, Chrome headless.
 
+> Hasil ini mencakup revisi terakhir (22 Oktober 2026): master data gedung (`buildings`), formulir ruangan baru, penugasan unit fisik saat serah terima (`loan_item_units`), status dokumen peminjaman (`loans.document_status`), approval Wakasek, dan verifikasi kode inventaris pasca-migrasi gedung.
+
 ## 1. Perintah
 
 ```bash
@@ -27,8 +29,8 @@ php artisan view:cache
 ## 2. Hasil otomatis
 
 ```
-Tests:    130 passed (613 assertions)
-Duration: 34.34s
+Tests:    183 passed (887 assertions)
+Duration: 55.74s
 ```
 
 Tidak ada test yang di-skip. Dua test `AdminPagesAccessibilityTest` yang sebelumnya di-skip karena mengandalkan seeder sekarang menjalankan `$this->seed()` sendiri sehingga selalu dieksekusi, dan path-nya disesuaikan dengan route sesungguhnya (`/pengguna`, `/pengaturan`, `/pengadaan`, `/inventaris-keluar/persetujuan`).
@@ -50,6 +52,7 @@ Hasil ini mencakup revisi 2.1: pemisahan katalog/unit, mesin kode inventaris, sc
 | Mutasi & penghapusan              | `MovementAndWriteOffTest`, R7                                                                           |
 | Penghapusan mengarsip unit fisik  | `MovementAndWriteOffTest::test_persetujuan_penghapusan_mengarsipkan_unit_fisik_dan_sinkron_dengan_katalog` |
 | Cakupan mutasi/penghapusan        | `MovementAndWriteOffTest::test_ketua_laboran_tidak_dapat_mengajukan_penghapusan_barang_di_luar_laboratorium` |
+| Finansial (selisih/buku)         | `ItemQuantityConsistencyTest` (query selisih, selisih sementara tanpa stok ganda)                         |
 | QR, label, scan                   | `LabelAndQrTest`, R5                                                                                    |
 | Label massal per unit & cakupan   | `LabelAndQrTest::test_cetak_label_massal_per_unit_menghasilkan_pdf`, `test_label_massal_tidak_mencetak_unit_di_luar_cakupan_laboran`, `test_cetak_massal_dengan_select_all_hanya_mencetak_unit_sesuai_filter_dan_cakupan` |
 | Ringkasan laporan per unit fisik  | `ReportTest::test_ringkasan_laporan_menghitung_unit_fisik_bukan_baris_katalog`                          |
@@ -210,6 +213,10 @@ Rencana disusun: 21 Oktober 2026. Dieksekusi: **22 Oktober 2026**.
 - Scan kode pensiun menampilkan unit aktif + keterangan kode lama; kode tak dikenal → pesan tidak ditemukan.
 - Pencarian kode di luar cakupan menghasilkan pesan kosong yang sama dengan kode tidak ditemukan (tidak membocorkan data).
 - Pagination dan filter tetap konsisten setelah pindah halaman (query string dipertahankan).
+- Master gedung: kode huruf/satu karakter, duplikat ditolak; gedung dengan unit/fisik tidak boleh diubah kodenya diam-diam (harus mutasi dulu); gedung/ruangan yang dipakai tidak boleh dihapus.
+- Formulir ruangan tidak meminta nama gedung/manual kode; kode lokasi & kode unit diturunkan dari master gedung.
+- Serah terima dua kali ditolak dengan pesan jelaskan bukan exception.
+- Persetujuan Wakasek memenuhi seluruh level tanpa menunggu Admin tambahan; sebaliknya, pengguna biasa tidak bisa memanfaatkan jalur khusus Wakasek.
 
 ### 9.3 Perintah yang dijalankan setelah implementasi
 
@@ -221,13 +228,17 @@ php artisan test --compact --filter=CatalogSearchFilterTest
 php artisan test --compact --filter=CatalogCountTest
 php artisan test --compact --filter=UnitAccessScopeTest
 php artisan test --compact --filter=UnitMovementCodeTest
+php artisan test --compact --filter=BuildingMasterDataTest
+php artisan test --compact --filter=LoanApprovalHandoverTest
+php artisan test --compact --filter=ItemQuantityConsistencyTest
+php artisan test --compact --filter=LoanUnitFlowTest
 php artisan inventory:verify-codes
 vendor/bin/pint --dirty --format agent
 ```
 
 ### 9.4 Kriteria bukti selesai
 
-1. Semua test AC-01…AC-11 lulus di SQLite in-memory (saat eksekusi: 124 tes; kini 130 tes, 613 assertions setelah audit sinkronisasi 22 Oktober 2026). Pengujian di MySQL dilakukan melalui migrasi + seed dan verifikasi browser; stress test konkurensi tinggi belum dijalankan.
+1. Seluruh test AC-01…AC-11 (revisi 2.1) lulus di SQLite in-memory. Pengujian revisi lanjutan 22 Oktober: `BuildingMasterDataTest` (12 tes), `LoanApprovalHandoverTest` (18 tes), `ItemQuantityConsistencyTest` (2 tes), plus `LoanUnitFlowTest` dan `InventoryCoreTest` yang diperbarui semuanya lulus. Total saat eksekusi: **183 tes, 887 asersi**.
 2. Pemeriksaan browser: katalog → detail → pencarian kode → filter lokasi → detail unit → pembatasan role → mobile, tanpa error JavaScript (PASS).
 3. Rekonsiliasi pasca-migrasi 0 selisih (`inventory:verify-codes` diuji pada data seeder dan ledger rusak).
 4. Hasil pengukuran pencarian < 0,5 detik pada data uji minimal 5.000 unit: **belum diukur ulang pada 5.000 unit**; pengukuran sebelumnya pada data demo memenuhi target.

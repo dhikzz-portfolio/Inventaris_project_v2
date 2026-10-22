@@ -21,8 +21,10 @@
             label="Username"
             type="text"
             :value="old('username')"
-            placeholder="Contoh: masukan username"
+            placeholder="Masukkan username atau NIP"
             autocomplete="username"
+            autofocus
+            icon="person"
             :error="$usernameErrors[0] ?? null"
         />
 
@@ -33,6 +35,7 @@
             placeholder="Masukkan kata sandi"
             autocomplete="current-password"
             toggleable
+            icon="lock"
         />
 
         <label for="remember_me" class="inline-flex items-center gap-2.5 text-sm text-slate-600 sm:gap-3 sm:text-base">
@@ -47,4 +50,8 @@
 
         <x-auth-button label="Masuk" />
     </form>
+
+    <p class="mt-5 text-center text-xs leading-relaxed text-slate-400">
+        Gunakan akun sekolah Anda. Hubungi administrator jika mengalami kendala masuk.
+    </p>
 </x-guest-layout>

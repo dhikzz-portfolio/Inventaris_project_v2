@@ -9,6 +9,7 @@
     'autofocus' => false,
     'readonly' => false,
     'toggleable' => false,
+    'icon' => null,
     'error' => null,
 ])
 
@@ -20,9 +21,15 @@
 @endphp
 
 <div>
-    <label for="{{ $id }}" class="mb-2 block text-base font-semibold text-slate-700">{{ $label }}</label>
+    <label for="{{ $id }}" class="mb-2 block text-sm font-semibold text-slate-700">{{ $label }}</label>
 
     <div class="relative">
+        @if ($icon)
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center text-slate-400" aria-hidden="true">
+                <span class="material-icons-round text-xl">{{ $icon }}</span>
+            </span>
+        @endif
+
         <input
             id="{{ $id }}"
             name="{{ $name }}"
@@ -35,6 +42,7 @@
             required
             @class([
                 'block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 sm:py-4',
+                'pl-12' => $icon,
                 'pr-14' => $canToggle,
                 'border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10' => $hasError,
                 'border-slate-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10' => ! $hasError,
@@ -56,8 +64,9 @@
     </div>
 
     @if ($hasError)
-        <p id="{{ $id }}-error" class="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-            {{ $errorMessage }}
+        <p id="{{ $id }}-error" class="mt-2 flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            <span class="material-icons-round text-base leading-5" aria-hidden="true">error_outline</span>
+            <span>{{ $errorMessage }}</span>
         </p>
     @endif
 </div>

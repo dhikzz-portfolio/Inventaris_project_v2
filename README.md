@@ -123,3 +123,5 @@ Detail: [`docs/TESTING.md`](docs/TESTING.md).
 
 **IMPLEMENTED & VERIFIED** untuk seluruh modul inti di lingkungan lokal.
 **Belum dideploy** ke server produksi — lihat `docs/DEPLOYMENT.md` dan `docs/KNOWN_ISSUES.md` untuk langkah dan keterbatasan.
+
+nanti kita fokus-nya di front-end saja tampa kita ganggu back-end dan nanti pastikan kekita kita buat front end kita harus konsisten mengikuti alur yg sdh di buat oleh back-endnnya agar rapi dan konsiste apakah paham???

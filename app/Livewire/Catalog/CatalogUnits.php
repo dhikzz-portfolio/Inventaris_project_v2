@@ -5,6 +5,7 @@ namespace App\Livewire\Catalog;
 use App\Enums\Condition;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
+use App\Models\Building;
 use App\Models\Item;
 use App\Models\Room;
 use App\Services\InventoryCodeService;
@@ -128,7 +129,7 @@ class CatalogUnits extends Component
                 ->when($this->floor !== '', fn ($q) => $q->where('floor', $this->floor))
                 ->orderBy('building_letter')->orderBy('floor')->orderBy('room_no')
                 ->get(),
-            'buildings' => Room::query()->select('building_letter')->distinct()->orderBy('building_letter')->pluck('building_letter'),
+            'buildings' => Building::filterOptions(),
             'floors' => Room::query()
                 ->when($this->building !== '', fn ($q) => $q->where('building_letter', $this->building))
                 ->select('floor')->distinct()->orderBy('floor')->pluck('floor'),

@@ -1,7 +1,7 @@
 @php
     $user = auth()->user();
     $canApprove = $user?->canApproveLoans();
-    $unread = \App\Models\AppNotification::where('user_id', auth()->id())->whereNull('read_at')->count();
+    $unread = $user?->unreadNotifications()->count() ?? 0;
 @endphp
 
 {{-- Navigasi bawah khusus mobile — akses utama dengan satu jempol --}}

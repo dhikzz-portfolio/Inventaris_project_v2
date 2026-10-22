@@ -127,23 +127,46 @@ class LoanFeatureTest extends TestCase
         $this->assertSame(LoanStatus::PENDING, $loan->refresh()->status);
         $this->assertSame(2, $loan->nextApprovalLevel());
 
-        // Level 2 tanpa TTD digital harus error
+        // Tanda tangan digital bersifat opsional — dokumen resmi dapat dicetak
+        // dan ditandatangani secara fisik, jadi approval tanpa TTD tetap sah.
         $this->actingAs($this->wakasek)
             ->post(route('loans.approve', $loan), [
-                'note' => 'Disetujui wakasek tanpa TTD',
+                'note' => 'Disetujui wakasek tanpa TTD digital',
             ])
-            ->assertSessionHasErrors(['signature']);
-
-        // Level 2 dengan TTD digital harus berhasil
-        $this->actingAs($this->wakasek)
-            ->post(route('loans.approve', $loan), [
-                'note' => 'Disetujui wakasek lengkap TTD',
-                'signature' => $fakeSignature,
-            ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
         $this->assertSame(LoanStatus::APPROVED, $loan->refresh()->status);
         $this->assertNull($loan->nextApprovalLevel());
+
+        $level2 = $loan->approvals()->where('level', 2)->firstOrFail();
+        $this->assertSame($this->wakasek->id, $level2->approver_id);
+        $this->assertNull($level2->signature_path);
+    }
+
+    public function test_approval_wakasek_tanpa_ttd_digital_lengkap_dan_berhasil(): void
+    {
+        $service = app(LoanService::class);
+        $loan = $service->requestLoan(
+            $this->guruBudi,
+            [['item_id' => $this->laptop->id, 'qty' => 1]],
+            'Uji approval tanpa tanda tangan',
+            '2026-12-01',
+            '2026-12-03'
+        );
+
+        $this->actingAs($this->wakasek)
+            ->post(route('loans.approve', $loan), [
+                'note' => 'Persetujuan Wakasek tanpa tanda tangan digital',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $loan->refresh();
+
+        $this->assertSame(LoanStatus::APPROVED, $loan->status);
+        $this->assertTrue($loan->isFullyApproved());
+        $this->assertNull($loan->handoverBlocker());
     }
 
     public function test_penolakan_peminjaman_dengan_alasan(): void

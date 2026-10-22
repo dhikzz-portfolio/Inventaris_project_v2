@@ -6,7 +6,7 @@
                     <h2 class="font-semibold text-xl text-gray-800 leading-tight">Persetujuan Peminjaman</h2>
                     <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">{{ $loans->count() }} MENUNGGU</span>
                 </div>
-                <p class="text-sm text-gray-500">Laboran menyetujui lab jurusannya • barang bernilai tinggi lanjut ke Wakasek</p>
+                <p class="text-sm text-gray-500">Laboran menyetujui lab jurusannya • barang bernilai tinggi lanjut ke Wakasek (persetujuan Wakasek sudah cukup)</p>
             </div>
             <a href="{{ route('loans.returns') }}" class="text-sm text-gray-500 hover:text-gray-800">Pengembalian →</a>
         </div>
@@ -35,7 +35,7 @@
                                 <span class="text-[11px] text-gray-400">{{ $loan->borrower?->major?->name ?: $loan->borrower?->role }}</span>
                                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                                 @if ($loan->needs_high_value_approval)
-                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">NILAI TINGGI — L1 → L2 + TTD</span>
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">NILAI TINGGI — PERSETUJUAN WAKASEK</span>
                                 @endif
                             </div>
                             <div class="text-sm text-gray-600 mt-1">{{ $loan->purpose }}</div>

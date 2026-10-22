@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Building;
 use App\Models\InstitutionSetting;
 use App\Models\Major;
 use App\Models\User;
@@ -53,15 +54,21 @@ class MasterDataTest extends TestCase
 
         $major = Major::where('code', 'AKL')->firstOrFail();
 
-        // Tambah Ruangan
+        // Tambah Ruangan (formulir sederhana: gedung dari master + lantai + nomor ruang)
+        $building = Building::where('code', 'I')->firstOrFail();
+
         $this->actingAs($this->admin)->post(route('masters.store-room'), [
             'major_id' => $major->id,
-            'building' => 'G3',
+            'building_id' => $building->id,
             'floor' => 2,
-            'code' => 'G3-02',
+            'room_no' => 2,
             'name' => 'Lab Komputer Akuntansi',
         ])->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('rooms', ['code' => 'G3-02', 'name' => 'Lab Komputer Akuntansi']);
+        $this->assertDatabaseHas('rooms', [
+            'code' => 'I2-02',
+            'name' => 'Lab Komputer Akuntansi',
+            'building_id' => $building->id,
+        ]);
 
         // Tambah Kategori
         $this->actingAs($this->admin)->post(route('masters.store-category'), [

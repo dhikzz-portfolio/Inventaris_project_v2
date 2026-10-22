@@ -296,8 +296,65 @@ class ItemController extends Controller
         }
 
         $service = app(AssetUnitService::class);
-        for ($i = 0; $i < $quantity; $i++) {
-            $service->create($item, $room, [], $actor);
+
+        if ($room->building_letter !== null && $room->floor !== null && $room->room_no !== null) {
+            for ($i = 0; $i < $quantity; $i++) {
+                $service->create($item, $room, [], $actor);
+            }
+
+            return;
+        }
+
+        $resolved = false;
+
+        $lastCode = AssetUnitCode::query()
+            ->where('room_id', $room->id)
+            ->whereNull('revoked_at')
+            ->orderByDesc('issued_at')
+            ->value('inventory_code');
+
+        if ($lastCode !== null) {
+            for ($i = 0; $i < $quantity; $i++) {
+                $code = app(InventoryCodeService::class)->formatFromCode($lastCode, $i + 1);
+
+                $unit = AssetUnit::create([
+                    'item_catalog_id' => $item->id,
+                    'room_id' => $room->id,
+                    'unit_no' => $i + 1,
+                    'inventory_code' => $code,
+                    'status' => 'TERSEDIA',
+                    'condition' => 'BAIK',
+                ]);
+
+                AssetUnitCode::create([
+                    'asset_unit_id' => $unit->id,
+                    'inventory_code' => $code,
+                    'room_id' => $room->id,
+                    'unit_no' => $i + 1,
+                    'issued_at' => now(),
+                    'reason' => 'PENEMPATAN',
+                ]);
+
+                activity('inventaris')
+                    ->performedOn($unit)
+                    ->causedBy($actor)
+                    ->withProperties(['code' => $code, 'room' => $room->code])
+                    ->log('Unit fisik diterbitkan (resolusi dari kode katalog)');
+
+                $resolved = true;
+            }
+        }
+
+        if (! $resolved) {
+            activity('inventaris')
+                ->performedOn($item)
+                ->causedBy($actor)
+                ->withProperties(['quantity' => $quantity, 'room' => $room->code])
+                ->log('Pengadaan disetujui, namun unit tidak dapat diterbitkan tanpa identitas ruangan.');
+
+            NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
+                "Pengadaan \"{$item->name}\" disetujui, tetapi unit fisik tidak dapat diterbitkan karena ruangan belum memiliki identitas. Perbaiki ruangan \"{$room->code}\".",
+                route('items.show', $item));
         }
     }
 

@@ -46,6 +46,12 @@ class User extends Authenticatable
         return $this->hasMany(AppNotification::class);
     }
 
+    /** Notifikasi in-app yang belum dibaca — dipakai badge lonceng & menu. */
+    public function unreadNotifications(): HasMany
+    {
+        return $this->notificationsApp()->whereNull('read_at');
+    }
+
     /** Cakupan laboratorium/ruangan untuk Laboran/K3. */
     public function roomScopes(): HasMany
     {
@@ -93,5 +99,20 @@ class User extends Authenticatable
     public function isApproverLevel2(): bool
     {
         return $this->role === Role::SUPER_ADMIN->value;
+    }
+
+    /**
+     * Boleh memutuskan pada level persetujuan tertentu.
+     * Level 2 (barang bernilai tinggi) hanya boleh diputuskan Wakasek Sarpras.
+     */
+    public function canDecideAt(int $level): bool
+    {
+        return $level >= 2 ? $this->isApproverLevel2() : $this->canApproveLoans();
+    }
+
+    /** Boleh mencatat status dokumen peminjaman (cetak / tanda tangan fisik). */
+    public function canManageLoanDocuments(): bool
+    {
+        return $this->managesInventory() || $this->canApproveLoans();
     }
 }

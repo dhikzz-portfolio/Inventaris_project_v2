@@ -22,6 +22,16 @@ class InventoryVerifyCodes extends Command
      */
     public function handle(InventoryCodeService $codes): int
     {
+        // Gate pertama: layanan kode inventaris harus dapat menjangkau database.
+        // Jika DB_CONNECTED=false (startup tidak terjaring di awal proses), semua
+        // pemeriksaan hanya menampilkan kendala dan keluar — ini mencegah false positive
+        // dari pemeriksaan yang bergantung pada koneksi yang sebenarnya belum tersedia.
+        if (! $codes->isConnected()) {
+            $this->components->error('InventoryCodeService belum terhubung ke database (DB_CONNECTED=false).');
+
+            return self::FAILURE;
+        }
+
         $issues = collect()
             ->merge($this->checkRooms($codes))
             ->merge($this->checkUnits($codes))
@@ -114,6 +124,7 @@ class InventoryVerifyCodes extends Command
     {
         $activeCodes = AssetUnitCode::query()
             ->whereNull('revoked_at')
+            ->orderBy('asset_unit_id')
             ->get()
             ->groupBy('asset_unit_id');
 

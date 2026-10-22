@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Loan;
 
+use App\Enums\LoanStatus;
 use App\Exceptions\AvailabilityException;
 use App\Models\Event;
 use App\Models\Item;
@@ -274,7 +275,9 @@ class LoanRequest extends Component
         $this->cart = [];
         $this->purpose = '';
 
-        session()->flash('success', "Request peminjaman #{$loan->id} terkirim — menunggu persetujuan laboran.");
+        session()->flash('success', $loan->status === LoanStatus::APPROVED
+            ? "Request peminjaman #{$loan->id} disetujui atas kewenangan Wakasek Sarpras — lanjutkan ke serah terima."
+            : "Request peminjaman #{$loan->id} terkirim — menunggu persetujuan.");
         $this->redirectRoute('loans.show', ['loan' => $loan->id]);
     }
 }

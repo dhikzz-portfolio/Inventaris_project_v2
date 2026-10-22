@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentStatus;
 use App\Enums\LoanStatus;
 use App\Models\Event;
 use App\Models\InstitutionSetting;
@@ -49,6 +50,12 @@ class BastService
         }
 
         $loan->forceFill(['bast_path' => $path])->saveQuietly();
+
+        // Dokumen yang sudah dibuat berarti "siap dicetak". Status dokumen
+        // terpisah dari status transaksi: tidak memengaruhi kelayakan pinjam.
+        if ($loan->document_status === DocumentStatus::BELUM_DIBUAT) {
+            $loan->forceFill(['document_status' => DocumentStatus::SIAP_DICETAK])->saveQuietly();
+        }
 
         activity('dokumen')
             ->performedOn($loan)

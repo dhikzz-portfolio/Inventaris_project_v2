@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\Condition;
 use App\Enums\LoanStatus;
 use App\Enums\Role;
+use App\Models\Building;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\InstitutionSetting;
@@ -43,17 +44,47 @@ class DatabaseSeeder extends Seeder
         $rpl = Major::firstOrCreate(['name' => 'Rekayasa Perangkat Lunak'], ['code' => 'RPL']);
         $mm = Major::firstOrCreate(['name' => 'Multimedia'], ['code' => 'MM']);
 
-        // ---------- Ruangan ----------
-        // Pemetaan huruf gedung demo: G1=G, G2=H, G3=I. Pemetaan final sekolah
+        // ---------- Master gedung ----------
+        // Identitas huruf gedung (G/H/I) mengikuti pemetaan demo lama agar kode
+        // inventaris yang sudah terbit tidak berubah. Pemetaan final sekolah
         // wajib dikonfirmasi sebelum data produksi dimigrasikan (lihat docs).
+        $buildings = collect([
+            ['name' => 'Gedung G', 'code' => 'G'],
+            ['name' => 'Gedung H', 'code' => 'H'],
+            ['name' => 'Gedung I', 'code' => 'I'],
+        ])->mapWithKeys(fn ($b) => [
+            $b['code'] => Building::updateOrCreate(['code' => $b['code']], $b),
+        ]);
+
+        // ---------- Ruangan ----------
+        // Identitas lokasi = master gedung + lantai + nomor ruangan.
+        // Kode lokasi dibentuk otomatis: `{huruf gedung}{lantai}-{nomor ruang}`.
         $rooms = collect([
-            ['major_id' => $tkj->id, 'building' => 'G1', 'building_letter' => 'G', 'floor' => 1, 'room_no' => 1, 'is_lab' => true, 'code' => 'G1-01', 'name' => 'Lab Komputer 1'],
-            ['major_id' => $tkj->id, 'building' => 'G1', 'building_letter' => 'G', 'floor' => 2, 'room_no' => 2, 'is_lab' => true, 'code' => 'G1-02', 'name' => 'Lab Jaringan'],
-            ['major_id' => $rpl->id, 'building' => 'G2', 'building_letter' => 'H', 'floor' => 1, 'room_no' => 1, 'is_lab' => true, 'code' => 'G2-01', 'name' => 'Lab RPL'],
-            ['major_id' => $mm->id, 'building' => 'G2', 'building_letter' => 'H', 'floor' => 2, 'room_no' => 2, 'is_lab' => true, 'code' => 'G2-02', 'name' => 'Studio Multimedia'],
-            ['major_id' => null, 'building' => 'G1', 'building_letter' => 'G', 'floor' => 1, 'room_no' => 3, 'is_lab' => false, 'code' => 'G1-03', 'name' => 'Ruang Guru'],
-            ['major_id' => null, 'building' => 'G3', 'building_letter' => 'I', 'floor' => 1, 'room_no' => 1, 'is_lab' => false, 'code' => 'G3-01', 'name' => 'Gudang Sarana Prasarana'],
-        ])->map(fn ($r) => Room::updateOrCreate(['code' => $r['code']], $r));
+            ['major_id' => $tkj->id, 'building' => 'G', 'floor' => 1, 'room_no' => 1, 'is_lab' => true, 'name' => 'Lab Komputer 1'],
+            ['major_id' => $tkj->id, 'building' => 'G', 'floor' => 2, 'room_no' => 2, 'is_lab' => true, 'name' => 'Lab Jaringan'],
+            ['major_id' => $rpl->id, 'building' => 'H', 'floor' => 1, 'room_no' => 1, 'is_lab' => true, 'name' => 'Lab RPL'],
+            ['major_id' => $mm->id, 'building' => 'H', 'floor' => 2, 'room_no' => 2, 'is_lab' => true, 'name' => 'Studio Multimedia'],
+            ['major_id' => null, 'building' => 'G', 'floor' => 1, 'room_no' => 3, 'is_lab' => false, 'name' => 'Ruang Guru'],
+            ['major_id' => null, 'building' => 'I', 'floor' => 1, 'room_no' => 1, 'is_lab' => false, 'name' => 'Gudang Sarana Prasarana'],
+        ])->map(function (array $room) use ($buildings) {
+            $building = $buildings[$room['building']];
+
+            $payload = [
+                'major_id' => $room['major_id'],
+                'building_id' => $building->id,
+                'building_letter' => $building->code,
+                'floor' => $room['floor'],
+                'room_no' => $room['room_no'],
+                'is_lab' => $room['is_lab'],
+                'code' => sprintf('%s%d-%02d', $building->code, $room['floor'], $room['room_no']),
+                'name' => $room['name'],
+            ];
+
+            return Room::updateOrCreate(
+                ['building_id' => $building->id, 'floor' => $room['floor'], 'room_no' => $room['room_no']],
+                $payload
+            );
+        });
 
         // ---------- Kategori ----------
         $categories = collect([

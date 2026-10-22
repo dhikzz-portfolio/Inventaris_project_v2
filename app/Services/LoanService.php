@@ -4,16 +4,21 @@ namespace App\Services;
 
 use App\Enums\Condition;
 use App\Enums\Decision;
+use App\Enums\DocumentStatus;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
 use App\Enums\NotificationType;
+use App\Enums\UnitStatus;
 use App\Exceptions\AvailabilityException;
+use App\Models\AssetUnit;
 use App\Models\Item;
 use App\Models\ItemMovement;
 use App\Models\Loan;
 use App\Models\LoanItem;
+use App\Models\LoanItemUnit;
 use App\Models\Room;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -106,14 +111,20 @@ class LoanService
                 ->where('is_high_value', true)
                 ->exists();
 
+            // Wakasek adalah pengelola penuh inventaris sekolah: pengajuannya
+            // tidak menunggu persetujuan orang lain. Persetujuannya dicatat atas
+            // nama dirinya sendiri — tidak dipalsukan sebagai persetujuan Admin lain.
+            $selfApproved = $borrower->isApproverLevel2();
+
             $loan = Loan::create([
                 'borrower_id' => $borrower->id,
                 'event_id' => $eventId,
                 'purpose' => $purpose,
                 'start_date' => $start,
                 'due_date' => $due,
-                'status' => LoanStatus::PENDING,
+                'status' => $selfApproved ? LoanStatus::APPROVED : LoanStatus::PENDING,
                 'needs_high_value_approval' => $hasHighValue,
+                'document_status' => DocumentStatus::BELUM_DIBUAT,
             ]);
 
             foreach ($merged as $line) {
@@ -126,10 +137,34 @@ class LoanService
                 ]);
             }
 
+            // Selama masa transisi, peminjaman masih level katalog/kuantitas.
+            // Unit fisik ditugaskan pada saat serah terima (handover).
             activity('peminjaman')
                 ->performedOn($loan)
                 ->causedBy($borrower)
                 ->log('Mengajukan peminjaman '.count($merged).' barang');
+
+            if ($selfApproved) {
+                $loan->approvals()->create([
+                    'approver_id' => $borrower->id,
+                    'level' => $loan->finalApprovalLevel(),
+                    'decision' => Decision::APPROVED->value,
+                    'note' => 'Persetujuan melekat — pengajuan oleh Wakasek Sarpras atas kewenangan penuh inventaris sekolah.',
+                    'signature_path' => null,
+                    'decided_at' => now(),
+                ]);
+
+                activity('peminjaman')
+                    ->performedOn($loan)
+                    ->causedBy($borrower)
+                    ->log('Persetujuan melekat: pengajuan disetujui atas kewenangan Wakasek (tanpa persetujuan tambahan)');
+
+                if ($loan->event_id) {
+                    app(BastService::class)->generateForLoan($loan);
+                }
+
+                return $loan;
+            }
 
             NotifyApp::toApprovers(
                 NotificationType::PERSETUJUAN,
@@ -143,13 +178,18 @@ class LoanService
 
     /**
      * Persetujuan berjenjang: level 1 = Laboran, level 2 = Wakasek (barang bernilai tinggi).
+     *
+     *wakasek (approver level 2) berwenang penuh atas inventaris sekolah. Satu
+     * persetujuan yang sah darinya sudah cukup — tidak dituntut persetujuan
+     * Admin tambahan yang berulang. Persetujuan dari role lain tetap mengikuti
+     * alur berjenjang yang diwajibkan.
      */
     public function decide(Loan $loan, User $approver, Decision $decision, ?string $note = null, ?string $signaturePath = null): Loan
     {
         return DB::transaction(function () use ($loan, $approver, $decision, $note, $signaturePath) {
             /** @var Loan $loan */
             $loan = Loan::whereKey($loan->id)->lockForUpdate()->firstOrFail();
-            $expectedLevel = $loan->nextApprovalLevel();
+            $expectedLevel = $loan->nextApprovalLevelFor($approver);
 
             if ($expectedLevel === null) {
                 throw new \RuntimeException('Peminjaman ini tidak menunggu persetujuan.');
@@ -170,9 +210,15 @@ class LoanService
                 }
             }
 
+            // Pihak berwenang level 2 memutuskan pada level akhir sehingga
+            // persetujuannya langsung menutup rantai persetujuan tanpa tahap tambahan.
+            $recordedLevel = $approver->isApproverLevel2()
+                ? $loan->finalApprovalLevel()
+                : $expectedLevel;
+
             $loan->approvals()->create([
                 'approver_id' => $approver->id,
-                'level' => $expectedLevel,
+                'level' => $recordedLevel,
                 'decision' => $decision->value,
                 'note' => $note,
                 'signature_path' => $signaturePath,
@@ -191,7 +237,7 @@ class LoanService
                     "Peminjaman \"{$loan->purpose}\" DITOLAK oleh {$approver->name}".($note ? " — {$note}" : ''),
                     route('loans.show', $loan));
             } else {
-                $fullyApproved = $loan->nextApprovalLevel() === null;
+                $fullyApproved = $loan->isFullyApproved();
 
                 if ($fullyApproved) {
                     $loan->update(['status' => LoanStatus::APPROVED]);
@@ -205,7 +251,7 @@ class LoanService
                     }
                 } else {
                     NotifyApp::to($borrower, NotificationType::PERSETUJUAN,
-                        "Peminjaman \"{$loan->purpose}\" disetujui level {$expectedLevel}, menunggu persetujuan Wakasek.",
+                        "Peminjaman \"{$loan->purpose}\" disetujui level {$recordedLevel}, menunggu persetujuan Wakasek.",
                         route('loans.show', $loan));
 
                     // Level berikutnya (Wakasek) harus menerima notifikasi tindakan.
@@ -218,7 +264,7 @@ class LoanService
             activity('peminjaman')
                 ->performedOn($loan)
                 ->causedBy($approver)
-                ->log(($decision === Decision::APPROVED ? 'Menyetujui' : 'Menolak')." peminjaman level {$expectedLevel}");
+                ->log(($decision === Decision::APPROVED ? 'Menyetujui' : 'Menolak')." peminjaman level {$recordedLevel}");
 
             return $loan->refresh();
         });
@@ -227,10 +273,13 @@ class LoanService
     /**
      * Serah terima barang: APPROVED -> DIPINJAM.
      * Wajib dilakukan petugas sebelum pengembalian dapat diproses.
+     *
+     * Pada alur unit fisik, serah terima juga menugaskan unit inventaris yang
+     * diserahkan ke peminjam dan mengunci ketersediaannya.
      */
-    public function handover(Loan $loan, User $officer, ?string $note = null): Loan
+    public function handover(Loan $loan, User $officer, ?array $unitAssignments = null, ?string $note = null): Loan
     {
-        return DB::transaction(function () use ($loan, $officer, $note) {
+        return DB::transaction(function () use ($loan, $officer, $unitAssignments, $note) {
             /** @var Loan $loan */
             $loan = Loan::whereKey($loan->id)->lockForUpdate()->firstOrFail();
 
@@ -238,11 +287,37 @@ class LoanService
                 throw new \RuntimeException('Hanya peminjaman berstatus Disetujui yang dapat diserahterimakan.');
             }
 
+            // Penjagaan lapis kedua: pengiriman ulang permintaan yang sama
+            // tidak boleh menghasilkan penyerahan ganda.
+            if ($loan->handed_over_at !== null) {
+                throw new \RuntimeException('Barang sudah diserahkan sebelumnya.');
+            }
+
+            // Jika penugasan unit disediakan, validasi dan simpan sebelum mengubah status.
+            $assignedUnits = $this->assignUnitsOnHandover($loan, $unitAssignments);
+
             $loan->update([
                 'status' => LoanStatus::DIPINJAM,
                 'handed_over_at' => now(),
                 'handed_over_by' => $officer->id,
             ]);
+
+            // Beri tahu audit hanya bila ada unit fisik yang ditugaskan.
+            if ($assignedUnits !== null) {
+                activity('peminjaman')
+                    ->performedOn($loan)
+                    ->causedBy($officer)
+                    ->withProperties([
+                        'unit_assignments' => $assignedUnits->map(
+                            fn (LoanItemUnit $a) => [
+                                'inventory_code' => $a->unit->inventory_code,
+                                'unit_id' => $a->asset_unit_id,
+                                'condition_out' => $a->condition_out->value,
+                            ]
+                        )->toArray(),
+                    ])
+                    ->log('Menyerahkan barang + menugaskan unit fisik kepada peminjam');
+            }
 
             activity('peminjaman')
                 ->performedOn($loan)
@@ -255,6 +330,185 @@ class LoanService
 
             return $loan->refresh();
         });
+    }
+
+    /**
+     * Tugaskan unit fisik pada serah terima.
+     * Hanya peminjam yang menerima unit yang benar-benar tersedia dan belum dipinjam orang lain.
+     *
+     * @param  array<int, array{loan_item_id?: int, item_id?: int, unit_ids: list<int>}>|null  $unitAssignments
+     * @return Collection<int, LoanItemUnit>|null
+     */
+    private function assignUnitsOnHandover(Loan $loan, ?array $unitAssignments): ?Collection
+    {
+        if ($unitAssignments === null || $unitAssignments === []) {
+            return null;
+        }
+
+        $assigned = new Collection;
+
+        /** @var array<int, array<int, bool>> $assignedUnitIds unit yang ditugaskan per baris peminjaman */
+        $assignedUnitIds = [];
+
+        foreach ($unitAssignments as $assignment) {
+            $loanItem = $this->resolveLoanItemForAssignment($loan, $assignment);
+
+            if ($loanItem === null) {
+                throw new \RuntimeException('Baris peminjaman tidak ditemukan untuk penugasan unit.');
+            }
+
+            $unitIds = array_values(array_unique(array_map('intval', (array) ($assignment['unit_ids'] ?? []))));
+
+            if ($unitIds === []) {
+                throw new \RuntimeException('Data penugasan unit tidak valid.');
+            }
+
+            if ((int) $loanItem->qty_borrowed < count($unitIds)) {
+                throw new \RuntimeException(
+                    'Jumlah unit yang ditugaskan melebihi jumlah yang dipinjam pada baris ini.'
+                );
+            }
+
+            $units = AssetUnit::visibleTo(auth()->user() ?? $loan->borrower)
+                ->whereIn('id', $unitIds)
+                ->get();
+
+            if ($units->count() !== count($unitIds)) {
+                throw new \RuntimeException('Salah satu unit tidak ditemukan atau tidak dapat diakses.');
+            }
+
+            foreach ($units as $unit) {
+                // Perbandingan harus eksplisit: `! $x == $y` di PHP berarti
+                // `(! $x) == $y` sehingga pengecekan katalog selalu lolos.
+                if ((int) $unit->item_catalog_id !== (int) $loanItem->item_id) {
+                    throw new \RuntimeException(
+                        "Unit {$unit->inventory_code} tidak termasuk katalog barang pada baris ini."
+                    );
+                }
+
+                if (! $unit->isAvailableForLoan()) {
+                    $reason = match (true) {
+                        $unit->status !== UnitStatus::AKTIF => "Unit {$unit->inventory_code} tidak aktif.",
+                        $unit->condition !== Condition::BAIK => "Unit {$unit->inventory_code} tidak dalam kondisi baik.",
+                        $unit->isCurrentlyOnLoan() => "Unit {$unit->inventory_code} sedang dipinjam.",
+                        default => "Unit {$unit->inventory_code} tidak dapat dipinjam.",
+                    };
+
+                    throw new \RuntimeException($reason);
+                }
+
+                // Unit yang sudah pernah kembali pada peminjaman ini tidak boleh
+                // ditugaskan ulang.
+                $existing = LoanItemUnit::query()
+                    ->where('loan_item_id', $loanItem->id)
+                    ->where('asset_unit_id', $unit->id)
+                    ->first();
+
+                if ($existing !== null && $existing->returned_at !== null) {
+                    throw new \RuntimeException(
+                        "Unit {$unit->inventory_code} sudah tercatat kembali pada peminjaman ini."
+                    );
+                }
+
+                // Pastikan unit belum ditugaskan pada peminjaman lain yang masih terbuka.
+                $existingOpen = LoanItemUnit::openForUnit($unit);
+                if ($existingOpen !== null && $existingOpen->loanItem->loan_id !== $loan->id) {
+                    throw new \RuntimeException(
+                        "Unit {$unit->inventory_code} sudah ditugaskan pada peminjaman lain dan tidak dapat dipinjam lagi."
+                    );
+                }
+
+                $loanItemUnit = LoanItemUnit::updateOrCreate(
+                    ['loan_item_id' => $loanItem->id, 'asset_unit_id' => $unit->id],
+                    [
+                        'assigned_at' => now(),
+                        'condition_out' => $unit->condition->value,
+                        'opened_at' => now(),
+                        'closed_at' => null,
+                        'returned_at' => null,
+                    ]
+                );
+
+                $loanItemUnit->markAssigned();
+
+                // Status unit fisik mengikuti posisi riil: sedang dipinjam.
+                $unit->forceFill(['status' => UnitStatus::DIPINJAM])->save();
+
+                $assignedUnitIds[(int) $loanItem->id][(int) $unit->id] = true;
+
+                $assigned->push($loanItemUnit);
+            }
+        }
+
+        $this->assertUnitAssignmentCompleteness($loan, $assignedUnitIds);
+
+        return $assigned;
+    }
+
+    /**
+     * Pastikan penugasan unit pada serah terima lengkap per baris peminjaman.
+     *
+     * Penugasan parsial (jumlah unit dipilih lebih sedikit daripada jumlah
+     * yang dipinjam) membuat pencatatan unit fisik dan pembukuan kuantitas
+     * tidak sinkron: unit yang tidak pernah ditugaskan tetap tercatat
+     * "dipinjam" pada baris peminjaman, sementara unit yang ditugaskan bisa
+     * saja tidak tercatat.
+     *
+     * @param  array<int, array<int, bool>>  $assignedUnitIds
+     */
+    private function assertUnitAssignmentCompleteness(Loan $loan, array $assignedUnitIds): void
+    {
+        foreach ($loan->loanItems()->with('item')->get() as $loanItem) {
+            $required = (int) $loanItem->qty_borrowed;
+            $selected = count($assignedUnitIds[(int) $loanItem->id] ?? []);
+
+            if ($selected === $required) {
+                continue;
+            }
+
+            $item = $loanItem->item;
+            $totalUnits = $item?->units()->count() ?? 0;
+
+            // Katalog tanpa unit fisik (data lama) atau yang belum provisioned
+            // penuh tetap memakai pembukuan kuantitas warisan.
+            if ($totalUnits === 0 || $totalUnits < $required) {
+                continue;
+            }
+
+            $name = $item?->name ?? 'barang';
+
+            throw new \RuntimeException($selected === 0
+                ? "Tidak ada unit yang dapat diserahkan untuk \"{$name}\" — pastikan tersedia unit aktif dalam kondisi baik."
+                : "Jumlah unit yang dipilih untuk \"{$name}\" ({$selected}) harus sama dengan jumlah yang dipinjam ({$required}).");
+        }
+    }
+
+    /**
+     * Tentukan baris peminjaman tujuan dari payload penugasan unit.
+     * Identitas baris-pinjaman lebih didahulukan daripada katalog karena
+     * baris peminjaman sudah terverifikasi sebagai milik transaksi ini.
+     *
+     * @param  array<string, mixed>  $assignment
+     */
+    private function resolveLoanItemForAssignment(Loan $loan, array $assignment): ?LoanItem
+    {
+        $loanItemId = (int) ($assignment['loan_item_id'] ?? 0);
+        if ($loanItemId > 0) {
+            $loanItem = $loan->loanItems()->whereKey($loanItemId)->first();
+            if ($loanItem !== null) {
+                return $loanItem;
+            }
+        }
+
+        $itemId = (int) ($assignment['item_id'] ?? 0);
+        if ($itemId > 0) {
+            $loanItem = $loan->loanItems()->where('item_id', $itemId)->first();
+            if ($loanItem !== null) {
+                return $loanItem;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -310,6 +564,12 @@ class LoanService
      */
     public function processReturn(Loan $loan, User $returner, array $rows): Loan
     {
+        if (app(InventoryCodeService::class)->isConnected() === false) {
+            throw new \RuntimeException('Layanan inventaris belum terhubung. Pemrosesan pengembalian tidak dapat dilanjutkan.');
+        }
+
+        $loanItemIds = array_unique(array_column($rows, 'loan_item_id'));
+
         return DB::transaction(function () use ($loan, $returner, $rows) {
             /** @var Loan $loan */
             $loan = Loan::whereKey($loan->id)->lockForUpdate()->firstOrFail();
@@ -363,6 +623,8 @@ class LoanService
                     'returned_room_id' => $room->id,
                 ]);
 
+                $hasUnitAssignments = $loanItem->hasUnitAssignments();
+
                 $item = $loanItem->item;
                 $item->refresh();
 
@@ -385,8 +647,14 @@ class LoanService
                 // Barang dikembalikan ke ruangan berbeda → tercatat sebagai mutasi otomatis.
                 if ($qtyNow > 0 && $room->id !== $item->room_id) {
                     $misplaced = true;
-                    $this->recordMovement($item, $room, $returner, 'Pengembalian ke ruangan berbeda dari ruangan asal.');
-                    $item->refresh();
+
+                    // Pada alur unit fisik, perpindahan dicatat pada unitnya
+                    // (AssetUnitMovement) — katalog tidak boleh ikut dipindah
+                    // hanya karena satu unit dikembalikan.
+                    if (! $hasUnitAssignments) {
+                        $this->recordMovement($item, $room, $returner, 'Pengembalian ke ruangan berbeda dari ruangan asal.');
+                        $item->refresh();
+                    }
                 }
 
                 // Tandai hilang hanya bila seluruh unit tidak tersedia; unit hilang sementara
@@ -395,6 +663,21 @@ class LoanService
                     $item->update(['status' => ItemStatus::HILANG]);
                 } elseif ($missing === 0 && ! $condition->isDamaged() && $item->qty_damaged === 0 && $item->qty_lost === 0) {
                     $item->update(['status' => ItemStatus::BAIK]);
+                }
+
+                // Tutup penugasan unit fisik setelah penghitungan katalog agar
+                // counter katalog disinkronkan ulang dari kondisi unit sebenarnya.
+                if ($qtyNow > 0 && $hasUnitAssignments) {
+                    $this->closeUnitAssignmentsForReturn(
+                        $loanItem,
+                        $qtyNow,
+                        $condition,
+                        $returner,
+                        $row['damage_photo'] ?? null,
+                        $room,
+                        isset($row['assignment_id']) ? (int) $row['assignment_id'] : null,
+                        isset($row['unit_id']) ? (int) $row['unit_id'] : null
+                    );
                 }
             }
 
@@ -437,6 +720,49 @@ class LoanService
                     "Barang dari peminjaman \"{$loan->purpose}\" dikembalikan ke ruangan berbeda — periksa mutasi lokasi.",
                     route('movements.index'));
             }
+
+            return $loan->refresh();
+        });
+    }
+
+    /**
+     * Ubah status dokumen peminjaman (surat peminjaman / BAST).
+     *
+     * Status dokumen dipisahkan dari status transaksi: dokumen yang sudah
+     * dicetak atau ditandatangani tidak membuat transaksi menjadi disetujui,
+     * dan transaksi yang sudah disetujui tidak terblokir hanya karena
+     * dokumen belum ditandatangani.
+     */
+    public function markDocumentStatus(Loan $loan, User $actor, DocumentStatus $status): Loan
+    {
+        return DB::transaction(function () use ($loan, $actor, $status) {
+            /** @var Loan $loan */
+            $loan = Loan::whereKey($loan->id)->lockForUpdate()->firstOrFail();
+
+            if ($loan->document_status === $status) {
+                return $loan;
+            }
+
+            if ($status === DocumentStatus::DITANDATANGANI_DIGITAL
+                && ! $loan->approvals()->whereNotNull('signature_path')->exists()) {
+                throw new \RuntimeException(
+                    'Tidak ada tanda tangan digital pada persetujuan ini. Status dokumen tidak dapat ditandai ditandatangani digital.'
+                );
+            }
+
+            if (in_array($status, [DocumentStatus::DICETAK, DocumentStatus::DITANDATANGANI_FISIK], true)
+                && $loan->bast_path === null) {
+                throw new \RuntimeException(
+                    'Dokumen belum dibuat. Buat/unduh surat peminjaman terlebih dahulu sebelum mencatat dicetak atau ditandatangani.'
+                );
+            }
+
+            $loan->update(['document_status' => $status]);
+
+            activity('dokumen')
+                ->performedOn($loan)
+                ->causedBy($actor)
+                ->log('Status dokumen peminjaman diubah menjadi '.$status->label());
 
             return $loan->refresh();
         });
@@ -495,6 +821,119 @@ class LoanService
 
             return $loan->refresh();
         });
+    }
+
+    /**
+     * Tutup penugasan unit fisik untuk unit yang dikembalikan.
+     *
+     * Bila `assignmentId` diberikan, penugasan yang ditutup adalah unit yang
+     * benar-benar dipilih petugas pada baris tersebut — bukan unit dengan id
+     * terbesar. Tanpa `assignmentId` (alur kuantitas lama), penugasan terbuka
+     * ditutup sebanyak jumlah yang dikembalikan.
+     *
+     * Selisih (unit tidak dikembalikan) ditangani di level loan_items agar
+     * transisi dengan penugasan per unit tetap konsisten.
+     */
+    private function closeUnitAssignmentsForReturn(
+        LoanItem $loanItem,
+        int $qtyReturnedNow,
+        Condition $conditionIn,
+        ?User $returner,
+        ?UploadedFile $damagePhoto,
+        ?Room $returnedRoom = null,
+        ?int $assignmentId = null,
+        ?int $unitId = null
+    ): void {
+        if ($qtyReturnedNow <= 0) {
+            return;
+        }
+
+        $openAssignments = $loanItem->openUnitAssignments()->orderBy('id')->lockForUpdate()->get();
+
+        if ($openAssignments->isEmpty()) {
+            return;
+        }
+
+        // Tanpa identitas unit yang dipilih (alur kuantitas lama), penugasan
+        // yang ditutup hanya sebanyak unit yang benar-benar dikembalikan —
+        // bukan seluruh penugasan terbuka.
+        $targets = $openAssignments->take($qtyReturnedNow);
+
+        if ($assignmentId !== null) {
+            $target = $openAssignments->firstWhere('id', $assignmentId);
+
+            if ($target === null) {
+                throw ValidationException::withMessages([
+                    'rows' => 'Unit yang dipilih sudah tercatat kembali sebelumnya atau tidak berada pada peminjaman ini.',
+                ]);
+            }
+
+            if ($unitId !== null && (int) $target->asset_unit_id !== $unitId) {
+                throw ValidationException::withMessages([
+                    'rows' => 'Kode inventaris yang dipilih tidak cocok dengan penugasan unit pada peminjaman ini.',
+                ]);
+            }
+
+            $targets = collect([$target]);
+        }
+
+        $closedAny = false;
+
+        $targets->each(function (LoanItemUnit $assignment) use ($conditionIn, $returner, $loanItem, $returnedRoom, &$closedAny) {
+            if ($assignment->returned_at !== null) {
+                return;
+            }
+
+            $assignment->markReturned($conditionIn, $returner);
+            $closedAny = true;
+
+            $unit = $assignment->unit;
+
+            if ($unit !== null) {
+                // Kondisi & status unit mengikuti hasil pengembalian supaya unit
+                // rusak tidak lagi dianggap dapat dipinjam.
+                $unit->forceFill([
+                    'condition' => $conditionIn,
+                    'status' => UnitStatus::AKTIF,
+                ])->save();
+
+                // Unit yang kembali ke ruangan lain harus berpindah lokasi secara
+                // resmi (kode inventaris ikut diterbitkan ulang).
+                if ($returnedRoom !== null && (int) $unit->room_id !== (int) $returnedRoom->id) {
+                    $unit->forceFill(['status' => UnitStatus::AKTIF])->save();
+
+                    app(InventoryCodeService::class)->move(
+                        $unit->fresh(),
+                        $returnedRoom,
+                        $returner ?? $loanItem->loan?->borrower ?? auth()->user(),
+                        'Dikembalikan pada ruangan berbeda dari ruangan asal.'
+                    );
+                }
+
+                app(AssetUnitService::class)->syncCatalogCounters($unit->catalog);
+            }
+
+            if ($returner !== null) {
+                activity('pengembalian')
+                    ->performedOn($assignment->unit)
+                    ->causedBy($returner)
+                    ->withProperties([
+                        'loan_item_id' => $loanItem->id,
+                        'loan_item_unit_id' => $assignment->id,
+                        'condition_in' => $conditionIn->value,
+                        'inventory_code' => $assignment->unit?->inventory_code,
+                    ])
+                    ->log($conditionIn->isDamaged()
+                        ? 'Mencatat pengembalian unit dengan kondisi rusak'
+                        : 'Mencatat pengembalian unit');
+            }
+        });
+
+        if (! $closedAny) {
+            throw ValidationException::withMessages([
+                'rows' => 'Tidak ada unit yang ditugaskan dapat ditutup untuk pengembalian ini. Pastikan unit sudah ditugaskan pada serah terima.',
+            ]);
+        }
     }
 
     /** Simpan foto bukti kerusakan (mendukung upload biasa & upload sementara Livewire). */

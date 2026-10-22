@@ -19,7 +19,7 @@
                 </button>
 
                 {{-- Lonceng notifikasi --}}
-                @php($unread = \App\Models\AppNotification::where('user_id', auth()->id())->whereNull('read_at')->count())
+                @php($unread = auth()->user()?->unreadNotifications()->count() ?? 0)
                 <a href="{{ route('notifications.index') }}" class="relative p-2 rounded-full text-gray-500 hover:bg-gray-100 active:bg-gray-50" title="Notifikasi">
                     <span class="material-icons-round">notifications</span>
                     @if ($unread > 0)

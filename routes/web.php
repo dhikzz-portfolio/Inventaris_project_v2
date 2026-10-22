@@ -72,6 +72,10 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
         Route::post('/loans/{loan}/approve', [LoanController::class, 'approve'])->name('loans.approve');
         Route::post('/loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');
         Route::post('/loans/{loan}/handover', [LoanController::class, 'handover'])->name('loans.handover');
+        Route::get('/loans/{loan}/serah-terima', [LoanController::class, 'handoverForm'])->name('loans.handover-form');
+        Route::post('/loans/{loan}/dokumen/dicetak', [LoanController::class, 'markDocumentPrinted'])->name('loans.document.printed');
+        Route::post('/loans/{loan}/dokumen/tanda-tangan-fisik', [LoanController::class, 'markDocumentSignedPhysical'])->name('loans.document.signed-physical');
+        Route::post('/loans/{loan}/dokumen/tanda-tangan-digital', [LoanController::class, 'markDocumentSignedDigital'])->name('loans.document.signed-digital');
         Route::get('/pengembalian', [LoanController::class, 'returns'])->name('loans.returns');
         Route::get('/pengembalian/{loan}', [LoanController::class, 'returnForm'])->name('loans.return-form');
         Route::post('/pengembalian/{loan}', [LoanController::class, 'processReturn'])->name('loans.return');
@@ -117,6 +121,9 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
         Route::post('/master/majors', [MasterController::class, 'storeMajor'])->name('masters.store-major');
         Route::put('/master/majors/{major}', [MasterController::class, 'updateMajor'])->name('masters.update-major');
         Route::delete('/master/majors/{major}', [MasterController::class, 'destroyMajor'])->name('masters.destroy-major');
+        Route::post('/master/buildings', [MasterController::class, 'storeBuilding'])->name('masters.store-building');
+        Route::put('/master/buildings/{building}', [MasterController::class, 'updateBuilding'])->name('masters.update-building');
+        Route::delete('/master/buildings/{building}', [MasterController::class, 'destroyBuilding'])->name('masters.destroy-building');
         Route::post('/master/rooms', [MasterController::class, 'storeRoom'])->name('masters.store-room');
         Route::put('/master/rooms/{room}', [MasterController::class, 'updateRoom'])->name('masters.update-room');
         Route::delete('/master/rooms/{room}', [MasterController::class, 'destroyRoom'])->name('masters.destroy-room');

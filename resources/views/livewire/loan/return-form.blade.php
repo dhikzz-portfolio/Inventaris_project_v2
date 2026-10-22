@@ -19,10 +19,16 @@
         </div>
     @endif
 
+    @if ($loan->loanItems->isNotEmpty() && ! $hasUnitAssignmentsInRows)
+        <div class="rounded-lg bg-gray-50 border border-gray-200 text-gray-600 px-4 py-3 text-sm">
+            Peminjaman ini belum memiliki penugasan unit fisik (data legacy). Pengembalian dicatat per baris katalog.
+        </div>
+    @endif
+
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div class="flex items-center justify-between mb-4">
             <h3 class="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">fact_check</span> Validasi Per Barang
+                <span class="material-icons-round text-amber-600">fact_check</span> Validasi Per Unit / Per Barang
             </h3>
             <span class="text-xs text-gray-400">Peminjam: <strong>{{ $loan->borrower?->name }}</strong> • Kembali {{ $loan->due_date->format('d/m/Y H:i') }}</span>
         </div>
@@ -38,7 +44,11 @@
                     <div class="flex items-start justify-between gap-3 flex-wrap">
                         <div>
                             <div class="font-semibold text-gray-800 text-sm">{{ $row['item_name'] }}</div>
-                            <div class="text-[11px] font-mono text-gray-400">{{ $row['internal_id'] }} • Ruang asal: {{ $row['room_code'] }}</div>
+                            @if (! empty($row['inventory_code']))
+                                <div class="text-[11px] font-mono text-gray-500">Kode: {{ $row['inventory_code'] }} • {{ $row['unit_location'] ?? $row['room_code'] }}</div>
+                            @else
+                                <div class="text-[11px] font-mono text-gray-400">{{ $row['internal_id'] }} • Ruang asal: {{ $row['room_code'] }}</div>
+                            @endif
                         </div>
                         <div class="text-xs text-gray-500">
                             Dipinjam: <strong>{{ $row['borrowed'] }} {{ $row['unit'] }}</strong>
@@ -101,6 +111,13 @@
                             @endif
                         </div>
                     </div>
+
+                    @if (! empty($row['inventory_code']))
+                        <div class="text-[10px] text-gray-400 mt-2 flex items-center gap-2">
+                            <span class="inline-block w-2 h-2 rounded-full {{ $row['has_assignment'] && $row['remaining'] === 0 ? 'bg-green-500' : 'bg-gray-300' }}"></span>
+                            {{ $row['remaining'] === 0 ? 'Unit ini sudah dikembalikan.' : 'Unit ini belum dikembalikan.' }}
+                        </div>
+                    @endif
                 </div>
             @endforeach
         </div>

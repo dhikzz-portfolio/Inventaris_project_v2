@@ -89,12 +89,20 @@
     </div>
 
     @php
-        $signatures = [];
-        foreach ($loan->approvals as $approval) {
-            $signatures[$approval->level] = $approval;
+        // Blok tanda tangan dibangun dari aktual persetujuan, bukan dari nomor level
+        // tetap: Wakasek boleh menyetujui sendiri sehingga level 1/2 tidak lagi
+        // merepresentasikan satu role tertentu.
+        $signatureBlocks = [];
+
+        foreach ($loan->approvals->sortBy('level') as $approval) {
+            $signatureBlocks[] = [
+                'role' => $approval->approver?->role
+                    ? \App\Enums\Role::from($approval->approver->role)->shortLabel()
+                    : 'Pihak Berwenang',
+                'name' => $approval->approver?->name,
+                'signature_path' => $approval->signature_path,
+            ];
         }
-        $signatureLevel1 = $signatures[1] ?? null;
-        $signatureLevel2 = $signatures[2] ?? null;
     @endphp
 
     <table class="ttd">
@@ -102,27 +110,26 @@
             <td>
                 <div class="role">Peminjam</div>
                 <div class="space"></div>
-                <div class="nama">{{ $loan->borrower?->name }}</div>
+                <div class="nama">{{ $loan->borrower?->name ?: '..............................' }}</div>
                 <div>NIM/NIP: ....................</div>
             </td>
-            <td>
-                <div class="role">Laboran / Petugas</div>
-                <div class="space">
-                    @if ($signatureLevel1?->signature_path && \Illuminate\Support\Facades\Storage::disk('local')->exists($signatureLevel1->signature_path))
-                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('local')->path($signatureLevel1->signature_path) }}"><br>
-                    @endif
-                </div>
-                <div class="nama">{{ $signatureLevel1?->approver?->name ?: '..............................' }}</div>
-            </td>
-            <td>
-                <div class="role">Wakasek Sarpras</div>
-                <div class="space">
-                    @if ($signatureLevel2?->signature_path && \Illuminate\Support\Facades\Storage::disk('local')->exists($signatureLevel2->signature_path))
-                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('local')->path($signatureLevel2->signature_path) }}"><br>
-                    @endif
-                </div>
-                <div class="nama">{{ $signatureLevel2?->approver?->name ?: '..............................' }}</div>
-            </td>
+            @forelse ($signatureBlocks as $block)
+                <td>
+                    <div class="role">{{ $block['role'] }}</div>
+                    <div class="space">
+                        @if ($block['signature_path'] && \Illuminate\Support\Facades\Storage::disk('local')->exists($block['signature_path']))
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('local')->path($block['signature_path']) }}"><br>
+                        @endif
+                    </div>
+                    <div class="nama">{{ $block['name'] ?: '..............................' }}</div>
+                </td>
+            @empty
+                <td>
+                    <div class="role">Petugas / Wakasek Sarpras</div>
+                    <div class="space"></div>
+                    <div class="nama">..............................</div>
+                </td>
+            @endforelse
         </tr>
     </table>
 

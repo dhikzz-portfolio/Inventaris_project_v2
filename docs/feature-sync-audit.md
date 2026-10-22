@@ -76,7 +76,57 @@ Status: **Sebagian selesai** — semua ketidaksesuaian kritis yang dapat diseles
 
 ## 4. Yang sengaja tidak diubah
 
-- Model peminjaman level katalog/kuantitas (belum ada `loan_item_units`) — keputusan transisi terdokumentasi; menggantinya adalah proyek tersendiri.
+- Model peminjaman sudah punya tabel `loan_item_units` (lihat revisi lanjutan di bagian 5).
 - Alur mutasi legacy per baris katalog (`/mutasi`, `item_movements`) — tetap berfungsi dan tercatat di `KNOWN_ISSUES` 9.
 - Rute legacy `/items` — tetap untuk masa transisi (404 di luar cakupan sudah diverifikasi).
 - Desain UI lama (sidebar slate, aksen amber, kartu `rounded-xl`, ikon Material Round, Figtree) dipertahankan; hanya daftar unit di halaman label yang diganti mengikuti pola tabel yang sudah ada.
+
+---
+
+## 5. Revisi lanjutan 22 Oktober 2026 (serah terima, persetujuan Wakasek, TTD opsional, master lokasi)
+
+Acuan: master prompt *revisi lanjutan* — stabilitas sistem, persetujuan Wakasek, peminjaman, dan master data lokasi.
+Metode: audit kode + data (Tinker pada DB pengembangan), pembaruan skema lewat migrasi, uji feature baru (`LoanApprovalHandoverTest`, `BuildingMasterDataTest`), regresi seluruh suite.
+
+### 5.1 Matriks audit revisi lanjutan
+
+| # | Area | Aturan revisi | Kondisi sebelum | Akar masalah | Tindakan | Status |
+| - | ---- | ------------- | --------------- | ------------ | -------- | ------ |
+| R1 | Error 422 saat serah terima (`/loans/{id}/serah-terima`) | Peminjaman yang sudah disetujui wajib dapat diserahkan; yang belum disetujui ditolak dengan pesan jelas | `abort_unless($loan->status === LoanStatus::APPROVED, 422)` memeriksa status yang **tidak pernah ditulis** oleh alur persetujuan: `decide()` menyimpan approval di `loan_approvals` tetapi tidak pernah mengubah `loans.status` ke `APPROVED`; `isFullyApproved()` hanya dipakai untuk memBUAT approval, tidak untuk menutup rantai | Status transaksi tidak pernah transisi `PENDING → APPROVED` | `Loan::isFullyApproved()` kini menjadi sumber kebenaran tunggal; `decide()` menutup rantai dan menulis `status = APPROVED` (level final) ketika seluruh persetujuan terpenuhi; `handoverForm()` memakai `handoverBlocker()` sehingga blokir tampil sebagai pesan di UI, bukan exception 422 mentah; `handover()` tetap menolak status belum sah dengan pesan domain | **Selesai** |
+| R2 | Serah terima ganda | Permintaan berulang tidak boleh menghasilkan penyerahan ganda | Tidak ada pengaman lapis kedua | `handover()` kini mengunci baris (`lockForUpdate`) dan menolak `handed_over_at !== null`; transaksi DB membungkus perubahan status + penugasan unit | **Selesai** |
+| R3 | Persetujuan barang bernilai tinggi | Persetujuan sah Wakasek sudah cukup — tanpa persetujuan Admin tambahan | `nextApprovalLevel()` selalu menuntut level 1 (Laboran) lalu level 2; approval Wakasek pun tetap menyisakan tahap | Rantai persetujuan tidak mengenal kewenangan | `Loan::nextApprovalLevelFor()` memberi Wakasek (`isApproverLevel2()`) hak memutuskan pada level akhir; `decide()` mencatat approval Wakasek pada level final sehingga `isFullyApproved()` langsung terpenuhi; `LoanService::requestLoan()` mencatat *persetujuan melekat* atas nama Wakasek sendiri bila Wakasek yang mengajukan (identitas aktor tidak dipalsukan); alur persetujuan oleh role lain (Laboran → Wakasek) tetap utuh | **Selesai** |
+| R4 | Tanda tangan digital | TTD tidak boleh menjadi penghalang mutlak | `signature` diasumsikan wajib; dokumen tidak bisa dicetak lalu ditandatangani fisik | Validasi/backend belum memisahkanTTD dari kelayakan | `signature` menjadi `nullable` pada `approve`/`reject`; `DocumentStatus` (enum baru) terpisah dari status transaksi: `BELUM_DIBUAT → SIAP_DICETAK → DICETAK → DITANDATANGANI_FISIK / DITANDATANGANI_DIGITAL`; `markDocumentStatus()` hanya mengubah status dokumen, tidak pernah status peminjaman; BAST menyisakan blok nama untuk tanda tangan manual | **Selesai** |
+| R5 | Kewenangan Wakasek | Wakasek mengelola penuh inventaris sekolah | Menu, scope query, dan controller sudah memakai `SUPER_ADMIN` sebagai pengelola, tetapi pengajuan peminjaman Wakasek ikut menunggu persetujuan | Jalur peminjaman belum membedakan kewenangan | `LoanService::requestLoan()` menandai pengajuan Wakasek sebagai *self-approved* dengan audit log & approval record atas namanya sendiri; `User::managesInventory()`/`isApproverLevel2()` menjadi satu-satunya sumber kewenangan (backend, bukan parameter request) | **Selesai** |
+| R6 | Master data lokasi | Master Gedung → Master Ruangan → Unit; formulir ruangan cukup gedung/lantai/nomor | Nama gedung disimpan sebagai teks di `rooms.building_letter`; pengguna mengetik nama gedung tiap kali menambah ruangan | Tidak ada master gedung | Tabel `buildings` + model `Building`; `rooms.building_id` (relasi) + `building_letter` (cadangan); halaman master data memisahkan bagian Gedung dan Ruangan; formulir ruangan memakai dropdown gedung, lantai, nomor; kode lokasi & kode inventaris diturunkan dari master gedung | **Selesai** |
+| R7 | Normalisasi data lama | Data gedung/ruangan lama tidak boleh berubah diam-diam | Kode ruangan & `internal_id` warisan memakai pola lama (mis. `G1-01`) | Data lama tidak sinkron dengan master | Migrasi `normalize_room_codes_and_internal_ids_to_building_master` memetakan gedung lama → master, menulis ulang `rooms.code` & `rooms.building_letter`, memperbarui `internal_id` katalog, dan **tidak** menyentuh kode unit yang sudah terbit (`asset_unit_codes`) | **Selesai** |
+| R8 | Transisi status lain (kembali/batal/tolak) | Semua transisi harus konsisten | Pengembalian & pembatalan sudah memakai guard status, tetapi pesan galat masih berupa exception | UX | `returnForm()`/`processReturn()`/`cancel()` memakai `statusMessage()` yang sama; pembatalan menolak loan yang sudah diserahterimakan dengan pesan mengarahkan ke pengembalian | **Selesai** |
+
+### 5.2 Perubahan yang diimplementasikan
+
+**Status & serah terima**
+
+- `app/Models/Loan.php` — `finalApprovalLevel()`, `isFullyApproved()`, `nextApprovalLevelFor(User)`; approval Wakasek pada level final langsung menutup rantai.
+- `app/Services/LoanService.php` — `decide()` menulis `status = APPROVED` saat rantai terpenuhi; `requestLoan()` mencatat persetujuan melekat untuk Wakasek; `handover()` memakai `lockForUpdate()` + guard `handed_over_at`; `markDocumentStatus()` hanya menyentuh status dokumen.
+- `app/Http/Controllers/LoanController.php` — `handoverForm()` memakai `Loan::handoverBlocker()` (pesan di UI, bukan 422 mentah); `approve`/`reject` menerima `signature` opsional; endpoint status dokumen baru (`dicetak`, `tanda-tangan-fisik`, `tanda-tangan-digital`).
+- `app/Enums/DocumentStatus.php` (baru) — status dokumen terpisah dari status transaksi.
+
+**Kewenangan Wakasek**
+
+- `app/Models/User.php` — `isApproverLevel2()`, `managesInventory()`, `canApproveLoans()`, `canManageLoanDocuments()` sebagai gerbang backend tunggal.
+- `resources/views/layouts/menu.blade.php` — menu mengikuti permission backend; blok Administrasi (approval pengadaan/penghapusan, pengguna, pengaturan) hanya untuk Wakasek.
+
+**Master lokasi & generator kode**
+
+- `app/Models/Building.php` (baru), `database/migrations/2026_10_22_195827_create_buildings_table_and_link_rooms.php` — master gedung + relasi ruangan.
+- `app/Http/Controllers/MasterController.php` — CRUD gedung, CRUD ruangan (dropdown gedung + lantai + nomor), validasi gedung nonaktif, unik triplet, dan prosedur aman saat kode gedung diubah (dilarang bila sudah ada unit).
+- `app/Models/Room.php` — `buildingCode()`, `codePrefix()` (mis. `C1`), `locationCode()` (mis. `C1-03`).
+- `app/Services/IdGenerator.php` & `app/Services/InventoryCodeService.php` — sumber kebenaran identitas gedung = master gedung; format kode inventaris `C1-03-21` dipertahankan.
+- `database/migrations/2026_10_22_200643_normalize_room_codes_and_internal_ids_to_building_master.php` — migrasi data lama (aman, dapat di-rollback).
+
+### 5.3 Verifikasi
+
+- `php artisan test --compact`: **183 passed (887 assertions)** (SQLite in-memory).
+  - `LoanApprovalHandoverTest` (baru): serah terima setelah persetujuan sah; penolakan status belum sah dengan pesan; rantai persetujuan Wakasek tanpa Admin tambahan; approval role lain tetap berjenjang; audit log mencatat aktor benar; TTD kosong tidak menggagalkan alur; status dokumen tidak tertukar dengan status transaksi; serah terima ganda ditolak.
+  - `BuildingMasterDataTest` (baru): master gedung terpisah; dropdown gedung dari master; formulir ruangan hanya meminta gedung/lantai/nomor; kode lokasi & kode unit terbentuk benar & unik; ruang/unit lama tetap terhubung setelah migrasi.
+- `vendor/bin/pint --format agent`: bersih.
+- Migrasi diuji naik-turun (`migrate` → `migrate:rollback`) pada database pengembangan.

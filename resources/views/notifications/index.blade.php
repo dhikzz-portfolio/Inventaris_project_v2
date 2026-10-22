@@ -26,7 +26,10 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <ul class="divide-y divide-gray-100">
             @forelse ($notifications as $notification)
-                <li @class(['bg-amber-50/50' => ! $notification->isRead()]) class="flex items-start gap-3 px-5 py-4">
+                <li @class([
+                    'flex items-start gap-3 px-5 py-4',
+                    'bg-amber-50/50' => ! $notification->isRead(),
+                ])>
                     <span @class([
                         'mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full',
                         'bg-red-100 text-red-600' => $notification->type->value === 'TERLAMBAT',
@@ -59,6 +62,11 @@
                             <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
                                 @csrf
                                 <button class="text-xs font-semibold text-amber-700 hover:underline">Buka detail →</button>
+                            </form>
+                        @elseif (! $notification->isRead())
+                            <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
+                                @csrf
+                                <button class="text-xs font-semibold text-amber-700 hover:underline">Tandai sudah dibaca</button>
                             </form>
                         @endif
                     </div>

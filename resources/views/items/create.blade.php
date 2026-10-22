@@ -99,7 +99,7 @@
             <label class="flex items-center gap-2 md:col-span-2">
                 <input type="checkbox" name="is_high_value" value="1" @checked(old('is_high_value'))
                        class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
-                <span class="text-sm text-gray-700">Barang <strong>bernilai tinggi</strong> (laptop, kamera, dll) — wajib approval berjenjang Laboran → Wakasek + TTD digital</span>
+                <span class="text-sm text-gray-700">Barang <strong>bernilai tinggi</strong> (laptop, kamera, dll) — wajib persetujuan berjenjang Laboran → Wakasek (tanda tangan digital opsional)</span>
             </label>
         </div>
 

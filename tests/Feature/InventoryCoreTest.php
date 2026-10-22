@@ -8,6 +8,7 @@ use App\Livewire\Catalog\CatalogUnits;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
 use App\Models\AssetUnitCode as UnitCodeModel;
+use App\Models\Building;
 use App\Models\Category;
 use App\Models\InstitutionSetting;
 use App\Models\Item;
@@ -74,7 +75,7 @@ class InventoryCoreTest extends TestCase
         $this->actingAs($this->superAdmin)->get(route('catalogs.index'))->assertOk()->assertSee('Katalog Barang');
         $this->actingAs($this->laboranTkj)->get(route('catalogs.index'))->assertOk();
 
-        $labRplCatalog = AssetUnit::whereHas('room', fn ($q) => $q->where('code', 'G2-01'))->firstOrFail()->catalog;
+        $labRplCatalog = AssetUnit::whereHas('room', fn ($q) => $q->where('code', 'H1-01'))->firstOrFail()->catalog;
         $this->actingAs($this->laboranTkj)->get(route('catalogs.show', $labRplCatalog))->assertNotFound();
     }
 
@@ -178,7 +179,7 @@ class InventoryCoreTest extends TestCase
     public function test_ac_10_scope_katalog_pencarian_dan_url_langsung(): void
     {
         $labTkj = Room::where('code', 'G1-01')->firstOrFail();
-        $labRpl = Room::where('code', 'G2-01')->firstOrFail();
+        $labRpl = Room::where('code', 'H1-01')->firstOrFail();
         $general = Room::where('code', 'G1-03')->firstOrFail();
 
         $labUnit = AssetUnit::where('room_id', $labTkj->id)->firstOrFail();
@@ -226,7 +227,7 @@ class InventoryCoreTest extends TestCase
     public function test_route_mutasi_unit_menerbitkan_kode_baru(): void
     {
         $from = Room::where('code', 'G1-01')->firstOrFail();
-        $to = Room::where('code', 'G2-01')->firstOrFail();
+        $to = Room::where('code', 'H1-01')->firstOrFail();
         $unit = AssetUnit::where('room_id', $from->id)->firstOrFail();
         $oldCode = $unit->inventory_code;
 
@@ -260,7 +261,7 @@ class InventoryCoreTest extends TestCase
         $this->assertFalse(AssetUnit::visibleTo($user)->where('room_id', '!=', $lab->id)->exists());
 
         // Perubahan cakupan akses wajib tercatat di audit log.
-        $otherLab = Room::where('code', 'G1-02')->firstOrFail();
+        $otherLab = Room::where('code', 'G2-02')->firstOrFail();
 
         $this->actingAs($this->superAdmin)->put(route('users.update', $user), [
             'name' => 'Laboran Baru',
@@ -360,7 +361,7 @@ class InventoryCoreTest extends TestCase
 
     public function test_laboran_tidak_dapat_mengubah_unit_di_luar_cakupan(): void
     {
-        $unit = AssetUnit::whereHas('room', fn ($q) => $q->where('code', 'G2-02'))->firstOrFail();
+        $unit = AssetUnit::whereHas('room', fn ($q) => $q->where('code', 'H2-02'))->firstOrFail();
 
         $this->actingAs($this->laboranTkj)
             ->patch(route('units.update', $unit), ['condition' => Condition::RUSAK_BERAT->value])
@@ -411,9 +412,14 @@ class InventoryCoreTest extends TestCase
 
     private function makeRoom(string $letter, int $floor, int $roomNo, bool $isLab, string $name, ?string $code = null): Room
     {
+        $building = Building::firstOrCreate(
+            ['code' => $letter],
+            ['name' => 'Gedung '.$letter]
+        );
+
         return Room::create([
             'major_id' => null,
-            'building' => $letter.$floor,
+            'building_id' => $building->id,
             'building_letter' => $letter,
             'floor' => $floor,
             'room_no' => $roomNo,

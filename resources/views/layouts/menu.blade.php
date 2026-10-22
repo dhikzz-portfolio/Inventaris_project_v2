@@ -44,7 +44,7 @@
 
 <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Akun</div>
 <x-menu-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" icon="notifications" label="Notifikasi"
-             :badge="\App\Models\AppNotification::where('user_id', auth()->id())->whereNull('read_at')->count()" />
+             :badge="$user?->unreadNotifications()->count() ?? 0" />
 
 @if ($isWakasek)
     <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Administrasi</div>

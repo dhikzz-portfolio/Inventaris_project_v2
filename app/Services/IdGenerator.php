@@ -30,17 +30,15 @@ class IdGenerator
 
     /**
      * Prefix ID internal untuk sebuah ruangan: `{huruf gedung}{lantai}-{ruangan ke}-`.
-     * Contoh: gedung "G1", lantai 1, ruang "G1-01" → "g1-01-".
+     * Contoh: gedung "G", lantai 1, ruang "G1-01" → "g1-01-".
+     *
+     * Huruf gedung berasal dari master gedung (identitas kode), bukan teks bebas.
      */
     public static function roomPrefix(Room $room): string
     {
-        $letters = preg_replace('/[^A-Za-z]/', '', (string) $room->building);
-        $buildingLetter = $letters !== null && $letters !== '' ? strtolower($letters[0]) : 'g';
+        $buildingLetter = strtolower($room->buildingCode() ?: 'g');
 
-        preg_match('/(\d+)\s*$/', (string) $room->code, $matches);
-        $roomNo = isset($matches[1]) ? (int) $matches[1] : 1;
-
-        return sprintf('%s%d-%02d-', $buildingLetter, (int) $room->floor, $roomNo);
+        return sprintf('%s%d-%02d-', $buildingLetter, (int) $room->floor, (int) $room->room_no);
     }
 
     /**

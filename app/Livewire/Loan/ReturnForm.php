@@ -21,7 +21,7 @@ class ReturnForm extends Component
 
     public function mount(Loan $loan): void
     {
-        $this->loan = $loan->load(['loanItems.item.room', 'borrower']);
+        $this->loan = $loan->load(['loanItems.item.room', 'borrower', 'loanItems.unitAssignments.unit.room']);
 
         foreach ($this->loan->loanItems as $li) {
             $remaining = $li->qty_borrowed - (int) $li->qty_returned;
@@ -42,6 +42,85 @@ class ReturnForm extends Component
                 'damage_photo' => null,
             ];
         }
+
+        if ($this->hasUnitAssignments()) {
+            $this->syncRowsFromUnitAssignments();
+        }
+    }
+
+    public function hasUnitAssignments(): bool
+    {
+        return $this->loan->loanItems()->whereHas('unitAssignments')->exists();
+    }
+
+    /**
+     * Jika peminjaman sudah memiliki penugasan unit fisik, tampilkan baris per unit
+     * dan izinkan pengembalian parsial per unit.
+     */
+    private function syncRowsFromUnitAssignments(): void
+    {
+        $newRows = [];
+
+        foreach ($this->loan->loanItems as $li) {
+            $assigned = $li->unitAssignments()->with('unit.room')->orderBy('id')->get();
+
+            if ($assigned->isEmpty()) {
+                $newRows[] = $this->rowForLoanItem($li);
+
+                continue;
+            }
+
+            foreach ($assigned as $assignment) {
+                $newRows[] = [
+                    'loan_item_id' => $li->id,
+                    'item_id' => $li->item_id,
+                    'item_name' => $li->item?->name,
+                    'internal_id' => $li->item?->internal_id,
+                    'unit' => $li->item?->unit,
+                    'room_code' => $li->item?->room?->code,
+                    'unit_id' => $assignment->asset_unit_id,
+                    'inventory_code' => $assignment->unit?->inventory_code,
+                    'unit_location' => $assignment->unit?->locationLabel(),
+                    'borrowed' => 1,
+                    'already_returned' => $assignment->returned_at !== null ? 1 : 0,
+                    'remaining' => $assignment->returned_at === null ? 1 : 0,
+                    'qty_returned' => $assignment->returned_at !== null ? 1 : 0,
+                    'condition_out' => $assignment->condition_out?->value ?? Condition::BAIK->value,
+                    'condition_in' => $assignment->condition_in?->value ?? Condition::BAIK->value,
+                    'returned_room_id' => $assignment->unit?->room_id ?? $li->item?->room_id,
+                    'damage_photo' => null,
+                    'assignment_id' => $assignment->id,
+                    'has_assignment' => true,
+                ];
+            }
+        }
+
+        $this->rows = $newRows;
+    }
+
+    private function rowForLoanItem(LoanItem $li): array
+    {
+        return [
+            'loan_item_id' => $li->id,
+            'item_id' => $li->item_id,
+            'item_name' => $li->item?->name,
+            'internal_id' => $li->item?->internal_id,
+            'unit' => $li->item?->unit,
+            'room_code' => $li->item?->room?->code,
+            'unit_id' => null,
+            'inventory_code' => null,
+            'unit_location' => null,
+            'borrowed' => $li->qty_borrowed,
+            'already_returned' => (int) $li->qty_returned,
+            'remaining' => max(0, $li->qty_borrowed - (int) $li->qty_returned),
+            'qty_returned' => max(0, $li->qty_borrowed - (int) $li->qty_returned),
+            'condition_out' => $li->condition_out->value,
+            'condition_in' => 'BAIK',
+            'returned_room_id' => $li->item?->room_id,
+            'damage_photo' => null,
+            'assignment_id' => null,
+            'has_assignment' => false,
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -53,6 +132,10 @@ class ReturnForm extends Component
             'rows.*.qty_returned' => ['required', 'integer', 'min:0'],
             'rows.*.condition_in' => ['required', 'in:BAIK,RUSAK_RINGAN,RUSAK_BERAT'],
             'rows.*.returned_room_id' => ['required', 'exists:rooms,id'],
+            // Identitas unit fisik wajib ikut divalidasi agar tidak terpotong
+            // oleh validator dan tetap terkirim ke service saat pengembalian.
+            'rows.*.assignment_id' => ['nullable', 'integer', 'exists:loan_item_units,id'],
+            'rows.*.unit_id' => ['nullable', 'integer', 'exists:asset_units,id'],
             'confirmMismatch' => ['boolean'],
         ];
 
@@ -125,11 +208,14 @@ class ReturnForm extends Component
     {
         $rooms = Room::orderBy('code')->get();
 
+        $hasUnitAssignmentsInRows = collect($this->rows)->some(fn (array $row) => (! empty($row['assignment_id'])));
+
         return view('livewire.loan.return-form', [
             'rooms' => $rooms,
             'conditions' => Condition::cases(),
             'mismatches' => $this->mismatchRows(),
             'totalShortfall' => collect($this->rows)->sum(fn ($r) => max(0, (int) $r['remaining'] - (int) $r['qty_returned'])),
+            'hasUnitAssignmentsInRows' => $hasUnitAssignmentsInRows,
         ]);
     }
 }

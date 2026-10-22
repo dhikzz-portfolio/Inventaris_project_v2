@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -174,6 +175,11 @@ class Item extends Model
     /**
      * Unit yang benar-benar dapat dipinjam sekarang:
      * total - rusak permanen - hilang permanen - unit yang sedang di luar.
+     *
+     * Selisih yang belum ditutup (sementara) TIDAK boleh dikurangi lagi di
+     * sini: unit yang hilang pada pinjaman aktif sudah tercakup pada
+     * `activeLoanRemainingQuantity()` (qty_borrowed - qty_returned), sehingga
+     * menghitungnya dua kali membuat stok tersedia terlihat kurang.
      */
     public function availableQuantity(): int
     {
@@ -186,13 +192,24 @@ class Item extends Model
      */
     public function pendingLostQuantity(): int
     {
-        return (int) LoanItem::query()
+        return (int) $this->pendingLostQuery()->sum('qty_lost');
+    }
+
+    /**
+     * Query dasar selisih yang belum ditutup.
+     *
+     * Status yang difilter adalah status PEMINJAMAN (tabel `loans`), bukan
+     * `loan_items` — tabel `loan_items` tidak punya kolom `status`, sehingga
+     * memfilter kolom itu akan menggagalkan query ("Unknown column") di MySQL.
+     */
+    public function pendingLostQuery(): Builder
+    {
+        return LoanItem::query()
             ->where('item_id', $this->id)
             ->whereIn('loan_id', function ($q) {
                 $q->select('id')->from('loans')
                     ->whereIn('status', [LoanStatus::APPROVED->value, LoanStatus::DIPINJAM->value]);
-            })
-            ->sum('qty_lost');
+            });
     }
 
     /** Status efektif untuk ditampilkan/difilter. */

@@ -26,8 +26,8 @@
 
             <select wire:model.live="building" class="w-full rounded-lg border-gray-300 text-sm">
                 <option value="">Semua Gedung</option>
-                @foreach ($buildings as $letter)
-                    <option value="{{ $letter }}">Gedung {{ $letter }}</option>
+                @foreach ($buildings as $buildingOption)
+                    <option value="{{ $buildingOption['code'] }}">{{ $buildingOption['name'] }}</option>
                 @endforeach
             </select>
 

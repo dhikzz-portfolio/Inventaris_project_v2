@@ -99,7 +99,7 @@
                 </div>
                 <div class="mt-2 text-[11px] text-gray-400 flex items-center gap-1">
                     <span class="material-icons-round text-sm">workspace_premium</span>
-                    Barang bernilai tinggi pada keranjang memerlukan approval Laboran → <strong>Wakasek Sarpras</strong> + TTD digital.
+                    Barang bernilai tinggi pada keranjang memerlukan persetujuan Laboran → <strong>Wakasek Sarpras</strong>. Tanda tangan digital bersifat opsional — dokumen resmi dapat dicetak dan ditandatangani fisik.
                 </div>
             @endif
         </div>
@@ -207,7 +207,7 @@
                 </button>
 
                 <p class="text-[11px] text-gray-400 text-center">
-                    Barang bernilai tinggi melewati approval Laboran lalu Wakasek (+TTD digital).
+                    Barang bernilai tinggi melewati persetujuan Laboran lalu Wakasek. Tanda tangan digital opsional — dokumen dapat ditandatangani secara fisik.
                 </p>
             </div>
         </div>

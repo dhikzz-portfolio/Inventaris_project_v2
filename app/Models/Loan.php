@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\Decision;
+use App\Enums\DocumentStatus;
 use App\Enums\LoanStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +19,7 @@ class Loan extends Model
         'returned_at', 'returned_by', 'status', 'needs_high_value_approval',
         'handed_over_at', 'handed_over_by', 'cancelled_at', 'cancelled_by',
         'cancel_reason', 'bast_path', 'letter_path', 'reject_reason',
+        'document_status',
     ];
 
     protected function casts(): array
@@ -29,6 +32,7 @@ class Loan extends Model
             'cancelled_at' => 'datetime',
             'status' => LoanStatus::class,
             'needs_high_value_approval' => 'boolean',
+            'document_status' => DocumentStatus::class,
         ];
     }
 
@@ -45,6 +49,17 @@ class Loan extends Model
     public function loanItems(): HasMany
     {
         return $this->hasMany(LoanItem::class);
+    }
+
+    /** Satu baris peminjaman dapat memiliki beberapa unit fisik yang ditugaskan. */
+    public function loanItemUnits(): HasMany
+    {
+        return $this->hasMany(LoanItemUnit::class)->whereNull('returned_at');
+    }
+
+    public function loanItemUnitsWithReturned(): HasMany
+    {
+        return $this->hasMany(LoanItemUnit::class);
     }
 
     public function approvals(): HasMany
@@ -70,6 +85,8 @@ class Loan extends Model
     /**
      * Batasi query ke data yang boleh dilihat pengguna (mencegah IDOR).
      * Laboran hanya melihat pinjaman yang menyentuh jurusannya.
+     * Selama masa transisi, penugasan unit tidak diperlukan untuk visibilitas:
+     * visibilitas tetap mengikuti item katalog + ruangannya.
      */
     public function scopeVisibleTo($query, User $user)
     {
@@ -97,6 +114,12 @@ class Loan extends Model
             && $this->loanItems()->whereHas('item.room', fn ($q) => $q->where('major_id', $user->major_id))->exists();
     }
 
+    /** Unit fisik yang sedang dipinjam dalam transaksi ini (hanya yang terbuka). */
+    public function openLoanItemUnits(): HasMany
+    {
+        return $this->hasMany(LoanItemUnit::class)->whereNull('returned_at');
+    }
+
     public function isActive(): bool
     {
         return in_array($this->status, [LoanStatus::APPROVED, LoanStatus::DIPINJAM], true);
@@ -116,7 +139,7 @@ class Loan extends Model
 
     public function hasLevel2Approval(): bool
     {
-        return $this->approvals()->where('level', 2)->where('decision', 'APPROVED')->exists();
+        return $this->approvals()->where('level', 2)->where('decision', Decision::APPROVED->value)->exists();
     }
 
     public function requiresLevel2(): bool
@@ -124,22 +147,98 @@ class Loan extends Model
         return $this->needs_high_value_approval;
     }
 
-    public function approvalLevel(): int
+    /**
+     * Level persetujuan terakhir yang diwajibkan transaksi ini.
+     * 2 = barang bernilai tinggi (perlu persetujuan Wakasek), 1 = cukup satu persetujuan.
+     */
+    public function finalApprovalLevel(): int
     {
         return $this->requiresLevel2() ? 2 : 1;
     }
 
-    /** Level berikutnya yang harus memutuskan (null = tidak ada). */
-    public function nextApprovalLevel(): ?int
+    public function approvalLevel(): int
     {
-        if ($this->status !== LoanStatus::PENDING) {
+        return $this->finalApprovalLevel();
+    }
+
+    /**
+     * Apakah seluruh persetujuan yang diwajibkan sudah terpenuhi?
+     *
+     * Persetujuan pada level akhir (2 untuk barang bernilai tinggi) sekaligus
+     * menutup level di bawahnya: pihak berwenang yang memberi persetujuan
+     * terakhir tidak perlu menandatangani persetujuan tambahan yang berulang.
+     */
+    public function isFullyApproved(): bool
+    {
+        $final = $this->finalApprovalLevel();
+
+        return $this->approvals()
+            ->where('decision', Decision::APPROVED->value)
+            ->where('level', $final)
+            ->exists();
+    }
+
+    /**
+     * Level keputusan berikutnya untuk pelaku tertentu (null = tidak ada yang perlu diputuskan).
+     *
+     *wakasek (approver level 2) berwenang memutuskan pada level akhir, sehingga
+     * persetujuannya langsung menutup rangkaian persetujuan tanpa tahap tambahan.
+     */
+    public function nextApprovalLevelFor(User $approver): ?int
+    {
+        if ($this->status !== LoanStatus::PENDING || $this->isFullyApproved()) {
             return null;
         }
-        if (! $this->approvals()->where('level', 1)->where('decision', 'APPROVED')->exists()) {
+
+        if ($approver->isApproverLevel2()) {
+            return $this->finalApprovalLevel();
+        }
+
+        return $this->nextApprovalLevel();
+    }
+
+    /**
+     * Level berikutnya yang harus diputuskan (null = tidak ada).
+     *
+     * Untuk peminjam biasa, level 1 (endorsemen laboran) selalu didahulukan;
+     * level 2 hanya menyusul bila persetujuan level 1 sudah diberikan.
+     */
+    public function nextApprovalLevel(): ?int
+    {
+        if ($this->status !== LoanStatus::PENDING || $this->isFullyApproved()) {
+            return null;
+        }
+
+        if (! $this->approvals()->where('level', 1)->where('decision', Decision::APPROVED->value)->exists()) {
             return 1;
         }
-        if ($this->requiresLevel2() && ! $this->hasLevel2Approval()) {
-            return 2;
+
+        return $this->finalApprovalLevel();
+    }
+
+    /** Alasan singkat kenapa transaksi belum bisa diserahkan, null bila sudah siap. */
+    public function handoverBlocker(): ?string
+    {
+        if ($this->status === LoanStatus::DIPINJAM) {
+            return 'Barang sudah diserahkan sebelumnya.';
+        }
+
+        if ($this->status !== LoanStatus::APPROVED) {
+            return match ($this->status) {
+                LoanStatus::PENDING => 'Peminjaman masih menunggu persetujuan yang diwajibkan.',
+                LoanStatus::DITOLAK => 'Peminjaman sudah ditolak.',
+                LoanStatus::DIBATALKAN => 'Peminjaman sudah dibatalkan.',
+                LoanStatus::SELESAI => 'Peminjaman sudah selesai.',
+                default => 'Peminjaman tidak berstatus Disetujui.',
+            };
+        }
+
+        if ($this->handed_over_at !== null) {
+            return 'Barang sudah diserahkan sebelumnya.';
+        }
+
+        if (! $this->isFullyApproved()) {
+            return 'Persetujuan yang diwajibkan belum lengkap.';
         }
 
         return null;

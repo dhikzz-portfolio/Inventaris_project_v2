@@ -17,6 +17,31 @@ class InventoryCodeService
 
     public const MAX_UNIT_NO = 99;
 
+    private ?bool $connected = null;
+
+    /**
+     * Layanan ini "tersambung" jika Laravel DB connection dapat membuat PDO.
+     * Simple flag dari env cukup mudah mengarah ke false-positive di lingkungan
+     * testing (mis. :memory: SQLite) atau proses yang db-nya baru tersedia
+     * setelah boot, jadi kita uji koneksi secara langsung.
+     */
+    public function isConnected(): bool
+    {
+        if ($this->connected !== null) {
+            return $this->connected;
+        }
+
+        try {
+            DB::connection()->getPdo();
+
+            $this->connected = true;
+        } catch (Throwable $e) {
+            $this->connected = false;
+        }
+
+        return $this->connected;
+    }
+
     public function normalize(string $code): string
     {
         return strtoupper(trim($code));
@@ -29,7 +54,7 @@ class InventoryCodeService
 
     public function format(Room $room, int $unitNo): string
     {
-        $this->assertRoomIdentity($room);
+        $resolved = $this->assertOrResolveRoomIdentity($room);
 
         if ($unitNo < 1 || $unitNo > self::MAX_UNIT_NO) {
             throw ValidationException::withMessages([
@@ -37,18 +62,80 @@ class InventoryCodeService
             ]);
         }
 
-        return sprintf('%s-%02d-%02d', $room->codePrefix(), (int) $room->room_no, $unitNo);
+        $prefix = $resolved['prefix'];
+        $roomNo = (int) $resolved['room_no'];
+
+        return sprintf('%s-%02d-%02d', $prefix, $roomNo, $unitNo);
+    }
+
+    /**
+     * Serupa assertRoomIdentity, tetapi jika ruangan tidak memiliki identitas spasial
+     * yang lengkap secara lokal, coba kembalikan dari data kode katalog terbaru
+     * yang merujuk ke ruangan ini (mis. popup store tanpa properti gedung/loket
+     * lengkap). Jika tetap tidak dapat ditentukan, lempar exception seperti asli.
+     *
+     * Identitas gedung selalu diambil dari master gedung — bukan teks bebas
+     * yang diketik pada formulir ruangan.
+     *
+     * @return array{prefix: string, room_no: int}
+     */
+    private function assertOrResolveRoomIdentity(Room $room): array
+    {
+        $letter = $room->buildingCode();
+        $floor = (int) $room->floor;
+        $roomNo = (int) $room->room_no;
+
+        if (preg_match('/^[A-Z]$/', $letter) === 1
+            && $floor >= 1 && $floor <= 9
+            && $roomNo >= 1 && $roomNo <= 99) {
+            return ['prefix' => $letter.$floor, 'room_no' => $roomNo];
+        }
+
+        if (! $this->isConnected()) {
+            throw ValidationException::withMessages([
+                'room_id' => 'Identitas ruangan belum lengkap dan status katalog tidak tersedia untuk resolusi.',
+            ]);
+        }
+
+        $activeCode = AssetUnitCode::query()
+            ->where('room_id', $room->id)
+            ->whereNull('revoked_at')
+            ->orderByDesc('issued_at')
+            ->first();
+
+        if ($activeCode === null) {
+            throw ValidationException::withMessages([
+                'room_id' => 'Identitas ruangan belum lengkap dan tidak ada kode unit aktif untuk resolusi.',
+            ]);
+        }
+
+        return ['prefix' => $activeCode->codePrefix(), 'room_no' => (int) $activeCode->room_no];
+    }
+
+    private function codePrefix(string $code): string
+    {
+        return substr($code, 0, strrpos($code, '-'));
+    }
+
+    private function roomNoFromCode(string $code): int
+    {
+        $parts = explode('-', $code);
+        if (count($parts) !== 3) {
+            return 0;
+        }
+
+        return (int) $parts[1];
     }
 
     public function assertRoomIdentity(Room $room): void
     {
-        $letter = (string) $room->building_letter;
+        $letter = $room->buildingCode();
 
         if (preg_match('/^[A-Z]$/', $letter) !== 1
             || (int) $room->floor < 1 || (int) $room->floor > 9
             || (int) $room->room_no < 1 || (int) $room->room_no > 99) {
             throw ValidationException::withMessages([
-                'room_id' => 'Identitas ruangan belum lengkap. Tetapkan huruf gedung (A-Z), lantai 1-9, dan nomor ruangan 1-99.',
+                'room_id' => 'Identitas ruangan belum lengkap. Tetapkan gedung (A-Z), lantai 1-9, dan nomor ruangan 1-99.',
             ]);
         }
     }
@@ -59,7 +146,7 @@ class InventoryCodeService
      */
     public function nextUnitNo(Room $room): int
     {
-        $this->assertRoomIdentity($room);
+        $resolved = $this->assertOrResolveRoomIdentity($room);
 
         $max = (int) AssetUnitCode::query()
             ->where('room_id', $room->id)
@@ -87,27 +174,29 @@ class InventoryCodeService
      */
     public function issue(AssetUnit $unit, Room $room, string $reason = 'PENEMPATAN'): AssetUnitCode
     {
-        return DB::transaction(function () use ($unit, $room, $reason) {
-            $this->lockRoom($room);
-            $unitNo = $this->nextUnitNo($room);
-            $code = $this->format($room, $unitNo);
+        return $this->withRetry(function () use ($unit, $room, $reason) {
+            return DB::transaction(function () use ($unit, $room, $reason) {
+                $this->lockRoom($room);
+                $unitNo = $this->nextUnitNo($room);
+                $code = $this->format($room, $unitNo);
 
-            $unit->forceFill([
-                'room_id' => $room->id,
-                'unit_no' => $unitNo,
-                'inventory_code' => $code,
-                'last_label_printed_at' => null,
-            ])->save();
+                $unit->forceFill([
+                    'room_id' => $room->id,
+                    'unit_no' => $unitNo,
+                    'inventory_code' => $code,
+                    'last_label_printed_at' => null,
+                ])->save();
 
-            return AssetUnitCode::create([
-                'asset_unit_id' => $unit->id,
-                'inventory_code' => $code,
-                'room_id' => $room->id,
-                'unit_no' => $unitNo,
-                'issued_at' => now(),
-                'reason' => $reason,
-            ]);
-        }, 3);
+                return AssetUnitCode::create([
+                    'asset_unit_id' => $unit->id,
+                    'inventory_code' => $code,
+                    'room_id' => $room->id,
+                    'unit_no' => $unitNo,
+                    'issued_at' => now(),
+                    'reason' => $reason,
+                ]);
+            }, 3);
+        });
     }
 
     /**
@@ -133,56 +222,58 @@ class InventoryCodeService
             ]);
         }
 
-        return DB::transaction(function () use ($unit, $toRoom, $actor, $note) {
-            $locked = AssetUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
-            $fromRoom = $locked->room;
-            $oldCode = $locked->inventory_code;
+        return $this->withRetry(function () use ($unit, $toRoom, $actor, $note) {
+            return DB::transaction(function () use ($unit, $toRoom, $actor, $note) {
+                $locked = AssetUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
+                $fromRoom = $locked->room;
+                $oldCode = $locked->inventory_code;
 
-            $this->lockRoom($toRoom);
-            $unitNo = $this->nextUnitNo($toRoom);
-            $newCode = $this->format($toRoom, $unitNo);
+                $this->lockRoom($toRoom);
+                $unitNo = $this->nextUnitNo($toRoom);
+                $newCode = $this->format($toRoom, $unitNo);
 
-            AssetUnitCode::query()
-                ->where('asset_unit_id', $locked->id)
-                ->whereNull('revoked_at')
-                ->update(['revoked_at' => now(), 'updated_at' => now()]);
+                AssetUnitCode::query()
+                    ->where('asset_unit_id', $locked->id)
+                    ->whereNull('revoked_at')
+                    ->update(['revoked_at' => now(), 'updated_at' => now()]);
 
-            AssetUnitCode::create([
-                'asset_unit_id' => $locked->id,
-                'inventory_code' => $newCode,
-                'room_id' => $toRoom->id,
-                'unit_no' => $unitNo,
-                'issued_at' => now(),
-                'reason' => 'MUTASI',
-            ]);
+                AssetUnitCode::create([
+                    'asset_unit_id' => $locked->id,
+                    'inventory_code' => $newCode,
+                    'room_id' => $toRoom->id,
+                    'unit_no' => $unitNo,
+                    'issued_at' => now(),
+                    'reason' => 'MUTASI',
+                ]);
 
-            $locked->forceFill([
-                'room_id' => $toRoom->id,
-                'unit_no' => $unitNo,
-                'inventory_code' => $newCode,
-                'last_label_printed_at' => null,
-            ])->save();
+                $locked->forceFill([
+                    'room_id' => $toRoom->id,
+                    'unit_no' => $unitNo,
+                    'inventory_code' => $newCode,
+                    'last_label_printed_at' => null,
+                ])->save();
 
-            AssetUnitMovement::create([
-                'asset_unit_id' => $locked->id,
-                'from_room_id' => $fromRoom?->id,
-                'to_room_id' => $toRoom->id,
-                'old_code' => $oldCode,
-                'new_code' => $newCode,
-                'moved_by' => $actor->id,
-                'moved_at' => now(),
-                'reason' => 'MUTASI',
-                'note' => $note,
-            ]);
+                AssetUnitMovement::create([
+                    'asset_unit_id' => $locked->id,
+                    'from_room_id' => $fromRoom?->id,
+                    'to_room_id' => $toRoom->id,
+                    'old_code' => $oldCode,
+                    'new_code' => $newCode,
+                    'moved_by' => $actor->id,
+                    'moved_at' => now(),
+                    'reason' => 'MUTASI',
+                    'note' => $note,
+                ]);
 
-            activity('inventaris')
-                ->performedOn($locked)
-                ->causedBy($actor)
-                ->withProperties(['old_code' => $oldCode, 'new_code' => $newCode])
-                ->log('Mutasi unit: kode inventaris diterbitkan ulang');
+                activity('inventaris')
+                    ->performedOn($locked)
+                    ->causedBy($actor)
+                    ->withProperties(['old_code' => $oldCode, 'new_code' => $newCode])
+                    ->log('Mutasi unit: kode inventaris diterbitkan ulang');
 
-            return $locked->fresh(['room', 'catalog']);
-        }, 3);
+                return $locked->fresh(['room', 'catalog']);
+            }, 3);
+        });
     }
 
     /**
@@ -210,8 +301,44 @@ class InventoryCodeService
         return $retired?->unit;
     }
 
+    private function withRetry(callable $work): mixed
+    {
+
+        $last = null;
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            try {
+                return $work();
+            } catch (Throwable $e) {
+                $last = $e;
+
+                if ($attempt === 3) {
+                    throw $e;
+                }
+
+                usleep(200000);
+            }
+        }
+
+        throw $last;
+    }
+
     private function lockRoom(Room $room): void
     {
         DB::table('rooms')->where('id', $room->id)->lockForUpdate()->first();
+    }
+
+    /**
+     * Alias kompatibel untuk calon pengguna yang memanggil tanpa resolusi lokal.
+     */
+    public function formatFromCode(string $existingCode, int $unitNo): string
+    {
+        if ($unitNo < 1 || $unitNo > self::MAX_UNIT_NO) {
+            throw ValidationException::withMessages([
+                'unit_no' => 'Nomor unit harus berada di antara 01 dan 99.',
+            ]);
+        }
+
+        return sprintf('%s-%02d-%02d', $this->codePrefix($existingCode), $this->roomNoFromCode($existingCode), $unitNo);
     }
 }

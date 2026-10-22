@@ -22,7 +22,12 @@ class InventoryBackfillService
         $usedLetters = [];
         $alphabet = range('A', 'Z');
 
-        foreach ($rooms->pluck('building')->filter()->unique()->sort()->values() as $building) {
+        // Kolom teks gedung lama sudah dipindah menjadi `legacy_building`
+        // saat master gedung dibuat; keduanya tetap dikenali agar backfill
+        // aman dijalankan kapan saja.
+        $legacyColumn = Schema::hasColumn('rooms', 'legacy_building') ? 'legacy_building' : 'building';
+
+        foreach ($rooms->pluck($legacyColumn)->filter()->unique()->sort()->values() as $building) {
             $letters = preg_replace('/[^A-Za-z]/', '', (string) $building);
             $base = $letters !== '' ? strtoupper($letters[0]) : 'G';
             $index = array_search($base, $alphabet, true);
@@ -48,7 +53,7 @@ class InventoryBackfillService
         }
 
         foreach ($rooms as $room) {
-            $letter = $letterByBuilding[$room->building] ?? 'G';
+            $letter = $letterByBuilding[$room->{$legacyColumn}] ?? 'G';
             preg_match('/(\d+)\s*$/', (string) $room->code, $matches);
             $roomNo = isset($matches[1]) ? max(1, (int) $matches[1]) : 1;
 

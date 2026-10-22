@@ -61,6 +61,17 @@ class AssetUnit extends Model
         return $this->hasMany(MaintenanceRecord::class);
     }
 
+    /** Penugasan unit pada peminjaman; satu unit hanya boleh punya satu penugasan terbuka. */
+    public function openLoanItemUnit(): HasMany
+    {
+        return $this->hasMany(LoanItemUnit::class)->whereNull('returned_at');
+    }
+
+    public function isCurrentlyOnLoan(): bool
+    {
+        return $this->openLoanItemUnit()->exists();
+    }
+
     /**
      * Cakupan data unit per peran. Super Admin melihat semua; Ketua Laboran
      * hanya ruang laboratorium; Laboran/K3 hanya ruangan yang ditetapkan.
@@ -87,9 +98,15 @@ class AssetUnit extends Model
         return $query->where('inventory_code', 'like', $code.'%');
     }
 
-    public function isAvailable(): bool
+    /**
+     * Unit dapat dipinjam bila aktif, kondisi baik, tidak sedang dipinjam,
+     * dan memenuhi status inventaris yang berlaku.
+     */
+    public function isAvailableForLoan(): bool
     {
-        return $this->status === UnitStatus::AKTIF && $this->condition === Condition::BAIK;
+        return $this->status === UnitStatus::AKTIF
+            && $this->condition === Condition::BAIK
+            && ! $this->isCurrentlyOnLoan();
     }
 
     public function locationLabel(): string
@@ -102,7 +119,7 @@ class AssetUnit extends Model
 
         return sprintf(
             'Gedung %s, Lantai %d, Ruang %02d',
-            $room->building_letter ?: $room->building,
+            $room->buildingCode() ?: '-',
             (int) $room->floor,
             (int) ($room->room_no ?: 0)
         );

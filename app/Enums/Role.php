@@ -19,6 +19,17 @@ enum Role: string
         };
     }
 
+    /** Label singkat untuk dokumen resmi (kop & blok tanda tangan). */
+    public function shortLabel(): string
+    {
+        return match ($this) {
+            self::SUPER_ADMIN => 'Wakasek Sarpras',
+            self::ADMIN_SARPRAS => 'Pengelola Inventaris',
+            self::LABORAN => 'Laboran / Ketua Laboran',
+            self::PEMINJAM => 'Peminjam',
+        };
+    }
+
     /** @return list<self> */
     public static function values(): array
     {

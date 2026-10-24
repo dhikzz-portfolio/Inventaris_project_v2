@@ -1,11 +1,11 @@
 # Panduan Pengguna
 
-> **Catatan versi.** Aplikasi yang berjalan saat ini masih memakai model barang per kelompok (batch). Bagian yang ditandai **⚠ 2.1** menjelaskan perilaku katalog + unit fisik dan kode `G1-02-12` yang **baru berlaku setelah implementasi revisi 2.1**. Lihat `PROJECT_STATUS.md` dan `KNOWN_ISSUES.md`.
+> **Catatan versi (24 Oktober 2026).** Aplikasi memakai model katalog + unit fisik dan kode `G1-02-12`. Role resmi: **Wakasek Sarpras**, **Ketua Laboran**, **Laboran/K3**, dan **Peminjam**. Role lama `ADMIN_SARPRAS` sudah dimigrasikan menjadi `KETUA_LABORAN`.
 
 ## 1. Masuk & navigasi
 
 1. Buka alamat aplikasi, masukkan **username** dan **password** (bukan email).
-2. Menu desktop ada di sidebar kiri; di ponsel gunakan bottom navigation: **Beranda, Katalog, Pinjam, Riwayat/Persetujuan, Lainnya**.
+2. Menu desktop ada di sidebar kiri; di ponsel gunakan bottom navigation: **Beranda, Pinjam, Riwayat/Persetujuan, Lainnya**. Akun peminjam memilih katalog langsung di halaman **Peminjaman**; role pengelola tetap memiliki menu **Katalog**.
 3. Ikon bulan/matahari di kanan atas mengganti tema terang/gelap. Pilihan tersimpan di perangkat dan mengikuti preferensi sistem bila belum dipilih.
 
 ## 2. Matriks akses
@@ -13,9 +13,9 @@
 | Fitur                                   | Super Admin | Ketua Laboran | Laboran/K3 | Peminjam  |
 | --------------------------------------- | :---------: | :-----------: | :--------: | :-------: |
 | Dashboard                               |   ✔ semua   |    ✔ semua    | ✔ jurusan  | ✔ pribadi |
-| Katalog & detail barang                 |      ✔      |       ✔       |     ✔      |     ✔     |
+| Katalog & detail barang                 |      ✔      |       ✔       |     ✔      | ✔ terintegrasi di halaman peminjaman |
 | Ajukan peminjaman                       |      ✔      |       ✔       |     ✔      |     ✔     |
-| Setujui pinjaman level 1                |      ✔      |       ✔       | ✔ jurusan  |     —     |
+| Setujui pinjaman level 1                |      ✔      | ✔ semua lab   | ✔ lab sendiri/otomatis | — |
 | Setujui pinjaman level 2 (nilai tinggi) |      ✔      |       —       |     —      |     —     |
 | Serah terima & pengembalian             |      ✔      |       ✔       | ✔ jurusan  |     —     |
 | Pengadaan (ajukan)                      |      ✔      |       ✔       |     —      |     —     |
@@ -28,7 +28,7 @@
 | Master data                             |      ✔      |       ✔       |     —      |     —     |
 | Pengguna & pengaturan instansi          |      ✔      |       —       |     —      |     —     |
 
-Pemetaan istilah: **Super Admin** = `SUPER_ADMIN` (Wakasek Sarpras), **Ketua Laboran** = `ADMIN_SARPRAS`, **Laboran/K3** = `LABORAN`, **Peminjam** = `PEMINJAM`.
+Pemetaan istilah: **Super Admin** = `SUPER_ADMIN` (Wakasek Sarpras), **Ketua Laboran** = `KETUA_LABORAN`, **Laboran/K3** = `LABORAN`, **Peminjam** = `PEMINJAM`. Kategori peminjam (siswa/guru/staf) disimpan di `users.borrower_type`, bukan sebagai role tambahan.
 
 **⚠ 2.1 — cakupan katalog:** Super Admin melihat semua unit (termasuk ruang umum). Ketua Laboran hanya melihat unit di ruangan laboratorium pada semua jurusan. Laboran/K3 hanya melihat unit pada laboratorium yang ditetapkan untuk akunnya. Batas ini berlaku juga untuk pencarian kode, filter, URL langsung, dan ekspor.
 
@@ -78,11 +78,11 @@ Saat unit dipindahkan ke ruangan lain, sistem menerbitkan **kode baru** dan meny
 
 ### Mengajukan peminjaman
 
-1. **Ajukan Peminjaman** → cari barang (minimal 2 huruf) → **Tambah**.
-2. Ubah jumlah di keranjang. Sistem menampilkan ketersediaan pada rentang tanggal yang dipilih.
-3. Isi tujuan, tanggal/waktu pinjam dan kembali, serta kegiatan (opsional).
-4. Kalender menandai tanggal yang sudah dibooking. Barang bernilai tinggi memerlukan dua persetujuan.
-5. **Kirim Request Peminjaman**.
+1. Buka **Peminjaman**. Katalog yang boleh dipinjam langsung tampil (tanpa menu katalog terpisah).
+2. Cari berdasarkan nama/spesifikasi/ID/kode unit dan filter kategori, gedung, ruangan, atau ketersediaan.
+3. Klik **Tambah** pada katalog. Katalog yang sudah dipilih tidak dapat ditambahkan lagi; ubah jumlahnya di keranjang. Hapus dari keranjang bila ingin memilih ulang.
+4. Isi tujuan, tanggal/waktu pinjam dan kembali, serta kegiatan (opsional). Kalender menandai tanggal yang sudah dibooking.
+5. **Kirim Request Peminjaman**. Barang bernilai tinggi tetap memerlukan persetujuan Wakasek; pengajuan Laboran/K3 dari laboratorium sendiri untuk barang biasa disetujui otomatis.
 
 Status: **Menunggu Persetujuan → Disetujui → Sedang Dipinjam → Selesai**. Pengajuan dapat **dibatalkan** selama barang belum diserahkan. Penolakan menyertakan alasan.
 
@@ -97,17 +97,19 @@ Menu **Peminjaman Saya** menampilkan semua pengajuan beserta status. Klik **Deta
 1. Buka **Persetujuan Pinjam**.
 2. Periksa barang, tujuan, dan jadwal.
 3. Untuk level 1: isi catatan (opsional) dan klik **Setujui**, atau isi alasan lalu **Tolak Peminjaman**.
-4. Barang bernilai tinggi dilanjutkan ke Wakasek. Level 2 **wajib** menggambar tanda tangan digital di kotak yang tersedia.
+4. Barang bernilai tinggi dilanjutkan ke Wakasek. Tanda tangan digital **opsional**; dokumen dapat dicetak dan ditandatangani fisik.
 
-Laboran hanya dapat memproses pinjaman yang seluruh barangnya berada dalam cakupan laboratoriumnya.
+Laboran/K3 hanya dapat memproses pinjaman yang seluruh barangnya berada pada laboratorium yang ditugaskan (bukan seluruh jurusan). Ketua Laboran hanya dapat memproses pinjaman yang seluruh barangnya berada di laboratorium, lintas jurusan.
+
+**Persetujuan otomatis:** bila Laboran/K3 mengajukan barang biasa dari laboratoriumnya sendiri, sistem langsung menyetujui dengan catatan "Persetujuan otomatis". Barang bernilai tinggi tetap menunggu Wakasek, dan pengajuan yang mencampur laboratorium lain/inventaris umum tidak disetujui otomatis.
 
 ### Serah terima
 
 Setelah disetujui, buka detail pinjaman → **Serahkan Barang**. Status berubah menjadi **Sedang Dipinjam** dan petugas/waktu tercatat. Jangan menyerahkan barang sebelum tombol ini ditekan agar audit benar.
 
-**⚠ 2.1:** saat serah terima (rekomendasi), pindai atau pilih unit fisik yang sesungguhnya diserahkan. Unit yang dipilih akan dicatat pada `loan_item_units` (kondisi keluar, `opened_at`), ditandai `DIPINJAM`, dan muncul di detail pinjaman.
+Saat serah terima, pilih unit fisik yang sesungguhnya diserahkan. Jumlah yang wajib dipilih sama dengan jumlah yang dipinjam pada baris tersebut; setelah batas terpenuhi, unit tambahan otomatis dinonaktifkan. Hapus centang untuk mengganti pilihan sebelum menyimpan. Unit yang dipilih dicatat pada `loan_item_units` (kondisi keluar, `opened_at`), ditandai `DIPINJAM`, dan muncul di detail pinjaman. Server menolak unit di luar transaksi, unit ganda, jumlah berlebih, dan pengiriman ulang.
 
-> **Catatan wajib:** bila katalog belum memiliki unit fisik (data lama yang belum dimigrasikan), serah terima tetap dapat dilakukan hanya dengan mengklik **Serahkan Barang**, tanpa memilih unit. Ketentuan lengkap ada di bagian 10.
+> **Catatan:** bila katalog belum memiliki unit fisik (data lama yang belum dimigrasikan), serah terima tetap dapat dilakukan hanya dengan mengklik **Serahkan Barang**, tanpa memilih unit.
 
 ### Pengembalian
 
@@ -127,7 +129,8 @@ Tombol kamera mengambang / menu **Scan QR**. Arahkan kamera ke stiker. Jika kame
 - **Pengadaan Barang**: isi data katalog dan jumlah unit. Jika dibuat oleh Ketua Laboran, status pengadaan `PENDING` dan menunggu Wakasek; jika oleh Wakasek, langsung disetujui.
 - **Mutasi Lokasi** (⚠ 2.1): pilih unit dan ruangan tujuan. Kode baru diterbitkan, kode lama disimpan sebagai riwayat, dan label wajib dicetak ulang.
 - **Inventaris Keluar**: ajukan penghapusan per unit dengan alasan dan **Berita Acara** (PDF/gambar). Status unit baru berubah setelah disetujui Wakasek. Unit dengan riwayat tidak dihapus permanen.
-- **Master Data**: tambah/ubah/hapus jurusan, **gedung**, ruangan, kategori. Penghapusan ditolak jika masih dipakai.
+- **Master Data**: tambah/ubah/hapus jurusan, **gedung**, ruangan, kategori. Penghapusan ditolak jika masih dipakai. Lima jurusan awal: RPL, DKV, KLN, TP, TKP.
+- **Hapus/Nonaktifkan Katalog**: di detail katalog tersedia tindakan dengan konfirmasi. Katalog tanpa unit/transaksi dihapus permanen; katalog berunit atau bertransaksi diarsipkan (`archived_at`) dan tidak lagi ditawarkan untuk peminjaman baru.
 - **Label**: pilih satu/beberapa unit → **Cetak Massal**. Label satuan dan re-print ada di detail unit.
 - **Laporan**: pilih periode, cakupan (sekolah/kategori/ruangan/jurusan), lalu **PDF** atau **Excel**. **Simpan ke Arsip** membuat snapshot yang dapat diunduh kembali. Laporan selalu dibatasi cakupan laboratorium Anda.
 
@@ -151,7 +154,7 @@ Master gedung memisahkan identitas gedung dari ruangan.
 - **Cetak Dokumen**: mencetak surat peminjaman/BAST (sesuai jenis pinjaman).
 - **Tandai Dokumen**: mencatat status dokumen (`Belum dibuat → Siap dicetak → Sudah dicetak → Ditandatangani (fisik/digital)`).
 
-Persetujuan level 2 (barang bernilai tinggi) melibatkan Wakasek. Wakasek dapat menyetujui langsung tanpa menunggu Admin lain; satu persetujuan Wakasek sudah cukup untuk menyelesaikan rangkaian persetujuan.
+Persetujuan level 2 (barang bernilai tinggi) hanya melibatkan Wakasek. Wakasek dapat menyetujui langsung tanpa menunggu Admin lain; satu persetujuan Wakasek sudah cukup untuk menyelesaikan rangkaian persetujuan. Ketua Laboran tidak memperoleh akses level 2.
 
 **Tanda tangan digital bersifat opsional.** Dokumen dapat dicetak dan ditandatangani fisik tanpa menggambar tanda tangan digital. Status dokumen hanya mencatat apakah dokumen sudah dibuat, dicetak, atau ditandatangani — tidak memengaruhi kelayakan transaksi.
 
@@ -162,7 +165,7 @@ Selain fitur Ketua Laboran:
 - **Approval Pengadaan** dan **Approval Penghapusan**.
 - Approval level 2 pinjaman bernilai tinggi (wajib tanda tangan).
 - Menutup pinjaman dengan selisih: buka detail pinjaman → **Tutup Pinjaman**. Selisih menjadi **Hilang permanen**; riwayat peminjam terakhir tetap tersimpan.
-- **Pengguna**: buat/ubah akun, tetapkan role, jurusan, dan cakupan laboratorium untuk Laboran/K3. Tidak dapat menghapus akun sendiri atau akun yang punya riwayat pinjaman.
+- **Pengguna**: buat/ubah akun, tetapkan role, kategori peminjam, jurusan, dan cakupan laboratorium untuk Laboran/K3. Tidak dapat menghapus akun sendiri atau akun yang punya riwayat pinjaman.
 - **Pengaturan Instansi**: nama sekolah, kode lokasi, alamat, kepala sekolah, logo. Berlaku untuk label, BAST, dan laporan.
 - Akses penuh ke seluruh unit, termasuk ruang umum dan gudang.
 

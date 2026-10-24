@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Pengguna &amp; Hak Akses</h2>
-            <p class="text-sm text-gray-500">Empat role: Wakasek Sarpras, Admin Sarpras, Laboran, Peminjam</p>
+            <p class="text-sm text-gray-500">Empat role: Wakasek Sarpras, Ketua Laboran, Laboran/K3, Peminjam</p>
         </div>
     </x-slot>
 
@@ -43,6 +43,15 @@
                     <select name="role" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
                         @foreach ($roles as $role)
                             <option value="{{ $role->value }}" @selected(old('role') === $role->value)>{{ $role->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <x-input-label value="Kategori peminjam (khusus role Peminjam)" />
+                    <select name="borrower_type" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                        <option value="">— bukan peminjam —</option>
+                        @foreach ($borrowerTypes as $borrowerType)
+                            <option value="{{ $borrowerType->value }}" @selected(old('borrower_type') === $borrowerType->value)>{{ $borrowerType->label() }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -91,13 +100,16 @@
                                     <span @class([
                                         'text-[10px] font-bold px-2 py-1 rounded-full',
                                         'bg-purple-100 text-purple-700' => $user->role === 'SUPER_ADMIN',
-                                        'bg-blue-100 text-blue-700' => $user->role === 'ADMIN_SARPRAS',
+                                        'bg-blue-100 text-blue-700' => $user->role === 'KETUA_LABORAN',
                                         'bg-teal-100 text-teal-700' => $user->role === 'LABORAN',
                                         'bg-gray-100 text-gray-600' => $user->role === 'PEMINJAM',
                                     ])>{{ \App\Enums\Role::tryFrom($user->role)?->label() }}</span>
                                 </td>
                                 <td class="px-4 py-3 text-xs text-gray-500">
                                     {{ $user->major?->name ?: '—' }}
+                                    @if ($user->borrower_type)
+                                        <div class="text-[10px] text-gray-500 mt-0.5">Kategori: {{ $user->borrower_type->label() }}</div>
+                                    @endif
                                     @if ($user->roomScopes->isNotEmpty())
                                         <div class="text-[10px] text-blue-700 mt-0.5">{{ $user->roomScopes->pluck('room.name')->implode(', ') }}</div>
                                     @endif
@@ -116,6 +128,12 @@
                                                 <select name="role" class="w-full rounded-lg border-gray-300 text-xs">
                                                     @foreach ($roles as $role)
                                                         <option value="{{ $role->value }}" @selected($user->role === $role->value)>{{ $role->label() }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <select name="borrower_type" class="w-full rounded-lg border-gray-300 text-xs">
+                                                    <option value="">— bukan peminjam —</option>
+                                                    @foreach ($borrowerTypes as $borrowerType)
+                                                        <option value="{{ $borrowerType->value }}" @selected($user->borrower_type?->value === $borrowerType->value)>{{ $borrowerType->label() }}</option>
                                                     @endforeach
                                                 </select>
                                                 <select name="major_id" class="w-full rounded-lg border-gray-300 text-xs">

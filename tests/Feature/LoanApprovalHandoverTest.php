@@ -55,9 +55,9 @@ class LoanApprovalHandoverTest extends TestCase
         $this->seed();
 
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->laboranTkj = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
         $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
-        $this->roomTkj = Room::where('major_id', Major::where('code', 'TKJ')->value('id'))->firstOrFail();
+        $this->roomTkj = Room::where('major_id', Major::where('code', 'TP')->value('id'))->firstOrFail();
         $this->category = Category::firstOrFail();
     }
 
@@ -507,7 +507,7 @@ class LoanApprovalHandoverTest extends TestCase
 
     public function test_role_bukan_wakasek_tidak_dapat_membuka_halaman_khusus_wakasek(): void
     {
-        $adminSarpras = User::where('username', 'admin.sarpras')->firstOrFail();
+        $adminSarpras = User::where('username', 'ketua.laboran')->firstOrFail();
 
         foreach (['users.index', 'settings.edit', 'write-offs.pending', 'items.acquisitions'] as $routeName) {
             $this->actingAs($adminSarpras)

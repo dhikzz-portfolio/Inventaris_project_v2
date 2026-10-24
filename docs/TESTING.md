@@ -29,13 +29,17 @@ php artisan view:cache
 ## 2. Hasil otomatis
 
 ```
-Tests:    183 passed (887 assertions)
-Duration: 55.74s
+Tests:    194 passed (932 assertions)
+Duration: ~170s
 ```
 
-Tidak ada test yang di-skip. Dua test `AdminPagesAccessibilityTest` yang sebelumnya di-skip karena mengandalkan seeder sekarang menjalankan `$this->seed()` sendiri sehingga selalu dieksekusi, dan path-nya disesuaikan dengan route sesungguhnya (`/pengguna`, `/pengaturan`, `/pengadaan`, `/inventaris-keluar/persetujuan`).
+Tidak ada test yang di-skip. Hasil ini mencakup revisi 2.1 dan revisi 24 Oktober 2026: pemisahan katalog/unit, mesin kode inventaris, scope akses katalog/unit/URL, mutasi unit, label per unit, backfill, pengetatan cakupan laporan & privasi data unit untuk Peminjam, role `KETUA_LABORAN`, persetujuan otomatis Laboran/K3, penghapusan/arsip katalog, pencegahan katalog duplikat, dan pembatasan penyerahan unit.
 
-Hasil ini mencakup revisi 2.1: pemisahan katalog/unit, mesin kode inventaris, scope akses katalog/unit/URL, mutasi unit, label per unit, backfill, serta pengetatan cakupan laporan & privasi data unit untuk Peminjam.
+Test baru pada revisi ini:
+
+- `LaboranApprovalTest` — persetujuan otomatis laboratorium sendiri, pengecualian barang bernilai tinggi, penolakan lintas lingkup, dan penolakan katalog duplikat.
+- `CatalogDeletionTest` — hapus permanen tanpa relasi, arsip katalog berunit, kewenangan Ketua Laboran atas katalog non-lab, penolakan role tidak berwenang, dan katalog arsip tidak tampil di daftar.
+- `LoanUnitFlowTest` — penolakan unit melebihi jumlah pinjaman dan request serah terima berulang.
 
 ### Cakupan utama
 
@@ -59,6 +63,12 @@ Hasil ini mencakup revisi 2.1: pemisahan katalog/unit, mesin kode inventaris, sc
 | BAST & PDF                        | `EventAndBastTest`, `InventoryFlowTest`                                                                 |
 | Laporan PDF/Excel                 | `DashboardAndReportingTest`, `SecurityAccessTest`                                                       |
 | Cakupan laporan Ketua Laboran     | `ReportTest::test_ketua_laboran_hanya_mendapat_data_laporan_laboratorium`                               |
+| Persetujuan otomatis Laboran/K3   | `LaboranApprovalTest::test_laboran_mendapat_persetujuan_otomatis_untuk_barang_biasa_di_lab_sendiri`      |
+| Barang nilai tinggi + auto level 1| `LaboranApprovalTest::test_barang_nilai_tinggi_di_lab_sendiri_tetap_menunggu_persetujuan_wakasek`        |
+| Lintas lingkup tidak auto-approve | `LaboranApprovalTest::test_pengajuan_lintas_lingkup_tidak_disetujui_otomatis`                           |
+| Katalog duplikat ditolak          | `LaboranApprovalTest::test_katalog_yang_sama_tidak_dapat_diajukan_dua_kali`                             |
+| Hapus/arsip katalog               | `CatalogDeletionTest` (5 test)                                                                           |
+| Batas & pengulangan serah terima   | `LoanUnitFlowTest::test_serah_terima_menolak_unit_melebihi_jumlah_yang_dipinjam`, `test_request_serah_terima_berulang_tidak_membuat_penugasan_ganda` |
 | Arsip laporan seluruh sekolah     | `ReportTest::test_arsip_laporan_seluruh_sekolah_hanya_dapat_diakses_super_admin`                        |
 | Privasi data unit untuk Peminjam  | `SecurityAccessTest::test_peminjam_tidak_melihat_nilai_perolehan_catatan_dan_riwayat_mutasi_unit`       |
 | Dashboard sesuai cakupan role     | `DashboardAndReportingTest::test_dashboard_pengelola_menghitung_unit_sesuai_cakupan_akses`              |
@@ -77,7 +87,7 @@ Alur end-to-end yang dijalankan pada aplikasi nyata (MySQL, bukan test DB):
 1. Login `guru.budi` → buka **Ajukan Peminjaman**.
 2. Cari "Meja Kerja" → tambah ke keranjang (Livewire).
 3. Isi tujuan dan rentang tanggal → kirim → redirect ke detail pinjaman baru (status **Menunggu Persetujuan**).
-4. Login `admin.sarpras` → buka pinjaman → **Setujui** (status **Disetujui**).
+4. Login `ketua.laboran` → buka pinjaman → **Setujui** (status **Disetujui**).
 5. Klik **Serahkan Barang** (status **Sedang Dipinjam**, timestamp petugas tercatat).
 6. Buka form pengembalian → submit semua barang → status **Selesai**.
 7. Katalog menampilkan barang kembali tersedia.
@@ -92,9 +102,9 @@ Verifikasi katalog/unit revisi 2.1 (22 Oktober 2026, server lokal + Chrome headl
 3. Pencarian kode exact menyisakan satu unit; input tidak valid menampilkan pesan format dan empty state.
 4. Filter gedung hanya menampilkan unit gedung tersebut; menghapus filter mengembalikan daftar.
 5. Detail unit menampilkan identitas, lokasi, riwayat kode/pergerakan, dan tombol cetak label.
-6. Login `laboran.tkj`: unit laboratorium di luar cakupannya melalui URL langsung menghasilkan **404** (bukan 403); katalog tak dikenal juga 404.
+6. Login `laboran.tp`: unit laboratorium di luar cakupannya melalui URL langsung menghasilkan **404** (bukan 403); katalog tak dikenal juga 404.
 7. Viewport 390×844: bottom navigation tampil.
-8. Login `admin.sarpras` (Ketua Laboran) → `/laporan` menampilkan cakupan **"Seluruh laboratorium"**; ekspor PDF merespons `200 application/pdf`.
+8. Login `ketua.laboran` (Ketua Laboran) → `/laporan` menampilkan cakupan **"Seluruh laboratorium"**; ekspor PDF merespons `200 application/pdf`.
 
 Hasil: **PASS**, tanpa error JavaScript dan tanpa request gagal pada halaman katalog/unit. Pemeriksaan isi PDF bahwa barang non-laboratorium tidak ikut diekspor divalidasi di level data melalui `ReportTest` (bukan ekstraksi teks PDF).
 
@@ -105,7 +115,7 @@ Hasil: **PASS**, tanpa error JavaScript dan tanpa request gagal pada halaman kat
 - 19 halaman utama (dashboard, katalog, detail unit, peminjaman, kegiatan, laporan, label, scan, master, mutasi, inventaris keluar, persetujuan, pengembalian, pengguna, pengaturan, pengadaan, notifikasi, profil) merespons **200**, sidebar dan heading memakai style yang benar, tanpa error JavaScript.
 - Mobile 390×844 pada dashboard, katalog, peminjaman, form pinjam, dan pengguna: **tidak ada overflow horizontal** (0 px) dan bottom navigation tampil.
 - Tema gelap: class `dark` aktif, latar body `#0b1220`, kartu lebih terang, placeholder foto tidak lagi memakai gradient terang.
-- Dashboard 4 role diperiksa: Super Admin 10 katalog/40 unit, Ketua Laboran 9/37 (tanpa ruang umum), Laboran TKJ 7/25 (2 ruang), Peminjam mode personal — angka berasal dari database dan scope backend.
+- Dashboard 4 role diperiksa: Super Admin 42 katalog/125 unit, Ketua Laboran 30/75 (tanpa ruang umum), Laboran TP 6/16 (2 ruang), Peminjam mode personal — angka berasal dari database dan scope backend.
 - Detail unit diperiksa per role: Laboran hanya melihat form kondisi + catatan (tanpa pilihan status); Ketua Laboran melihat kondisi + status. Perubahan disimpan lewat `PATCH /units/{unit}` dan dicatat di audit log.
 
 Pemeriksaan 20 halaman sebagai Wakasek: dashboard, katalog, detail barang, daftar/detail pinjaman, form pinjam, kegiatan, laporan, label, scan, master, mutasi, inventaris keluar, approval, persetujuan, pengembalian, pengaturan, pengguna, notifikasi, pengadaan — semua **HTTP 200**.

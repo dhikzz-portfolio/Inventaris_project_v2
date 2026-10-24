@@ -36,7 +36,7 @@ class BuildingMasterDataTest extends TestCase
         $this->seed();
 
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
         $this->category = Category::firstOrFail();
     }
 

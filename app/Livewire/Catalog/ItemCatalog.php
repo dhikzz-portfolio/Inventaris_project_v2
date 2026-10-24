@@ -49,6 +49,7 @@ class ItemCatalog extends Component
 
         $q = Item::query()
             ->approved()
+            ->notArchived()
             ->with(['room.major', 'category'])
             // Agregat sekali query: mencegah N+1 saat menghitung stok tersedia per kartu.
             ->withSum(['loanItems as active_borrowed' => $activeLoanScope], 'qty_borrowed')

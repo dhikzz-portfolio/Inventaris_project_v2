@@ -10,7 +10,7 @@ Dibangun dengan **Laravel 13 + Livewire 4 + Blade + Alpine.js (bawaan Livewire) 
 
 > Fitur bertanda **(2.1)** telah diimplementasikan dan diverifikasi untuk katalog, unit fisik, kode inventaris, mutasi, cakupan akses, label, dan laporan. Status lengkap serta pekerjaan lanjutan ada di `docs/PROJECT_STATUS.md` dan `docs/KNOWN_ISSUES.md`.
 
-- **Autentikasi username/password** (bukan email), 4 role: `SUPER_ADMIN` (Super Admin), `ADMIN_SARPRAS` (Ketua Laboran), `LABORAN` (Laboran/K3), `PEMINJAM`.
+- **Autentikasi username/password** (bukan email), 4 role final: `SUPER_ADMIN` (Wakasek Sarpras), `KETUA_LABORAN` (Ketua Laboran), `LABORAN` (Laboran/K3), `PEMINJAM`. Kategori siswa/guru/staf disimpan terpisah di `users.borrower_type`.
 - **Dashboard berbeda per role** dengan statistik aktual dan grafik Chart.js.
 - **Katalog aset** dengan pencarian debounce, filter kategori/ruangan/status, pagination, stok tersedia per unit, dan riwayat lengkap.
 - **(2.1) Katalog jenis barang terpisah dari unit fisik**: satu entri "Kursi" dengan jumlah 23, sementara setiap kursi memiliki baris unit, lokasi, kondisi, dan kode sendiri.
@@ -19,8 +19,10 @@ Dibangun dengan **Laravel 13 + Livewire 4 + Blade + Alpine.js (bawaan Livewire) 
 - **Identitas inventaris**: kode lokasi/instansi, kode barang, nomor register. **(2.1)** kode inventaris per unit (`G1-02-12`) menggantikan ID internal per baris batch.
 - **Pengadaan** dengan approval Wakasek; **penghapusan** dengan Berita Acara + approval dan riwayat tetap tersimpan.
 - **Mutasi ruangan atomik** yang mencatat riwayat; **(2.1)** unit mendapat kode baru, kode lama disimpan dan dapat ditelusuri.
-- **Peminjaman multi-item**: keranjang, kalender ketersediaan, validasi bentrok jadwal di server + transaksi/lock database.
-- **Approval berjenjang**: Laboran level 1; Wakasek level 2 untuk barang bernilai tinggi (wajib tanda tangan).
+- **Peminjaman multi-katalog**: katalog terintegrasi di halaman peminjaman akun peminjam, pencarian/filter, kalender ketersediaan, validasi bentrok jadwal di server + transaksi/lock database; katalog duplikat ditolak.
+- **Approval berjenjang**: Laboran/K3 level 1 (otomatis untuk barang biasa di laboratorium sendiri); Wakasek level 2 untuk barang bernilai tinggi. Tanda tangan digital opsional.
+- **Hapus/arsip katalog aman**: hapus permanen hanya tanpa unit/transaksi; selain itu diarsipkan tanpa menghapus unit atau riwayat.
+- **Serah terima per unit dengan batas**: unit berlebih disabled di UI dan ditolak backend; serah terima ganda dan unit di luar transaksi ditolak.
 - **Siklus jelas**: Menunggu → Disetujui → **Serah terima** → Dipinjam → Selesai; bisa Ditolak/Dibatalkan.
 - **Pengembalian parsial akumulatif**, foto bukti kerusakan, deteksi kehilangan, mutasi jika ruangan berbeda, penutupan selisih oleh Wakasek.
 - **QR Code** berisi URL detail, scanner kamera (`html5-qrcode`) + fallback input manual.
@@ -71,11 +73,18 @@ Buka `http://127.0.0.1:8000`.
 | Username | Password | Role |
 | --- | --- | --- |
 | `wakasek` | `wakasek123` | SUPER_ADMIN |
-| `admin.sarpras` | `admin123` | ADMIN_SARPRAS |
-| `laboran.tkj` | `laboran123` | LABORAN (TKJ) |
+| `ketua.laboran` | `ketua123` | KETUA_LABORAN |
 | `laboran.rpl` | `laboran123` | LABORAN (RPL) |
-| `guru.budi` | `guru123` | PEMINJAM |
-| `guru.sari` | `guru123` | PEMINJAM |
+| `laboran.dkv` | `laboran123` | LABORAN (DKV) |
+| `laboran.kln` | `laboran123` | LABORAN (KLN) |
+| `laboran.tp` | `laboran123` | LABORAN (TP) |
+| `laboran.tkp` | `laboran123` | LABORAN (TKP) |
+| `guru.budi` | `guru123` | PEMINJAM (GURU) |
+| `guru.sari` | `guru123` | PEMINJAM (GURU) |
+| `siswa.raka` | `siswa123` | PEMINJAM (SISWA) |
+| `siswa.nadia` | `siswa123` | PEMINJAM (SISWA) |
+| `staf.tata` | `staf123` | PEMINJAM (STAF) |
+| `staf.perpus` | `staf123` | PEMINJAM (STAF) |
 
 > **Ganti seluruh akun demo sebelum produksi.** Panduan membuat admin pertama ada di `docs/INSTALLATION.md`.
 
@@ -126,13 +135,10 @@ Detail: [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Status
 
-<<<<<<< HEAD
-**Modul inti + revisi 2.1 (katalog + unit fisik, kode `G1-02-12`): IMPLEMENTED & VERIFIED** di lingkungan lokal (124 tes, build frontend, verifikasi browser desktop/mobile dan tema gelap).
-**Belum dikerjakan**: penugasan unit fisik pada peminjaman, penghapusan per unit, dan konfirmasi pemetaan gedung produksi — lihat `docs/KNOWN_ISSUES.md` serta `docs/IMPLEMENTATION_PLAN.md`.
-**Belum dideploy** ke server produksi — lihat `docs/DEPLOYMENT.md`.
-=======
-**IMPLEMENTED & VERIFIED** untuk seluruh modul inti di lingkungan lokal.
-**Belum dideploy** ke server produksi — lihat `docs/DEPLOYMENT.md` dan `docs/KNOWN_ISSUES.md` untuk langkah dan keterbatasan.
+**Modul inti + revisi 2.1 (katalog + unit fisik, kode `G1-02-12`)**: IMPLEMENTED & VERIFIED di lingkungan lokal (194 tes, 932 asersi, build frontend, verifikasi browser desktop/mobile dan tema gelap).
 
-nanti kita fokus-nya di front-end saja tampa kita ganggu back-end dan nanti pastikan kekita kita buat front end kita harus konsisten mengikuti alur yg sdh di buat oleh back-endnnya agar rapi dan konsiste apakah paham???
->>>>>>> 16aa8e7b592b3bb9cdd4754a53909110f157b6b1
+**Revisi besar 24 Oktober 2026** (role, seeder, persetujuan otomatis, katalog peminjam, hapus katalog aman, batas penyerahan unit): IMPLEMENTED & VERIFIED.
+
+**Belum dikerjakan**: pemilihan unit fisik oleh peminjam saat pengajuan (unit tetap ditugaskan petugas saat serah terima — lihat `docs/KNOWN_ISSUES.md` butir 10), penghapusan per unit (`asset_unit_id` + `batch_no` — butir 2), penyesuaian seluruh katalog lama ke unit fisik, konfirmasi daftar gedung resmi produksi (butir 5), dan deployment ke server produksi — lihat `docs/DEPLOYMENT.md`.
+
+**Belum dideploy** ke server produksi — lihat `docs/DEPLOYMENT.md`.

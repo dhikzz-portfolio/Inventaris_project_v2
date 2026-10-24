@@ -1,7 +1,7 @@
 # Known Issues & Limitations
 
-Diperbarui: 22 Oktober 2026
-Berlaku untuk: aplikasi v2 + implementasi inti revisi 2.1 (katalog & unit fisik) + pengetatan cakupan laporan
+Diperbarui: 24 Oktober 2026
+Berlaku untuk: aplikasi v2 + revisi 2.1 + revisi role/seeder/peminjaman 24 Oktober 2026
 
 ## A. Gap implementasi yang masih tersisa
 
@@ -16,6 +16,10 @@ Berlaku untuk: aplikasi v2 + implementasi inti revisi 2.1 (katalog & unit fisik)
 | 7 | Kapasitas 99 nomor per ruangan bersifat kumulatif (termasuk kode pensiun)                                                              | Ruangan dengan banyak mutasi dapat mencapai batas                                                                           | Sedang  | Pecah ruangan atau setujui perubahan format lewat keputusan produk                                                          |
 | 8 | Unit yang sedang dipinjam sudah berstatus `DIPINJAM`, tetapi angka katalog masih memakai pembukuan warisan | Angka katalog dapat berbeda sementara dari jumlah unit fisik | Sedang | Selesaikan butir 1 (hapus pembukuan kuantitas warisan) |
 | 9 | Pengembalian ke ruangan berbeda sudah memindahkan unit fisik (kode diterbitkan ulang + riwayat), tetapi mutasi katalog lama masih berjalan untuk baris tanpa unit | Riwayat katalog (`item_movements`) masih tersimpan untuk data lama | Sedang | Migrasikan sisa data lama ke `asset_unit_movements` |
+| 10 | Peminjam memilih **katalog + jumlah**, bukan unit fisik individual pada saat pengajuan. Unit fisik tetap dipilih petugas saat serah terima (keputusan 28 & 32). | Alur berbeda dari contoh PRD yang menyebut peminjam memilih unit; kode unit hanya ditampilkan sebagai informasi di halaman peminjaman. | Sedang | Bila sekolah menghendaki pemilihan unit saat pengajuan, perlu reservasi `loan_item_units` sebelum approval + kebijakan pelepasan booking. |
+| 10b | Ketua Laboran **tidak** dapat menyetujui level 2 (barang bernilai tinggi); hanya Wakasek sesuai keputusan 29. | Bila kebijakan sekolah mengizinkan Ketua Laboran menyetujui nilai tinggi, alur perlu diperluas. | Rendah | Tetapkan kebijakan resmi lalu ubah `User::isApproverLevel2()` + test. |
+| 10c | Laporan katalog masih memuat katalog yang diarsipkan karena riwayat unit/transaksi harus tetap terlihat. | Katalog nonaktif dapat muncul di laporan historis, tetapi tidak ditawarkan untuk peminjaman baru. | Rendah | Tambahkan kolom/filter "Arsip" pada laporan bila diperlukan. |
+| 10d | Data jurusan lama (TKJ/MM) hanya dihapus bila tidak memiliki relasi. | Database lama dapat menyimpan jurusan historis yang tidak termasuk lima jurusan resmi. | Rendah | Nonaktifkan lewat prosedur migrasi setelah relasi dipindahkan; jangan hapus otomatis. |
 
 ## B. Keterbatasan umum yang masih berlaku
 
@@ -40,6 +44,16 @@ Berlaku untuk: aplikasi v2 + implementasi inti revisi 2.1 (katalog & unit fisik)
 | 27 | Service worker hanya cache shell                                                             | Aplikasi tidak dapat digunakan sepenuhnya offline                                             | Rendah                      | Offline penuh bukan target                                                                                                |
 
 ## C. Diselesaikan pada revisi 2.1
+
+### C.0 Revisi besar 24 Oktober 2026 — Status: SELESAI (implementasi + test otomatis)
+
+- **Role**: `ADMIN_SARPRAS` → `KETUA_LABORAN` melalui migration data (users + Spatie), seluruh route/middleware/seeder/scope/notifikasi/Blade diselaraskan. Wakasek Sarpras menjadi Super Admin penuh; Ketua Laboran hanya laboratorium; Laboran/K3 hanya ruangan yang ditugaskan.
+- **Kategori peminjam** (`users.borrower_type`) dipisahkan dari role; akun demo siswa, guru, dan staf tersedia.
+- **Seeder** dipecah menjadi master, akun demo, inventaris demo, dan transaksi demo; lima jurusan resmi; 42 katalog/125 unit; aman dijalankan ulang, tidak mereset password, tidak menghapus transaksi.
+- **Persetujuan otomatis Laboran/K3** untuk barang biasa di laboratorium sendiri; barang bernilai tinggi tetap menunggu Wakasek; campuran lintas lingkup tetap `PENDING`; pemohon tidak dapat menyetujui pengajuan sendiri secara manual. Semua keputusan otomatis tercatat di `loan_approvals` dan `activity_log` dengan alasan jelas.
+- **Katalog peminjam** digabung ke halaman peminjaman dengan pencarian/filter; katalog duplikat ditolak di UI dan backend.
+- **Hapus katalog aman**: hapus permanen hanya tanpa unit/transaksi; selain itu arsip `archived_at`, unit/riwayat tidak dihapus, katalog arsip tidak dapat dipinjam dan tidak tampil di daftar.
+- **Batas penyerahan unit**: pilihan dibatasi `qty_borrowed`, unit berlebih disabled di UI dan ditolak backend; unit di luar transaksi, unit ganda, dan request berulang ditolak dalam transaksi terkunci.
 
 ### C.1 Revisi lanjutan 22 Oktober 2026 — Status: SELESAI sepenuhnya (implementasi + verifikasi)
 

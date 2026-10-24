@@ -21,6 +21,7 @@ class MovementController extends Controller
                 ->latest('moved_at')
                 ->paginate(15),
             'items' => Item::approved()
+                ->notArchived()
                 ->visibleTo($request->user())
                 ->where('status', '!=', 'DIHAPUS')
                 ->with('room')

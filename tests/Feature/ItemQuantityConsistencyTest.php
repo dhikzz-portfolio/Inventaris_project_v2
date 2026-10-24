@@ -37,9 +37,9 @@ class ItemQuantityConsistencyTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboranTkj = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
         $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
-        $this->roomTkj = Room::where('major_id', Major::where('code', 'TKJ')->value('id'))->firstOrFail();
+        $this->roomTkj = Room::where('major_id', Major::where('code', 'TP')->value('id'))->firstOrFail();
         $this->category = Category::firstOrFail();
     }
 

@@ -36,7 +36,7 @@ class InventoryCatalogTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
         $this->guru = User::where('username', 'guru.budi')->firstOrFail();
         $this->category = Category::firstOrFail();

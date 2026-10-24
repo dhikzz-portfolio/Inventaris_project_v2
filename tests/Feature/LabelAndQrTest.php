@@ -23,8 +23,10 @@ class LabelAndQrTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboran = User::where('username', 'laboran.tkj')->firstOrFail();
-        $this->item = Item::firstOrFail();
+        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
+        $this->item = Item::query()
+            ->whereHas('units', fn ($query) => $query->visibleTo($this->laboran))
+            ->firstOrFail();
     }
 
     public function test_qr_data_url_tergenerate_sebagai_base64_png(): void

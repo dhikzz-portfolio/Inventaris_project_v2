@@ -84,34 +84,61 @@ class Loan extends Model
 
     /**
      * Batasi query ke data yang boleh dilihat pengguna (mencegah IDOR).
-     * Laboran hanya melihat pinjaman yang menyentuh jurusannya.
-     * Selama masa transisi, penugasan unit tidak diperlukan untuk visibilitas:
-     * visibilitas tetap mengikuti item katalog + ruangannya.
+     * Wakasek melihat semua; Ketua Laboran hanya transaksi yang seluruh
+     * barangnya berada di laboratorium; Laboran/K3 hanya ruangan yang
+     * ditugaskan. Peminjam hanya transaksi miliknya sendiri.
      */
     public function scopeVisibleTo($query, User $user)
     {
-        if ($user->managesInventory()) {
+        if ($user->isSuperAdmin()) {
             return $query;
         }
 
-        return $query->where(function ($q) use ($user) {
-            $q->where('borrower_id', $user->id);
+        if ($user->isKetuaLaboran()) {
+            return $query->where(function ($q) {
+                $q->whereDoesntHave('loanItems.item.room', fn ($room) => $room->where('is_lab', false))
+                    ->whereHas('loanItems');
+            });
+        }
 
-            if ($user->isLaboran() && $user->major_id) {
-                $q->orWhereHas('loanItems.item.room', fn ($rq) => $rq->where('major_id', $user->major_id));
-            }
-        });
+        if ($user->isLaboran()) {
+            $roomIds = $user->roomScopes()->select('room_id');
+
+            return $query->where(function ($q) use ($user, $roomIds) {
+                $q->where('borrower_id', $user->id)
+                    ->orWhere(function ($scoped) use ($roomIds) {
+                        $scoped->whereHas('loanItems')
+                            ->whereDoesntHave('loanItems.item', fn ($item) => $item->whereNotIn('room_id', $roomIds));
+                    });
+            });
+        }
+
+        return $query->where('borrower_id', $user->id);
     }
 
     public function canBeViewedBy(User $user): bool
     {
-        if ($user->managesInventory() || $this->borrower_id === $user->id) {
+        if ($user->isSuperAdmin() || $this->borrower_id === $user->id) {
             return true;
         }
 
-        return $user->isLaboran()
-            && $user->major_id !== null
-            && $this->loanItems()->whereHas('item.room', fn ($q) => $q->where('major_id', $user->major_id))->exists();
+        $items = $this->loanItems()->with('item.room')->get();
+
+        if ($items->isEmpty()) {
+            return false;
+        }
+
+        if ($user->isKetuaLaboran()) {
+            return $items->every(fn (LoanItem $line) => (bool) $line->item?->room?->is_lab);
+        }
+
+        if ($user->isLaboran()) {
+            $roomIds = $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
+
+            return $items->every(fn (LoanItem $line) => in_array((int) $line->item?->room_id, $roomIds, true));
+        }
+
+        return false;
     }
 
     /** Unit fisik yang sedang dipinjam dalam transaksi ini (hanya yang terbuka). */

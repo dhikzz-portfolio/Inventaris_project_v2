@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BorrowerType;
 use App\Enums\Role;
 use App\Models\Major;
 use App\Models\Room;
@@ -21,6 +22,7 @@ class UserController extends Controller
             'users' => User::with(['major', 'roomScopes.room'])->orderBy('role')->orderBy('name')->paginate(15),
             'majors' => Major::orderBy('name')->get(),
             'roles' => Role::cases(),
+            'borrowerTypes' => BorrowerType::cases(),
             'labRooms' => Room::where('is_lab', true)->orderBy('building_letter')->orderBy('floor')->orderBy('room_no')->get(),
         ]);
     }
@@ -32,6 +34,7 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', 'unique:users,username'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'role' => ['required', Rule::in(Role::values())],
+            'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
             'major_id' => ['nullable', 'exists:majors,id'],
             'room_ids' => ['nullable', 'array'],
             'room_ids.*' => ['integer', Rule::exists('rooms', 'id')->where('is_lab', true)],
@@ -42,6 +45,7 @@ class UserController extends Controller
             'username' => $data['username'],
             'password' => Hash::make($data['password']),
             'role' => $data['role'],
+            'borrower_type' => $data['role'] === Role::PEMINJAM->value ? ($data['borrower_type'] ?? null) : null,
             'major_id' => $data['major_id'] ?? null,
         ]);
 
@@ -62,6 +66,7 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('users', 'username')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
             'role' => ['required', Rule::in(Role::values())],
+            'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
             'major_id' => ['nullable', 'exists:majors,id'],
             'room_ids' => ['nullable', 'array'],
             'room_ids.*' => ['integer', Rule::exists('rooms', 'id')->where('is_lab', true)],
@@ -77,6 +82,9 @@ class UserController extends Controller
         $user->name = $data['name'];
         $user->username = $data['username'];
         $user->role = $data['role'];
+        $user->borrower_type = $data['role'] === Role::PEMINJAM->value
+            ? ($data['borrower_type'] ?? $user->borrower_type)
+            : null;
         $user->major_id = $data['major_id'] ?? null;
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);

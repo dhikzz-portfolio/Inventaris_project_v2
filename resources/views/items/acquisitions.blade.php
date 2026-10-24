@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between gap-3">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Approval Pengadaan Barang</h2>
-                <p class="text-sm text-gray-500">Wakasek Sarpras menyetujui/menolak pengadaan dari Admin Sarpras</p>
+                <p class="text-sm text-gray-500">Wakasek Sarpras menyetujui/menolak pengadaan dari Ketua Laboran</p>
             </div>
             <a href="{{ route('items.create') }}" class="text-sm text-amber-700 font-semibold hover:underline">+ Pengadaan baru</a>
         </div>

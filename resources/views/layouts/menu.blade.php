@@ -7,11 +7,13 @@
 
 <x-menu-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" icon="dashboard" label="Dashboard" />
 
-{{-- Katalog untuk semua role --}}
-<x-menu-link :href="route('catalogs.index')" :active="request()->routeIs('catalogs.*') || request()->routeIs('units.*')" icon="inventory_2" label="Katalog Barang" />
+{{-- Peminjam memilih katalog langsung di halaman peminjaman. --}}
+@unless ($user?->isPeminjam())
+    <x-menu-link :href="route('catalogs.index')" :active="request()->routeIs('catalogs.*') || request()->routeIs('units.*')" icon="inventory_2" label="Katalog Barang" />
+@endunless
 
 {{-- Peminjaman --}}
-<x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" label="Ajukan Peminjaman" />
+<x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isPeminjam() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
 <x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" label="Peminjaman Saya" />
 
 @if ($canApprove)

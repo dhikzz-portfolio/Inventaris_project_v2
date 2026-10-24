@@ -57,6 +57,7 @@ class CatalogDirectory extends Component
 
         $query = Item::query()
             ->approved()
+            ->notArchived()
             ->visibleTo($user)
             ->with(['category', 'room'])
             ->withCount(['units as units_count' => $visibleUnits])

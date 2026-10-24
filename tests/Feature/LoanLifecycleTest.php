@@ -48,11 +48,11 @@ class LoanLifecycleTest extends TestCase
         $this->seed();
 
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->laboranTkj = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
         $this->laboranRpl = User::where('username', 'laboran.rpl')->firstOrFail();
         $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
         $this->guruSari = User::where('username', 'guru.sari')->firstOrFail();
-        $this->roomTkj = Room::where('major_id', Major::where('code', 'TKJ')->value('id'))->firstOrFail();
+        $this->roomTkj = Room::where('major_id', Major::where('code', 'TP')->value('id'))->firstOrFail();
         $this->roomRpl = Room::where('major_id', Major::where('code', 'RPL')->value('id'))->firstOrFail();
         $this->category = Category::firstOrFail();
     }

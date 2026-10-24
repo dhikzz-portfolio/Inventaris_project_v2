@@ -1,6 +1,6 @@
 # Implementation Plan & Status
 
-Terakhir diperbarui: 22 Oktober 2026
+Terakhir diperbarui: 24 Oktober 2026
 
 Legenda status: **NOT STARTED**, **IN PROGRESS**, **IMPLEMENTED**, **VERIFIED**, **BLOCKED**.
 `VERIFIED` berarti sudah dijalankan/diuji, bukan hanya file dibuat.
@@ -26,6 +26,10 @@ Legenda status: **NOT STARTED**, **IN PROGRESS**, **IMPLEMENTED**, **VERIFIED**,
 | 16   | Revisi dokumentasi PRD 2.1: katalog vs unit, kode `G1-02-12`, mutasi, pencarian/filter  | VERIFIED    | `PROJECT_BRIEF.md`, `DATABASE.md`, `DECISIONS.md`, dokumen pendukung |
 | 17   | Implementasi inti revisi 2.1 (katalog/unit, kode, scope, label, laporan)                | VERIFIED    | 130 tes lulus; verifikasi browser; lihat `PROJECT_STATUS.md`         |
 | 18   | Restorasi UI/UX desain lama + penyesuaian revisi (dashboard role, menu, form, tema)     | VERIFIED    | Audit 19 halaman, mobile 390px, tema gelap, Tailwind v4 diperbaiki   |
+| 19   | Revisi lanjutan 22 Oktober: serah terima, persetujuan Wakasek, TTD opsional, master lokasi | VERIFIED | 183 tes; `LoanApprovalHandoverTest`, `BuildingMasterDataTest` |
+| 20   | Revisi besar 24 Oktober: role `KETUA_LABORAN`, 5 jurusan, seeder terpisah, akun demo lengkap | VERIFIED | Migrasi role + seeder terpisah; 194 tes |
+| 21   | Alur peminjaman: auto-approval Laboran/K3, nilai tinggi, katalog peminjam, duplikasi | VERIFIED | `LaboranApprovalTest`; regresi suite |
+| 22   | Katalog aman + batas penyerahan unit + sinkronisasi dokumentasi | VERIFIED | `CatalogDeletionTest`, `LoanUnitFlowTest`; dokumen diperbarui |
 
 ## Catatan fase 14
 

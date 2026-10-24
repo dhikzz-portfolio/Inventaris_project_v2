@@ -2,11 +2,17 @@
 
 namespace App\Livewire\Loan;
 
+use App\Enums\Condition;
+use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use App\Enums\UnitStatus;
 use App\Exceptions\AvailabilityException;
+use App\Models\Building;
+use App\Models\Category;
 use App\Models\Event;
 use App\Models\Item;
 use App\Models\Loan;
+use App\Models\Room;
 use App\Services\LoanService;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
@@ -17,6 +23,14 @@ class LoanRequest extends Component
     public array $cart = [];          // [{item_id, name, internal_id, qty, max, room, unit}]
 
     public string $search = '';
+
+    public string $category = '';
+
+    public string $building = '';
+
+    public string $room = '';
+
+    public string $availability = '';
 
     // Formulir
     public string $purpose = '';
@@ -44,17 +58,26 @@ class LoanRequest extends Component
         $this->calMonth = (int) now()->format('n');
     }
 
+    /** Katalog yang sudah dipilih tidak boleh ditambahkan sebagai entri duplikat. */
     public function add(int $itemId): void
     {
-        if (array_key_exists($itemId, $this->cart)) {
+        if (collect($this->cart)->contains(fn (array $line) => (int) $line['item_id'] === $itemId)) {
+            $this->error = 'Katalog ini sudah ada di keranjang. Ubah jumlahnya pada daftar pilihan.';
+
             return;
         }
 
         /** @var Item $item */
-        $item = Item::with('room')->approved()->findOrFail($itemId);
+        $item = Item::with('room')
+            ->approved()
+            ->notArchived()
+            ->visibleTo(auth()->user())
+            ->findOrFail($itemId);
 
-        if (! $item->isAvailableStatus()) {
-            $this->error = "\"{$item->name}\" berstatus {$item->status->label()} dan tidak dapat dipinjam.";
+        $available = $item->availableQuantity();
+
+        if (! $item->isAvailableStatus() || $available < 1) {
+            $this->error = "\"{$item->name}\" tidak memiliki unit yang tersedia untuk dipinjam saat ini.";
 
             return;
         }
@@ -66,7 +89,7 @@ class LoanRequest extends Component
             'room' => $item->room?->code,
             'unit' => $item->unit,
             'is_high_value' => $item->is_high_value,
-            'max' => $item->quantity,
+            'max' => $available,
             'qty' => 1,
         ];
         $this->error = '';
@@ -97,6 +120,18 @@ class LoanRequest extends Component
         }
     }
 
+    public function updating(string $property): void
+    {
+        if (in_array($property, ['search', 'category', 'building', 'room', 'availability'], true)) {
+            $this->error = '';
+        }
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset(['search', 'category', 'building', 'room', 'availability']);
+    }
+
     public function prevMonth(): void
     {
         $this->calMonth--;
@@ -119,27 +154,62 @@ class LoanRequest extends Component
     {
         $this->validateDates();
 
-        $items = collect();
-        if (strlen($this->search) >= 2) {
-            $term = '%'.$this->search.'%';
-            $items = Item::approved()
-                ->with('room')
-                ->where('status', '!=', 'DIHAPUS')
-                ->where(fn ($q) => $q->where('name', 'like', $term)
+        $user = auth()->user();
+
+        $items = Item::query()
+            ->approved()
+            ->notArchived()
+            ->visibleTo($user)
+            ->with(['room.building', 'category'])
+            ->with(['units' => fn ($query) => $query
+                ->visibleTo($user)
+                ->where('status', UnitStatus::AKTIF->value)
+                ->where('condition', Condition::BAIK->value)
+                ->orderBy('inventory_code')
+                ->limit(8),
+            ])
+            ->withCount(['units as available_units_count' => fn ($query) => $query
+                ->visibleTo($user)
+                ->where('status', UnitStatus::AKTIF->value)
+                ->where('condition', Condition::BAIK->value),
+            ])
+            ->where('status', '!=', ItemStatus::DIHAPUS->value)
+            ->when($this->search !== '', function ($query) {
+                $term = '%'.$this->search.'%';
+                $query->where(fn ($where) => $where
+                    ->where('name', 'like', $term)
+                    ->orWhere('specification', 'like', $term)
+                    ->orWhere('brand', 'like', $term)
+                    ->orWhere('model_type', 'like', $term)
                     ->orWhere('internal_id', 'like', $term)
-                    ->orWhere('category_id', function ($qq) use ($term) {
-                        $qq->select('id')->from('categories')->where('name', 'like', $term);
-                    }))
-                ->orderBy('name')
-                ->limit(12)
-                ->get();
-        }
+                    ->orWhereHas('units', fn ($unit) => $unit->where('inventory_code', 'like', $term)));
+            })
+            ->when($this->category !== '', fn ($query) => $query->where('category_id', $this->category))
+            ->when($this->room !== '', fn ($query) => $query->whereHas('units', fn ($unit) => $unit->where('room_id', $this->room)))
+            ->when($this->building !== '', fn ($query) => $query->whereHas('units.room', fn ($room) => $room->where('building_letter', $this->building)))
+            ->when($this->availability === 'available', fn ($query) => $query->whereHas('units', fn ($unit) => $unit
+                ->where('status', UnitStatus::AKTIF->value)
+                ->where('condition', Condition::BAIK->value)))
+            ->when($this->availability === 'unavailable', fn ($query) => $query->whereDoesntHave('units', fn ($unit) => $unit
+                ->where('status', UnitStatus::AKTIF->value)
+                ->where('condition', Condition::BAIK->value)))
+            ->orderBy('name')
+            ->limit(24)
+            ->get();
 
         return view('livewire.loan.loan-request', [
             'items' => $items,
             'events' => Event::where('end_date', '>=', now()->subMonth())->orderByDesc('start_date')->get(),
             'lineStatus' => $this->lineStatuses(),
             'calendar' => $this->calendarData(),
+            'categories' => Category::orderBy('name')->get(),
+            'buildings' => Building::filterOptions(),
+            'rooms' => Room::query()
+                ->when($this->building !== '', fn ($query) => $query->where('building_letter', $this->building))
+                ->orderBy('building_letter')->orderBy('floor')->orderBy('room_no')
+                ->get(),
+            'activeFilters' => collect(['search', 'category', 'building', 'room', 'availability'])
+                ->filter(fn ($field) => $this->$field !== '')->count(),
         ]);
     }
 
@@ -257,6 +327,14 @@ class LoanRequest extends Component
             return;
         }
 
+        // Cegah katalog duplikat walau state frontend dimanipulasi.
+        $itemIds = array_map(fn ($line) => (int) $line['item_id'], $this->cart);
+        if (count($itemIds) !== count(array_unique($itemIds))) {
+            $this->error = 'Katalog yang sama tidak boleh dipilih lebih dari sekali dalam satu pengajuan.';
+
+            return;
+        }
+
         try {
             $loan = app(LoanService::class)->requestLoan(
                 auth()->user(),
@@ -275,9 +353,21 @@ class LoanRequest extends Component
         $this->cart = [];
         $this->purpose = '';
 
-        session()->flash('success', $loan->status === LoanStatus::APPROVED
-            ? "Request peminjaman #{$loan->id} disetujui atas kewenangan Wakasek Sarpras — lanjutkan ke serah terima."
-            : "Request peminjaman #{$loan->id} terkirim — menunggu persetujuan.");
+        session()->flash('success', $this->resultMessage($loan));
         $this->redirectRoute('loans.show', ['loan' => $loan->id]);
+    }
+
+    /** Pesan hasil yang membedakan persetujuan otomatis per kewenangan. */
+    private function resultMessage(Loan $loan): string
+    {
+        if ($loan->status !== LoanStatus::APPROVED) {
+            return "Request peminjaman #{$loan->id} terkirim — menunggu persetujuan.";
+        }
+
+        if (auth()->user()->isApproverLevel2()) {
+            return "Request peminjaman #{$loan->id} disetujui atas kewenangan Wakasek Sarpras — lanjutkan ke serah terima.";
+        }
+
+        return "Request peminjaman #{$loan->id} disetujui otomatis untuk laboratorium yang Anda tugaskan — lanjutkan ke serah terima.";
     }
 }

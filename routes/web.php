@@ -19,8 +19,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WriteOffController;
 use Illuminate\Support\Facades\Route;
 
-$managers = 'SUPER_ADMIN|ADMIN_SARPRAS';
-$approvers = 'SUPER_ADMIN|ADMIN_SARPRAS|LABORAN';
+$managers = 'SUPER_ADMIN|KETUA_LABORAN';
+$approvers = 'SUPER_ADMIN|KETUA_LABORAN|LABORAN';
 
 Route::get('/manifest.json', [PwaController::class, 'manifest'])->name('pwa.manifest');
 Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.service-worker');
@@ -37,7 +37,7 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
     Route::get('/catalogs', [CatalogController::class, 'index'])->name('catalogs.index');
     Route::get('/catalogs/{catalog}', [CatalogController::class, 'show'])->name('catalogs.show');
     Route::get('/units/{unit}', [UnitController::class, 'show'])->name('units.show');
-    Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:SUPER_ADMIN|ADMIN_SARPRAS|LABORAN')->name('units.label');
+    Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:SUPER_ADMIN|KETUA_LABORAN|LABORAN')->name('units.label');
 
     // Rute lama dipertahankan selama masa transisi.
     Route::get('/items', [ItemController::class, 'index'])->name('items.index');
@@ -115,6 +115,10 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
         // Kegiatan
         Route::post('/kegiatan', [EventController::class, 'store'])->name('events.store');
         Route::get('/kegiatan/{event}/bast', [EventController::class, 'downloadBast'])->name('events.bast');
+
+        // Penghapusan/arsip katalog (aman: katalog bertransaksi tidak dihapus destruktif).
+        Route::delete('/catalogs/{catalog}', [CatalogController::class, 'destroy'])
+            ->name('catalogs.destroy');
 
         // Master data
         Route::get('/master', [MasterController::class, 'index'])->name('masters.index');

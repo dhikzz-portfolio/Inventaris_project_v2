@@ -8,7 +8,12 @@
 <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] safe-area-bottom"
      aria-label="Navigasi utama">
     <div class="grid grid-cols-5 h-16">
-        @php($bottomItems = [
+        @php($bottomItems = $user?->isPeminjam() ? [
+            ['href' => route('dashboard'), 'icon' => 'dashboard', 'label' => 'Beranda', 'active' => request()->routeIs('dashboard'), 'badge' => 0],
+            ['href' => route('loans.create'), 'icon' => 'add_shopping_cart', 'label' => 'Pinjam', 'active' => request()->routeIs('loans.create'), 'badge' => 0],
+            ['href' => route('loans.index'), 'icon' => 'swap_horiz', 'label' => 'Riwayat', 'active' => request()->routeIs('loans.index') || request()->routeIs('loans.show'), 'badge' => 0],
+            ['href' => route('notifications.index'), 'icon' => 'notifications', 'label' => 'Notifikasi', 'active' => request()->routeIs('notifications.*'), 'badge' => $unread],
+        ] : [
             ['href' => route('dashboard'), 'icon' => 'dashboard', 'label' => 'Beranda', 'active' => request()->routeIs('dashboard'), 'badge' => 0],
             ['href' => route('catalogs.index'), 'icon' => 'inventory_2', 'label' => 'Katalog', 'active' => request()->routeIs('catalogs.*') || request()->routeIs('units.*'), 'badge' => 0],
             ['href' => route('loans.create'), 'icon' => 'add_shopping_cart', 'label' => 'Pinjam', 'active' => request()->routeIs('loans.create'), 'badge' => 0],

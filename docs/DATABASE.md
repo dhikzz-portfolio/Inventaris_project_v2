@@ -10,32 +10,32 @@ Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan m
 
 ## 1. Daftar tabel
 
-| Tabel                                                                                             | Fungsi                                                                     | Status dokumen |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------- |
-| `majors`                                                                                          | Jurusan/kompetensi keahlian.                                               | Ada            |
-| `users`                                                                                           | Akun pengguna + role utama + jurusan.                                      | Ada            |
+| Tabel                                                                                             | Fungsi                                                                                                       | Status dokumen |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------- |
+| `majors`                                                                                          | Jurusan/kompetensi keahlian.                                                                                 | Ada            |
+| `users`                                                                                           | Akun pengguna + role utama + jurusan.                                                                        | Ada            |
 | `buildings`                                                                                       | **Master gedung**: nama + kode satu huruf (A–Z) yang menjadi sumber kebenaran kode lokasi & kode inventaris. | Baru           |
-| `rooms`                                                                                           | Ruangan: gedung (relasi), lantai, nomor ruangan, jurusan, penanda laboratorium. | Berubah        |
-| `categories`                                                                                      | Kategori/klasifikasi barang dan kode aset.                                 | Ada            |
-| `item_catalogs`                                                                                   | **Katalog jenis barang** (definisi, tanpa lokasi dan tanpa jumlah manual). | Baru           |
-| `asset_units`                                                                                     | **Unit inventaris fisik**; satu baris = satu barang, termasuk kode aktif.  | Baru           |
-| `asset_unit_codes`                                                                                | Buku besar seluruh kode yang pernah diterbitkan (aktif + pensiun).         | Baru           |
-| `asset_unit_movements`                                                                            | Riwayat perpindahan unit (asal, tujuan, kode lama, kode baru, petugas).    | Baru           |
-| `maintenance_records`                                                                             | Riwayat pemeliharaan perbaikan per unit.                                   | Baru           |
-| `user_room_scopes`                                                                                | Penetapan cakupan laboratorium/ruangan untuk Laboran/K3.                   | Baru           |
-| `loan_item_units`                                                                                 | Penugasan unit fisik pada baris peminjaman (saat serah terima).            | Baru           |
-| `events`                                                                                          | Kegiatan untuk mengikat peminjaman dan BAST gabungan.                      | Ada            |
-| `loans`                                                                                           | Header peminjaman (peminjam, periode, status transaksi, status dokumen).   | Berubah        |
-| `loan_items`                                                                                      | Baris barang dalam peminjaman + kuantitas kembali/rusak/hilang.            | Berubah        |
-| `loan_approvals`                                                                                  | Jejak approval berjenjang + tanda tangan gambar.                           | Ada            |
-| `write_offs`                                                                                      | Permohonan penghapusan aset + Berita Acara.                                | Berubah        |
-| `notifications_app`                                                                               | Notifikasi in-app per pengguna.                                            | Ada            |
-| `institution_settings`                                                                            | Identitas sekolah, logo, kode lokasi, kepala sekolah.                      | Ada            |
-| `reports`                                                                                         | Arsip laporan bulanan (path PDF/Excel).                                    | Ada            |
-| `activity_log`                                                                                    | Audit trail Spatie (immutable dari aplikasi).                              | Ada            |
-| `items`, `item_movements`                                                                         | Model batch lama; dipertahankan sementara sebagai `legacy_*` saat migrasi. | Warisan        |
-| `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`        | Otorisasi Spatie Permission.                                               | Ada            |
-| `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `sessions`, `password_reset_tokens` | Infrastruktur Laravel.                                                     | Ada            |
+| `rooms`                                                                                           | Ruangan: gedung (relasi), lantai, nomor ruangan, jurusan, penanda laboratorium.                              | Berubah        |
+| `categories`                                                                                      | Kategori/klasifikasi barang dan kode aset.                                                                   | Ada            |
+| `item_catalogs`                                                                                   | **Katalog jenis barang** (definisi, tanpa lokasi dan tanpa jumlah manual).                                   | Baru           |
+| `asset_units`                                                                                     | **Unit inventaris fisik**; satu baris = satu barang, termasuk kode aktif.                                    | Baru           |
+| `asset_unit_codes`                                                                                | Buku besar seluruh kode yang pernah diterbitkan (aktif + pensiun).                                           | Baru           |
+| `asset_unit_movements`                                                                            | Riwayat perpindahan unit (asal, tujuan, kode lama, kode baru, petugas).                                      | Baru           |
+| `maintenance_records`                                                                             | Riwayat pemeliharaan perbaikan per unit.                                                                     | Baru           |
+| `user_room_scopes`                                                                                | Penetapan cakupan laboratorium/ruangan untuk Laboran/K3.                                                     | Baru           |
+| `loan_item_units`                                                                                 | Penugasan unit fisik pada baris peminjaman (saat serah terima).                                              | Baru           |
+| `events`                                                                                          | Kegiatan untuk mengikat peminjaman dan BAST gabungan.                                                        | Ada            |
+| `loans`                                                                                           | Header peminjaman (peminjam, periode, status transaksi, status dokumen).                                     | Berubah        |
+| `loan_items`                                                                                      | Baris barang dalam peminjaman + kuantitas kembali/rusak/hilang.                                              | Berubah        |
+| `loan_approvals`                                                                                  | Jejak approval berjenjang + tanda tangan gambar.                                                             | Ada            |
+| `write_offs`                                                                                      | Permohonan penghapusan aset + Berita Acara.                                                                  | Berubah        |
+| `notifications_app`                                                                               | Notifikasi in-app per pengguna.                                                                              | Ada            |
+| `institution_settings`                                                                            | Identitas sekolah, logo, kode lokasi, kepala sekolah.                                                        | Ada            |
+| `reports`                                                                                         | Arsip laporan bulanan (path PDF/Excel).                                                                      | Ada            |
+| `activity_log`                                                                                    | Audit trail Spatie (immutable dari aplikasi).                                                                | Ada            |
+| `items`, `item_movements`                                                                         | Model batch lama; dipertahankan sementara sebagai `legacy_*` saat migrasi.                                   | Warisan        |
+| `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`        | Otorisasi Spatie Permission.                                                                                 | Ada            |
+| `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `sessions`, `password_reset_tokens` | Infrastruktur Laravel.                                                                                       | Ada            |
 
 ## 2. Kolom penting
 
@@ -53,6 +53,8 @@ Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan m
 | `unit`                     | varchar(20) default `unit` | Satuan tampilan.                                               |
 | `is_high_value`            | boolean default false      | Wajib approval level 2.                                        |
 | `photo_path`               | varchar nullable           | Foto representatif katalog.                                    |
+| `archived_at`              | timestamp nullable         | Katalog dinonaktifkan (arsip); tidak ditawarkan untuk pinjam.  |
+| `archive_reason`           | varchar(255) nullable      | Alasan arsip; unit dan riwayat transaksi tetap tersimpan.      |
 | `created_at`, `updated_at` | timestamp                  |                                                                |
 
 Index:
@@ -146,29 +148,29 @@ Index: `index(asset_unit_id, performed_at)`.
 
 `buildings` — master gedung. Satu baris = satu gedung sekolah; **huruf kode di sini adalah sumber kebenaran** generator kode lokasi dan kode inventaris.
 
-| Kolom                      | Tipe                  | Keterangan                                                                |
-| -------------------------- | --------------------- | ------------------------------------------------------------------------- |
-| `id`                       | bigint PK             |                                                                           |
-| `name`                     | varchar(100) unique   | Nama gedung, mis. `Gedung G`.                                            |
-| `code`                     | char(1) unique        | Huruf gedung A–Z; segmen pertama kode lokasi & kode inventaris.          |
-| `is_active`                | boolean default true  | Gedung nonaktif tidak dapat dipakai untuk lokasi baru.                  |
-| `created_at`, `updated_at` | timestamp             |                                                                           |
+| Kolom                      | Tipe                 | Keterangan                                                      |
+| -------------------------- | -------------------- | --------------------------------------------------------------- |
+| `id`                       | bigint PK            |                                                                 |
+| `name`                     | varchar(100) unique  | Nama gedung, mis. `Gedung G`.                                   |
+| `code`                     | char(1) unique       | Huruf gedung A–Z; segmen pertama kode lokasi & kode inventaris. |
+| `is_active`                | boolean default true | Gedung nonaktif tidak dapat dipakai untuk lokasi baru.          |
+| `created_at`, `updated_at` | timestamp            |                                                                 |
 
 `rooms`:
 
-| Kolom                      | Tipe                  | Keterangan                                                                       |
-| -------------------------- | --------------------- | -------------------------------------------------------------------------------- |
-| `id`                       | bigint PK             |                                                                                  |
-| `major_id`                 | FK `majors` nullable  | Jurusan/penanggung jawab.                                                        |
-| `building_id`              | FK `buildings` nullable | Master gedung induk; sumber kebenaran `building_letter`.                       |
-| `building_letter`          | char(1)               | Huruf gedung A–Z; segmen pertama kode. Disalin dari master gedung.              |
-| `floor`                    | unsignedTinyInteger   | Lantai 1–9; digit kedua segmen pertama.                                         |
-| `room_no`                  | unsignedTinyInteger   | Nomor ruangan 1–99; segmen kedua kode.                                          |
-| `is_lab`                   | boolean default false | Penanda laboratorium untuk cakupan Ketua Laboran.                               |
-| `name`                     | varchar               | Nama ruangan, mis. `Lab Komputer 1`.                                            |
-| `code`                     | varchar unique        | Kode ruangan tampilan, mis. `G1-02`; diturunkan dari gedung + lantai + nomor.  |
-| `legacy_building`          | varchar nullable      | Teks gedung lama (mis. `G1`), **hanya untuk penelusuran historis**.           |
-| `created_at`, `updated_at` | timestamp             |                                                                                  |
+| Kolom                      | Tipe                    | Keterangan                                                                    |
+| -------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| `id`                       | bigint PK               |                                                                               |
+| `major_id`                 | FK `majors` nullable    | Jurusan/penanggung jawab.                                                     |
+| `building_id`              | FK `buildings` nullable | Master gedung induk; sumber kebenaran `building_letter`.                      |
+| `building_letter`          | char(1)                 | Huruf gedung A–Z; segmen pertama kode. Disalin dari master gedung.            |
+| `floor`                    | unsignedTinyInteger     | Lantai 1–9; digit kedua segmen pertama.                                       |
+| `room_no`                  | unsignedTinyInteger     | Nomor ruangan 1–99; segmen kedua kode.                                        |
+| `is_lab`                   | boolean default false   | Penanda laboratorium untuk cakupan Ketua Laboran.                             |
+| `name`                     | varchar                 | Nama ruangan, mis. `Lab Komputer 1`.                                          |
+| `code`                     | varchar unique          | Kode ruangan tampilan, mis. `G1-02`; diturunkan dari gedung + lantai + nomor. |
+| `legacy_building`          | varchar nullable        | Teks gedung lama (mis. `G1`), **hanya untuk penelusuran historis**.           |
+| `created_at`, `updated_at` | timestamp               |                                                                               |
 
 Index: `unique(building_letter, floor, room_no)` — menjamin prefix `G1-02` unik dan konsisten dengan kode unit. `unique(code)`. `index(building_id)`.
 
@@ -190,10 +192,12 @@ Cakupan efektif:
 
 | Peran           | Query unit yang diizinkan                                        |
 | --------------- | ---------------------------------------------------------------- |
-| `SUPER_ADMIN`   | Semua unit.                                                      |
-| `ADMIN_SARPRAS` | Unit pada `rooms.is_lab = true`.                                 |
+| `SUPER_ADMIN`   | Semua unit, termasuk ruang umum dan gudang.                       |
+| `KETUA_LABORAN` | Unit pada `rooms.is_lab = true`; **tidak** unit nonlaboratorium. |
 | `LABORAN`       | Unit pada ruangan yang ada di `user_room_scopes` milik pengguna. |
 | `PEMINJAM`      | Unit aktif pada semua ruangan; field internal disembunyikan.     |
+
+`users.role` menyimpan role sistem. Kolom `users.borrower_type` (nullable, `SISWA`/`GURU`/`STAF`) hanya mengklasifikasikan akun peminjam dan tidak menambah role. Role lama `ADMIN_SARPRAS` dimigrasikan menjadi `KETUA_LABORAN` oleh `2026_10_24_000001_rename_admin_sarpras_role_to_ketua_laboran.php`; nilai di `users.role` maupun tabel Spatie ikut diperbarui.
 
 ### 2.8 `loan_items` dan `loan_item_units` (perubahan)
 
@@ -205,18 +209,18 @@ Cakupan efektif:
 
 `loan_item_units`:
 
-| Kolom                      | Tipe               | Keterangan                                                 |
-| -------------------------- | ------------------ | ---------------------------------------------------------- |
-| `id`                       | bigint PK          |                                                            |
-| `loan_item_id`             | FK `loan_items`    | Baris peminjaman.                                          |
-| `asset_unit_id`            | FK `asset_units`   | Unit fisik yang diserahkan.                                |
-| `assigned_at`              | timestamp          | Waktu serah terima unit.                                   |
-| `returned_at`              | timestamp nullable | Waktu unit kembali; `NULL` = penugasan masih terbuka.     |
-| `condition_out`            | string             | Kondisi saat keluar.                                       |
-| `condition_in`             | string nullable    | Kondisi saat kembali.                                      |
-| `opened_at`                | timestamp nullable | Penugasan dibuka (barang keluar ke peminjam).              |
-| `closed_at`                | timestamp nullable | Penugasan ditutup (barang kembali).                        |
-| `created_at`, `updated_at` | timestamp          |                                                            |
+| Kolom                      | Tipe               | Keterangan                                            |
+| -------------------------- | ------------------ | ----------------------------------------------------- |
+| `id`                       | bigint PK          |                                                       |
+| `loan_item_id`             | FK `loan_items`    | Baris peminjaman.                                     |
+| `asset_unit_id`            | FK `asset_units`   | Unit fisik yang diserahkan.                           |
+| `assigned_at`              | timestamp          | Waktu serah terima unit.                              |
+| `returned_at`              | timestamp nullable | Waktu unit kembali; `NULL` = penugasan masih terbuka. |
+| `condition_out`            | string             | Kondisi saat keluar.                                  |
+| `condition_in`             | string nullable    | Kondisi saat kembali.                                 |
+| `opened_at`                | timestamp nullable | Penugasan dibuka (barang keluar ke peminjam).         |
+| `closed_at`                | timestamp nullable | Penugasan ditutup (barang kembali).                   |
+| `created_at`, `updated_at` | timestamp          |                                                       |
 
 Index: `unique(loan_item_id, asset_unit_id)` — satu unit tidak boleh ditugaskan dua kali pada baris peminjaman yang sama. `index(asset_unit_id)`, `index(asset_unit_id, returned_at)`, dan `unique(asset_unit_id, returned_at)` sebagai pengaman penugasan terbuka.
 
@@ -235,8 +239,8 @@ Catatan: penugasan unit dibuat **saat serah terima**. Peminjaman lama yang belum
 
 `loans` mendapat satu kolom baru:
 
-| Kolom           | Tipe                  | Keterangan                                                                                                                     |
-| --------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Kolom             | Tipe                              | Keterangan                                                                                                                                                                           |
+| ----------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `document_status` | string(30) default `BELUM_DIBUAT` | Status dokumen peminjaman, terpisah dari status transaksi. `BELUM_DIBUAT`, `SIAP_DICETAK`, `DICETAK`, `DITANDATANGANI_FISIK`, `DITANDATANGANI_DIGITAL` (`App\Enums\DocumentStatus`). |
 
 Status dokumen **tidak menentukan kelayakan transaksi**: dokumen yang belum dibuat atau belum ditandatangani tidak memblokir serah terima, dan pencetakan dokumen tidak mengubah status peminjaman. Kolom ini diisi lewat `LoanService::markDocumentStatus()` yang hanya menyentuh kolom `document_status`.
@@ -368,6 +372,9 @@ Karena itu backfill tidak boleh menebak. Sekolah harus menetapkan pemetaan huruf
 2026_10_22_195826_add_document_status_to_loans_table.php
 2026_10_22_195827_create_buildings_table_and_link_rooms.php
 2026_10_22_200643_normalize_room_codes_and_internal_ids_to_building_master.php
+2026_10_24_000001_rename_admin_sarpras_role_to_ketua_laboran.php
+2026_10_24_000002_add_borrower_type_to_users_table.php
+2026_10_24_000003_add_archive_columns_to_item_catalogs.php
 ```
 
 Migration terakhir (`normalize_room_codes_and_internal_ids_to_building_master`) memetakan gedung lama → master gedung, menulis ulang `rooms.code` & `rooms.building_letter`, memperbarui `internal_id` katalog, dan **tidak menyentuh kode unit yang sudah terbit** (`asset_unit_codes`).
@@ -383,20 +390,29 @@ Migration terakhir (`normalize_room_codes_and_internal_ids_to_building_master`) 
 
 ## 7. Seeder & akun demo
 
-`php artisan db:seed` membuat:
+Seeder dipisah: `MasterDataSeeder` (role, instansi, 5 jurusan, 3 gedung, 18 ruangan, 5 kategori), `DemoAccountSeeder`, `DemoInventorySeeder`, dan `DemoLoanSeeder`. `DatabaseSeeder` memanggil keempatnya. Semua memakai `firstOrCreate`/`updateOrCreate` dan **tidak mereset password akun yang sudah ada** atau menghapus transaksi.
 
-| Username        | Password     | Role            | Istilah produk | Cakupan                                                    |
-| --------------- | ------------ | --------------- | -------------- | ---------------------------------------------------------- |
-| `wakasek`       | `wakasek123` | `SUPER_ADMIN`   | Super Admin    | Seluruh sekolah                                            |
-| `admin.sarpras` | `admin123`   | `ADMIN_SARPRAS` | Ketua Laboran  | Seluruh laboratorium                                       |
-| `laboran.tkj`   | `laboran123` | `LABORAN`       | Laboran/K3     | `G1-01` (Lab Komputer 1) + `G2-02` (Lab Jaringan)         |
-| `laboran.rpl`   | `laboran123` | `LABORAN`       | Laboran/K3     | `H1-01` (Lab RPL)                                          |
-| `guru.budi`     | `guru123`    | `PEMINJAM`      | Peminjam       | RPL                                                        |
-| `guru.sari`     | `guru123`    | `PEMINJAM`      | Peminjam       | TKJ                                                        |
+| Username        | Password     | Role            | Kategori  | Cakupan                              |
+| --------------- | ------------ | --------------- | --------- | ------------------------------------ |
+| `wakasek`       | `wakasek123` | `SUPER_ADMIN`   | —         | Seluruh sekolah                      |
+| `ketua.laboran` | `ketua123`   | `KETUA_LABORAN` | —         | Seluruh laboratorium                 |
+| `laboran.rpl`   | `laboran123` | `LABORAN`       | —         | `H1-01`, `H1-02`                     |
+| `laboran.dkv`   | `laboran123` | `LABORAN`       | —         | `G2-01`, `G2-02`, `H2-02`            |
+| `laboran.kln`   | `laboran123` | `LABORAN`       | —         | `H2-01`                              |
+| `laboran.tp`    | `laboran123` | `LABORAN`       | —         | `G1-01`, `G1-05`                     |
+| `laboran.tkp`   | `laboran123` | `LABORAN`       | —         | `H2-03`, `H2-04`                     |
+| `guru.budi`     | `guru123`    | `PEMINJAM`      | `GURU`    | RPL                                  |
+| `guru.sari`     | `guru123`    | `PEMINJAM`      | `GURU`    | TP                                   |
+| `siswa.raka`    | `siswa123`   | `PEMINJAM`      | `SISWA`   | RPL                                  |
+| `siswa.nadia`   | `siswa123`   | `PEMINJAM`      | `SISWA`   | DKV                                  |
+| `staf.tata`     | `staf123`    | `PEMINJAM`      | `STAF`    | —                                    |
+| `staf.perpus`   | `staf123`    | `PEMINJAM`      | `STAF`    | —                                    |
 
-Cakupan Laboran/K3 diisi lewat `user_room_scopes`. Ruangan dipetakan lewat identitas **(gedung, lantai, nomor ruangan)** — bukan string kode lokasi — sehingga tetapan tetap benar walaupun format kode berubah.
+Lima jurusan resmi: **RPL** (Rekayasa Perangkat Lunak), **DKV** (Desain Komunikasi Visual), **KLN** (Kuliner), **TP** (Teknik Pengelasan), **TKP** (Teknik Konstruksi Perumahan). Data contoh lama TKJ/MM hanya dihapus bila tidak memiliki ruangan/pengguna; data historis yang masih terelasi dibiarkan.
 
-Data demo hasil `migrate:fresh --seed`: **3 master gedung** (G, H, I), 3 jurusan, 4 kategori, **6 ruangan**, **10 katalog barang**, **40 unit fisik**, 2 kegiatan, 4 peminjaman (selesai, aktif, pending, terlambat), dan 0 arsip laporan (arsip dibuat dari menu **Laporan → Simpan ke Arsip**). Kode lokasi ruang demo: `G1-01`, `G2-02`, `H1-01`, `H2-02`, `G1-03`, `I1-01`. **Ganti seluruh kredensial demo sebelum produksi.**
+Cakupan Laboran/K3 diisi lewat `user_room_scopes`. Data demo berisi **3 master gedung** (G, H, I), 5 jurusan, 5 kategori, **18 ruangan**, **42 katalog**, **125 unit fisik**, 2 kegiatan, dan 4 peminjaman (selesai, aktif, pending, terlambat). Katalog & unit tersebar di laboratorium lima jurusan serta inventaris umum di ruang kelas, ruang guru, tata usaha, dan gudang. **Ganti seluruh kredensial demo sebelum produksi.**
+
+Menjalankan ulang `php artisan db:seed` tidak menduplikasi master/unit dan tidak menimpa password atau kode inventaris yang sudah berubah.
 
 ## 8. Backup
 

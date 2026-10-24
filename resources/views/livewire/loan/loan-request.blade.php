@@ -3,28 +3,75 @@
     <div class="lg:col-span-3 space-y-5">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">add_shopping_cart</span> 1. Cari & Tambah Barang
+                <span class="material-icons-round text-amber-600">add_shopping_cart</span> 1. Pilih Barang dari Katalog
             </h3>
             <div class="relative">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                 <input type="text" wire:model.live.debounce.300ms="search"
-                       placeholder="Ketik minimal 2 huruf: nama barang / ID / kategori..."
+                       placeholder="Cari nama, spesifikasi, kode inventaris..."
                        class="w-full pl-10 pr-3 py-2.5 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
             </div>
 
+            <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <select wire:model.live="category" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                    <option value="">Semua kategori</option>
+                    @foreach ($categories as $c)
+                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="building" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                    <option value="">Semua gedung</option>
+                    @foreach ($buildings as $b)
+                        <option value="{{ $b['code'] }}">{{ $b['name'] }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="room" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                    <option value="">Semua ruangan</option>
+                    @foreach ($rooms as $r)
+                        <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="availability" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                    <option value="">Semua ketersediaan</option>
+                    <option value="available">Ada unit tersedia</option>
+                    <option value="unavailable">Tidak ada unit tersedia</option>
+                </select>
+            </div>
+            @if ($activeFilters > 0)
+                <div class="mt-2 text-right">
+                    <button wire:click="resetFilters" class="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-amber-700">
+                        <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
+                    </button>
+                </div>
+            @endif
+
             @if ($items->isNotEmpty())
-                <ul class="mt-3 divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                <ul class="mt-3 divide-y divide-gray-100 max-h-80 overflow-y-auto">
                     @foreach ($items as $item)
-                        <li class="py-2.5 flex items-center gap-3">
+                        @php($inCart = collect($cart)->contains(fn ($line) => (int) $line['item_id'] === $item->id))
+                        <li class="py-3 flex items-start gap-3">
                             <div class="flex-1 min-w-0">
                                 <div class="text-sm font-medium text-gray-800 truncate">{{ $item->name }}</div>
-                                <div class="text-[11px] text-gray-400 font-mono">{{ $item->internal_id }} • {{ $item->room?->code }} • stok {{ $item->quantity }} {{ $item->unit }}</div>
+                                <div class="text-[11px] text-gray-400 font-mono">{{ $item->internal_id }} • {{ $item->room?->code }}</div>
+                                @if ($item->specification)
+                                    <div class="text-[11px] text-gray-500 mt-0.5">{{ $item->specification }}</div>
+                                @endif
+                                <div class="text-[11px] text-gray-500 mt-0.5">
+                                    Tersedia <strong>{{ $item->available_units_count }}</strong> dari {{ $item->quantity }} {{ $item->unit }}
+                                </div>
+                                @if ($item->units->isNotEmpty())
+                                    <div class="text-[10px] text-gray-400 font-mono mt-0.5">
+                                        Unit: {{ $item->units->pluck('inventory_code')->implode(', ') }}{{ $item->available_units_count > $item->units->count() ? ', …' : '' }}
+                                    </div>
+                                @endif
                             </div>
                             @if ($item->is_high_value)
                                 <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">NILAI TINGGI</span>
                             @endif
-                            @if (array_key_exists($item->id, array_column($cart, 'item_id')))
-                                <span class="text-[11px] text-green-700 font-semibold">✓ di keranjang</span>
+                            @if ($inCart)
+                                <span class="shrink-0 text-[11px] text-green-700 font-semibold">✓ di keranjang</span>
+                            @elseif ($item->available_units_count < 1)
+                                <span class="shrink-0 text-[10px] text-gray-400">tidak tersedia</span>
                             @else
                                 <button wire:click="add({{ $item->id }})"
                                         class="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold">
@@ -34,8 +81,8 @@
                         </li>
                     @endforeach
                 </ul>
-            @elseif (strlen($search) >= 2)
-                <p class="mt-3 text-sm text-gray-400 text-center py-3">Barang tidak ditemukan.</p>
+            @else
+                <p class="mt-3 text-sm text-gray-400 text-center py-3">Barang tidak ditemukan dengan filter ini.</p>
             @endif
         </div>
 
@@ -99,7 +146,7 @@
                 </div>
                 <div class="mt-2 text-[11px] text-gray-400 flex items-center gap-1">
                     <span class="material-icons-round text-sm">workspace_premium</span>
-                    Barang bernilai tinggi pada keranjang memerlukan persetujuan Laboran → <strong>Wakasek Sarpras</strong>. Tanda tangan digital bersifat opsional — dokumen resmi dapat dicetak dan ditandatangani fisik.
+                    Barang bernilai tinggi memerlukan persetujuan <strong>Wakasek Sarpras</strong>. Laboran/K3 yang meminjam dari laboratorium sendiri disetujui otomatis untuk barang biasa. Tanda tangan digital bersifat opsional.
                 </div>
             @endif
         </div>

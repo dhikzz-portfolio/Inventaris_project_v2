@@ -51,12 +51,12 @@ class CriticalBusinessRulesTest extends TestCase
         $this->seed();
 
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->admin = User::where('username', 'admin.sarpras')->firstOrFail();
-        $this->laboranTkj = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
+        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
         $this->laboranRpl = User::where('username', 'laboran.rpl')->firstOrFail();
         $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
 
-        $majorTkj = Major::where('code', 'TKJ')->firstOrFail();
+        $majorTkj = Major::where('code', 'TP')->firstOrFail();
         $majorRpl = Major::where('code', 'RPL')->firstOrFail();
 
         $this->roomTkj = Room::where('major_id', $majorTkj->id)->firstOrFail();

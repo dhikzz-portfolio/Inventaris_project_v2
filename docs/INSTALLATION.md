@@ -21,6 +21,8 @@ cd project_inventaris_v2
 # 2. Dependensi
 composer install
 npm install
+npm ci
+
 
 # 3. Konfigurasi
 cp .env.example .env

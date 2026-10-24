@@ -9,9 +9,25 @@
 
 @theme {
     --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+
+    /* PERUBAHAN: Palet brand mengaktifkan utilitas Tailwind brand-* di halaman login. */
+    --color-brand-50: #eff6ff;
+    --color-brand-100: #dbeafe;
+    --color-brand-200: #bfdbfe;
+    --color-brand-300: #93c5fd;
+    --color-brand-400: #60a5fa;
+    --color-brand-500: #3182ce;
+    --color-brand-600: #1f6fba;
+    --color-brand-700: #1b5f9e;
+    --color-brand-800: #174f82;
+    --color-brand-900: #123f66;
 }
 
 @layer base {
+    [x-cloak] {
+        display: none !important;
+    }
+
     html {
         -webkit-tap-highlight-color: transparent;
     }

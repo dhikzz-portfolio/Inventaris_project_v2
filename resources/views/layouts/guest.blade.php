@@ -22,9 +22,10 @@
             $heading = $attributes['heading'] ?? 'Selamat datang kembali';
             $subheading = $attributes['subheading'] ?? null;
 
+            // PERUBAHAN: Gunakan ikon aplikasi yang tersedia jika logo instansi belum diunggah.
             $loginLogo = $institution?->logo_path
                 ? asset('storage/'.$institution->logo_path)
-                : (file_exists(public_path('images/logo.png')) ? asset('images/logo.png') : null);
+                : asset('icons/icon-192.png');
             $loginLogoAlt = 'Logo '.$institutionName;
         @endphp
 

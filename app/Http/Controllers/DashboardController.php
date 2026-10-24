@@ -23,11 +23,13 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if ($user->canApproveLoans()) {
-            return view('dashboard', $this->operationalData($user));
+        // Tampilan baru hanya ditampilkan untuk role peminjam.
+        // Role lain tetap mengikuti dashboard operasional yang sudah ada pada branch sebelumnya.
+        if ($user->isPeminjam()) {
+            return view('dashboard', $this->personalData($user));
         }
 
-        return view('dashboard', $this->personalData($user));
+        return view('dashboard', $this->operationalData($user));
     }
 
     private function operationalData(User $user): array

@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+@php($institution = \App\Models\InstitutionSetting::current())
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
@@ -31,45 +33,51 @@
         @livewireStyles
         @stack('styles')
     </head>
-    <body class="font-sans antialiased bg-gray-100 text-gray-800">
+    <body class="bg-slate-50 font-sans antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
         <div class="min-h-screen flex" x-data="{ menuOpen: false }">
-            <!-- Sidebar (desktop: statis, mobile: drawer) -->
-            <aside class="fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-slate-900 text-slate-200 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out md:static md:shrink-0 overflow-y-auto overscroll-contain"
-                   :class="menuOpen ? 'translate-x-0' : '-translate-x-full'">
-                <div class="h-16 flex items-center gap-2 px-4 border-b border-slate-800">
-                    @if (\App\Models\InstitutionSetting::current()->logo_path)
-                        <img src="{{ asset('storage/'.\App\Models\InstitutionSetting::current()->logo_path) }}" alt="Logo" class="h-9 w-9 object-contain rounded">
-                    @else
-                        <span class="material-icons-round text-amber-400 text-3xl">school</span>
-                    @endif
-                    <div class="leading-tight">
-                        <div class="font-bold text-white text-sm">{{ \App\Models\InstitutionSetting::current()->institution_name }}</div>
-                        <div class="text-xs text-slate-400">Manajemen Inventaris &amp; Aset</div>
+            <aside id="main-menu"
+                   class="fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] -translate-x-full flex-col border-r border-slate-200 bg-white text-slate-700 shadow-xl transition-transform duration-200 ease-in-out dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 md:static md:shrink-0 md:translate-x-0 md:shadow-none"
+                   :class="menuOpen ? 'translate-x-0' : '-translate-x-full'"
+                   @keydown.escape.window="menuOpen = false">
+                <div class="flex min-h-16 items-center justify-between gap-3 border-b border-slate-100 px-4 dark:border-slate-800">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
+                            @if ($institution->logo_path)
+                                <img src="{{ asset('storage/'.$institution->logo_path) }}" alt="Logo {{ $institution->institution_name }}" class="h-full w-full object-contain p-1">
+                            @else
+                                <span class="material-icons-round text-2xl text-blue-600" aria-hidden="true">school</span>
+                            @endif
+                        </div>
+                        <div class="min-w-0 leading-tight">
+                            <div class="truncate text-sm font-bold text-slate-900 dark:text-white">{{ $institution->institution_name }}</div>
+                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">Inventaris Sekolah</div>
+                        </div>
                     </div>
+                    <button type="button" @click="menuOpen = false" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 md:hidden dark:hover:bg-slate-800" aria-label="Tutup menu">
+                        <span class="material-icons-round" aria-hidden="true">close</span>
+                    </button>
                 </div>
 
-                <nav class="mt-3 px-3 pb-24 space-y-1 overflow-y-auto" style="max-height: calc(100vh - 4rem);">
+                <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 pb-24 md:pb-4" aria-label="Menu utama">
                     @include('layouts.menu')
                 </nav>
             </aside>
 
-            <!-- Overlay mobile -->
-            <div x-show="menuOpen" x-transition.opacity @click="menuOpen = false"
-                 class="fixed inset-0 bg-black/50 z-30 md:hidden" aria-hidden="true"></div>
+            <div x-cloak x-show="menuOpen" x-transition.opacity @click="menuOpen = false"
+                 class="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-[1px] md:hidden" aria-hidden="true"></div>
 
-            <!-- Konten -->
             <div class="flex-1 flex flex-col min-w-0">
                 @include('layouts.navigation')
 
                 @isset($header)
-                    <header class="bg-white border-b border-gray-200">
-                        <div class="max-w-full mx-auto py-3 sm:py-4 px-4 sm:px-6 lg:px-8">
+                    <header class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+                        <div class="mx-auto max-w-full px-4 py-4 sm:px-6 lg:px-8">
                             {{ $header }}
                         </div>
                     </header>
                 @endisset
 
-                <main class="flex-1 p-3 sm:p-4 md:p-6 pb-24 md:pb-6">
+                <main class="flex-1 p-4 pb-24 sm:p-5 sm:pb-24 md:p-6">
                     {{ $slot }}
                 </main>
             </div>
@@ -77,7 +85,7 @@
             @if (auth()->check() && auth()->user()->canApproveLoans())
                 <!-- Tombol kamera mengambang untuk Laboran / pengelola (Bagian 5.9) -->
                 <a href="{{ route('scan') }}"
-                   class="fixed right-4 bottom-20 md:bottom-6 z-30 inline-flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg hover:shadow-xl transition transform hover:scale-105 active:scale-95"
+                   class="fixed right-4 bottom-20 z-30 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-900/20 transition hover:scale-105 hover:bg-blue-700 active:scale-95 sm:h-14 sm:w-14 md:bottom-6"
                    title="Scan QR Inventaris" aria-label="Scan QR Inventaris">
                     <span class="material-icons-round text-2xl">qr_code_scanner</span>
                 </a>

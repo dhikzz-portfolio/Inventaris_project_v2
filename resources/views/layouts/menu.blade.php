@@ -15,13 +15,13 @@
 <x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" label="Peminjaman Saya" />
 
 @if ($canApprove)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Persetujuan &amp; Pengembalian</div>
+    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Persetujuan &amp; Pengembalian</div>
     <x-menu-link :href="route('loans.pending')" :active="request()->routeIs('loans.pending')" icon="how_to_reg" label="Persetujuan Pinjam" />
     <x-menu-link :href="route('loans.returns')" :active="request()->routeIs('loans.returns')" icon="assignment_return" label="Pengembalian" />
 @endif
 
 @if ($canManage || $canApprove)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Inventaris</div>
+    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Inventaris</div>
     {{-- Mutasi memerlukan hak kelola; Laboran hanya dapat mencetak label. --}}
     @if ($canManage)
         <x-menu-link :href="route('movements.index')" :active="request()->routeIs('movements.*')" icon="swap_horiz" label="Mutasi Lokasi" />
@@ -38,16 +38,16 @@
 @endif
 
 @if ($canApprove)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Alat</div>
+    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Alat</div>
     <x-menu-link :href="route('scan')" :active="request()->routeIs('scan')" icon="qr_code_scanner" label="Scan QR" />
 @endif
 
-<div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Akun</div>
+<div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Akun</div>
 <x-menu-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" icon="notifications" label="Notifikasi"
              :badge="$user?->unreadNotifications()->count() ?? 0" />
 
 @if ($isWakasek)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Administrasi</div>
+    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Administrasi</div>
     <x-menu-link :href="route('write-offs.pending')" :active="request()->routeIs('write-offs.pending')" icon="verified_user" label="Approval Penghapusan" />
     <x-menu-link :href="route('items.acquisitions')" :active="request()->routeIs('items.acquisitions')" icon="rule" label="Approval Pengadaan" />
     <x-menu-link :href="route('users.index')" :active="request()->routeIs('users.*')" icon="manage_accounts" label="Pengguna" />

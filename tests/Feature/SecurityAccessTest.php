@@ -26,12 +26,12 @@ class SecurityAccessTest extends TestCase
         Storage::fake('local');
         $this->seed();
 
-        $laboranTkj = User::where('username', 'laboran.tkj')->firstOrFail();
+        $laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
         $laboranRpl = User::where('username', 'laboran.rpl')->firstOrFail();
         $guru = User::where('username', 'guru.budi')->firstOrFail();
         $wakasek = User::where('username', 'wakasek')->firstOrFail();
 
-        $room = Room::where('major_id', Major::where('code', 'TKJ')->value('id'))->firstOrFail();
+        $room = Room::where('major_id', Major::where('code', 'TP')->value('id'))->firstOrFail();
         $category = Category::firstOrFail();
 
         $item = Item::create([
@@ -82,7 +82,7 @@ class SecurityAccessTest extends TestCase
     public function test_laboran_tidak_dapat_mengakses_laporan_seluruh_sekolah(): void
     {
         $this->seed();
-        $laboran = User::where('username', 'laboran.tkj')->firstOrFail();
+        $laboran = User::where('username', 'laboran.tp')->firstOrFail();
 
         $this->actingAs($laboran)->get(route('reports.index'))->assertForbidden();
         $this->actingAs($laboran)->get(route('reports.export', ['type' => 'pdf', 'period' => now()->format('Y-m')]))->assertForbidden();
@@ -91,7 +91,7 @@ class SecurityAccessTest extends TestCase
     public function test_katalog_di_luar_cakupan_tidak_dapat_dibuka_lewat_url_legacy(): void
     {
         $this->seed();
-        $admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
 
         $nonLabItem = Item::where('name', 'Proyektor Epson')->firstOrFail();
         $labItem = Item::where('name', 'Komputer PC')->firstOrFail();
@@ -103,7 +103,7 @@ class SecurityAccessTest extends TestCase
     public function test_ketua_laboran_tidak_dapat_mengajukan_pengadaan_ke_ruang_non_lab(): void
     {
         $this->seed();
-        $admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
         $nonLabRoom = Room::where('is_lab', false)->firstOrFail();
 
         $this->actingAs($admin)->get(route('items.create'))
@@ -128,7 +128,7 @@ class SecurityAccessTest extends TestCase
     {
         $this->seed();
         $guru = User::where('username', 'guru.budi')->firstOrFail();
-        $admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
 
         $unit = AssetUnit::query()
             ->whereHas('room', fn ($query) => $query->where('is_lab', true))
@@ -152,7 +152,7 @@ class SecurityAccessTest extends TestCase
     public function test_manajer_dapat_mengekspor_laporan_pdf_dan_excel(): void
     {
         $this->seed();
-        $admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
 
         $this->actingAs($admin)
             ->get(route('reports.export', ['type' => 'pdf', 'period' => now()->format('Y-m')]))

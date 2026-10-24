@@ -63,16 +63,25 @@ Buka `http://127.0.0.1:8000`.
 
 ## 3. Akun demo
 
-| Username        | Password     | Role          |
-| --------------- | ------------ | ------------- |
-| `wakasek`       | `wakasek123` | SUPER_ADMIN   |
-| `admin.sarpras` | `admin123`   | ADMIN_SARPRAS |
-| `laboran.tkj`   | `laboran123` | LABORAN (TKJ) |
-| `laboran.rpl`   | `laboran123` | LABORAN (RPL) |
-| `guru.budi`     | `guru123`    | PEMINJAM      |
-| `guru.sari`     | `guru123`    | PEMINJAM      |
+| Username        | Password     | Role            |
+| --------------- | ------------ | --------------- |
+| `wakasek`       | `wakasek123` | SUPER_ADMIN     |
+| `ketua.laboran` | `ketua123`   | KETUA_LABORAN   |
+| `laboran.rpl`   | `laboran123` | LABORAN (RPL)   |
+| `laboran.dkv`   | `laboran123` | LABORAN (DKV)   |
+| `laboran.kln`   | `laboran123` | LABORAN (KLN)   |
+| `laboran.tp`    | `laboran123` | LABORAN (TP)    |
+| `laboran.tkp`   | `laboran123` | LABORAN (TKP)   |
+| `guru.budi`     | `guru123`    | PEMINJAM (GURU) |
+| `guru.sari`     | `guru123`    | PEMINJAM (GURU) |
+| `siswa.raka`    | `siswa123`   | PEMINJAM (SISWA)|
+| `siswa.nadia`   | `siswa123`   | PEMINJAM (SISWA)|
+| `staf.tata`     | `staf123`    | PEMINJAM (STAF) |
+| `staf.perpus`   | `staf123`    | PEMINJAM (STAF) |
 
 > Akun demo **hanya untuk lokal**. Sebelum produksi, ubah password, hapus akun yang tidak dipakai, dan jangan menjalankan `--seed` di database produksi.
+
+Seeder aman dijalankan ulang pada database pengembangan: `php artisan db:seed`. Perintah ini tidak menjalankan `migrate:fresh`, tidak menghapus transaksi, tidak mereset password akun yang ada, dan tidak menimpa kode inventaris. Untuk database yang benar-benar kosong saja, gunakan `php artisan migrate --seed`; **jangan** memakai `migrate:fresh` pada database aktif.
 
 ## 4. Membuat admin pertama secara aman (tanpa seeder demo)
 

@@ -29,8 +29,8 @@ class MasterDataTest extends TestCase
         $this->seed();
 
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->admin = User::where('username', 'admin.sarpras')->firstOrFail();
-        $this->laboran = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
+        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
         $this->peminjam = User::where('username', 'guru.budi')->firstOrFail();
     }
 

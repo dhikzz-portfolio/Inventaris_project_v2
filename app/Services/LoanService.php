@@ -63,6 +63,9 @@ class LoanService
             if ($item->acquisition_status !== 'APPROVED') {
                 throw new AvailabilityException("Barang \"{$item->name}\" belum disetujui pada proses pengadaan.");
             }
+            if ($item->isArchived()) {
+                throw new AvailabilityException("Barang \"{$item->name}\" sudah dinonaktifkan dan tidak dapat dipinjam lagi.");
+            }
 
             $physical = $item->quantity - $item->qty_damaged - $item->qty_lost;
             if ($physical <= 0) {
@@ -107,14 +110,21 @@ class LoanService
         return DB::transaction(function () use ($borrower, $merged, $purpose, $start, $due, $eventId) {
             $this->assertAvailable($merged, $start, $due);
 
-            $hasHighValue = Item::whereIn('id', array_column($merged, 'item_id'))
-                ->where('is_high_value', true)
-                ->exists();
+            /** @var Collection<int, Item> $items */
+            $items = Item::with('room')->whereIn('id', array_column($merged, 'item_id'))->get()->keyBy('id');
+            $hasHighValue = $items->contains(fn (Item $item) => $item->is_high_value);
 
             // Wakasek adalah pengelola penuh inventaris sekolah: pengajuannya
             // tidak menunggu persetujuan orang lain. Persetujuannya dicatat atas
             // nama dirinya sendiri — tidak dipalsukan sebagai persetujuan Admin lain.
-            $selfApproved = $borrower->isApproverLevel2();
+            $isWakasek = $borrower->isApproverLevel2();
+
+            // Laboran/K3 yang mengajukan barang dari laboratorium yang menjadi
+            // kewenangannya sendiri tidak perlu endorsement orang lain. Barang
+            // bernilai tinggi tetap harus menunggu persetujuan Wakasek.
+            $withinOwnLab = $this->allLinesWithinLaboranScope($borrower, $merged, $items);
+            $autoEndorseLevel1 = ! $isWakasek && $borrower->isLaboran() && $withinOwnLab;
+            $selfApproved = $isWakasek || ($autoEndorseLevel1 && ! $hasHighValue);
 
             $loan = Loan::create([
                 'borrower_id' => $borrower->id,
@@ -149,7 +159,9 @@ class LoanService
                     'approver_id' => $borrower->id,
                     'level' => $loan->finalApprovalLevel(),
                     'decision' => Decision::APPROVED->value,
-                    'note' => 'Persetujuan melekat — pengajuan oleh Wakasek Sarpras atas kewenangan penuh inventaris sekolah.',
+                    'note' => $autoEndorseLevel1
+                        ? 'Persetujuan otomatis — Laboran/K3 mengajukan barang dari laboratorium yang ditugaskan, bukan barang bernilai tinggi.'
+                        : 'Persetujuan melekat — pengajuan oleh Wakasek Sarpras atas kewenangan penuh inventaris sekolah.',
                     'signature_path' => null,
                     'decided_at' => now(),
                 ]);
@@ -157,11 +169,39 @@ class LoanService
                 activity('peminjaman')
                     ->performedOn($loan)
                     ->causedBy($borrower)
-                    ->log('Persetujuan melekat: pengajuan disetujui atas kewenangan Wakasek (tanpa persetujuan tambahan)');
+                    ->log($autoEndorseLevel1
+                        ? 'Persetujuan otomatis: Laboran/K3 mengajukan barang dari laboratorium sendiri (bukan nilai tinggi)'
+                        : 'Persetujuan melekat: pengajuan disetujui atas kewenangan Wakasek (tanpa persetujuan tambahan)');
 
                 if ($loan->event_id) {
                     app(BastService::class)->generateForLoan($loan);
                 }
+
+                return $loan;
+            }
+
+            // Barang bernilai tinggi dari laboratorium sendiri: endorsemen level 1
+            // dicatat otomatis atas kewenangan Laboran/K3, lalu menunggu
+            // persetujuan khusus Wakasek. Ini mencegah pemohon menyetujui
+            // dirinya sendiri lewat request manual.
+            if ($autoEndorseLevel1) {
+                $loan->approvals()->create([
+                    'approver_id' => $borrower->id,
+                    'level' => 1,
+                    'decision' => Decision::APPROVED->value,
+                    'note' => 'Endorsemen otomatis Laboran/K3 untuk laboratorium yang ditugaskan; barang bernilai tinggi tetap memerlukan persetujuan Wakasek.',
+                    'signature_path' => null,
+                    'decided_at' => now(),
+                ]);
+
+                activity('peminjaman')
+                    ->performedOn($loan)
+                    ->causedBy($borrower)
+                    ->log('Endorsemen otomatis level 1: Laboran/K3 mengajukan barang bernilai tinggi dari laboratorium sendiri');
+
+                NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PERSETUJUAN,
+                    "Persetujuan barang bernilai tinggi diperlukan untuk \"{$purpose}\" (peminjam {$borrower->name}).",
+                    route('loans.pending'));
 
                 return $loan;
             }
@@ -174,6 +214,37 @@ class LoanService
 
             return $loan;
         });
+    }
+
+    /**
+     * Semua baris berada pada laboratorium yang ditugaskan ke Laboran/K3.
+     * Laboran tanpa penugasan ruangan tidak memperoleh persetujuan otomatis.
+     *
+     * @param  array<int, array{item_id: int, qty: int}>  $lines
+     * @param  Collection<int, Item>  $items
+     */
+    private function allLinesWithinLaboranScope(User $borrower, array $lines, Collection $items): bool
+    {
+        if (! $borrower->isLaboran()) {
+            return false;
+        }
+
+        $roomIds = $borrower->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
+
+        if ($roomIds === []) {
+            return false;
+        }
+
+        foreach ($lines as $line) {
+            /** @var Item|null $item */
+            $item = $items->get((int) $line['item_id']);
+
+            if ($item === null || ! $item->room?->is_lab || ! in_array((int) $item->room_id, $roomIds, true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -199,14 +270,34 @@ class LoanService
                 throw new \RuntimeException('Barang bernilai tinggi memerlukan persetujuan Wakasek Sarpras.');
             }
 
-            // Laboran hanya berwenang untuk unit di jurusannya — seluruh item harus berada dalam cakupan.
-            if ($approver->isLaboran() && $approver->major_id) {
+            // Peminjam tidak boleh menyetujui pengajuannya sendiri. Pengecualian
+            // hanya persetujuan melekat Wakasek yang memang dicatat sebagai
+            // kewenangan jabatannya, bukan pemalsuan aktor lain.
+            if ($approver->id === $loan->borrower_id && ! $approver->isApproverLevel2()) {
+                throw new \RuntimeException('Anda tidak dapat menyetujui pengajuan peminjaman milik sendiri.');
+            }
+
+            // Laboran/K3 hanya berwenang untuk ruangan laboratorium yang
+            // ditugaskan; Ketua Laboran untuk seluruh laboratorium (bukan
+            // inventaris nonlaboratorium). Seluruh item harus berada dalam cakupan.
+            if ($approver->isLaboran()) {
+                $roomIds = $approver->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
                 $outside = $loan->loanItems()
-                    ->whereHas('item.room', fn ($q) => $q->where('major_id', '!=', $approver->major_id)->orWhereNull('major_id'))
+                    ->whereHas('item', fn ($q) => $q->whereNotIn('room_id', $roomIds))
+                    ->exists();
+
+                if ($roomIds === [] || $outside) {
+                    throw new \RuntimeException('Peminjaman ini mencakup barang di luar laboratorium yang ditugaskan kepada Anda.');
+                }
+            }
+
+            if ($approver->isKetuaLaboran()) {
+                $outside = $loan->loanItems()
+                    ->whereHas('item.room', fn ($q) => $q->where('is_lab', false))
                     ->exists();
 
                 if ($outside) {
-                    throw new \RuntimeException('Peminjaman ini mencakup barang di luar jurusan Anda.');
+                    throw new \RuntimeException('Peminjaman ini mencakup inventaris nonlaboratorium di luar kewenangan Ketua Laboran.');
                 }
             }
 
@@ -294,7 +385,7 @@ class LoanService
             }
 
             // Jika penugasan unit disediakan, validasi dan simpan sebelum mengubah status.
-            $assignedUnits = $this->assignUnitsOnHandover($loan, $unitAssignments);
+            $assignedUnits = $this->assignUnitsOnHandover($loan, $unitAssignments, $officer);
 
             $loan->update([
                 'status' => LoanStatus::DIPINJAM,
@@ -339,7 +430,7 @@ class LoanService
      * @param  array<int, array{loan_item_id?: int, item_id?: int, unit_ids: list<int>}>|null  $unitAssignments
      * @return Collection<int, LoanItemUnit>|null
      */
-    private function assignUnitsOnHandover(Loan $loan, ?array $unitAssignments): ?Collection
+    private function assignUnitsOnHandover(Loan $loan, ?array $unitAssignments, ?User $officer = null): ?Collection
     {
         if ($unitAssignments === null || $unitAssignments === []) {
             return null;
@@ -369,12 +460,22 @@ class LoanService
                 );
             }
 
-            $units = AssetUnit::visibleTo(auth()->user() ?? $loan->borrower)
+            // Kunci baris unit agar dua proses serah terima bersamaan tidak
+            // dapat menugaskan unit fisik yang sama.
+            $units = AssetUnit::visibleTo($officer ?? auth()->user() ?? $loan->borrower)
                 ->whereIn('id', $unitIds)
+                ->lockForUpdate()
                 ->get();
 
             if ($units->count() !== count($unitIds)) {
                 throw new \RuntimeException('Salah satu unit tidak ditemukan atau tidak dapat diakses.');
+            }
+
+            // Unit harus benar-benar bagian dari transaksi ini: tidak boleh ada
+            // ID unit liar yang dikirim lewat request.
+            $loanItemIds = $loan->loanItems()->pluck('id')->map(fn ($id) => (int) $id)->all();
+            if (! in_array((int) $loanItem->id, $loanItemIds, true)) {
+                throw new \RuntimeException('Baris peminjaman bukan bagian dari transaksi ini.');
             }
 
             foreach ($units as $unit) {
@@ -415,6 +516,12 @@ class LoanService
                 if ($existingOpen !== null && $existingOpen->loanItem->loan_id !== $loan->id) {
                     throw new \RuntimeException(
                         "Unit {$unit->inventory_code} sudah ditugaskan pada peminjaman lain dan tidak dapat dipinjam lagi."
+                    );
+                }
+
+                if ($existingOpen !== null && (int) $existingOpen->loan_item_id !== (int) $loanItem->id) {
+                    throw new \RuntimeException(
+                        "Unit {$unit->inventory_code} sudah ditugaskan pada baris barang lain dalam peminjaman ini."
                     );
                 }
 
@@ -704,19 +811,19 @@ class LoanService
                 route('loans.show', $loan));
 
             if ($hasShortage) {
-                NotifyApp::toRoles(['SUPER_ADMIN', 'ADMIN_SARPRAS'], NotificationType::PENGEMBALIAN,
+                NotifyApp::toRoles(['SUPER_ADMIN', 'KETUA_LABORAN'], NotificationType::PENGEMBALIAN,
                     "Selisih kuantitas pada peminjaman \"{$loan->purpose}\" (peminjam: {$loan->borrower->name}).",
                     route('loans.show', $loan));
             }
 
             if ($hasDamage) {
-                NotifyApp::toRoles(['SUPER_ADMIN', 'ADMIN_SARPRAS'], NotificationType::PENGEMBALIAN,
+                NotifyApp::toRoles(['SUPER_ADMIN', 'KETUA_LABORAN'], NotificationType::PENGEMBALIAN,
                     "Barang rusak dikembalikan pada peminjaman \"{$loan->purpose}\" — periksa foto bukti dan kondisi unit.",
                     route('loans.show', $loan));
             }
 
             if ($misplaced) {
-                NotifyApp::toRoles(['SUPER_ADMIN', 'ADMIN_SARPRAS'], NotificationType::LAINNYA,
+                NotifyApp::toRoles(['SUPER_ADMIN', 'KETUA_LABORAN'], NotificationType::LAINNYA,
                     "Barang dari peminjaman \"{$loan->purpose}\" dikembalikan ke ruangan berbeda — periksa mutasi lokasi.",
                     route('movements.index'));
             }
@@ -984,13 +1091,20 @@ class LoanService
     private function mergeLines(array $lines): array
     {
         $merged = [];
+
         foreach ($lines as $line) {
             $id = (int) ($line['item_id'] ?? 0);
             $qty = (int) ($line['qty'] ?? 0);
+
             if ($id <= 0 || $qty <= 0) {
                 throw new AvailabilityException('Data keranjang tidak valid.');
             }
-            $merged[$id] = ['item_id' => $id, 'qty' => ($merged[$id]['qty'] ?? 0) + $qty];
+
+            if (array_key_exists($id, $merged)) {
+                throw new AvailabilityException('Katalog yang sama tidak boleh dipilih lebih dari sekali dalam satu pengajuan.');
+            }
+
+            $merged[$id] = ['item_id' => $id, 'qty' => $qty];
         }
 
         return array_values($merged);

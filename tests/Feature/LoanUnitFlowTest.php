@@ -43,9 +43,9 @@ class LoanUnitFlowTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboranTkj = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
         $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
-        $this->roomTkj = Room::where('major_id', Major::where('code', 'TKJ')->value('id'))->firstOrFail();
+        $this->roomTkj = Room::where('major_id', Major::where('code', 'TP')->value('id'))->firstOrFail();
         $this->category = Category::firstOrFail();
     }
 
@@ -371,6 +371,46 @@ class LoanUnitFlowTest extends TestCase
 
         $this->assertSame(1, LoanItemUnit::where('loan_item_id', $loanItem->id)->count());
         $this->assertSame(1, LoanItemUnit::where('asset_unit_id', $unit->id)->count());
+    }
+
+    public function test_serah_terima_menolak_unit_melebihi_jumlah_yang_dipinjam(): void
+    {
+        $catalog = $this->makeCatalog('Kursi Kelebihan Unit', 4);
+        $loan = $this->approvedLoan($catalog, 2);
+        $loanItem = $loan->loanItems()->firstOrFail();
+        $unitIds = $catalog->units()->orderBy('inventory_code')->take(3)->pluck('id')->all();
+
+        $this->actingAs($this->laboranTkj)
+            ->post(route('loans.handover', $loan), [
+                'unit_assignments' => [$loanItem->id => ['unit_ids' => $unitIds]],
+            ])
+            ->assertSessionHasErrors('handover');
+
+        $this->assertSame(0, LoanItemUnit::where('loan_item_id', $loanItem->id)->count());
+        $this->assertSame(LoanStatus::APPROVED, $loan->refresh()->status);
+        $this->assertSame(0, $catalog->units()->where('status', UnitStatus::DIPINJAM->value)->count());
+    }
+
+    public function test_request_serah_terima_berulang_tidak_membuat_penugasan_ganda(): void
+    {
+        $catalog = $this->makeCatalog('Kursi Serah Berulang', 2);
+        $loan = $this->approvedLoan($catalog, 1);
+        $loanItem = $loan->loanItems()->firstOrFail();
+        $unitId = $catalog->units()->firstOrFail()->id;
+
+        $payload = ['unit_assignments' => [$loanItem->id => ['unit_ids' => [$unitId]]]];
+
+        $this->actingAs($this->laboranTkj)
+            ->post(route('loans.handover', $loan), $payload)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->laboranTkj)
+            ->post(route('loans.handover', $loan), $payload)
+            ->assertSessionHasErrors('handover');
+
+        $this->assertSame(1, LoanItemUnit::where('loan_item_id', $loanItem->id)->count());
+        $this->assertSame(1, LoanItemUnit::where('asset_unit_id', $unitId)->count());
     }
 
     public function test_serah_terima_menolak_penugasan_unit_parsial(): void

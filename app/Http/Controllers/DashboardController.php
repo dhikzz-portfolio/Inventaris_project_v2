@@ -44,6 +44,7 @@ class DashboardController extends Controller
             ->where('status', '!=', UnitStatus::DIHAPUS->value);
 
         $catalogCount = Item::approved()
+            ->notArchived()
             ->visibleTo($user)
             ->where('status', '!=', ItemStatus::DIHAPUS->value)
             ->count();
@@ -116,7 +117,7 @@ class DashboardController extends Controller
             'mode' => 'operational',
             'scopeLabel' => match (true) {
                 $user->isSuperAdmin() => 'seluruh sekolah',
-                $user->isAdminSarpras() => 'seluruh laboratorium',
+                $user->isKetuaLaboran() => 'seluruh laboratorium',
                 default => 'laboratorium dalam cakupan Anda',
             },
             'stats' => [
@@ -177,7 +178,7 @@ class DashboardController extends Controller
                 ->get(),
             'loansPerMonth' => $loansPerMonth,
             'recentActivity' => Activity::where('causer_id', $user->id)->latest()->limit(6)->get(),
-            'catalogCount' => Item::approved()->where('status', '!=', ItemStatus::DIHAPUS->value)->count(),
+            'catalogCount' => Item::approved()->notArchived()->where('status', '!=', ItemStatus::DIHAPUS->value)->count(),
         ];
     }
 }

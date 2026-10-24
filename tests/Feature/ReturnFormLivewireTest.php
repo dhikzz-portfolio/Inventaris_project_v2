@@ -39,7 +39,7 @@ class ReturnFormLivewireTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboran = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
         $this->guru = User::where('username', 'guru.budi')->firstOrFail();
 
         $category = Category::firstOrFail();

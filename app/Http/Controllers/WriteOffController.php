@@ -21,6 +21,7 @@ class WriteOffController extends Controller
     {
         return view('write-offs.index', [
             'items' => Item::approved()
+                ->notArchived()
                 ->visibleTo($request->user())
                 ->where('status', '!=', ItemStatus::DIHAPUS->value)
                 ->with('room')

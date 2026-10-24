@@ -28,7 +28,7 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 ## 4. Mutasi Lokasi & Penerbitan Ulang Kode (Asumsi 4, Bagian 5.4, 5.5) — Direvisi 2.1
 
 - **Keputusan**:
-    - Mutasi dilakukan oleh Ketua Laboran (`ADMIN_SARPRAS`), Super Admin (`SUPER_ADMIN`), atau petugas yang berwenang atas unit tersebut.
+    - Mutasi dilakukan oleh Ketua Laboran (`KETUA_LABORAN`), Super Admin (`SUPER_ADMIN`), atau petugas yang berwenang atas unit tersebut.
     - Saat unit berpindah ruangan, `asset_units.room_id`, `unit_no`, dan `inventory_code` diperbarui dalam satu `DB::transaction`; kode lama ditutup (`revoked_at`) dan kode baru diterbitkan.
     - `asset_unit_movements` mencatat asal, tujuan, kode lama, kode baru, petugas, waktu, dan alasan.
     - `asset_units.last_label_printed_at` dikosongkan agar label baru wajib dicetak.
@@ -107,7 +107,7 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 
 ## 16. Laporan Hanya untuk Pengelola
 
-- **Keputusan**: Route laporan dan ekspor dibatasi `SUPER_ADMIN` dan `ADMIN_SARPRAS`. Laboran tetap dapat melihat label, scan, dan riwayat unit, tetapi tidak dapat mengekspor data seluruh sekolah.
+- **Keputusan**: Route laporan dan ekspor dibatasi `SUPER_ADMIN` dan `KETUA_LABORAN`. Laboran tetap dapat melihat label, scan, dan riwayat unit, tetapi tidak dapat mengekspor data seluruh sekolah.
 - **Rasional**: Prinsip least privilege; permintaan PRD untuk laboran adalah pemantauan unit, bukan laporan institusi.
 - **Revisi 2.1**: Laporan Ketua Laboran hanya memuat unit dalam lingkup laboratorium; laporan Super Admin memuat seluruh unit termasuk ruang umum.
 
@@ -154,7 +154,7 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 
 - **Keputusan**: Cakupan katalog dan unit ditentukan oleh peran dan ruangan:
     - Super Admin: semua unit.
-    - Ketua Laboran (`ADMIN_SARPRAS`): unit pada `rooms.is_lab = true`, lintas jurusan.
+    - Ketua Laboran (`KETUA_LABORAN`): unit pada `rooms.is_lab = true`, lintas jurusan.
     - Laboran/K3 (`LABORAN`): unit pada `user_room_scopes`.
     - Peminjam: unit aktif pada semua ruangan (tidak dibatasi laboratorium agar alur peminjaman yang ada tidak berubah), tanpa field internal.
 - **Rasional**: Permintaan eksplisit: Ketua Laboran tidak boleh membaca inventaris umum di luar domain laboratorium, dan Laboran hanya laboratorium yang ditetapkan. Cakupan berbasis jurusan (`users.major_id`) terlalu luas karena satu jurusan dapat memiliki beberapa lab dan satu lab dapat dipakai lintas jurusan.
@@ -218,3 +218,33 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 - **Keputusan**: Saat serah terima dengan unit fisik, jumlah unit yang dipilih per baris peminjaman harus sama dengan jumlah yang dipinjam, kecuali katalog yang belum memiliki unit fisik (data warisan). Unit yang ditugaskan harus aktif, kondisi baik, belum dipinjam orang lain, dan belum pernah dikembalikan pada pinjaman yang sama.
 - **Rasional**: Penugasan parsial membuat pencatatan unit fisik dan pembukuan kuantitas tidak sinkron.
 - **Konsekuensi**: Sistem menolak serah terima dengan pesan yang menjelaskan masalahnya bila syarat tidak terpenuhi; serah terima tanpa unit masih tersedia untuk katalog warisan.
+
+## 33. Role `KETUA_LABORAN` Menggantikan `ADMIN_SARPRAS` (Revisi 24 Oktober 2026)
+
+- **Keputusan**: Kode role `ADMIN_SARPRAS` diganti `KETUA_LABORAN`. Migration memperbarui `users.role`, tabel `roles` Spatie, dan pivot `model_has_roles`/`role_has_permissions`; tidak ada akun yang kehilangan akses.
+- **Rasional**: Label lama "Admin Sarpras" menyiratkan akses seluruh inventaris, padahal cakupannya hanya laboratorium. Wakasek Sarpras sudah menjadi Super Admin, sehingga role kedua harus mencerminkan Ketua Laboran.
+- **Konsekuensi**: Seluruh middleware, route, seeder, policy, query scope, notifikasi, dan Blade memakai `KETUA_LABORAN`. Role ini tetap **tidak** memperoleh inventaris nonlaboratorium.
+
+## 34. Kategori Peminjam Dipisahkan dari Role (Revisi 24 Oktober 2026)
+
+- **Keputusan**: Role sistem tetap empat. Kategori siswa/guru/staf disimpan pada `users.borrower_type` (nullable) dan hanya berlaku untuk role `PEMINJAM`.
+- **Rasional**: Semua kategori memakai alur peminjaman yang sama; menambah role teknis per kategori akan menduplikasi otorisasi tanpa manfaat.
+- **Konsekuensi**: Form pengguna menampilkan kategori hanya untuk peminjam; akun non-peminjam menyimpan `borrower_type = NULL`.
+
+## 35. Persetujuan Otomatis Laboran/K3 dalam Lingkup Sendiri (Revisi 24 Oktober 2026)
+
+- **Keputusan**: Pengajuan Laboran/K3 disetujui otomatis **hanya bila** seluruh barang berasal dari laboratorium yang ditugaskan, bukan barang bernilai tinggi, dan validasi ketersediaan lolos. Barang bernilai tinggi mendapat endorsemen level 1 otomatis lalu menunggu Wakasek. Pengajuan lintas lingkup tetap `PENDING`.
+- **Rasional**: Laboran/K3 adalah pihak yang menguasai laboratoriumnya; endorsement ulang oleh pihak lain menambah gesekan tanpa menambah kontrol. Barang bernilai tinggi tetap memerlukan persetujuan khusus.
+- **Konsekuensi**: Persetujuan otomatis dicatat atas identitas pemohon dengan catatan "Persetujuan otomatis" pada `loan_approvals` dan `activity_log`. Pemohon tidak dapat menyetujui pengajuan sendiri secara manual.
+
+## 36. Penghapusan Katalog: Hapus atau Arsip (Revisi 24 Oktober 2026)
+
+- **Keputusan**: Katalog tanpa unit, riwayat peminjaman, dan penghapusan boleh dihapus permanen. Katalog yang memiliki salah satunya diarsipkan melalui `item_catalogs.archived_at`; unit dan riwayat transaksi tidak disentuh.
+- **Rasional**: Menghapus katalog yang pernah dipakai akan memutus audit dan membuat referensi transaksi menggantung. Arsip mempertahankan integritas data sambil menarik katalog dari penawaran.
+- **Konsekuensi**: Katalog diarsipkan tidak tampil di katalog/peminjaman baru dan detailnya hanya dapat dibuka pengelola. Penghapusan diperiksa di backend terhadap role dan cakupan.
+
+## 37. Batas Penyerahan Unit di UI dan Backend (Revisi 24 Oktober 2026)
+
+- **Keputusan**: Form serah terima membatasi pilihan per baris sesuai `qty_borrowed`; unit tambahan disabled setelah batas terpenuhi tetapi centang masih dapat dibatalkan. Backend memvalidasi ulang jumlah, kepemilikan unit, duplikasi, dan request berulang dalam transaksi dengan `lockForUpdate`.
+- **Rasional**: Tombol disabled saja tidak cukup; request dapat dikirim langsung. Pembatasan dua lapis mencegah penyerahan berlebih dan penugasan unit ganda.
+- **Konsekuensi**: Unit yang tidak dipilih tidak berubah status; penyerahan parsial/berlebih ditolak dan transaksi tetap `APPROVED`.

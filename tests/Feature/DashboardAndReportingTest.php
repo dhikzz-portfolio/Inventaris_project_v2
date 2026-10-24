@@ -57,8 +57,8 @@ class DashboardAndReportingTest extends TestCase
     public function test_dashboard_pengelola_menghitung_unit_sesuai_cakupan_akses(): void
     {
         $wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $admin = User::where('username', 'admin.sarpras')->firstOrFail();
-        $laboran = User::where('username', 'laboran.tkj')->firstOrFail();
+        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
+        $laboran = User::where('username', 'laboran.tp')->firstOrFail();
 
         $unitStat = function ($response): int {
             return (int) collect($response->viewData('stats'))->firstWhere('label', 'Unit Inventaris')['value'];
@@ -82,7 +82,7 @@ class DashboardAndReportingTest extends TestCase
 
     public function test_menu_laboran_tidak_menautkan_mutasi_yang_bukan_kewenangannya(): void
     {
-        $laboran = User::where('username', 'laboran.tkj')->firstOrFail();
+        $laboran = User::where('username', 'laboran.tp')->firstOrFail();
 
         $this->actingAs($laboran)->get(route('dashboard'))
             ->assertOk()

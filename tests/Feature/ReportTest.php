@@ -89,7 +89,7 @@ class ReportTest extends TestCase
 
     public function test_ketua_laboran_hanya_mendapat_data_laporan_laboratorium(): void
     {
-        $admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
         $wakasek = User::where('username', 'wakasek')->firstOrFail();
 
         $labItem = Item::where('name', 'Komputer PC')->firstOrFail();
@@ -171,7 +171,7 @@ class ReportTest extends TestCase
         Storage::disk('local')->put('reports/semua.pdf', '%PDF-1.4 test');
         Storage::disk('local')->put('reports/milik-admin.pdf', '%PDF-1.4 test');
 
-        $admin = User::where('username', 'admin.sarpras')->firstOrFail();
+        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
         $wakasek = User::where('username', 'wakasek')->firstOrFail();
 
         $systemReport = Report::create([

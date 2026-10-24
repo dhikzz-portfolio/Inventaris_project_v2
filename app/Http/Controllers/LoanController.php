@@ -17,6 +17,7 @@ use App\Services\LoanService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class LoanController extends Controller
@@ -35,19 +36,25 @@ class LoanController extends Controller
     {
         $user = $request->user();
 
-        if ($user->managesInventory()) {
+        if ($user->isSuperAdmin()) {
             return true;
         }
 
+        $items = $loan->loanItems()->with('item.room')->get();
+
+        if ($items->isEmpty()) {
+            return false;
+        }
+
+        if ($user->isKetuaLaboran()) {
+            return $items->every(fn ($li) => (bool) $li->item?->room?->is_lab);
+        }
+
         if ($user->isLaboran()) {
-            if ($user->major_id === null) {
-                return false;
-            }
+            $roomIds = $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
 
-            $items = $loan->loanItems()->with('item.room')->get();
-
-            return $items->isNotEmpty() && $items->every(
-                fn ($li) => (int) $li->item?->room?->major_id === (int) $user->major_id
+            return $roomIds !== [] && $items->every(
+                fn ($li) => in_array((int) $li->item?->room_id, $roomIds, true)
             );
         }
 
@@ -86,10 +93,13 @@ class LoanController extends Controller
             return back()->withErrors(['lines' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('loans.show', $loan)
-            ->with('success', $loan->status === LoanStatus::APPROVED
-                ? "Request peminjaman #{$loan->id} disetujui atas kewenangan Wakasek Sarpras — lanjutkan ke serah terima."
-                : "Request peminjaman #{$loan->id} terkirim — menunggu persetujuan.");
+        $message = match (true) {
+            $loan->status !== LoanStatus::APPROVED => "Request peminjaman #{$loan->id} terkirim — menunggu persetujuan.",
+            $request->user()->isApproverLevel2() => "Request peminjaman #{$loan->id} disetujui atas kewenangan Wakasek Sarpras — lanjutkan ke serah terima.",
+            default => "Request peminjaman #{$loan->id} disetujui otomatis untuk laboratorium yang Anda tugaskan — lanjutkan ke serah terima.",
+        };
+
+        return redirect()->route('loans.show', $loan)->with('success', $message);
     }
 
     // ================= DAFTAR =================
@@ -439,6 +449,7 @@ class LoanController extends Controller
         $byItemId = $loanItems->groupBy('item_id');
 
         $normalized = [];
+        $previouslyAssigned = [];
 
         foreach ($assignments as $key => $assignment) {
             $unitIds = array_values(array_unique(array_map('intval', (array) ($assignment['unit_ids'] ?? []))));
@@ -465,8 +476,25 @@ class LoanController extends Controller
             }
 
             if ($loanItem === null) {
-                abort(422, 'Baris peminjaman untuk unit yang dipilih tidak ditemukan.');
+                throw ValidationException::withMessages([
+                    'handover' => 'Baris peminjaman untuk unit yang dipilih tidak ditemukan.',
+                ]);
             }
+
+            if (count($unitIds) > (int) $loanItem->qty_borrowed) {
+                throw ValidationException::withMessages([
+                    'handover' => 'Jumlah unit yang dipilih melebihi jumlah yang dipinjam pada baris ini.',
+                ]);
+            }
+
+            // Satu unit fisik tidak boleh dipilih pada dua baris sekaligus.
+            if (array_intersect($unitIds, $previouslyAssigned) !== []) {
+                throw ValidationException::withMessages([
+                    'handover' => 'Unit yang sama tidak boleh dipilih lebih dari sekali.',
+                ]);
+            }
+
+            $previouslyAssigned = array_merge($previouslyAssigned, $unitIds);
 
             $normalized[] = [
                 'loan_item_id' => (int) $loanItem->id,

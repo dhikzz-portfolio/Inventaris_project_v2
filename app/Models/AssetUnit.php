@@ -82,7 +82,7 @@ class AssetUnit extends Model
             return $query;
         }
 
-        if ($user->isAdminSarpras()) {
+        if ($user->isKetuaLaboran()) {
             return $query->whereHas('room', fn (Builder $room) => $room->where('is_lab', true));
         }
 

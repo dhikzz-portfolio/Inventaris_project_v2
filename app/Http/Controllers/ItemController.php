@@ -231,7 +231,7 @@ class ItemController extends Controller
         activity('pengadaan')->performedOn($item)->causedBy($request->user())->log('Menyetujui pengadaan barang');
 
         if ($request->user()->id !== (int) $item->acquisition_requested_by) {
-            NotifyApp::toRoles(['ADMIN_SARPRAS'], NotificationType::PENGADAAN,
+            NotifyApp::toRoles(['KETUA_LABORAN'], NotificationType::PENGADAAN,
                 "Pengadaan \"{$item->name}\" DISETUJUI Wakasek Sarpras.", route('items.show', $item));
         }
 
@@ -253,7 +253,7 @@ class ItemController extends Controller
 
         activity('pengadaan')->performedOn($item)->causedBy($request->user())->log('Menolak pengadaan barang'.($note ? ": {$note}" : ''));
 
-        NotifyApp::toRoles(['ADMIN_SARPRAS'], NotificationType::PENGADAAN,
+        NotifyApp::toRoles(['KETUA_LABORAN'], NotificationType::PENGADAAN,
             "Pengadaan \"{$item->name}\" DITOLAK".($note ? " — {$note}" : ''), route('items.acquisitions'));
 
         return back()->with('success', "Pengadaan \"{$item->name}\" ditolak.");

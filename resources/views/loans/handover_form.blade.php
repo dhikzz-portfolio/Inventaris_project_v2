@@ -55,13 +55,17 @@
                                 Bisa karena seluruh unit sedang dipinjam, tidak aktif, atau rusak.
                             </div>
                         @else
-                            <div class="rounded-lg border border-gray-200 divide-y divide-gray-100 max-h-[320px] overflow-y-auto">
+                            <div x-data="{ selected: [], max: {{ $qtyBorrowed }} }"
+                                 class="rounded-lg border border-gray-200 divide-y divide-gray-100 max-h-[320px] overflow-y-auto">
                                 @foreach ($bucket['units'] as $unit)
-                                    <label class="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer">
+                                    <label class="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                                           :class="selected.length >= max && ! selected.includes('{{ $unit->id }}') ? 'opacity-40 cursor-not-allowed' : ''">
                                         <input type="checkbox"
                                                name="unit_assignments[{{ $loanItemId }}][unit_ids][]"
                                                value="{{ $unit->id }}"
-                                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                               x-model="selected"
+                                               :disabled="selected.length >= max && ! selected.includes('{{ $unit->id }}')"
+                                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed">
                                         <div class="flex-1 min-w-0">
                                             <div class="font-mono font-semibold text-gray-800 text-sm">{{ $unit->inventory_code }}</div>
                                             <div class="text-[11px] text-gray-500">{{ $unit->locationLabel() }}</div>
@@ -69,9 +73,16 @@
                                         </div>
                                     </label>
                                 @endforeach
+                                <div class="p-3 bg-gray-50 text-[11px] text-gray-600 flex items-center justify-between gap-2">
+                                    <span>
+                                        Dipilih <strong x-text="selected.length"></strong> dari {{ $qtyBorrowed }} unit yang wajib diserahkan.
+                                        Unit tambahan otomatis dinonaktifkan setelah batas terpenuhi.
+                                    </span>
+                                    <span x-show="selected.length === max" class="text-green-700 font-semibold whitespace-nowrap">✓ lengkap</span>
+                                </div>
                             </div>
                             <p class="text-[11px] text-gray-400 mt-1">
-                                Pilih tepat {{ $qtyBorrowed }} unit untuk barang ini.
+                                Pilih tepat {{ $qtyBorrowed }} unit untuk barang ini. Hapus centang untuk mengganti pilihan sebelum menyimpan.
                             </p>
                         @endif
                     </div>

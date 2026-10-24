@@ -25,6 +25,7 @@ class Item extends Model
         'category_id', 'room_id', 'specification', 'acquisition_year',
         'funding_source', 'quantity', 'qty_damaged', 'qty_lost', 'unit', 'is_high_value',
         'status', 'photo_path', 'last_label_printed_at',
+        'archived_at', 'archive_reason',
         'acquisition_status', 'acquisition_requested_by', 'acquisition_approved_by',
         'acquisition_decided_at', 'acquisition_note',
     ];
@@ -39,6 +40,7 @@ class Item extends Model
             'is_high_value' => 'boolean',
             'status' => ItemStatus::class,
             'last_label_printed_at' => 'datetime',
+            'archived_at' => 'datetime',
             'acquisition_decided_at' => 'datetime',
         ];
     }
@@ -90,7 +92,7 @@ class Item extends Model
             $visible->orWhere(function ($legacy) use ($user) {
                 $legacy->whereDoesntHave('units');
 
-                if ($user->isAdminSarpras()) {
+                if ($user->isKetuaLaboran()) {
                     $legacy->whereHas('room', fn ($room) => $room->where('is_lab', true));
                 } elseif ($user->isLaboran()) {
                     $legacy->whereIn('room_id', $user->roomScopes()->select('room_id'));
@@ -123,6 +125,28 @@ class Item extends Model
     public function scopeApproved($query)
     {
         return $query->where('acquisition_status', 'APPROVED');
+    }
+
+    /** Katalog yang diarsipkan tidak ditawarkan lagi untuk peminjaman baru. */
+    public function scopeNotArchived($query)
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    /**
+     * Katalog hanya boleh dihapus permanen bila belum pernah dipakai unit
+     * maupun transaksi. Selain itu data harus diarsipkan agar audit tetap utuh.
+     */
+    public function canBeDeletedPermanently(): bool
+    {
+        return ! $this->units()->exists()
+            && ! $this->loanItems()->exists()
+            && ! $this->writeOffs()->exists();
     }
 
     public function isAcquisitionPending(): bool

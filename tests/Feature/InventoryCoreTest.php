@@ -43,8 +43,8 @@ class InventoryCoreTest extends TestCase
         $this->seed();
 
         $this->superAdmin = User::where('username', 'wakasek')->firstOrFail();
-        $this->ketuaLaboran = User::where('username', 'admin.sarpras')->firstOrFail();
-        $this->laboranTkj = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->ketuaLaboran = User::where('username', 'ketua.laboran')->firstOrFail();
+        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
         $this->category = Category::firstOrFail();
     }
 

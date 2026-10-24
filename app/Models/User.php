@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BorrowerType;
 use App\Enums\Role;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -18,7 +19,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
-    protected $fillable = ['username', 'name', 'password', 'role', 'major_id', 'last_login_at'];
+    protected $fillable = ['username', 'name', 'password', 'role', 'borrower_type', 'major_id', 'last_login_at'];
 
     /**
      * @return array<string, string>
@@ -27,6 +28,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'borrower_type' => BorrowerType::class,
             'last_login_at' => 'datetime',
         ];
     }
@@ -68,9 +70,9 @@ class User extends Authenticatable
         return $this->role === Role::SUPER_ADMIN->value;
     }
 
-    public function isAdminSarpras(): bool
+    public function isKetuaLaboran(): bool
     {
-        return $this->role === Role::ADMIN_SARPRAS->value;
+        return $this->role === Role::KETUA_LABORAN->value;
     }
 
     public function isLaboran(): bool
@@ -83,16 +85,22 @@ class User extends Authenticatable
         return $this->role === Role::PEMINJAM->value;
     }
 
-    /** Boleh kelola data barang / mutasi / laporan / peminjaman seluruh unit. */
+    /** Boleh kelola data barang / mutasi / laporan pada cakupan kewenangannya. */
     public function managesInventory(): bool
     {
-        return in_array($this->role, [Role::SUPER_ADMIN->value, Role::ADMIN_SARPRAS->value], true);
+        return in_array($this->role, [Role::SUPER_ADMIN->value, Role::KETUA_LABORAN->value], true);
     }
 
-    /** Boleh menyetujui peminjaman level 1 (laboran) — admin juga dianggap boleh. */
+    /** Boleh menyetujui peminjaman level 1 (laboran) — pengelola juga dianggap boleh. */
     public function canApproveLoans(): bool
     {
-        return in_array($this->role, [Role::SUPER_ADMIN->value, Role::ADMIN_SARPRAS->value, Role::LABORAN->value], true);
+        return in_array($this->role, [Role::SUPER_ADMIN->value, Role::KETUA_LABORAN->value, Role::LABORAN->value], true);
+    }
+
+    /** Laboran/K3 yang ditugaskan pada satu atau lebih laboratorium. */
+    public function hasRoomScope(int $roomId): bool
+    {
+        return $this->roomScopes()->where('room_id', $roomId)->exists();
     }
 
     /** Boleh menyetujui pengadaan/penghapusan & approval level 2 (wakasek). */
@@ -103,7 +111,8 @@ class User extends Authenticatable
 
     /**
      * Boleh memutuskan pada level persetujuan tertentu.
-     * Level 2 (barang bernilai tinggi) hanya boleh diputuskan Wakasek Sarpras.
+     * Level 2 (barang bernilai tinggi) hanya boleh diputuskan Wakasek Sarpras
+     * sesuai kebijakan yang terdokumentasi pada DECISIONS.md.
      */
     public function canDecideAt(int $level): bool
     {

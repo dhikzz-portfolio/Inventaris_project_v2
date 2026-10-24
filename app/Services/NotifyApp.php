@@ -31,6 +31,6 @@ class NotifyApp
 
     public static function toApprovers(NotificationType $type, string $message, ?string $link = null): void
     {
-        self::toRoles(['SUPER_ADMIN', 'ADMIN_SARPRAS', 'LABORAN'], $type, $message, $link);
+        self::toRoles(['SUPER_ADMIN', 'KETUA_LABORAN', 'LABORAN'], $type, $message, $link);
     }
 }

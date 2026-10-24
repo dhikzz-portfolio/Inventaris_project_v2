@@ -42,7 +42,7 @@ class InventoryFlowTest extends TestCase
         $this->seed();
 
         $this->guru = User::where('username', 'guru.budi')->firstOrFail();
-        $this->laboran = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
 
         $this->item = Item::create([
@@ -241,6 +241,7 @@ class InventoryFlowTest extends TestCase
             ->assertDontSee('Proyektor Uji Coba')
             ->call('resetFilters')
             ->assertSet('search', '')
+            ->set('search', 'Proyektor Uji')
             ->set('status', ItemStatus::BAIK->value)
             ->assertSee('Proyektor Uji Coba');
     }

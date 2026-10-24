@@ -40,14 +40,14 @@ Konsekuensi penting dari kebutuhan audit dan label fisik: **satu unit barang har
 
 ## 3. Pengguna, peran, dan cakupan akses
 
-Kode peran pada aplikasi dipertahankan agar tidak memutus data dan otorisasi yang sudah ada. Istilah produk dipetakan sebagai berikut.
+Empat role sistem berlaku sejak revisi 24 Oktober 2026. Role lama `ADMIN_SARPRAS` diganti `KETUA_LABORAN` melalui migration, bukan sekadar mengganti label seeder.
 
 | Peran (kode sistem)             | Istilah produk     | Kebutuhan utama                                                                                                                |
 | ------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `SUPER_ADMIN` (Wakasek Sarpras) | Super Admin        | Akses penuh seluruh katalog, unit, lokasi (termasuk ruang umum), approval pengadaan/penghapusan, approval level 2, pengaturan. Mengelola penuh inventaris sekolah: pengajuan peminjaman miliknya sendiri **disetujui atas kewenangan penuh** tanpa menunggu persetujuan tambahan. |
-| `ADMIN_SARPRAS`                 | Ketua Laboran      | Mengelola inventaris **seluruh laboratorium di semua jurusan**; master data, mutasi, label, pengadaan, penghapusan, laporan.   |
-| `LABORAN`                       | Laboran/K3         | Mengelola pinjaman/pengembalian dan inventaris **laboratorium yang ditetapkan untuk akunnya**; scan QR, approval level 1.      |
-| `PEMINJAM`                      | Peminjam/Guru/Staf | Melihat katalog & ketersediaan, mengajukan multi-item, membatalkan pengajuan, melihat riwayat dan notifikasi sendiri.          |
+| `SUPER_ADMIN`                   | Wakasek Sarpras    | Super Admin inventaris sekolah. Akses penuh seluruh katalog, unit, lokasi (termasuk ruang umum), approval pengadaan/penghapusan, approval level 2, pengguna, dan pengaturan. Pengajuan peminjaman miliknya sendiri **disetujui atas kewenangan penuh** tanpa persetujuan tambahan. |
+| `KETUA_LABORAN`                 | Ketua Laboran      | Mengelola inventaris **seluruh laboratorium di semua jurusan**; master data laboratorium, mutasi, label, pengadaan, penghapusan, laporan. **Tidak** memperoleh akses inventaris nonlaboratorium. |
+| `LABORAN`                       | Laboran/K3         | Mengelola pinjaman/pengembalian dan inventaris **laboratorium yang ditetapkan untuk akunnya**; scan QR; persetujuan level 1 untuk laboratoriumnya. |
+| `PEMINJAM`                      | Peminjam           | Melihat katalog & ketersediaan terintegrasi di halaman peminjaman, mengajukan multi-katalog, membatalkan pengajuan, melihat riwayat dan notifikasi sendiri. Kategori peminjam (`borrower_type`: siswa/guru/staf) dipisahkan dari role sistem. |
 
 ### 3.1 Cakupan data katalog dan unit
 
@@ -426,13 +426,16 @@ Selama masa transisi, `/items` dan `/items/{item}` tetap melayani data legacy, l
 
 ### 9.1 Rantai persetujuan
 
-1. Level 1 = Laboran/Ketua Laboran; level 2 = Wakasek Sarpras, wajib untuk barang bernilai tinggi (`is_high_value`).
+1. Level 1 = Laboran/K3 atau Ketua Laboran; level 2 = Wakasek Sarpras, wajib untuk barang bernilai tinggi (`is_high_value`).
 2. **Satu sumber kebenaran kelayakan**: `Loan::isFullyApproved()` memeriksa apakah persetujuan pada **level akhir** sudah tercatat. Level akhir sekaligus menutup level di bawahnya.
 3. `Loan::nextApprovalLevelFor(User)` menentukan siapa yang berhak memutuskan berikutnya. **Wakasek (approver level 2) memutuskan pada level akhir**, sehingga satu persetujuan yang sah darinya sudah cukup — tidak dituntut persetujuan Admin tambahan yang berulang.
 4. **Pengajuan milik Wakasek disetujui atas kewenangan penuh** inventaris sekolah. Persetujuannya dicatat atas namanya sendiri (identitas aktor tidak dipalsukan sebagai approver lain) beserta entri audit log, dan dokumen kegiatan (BAST) otomatis dibuat bila peminjaman terkait kegiatan.
-5. Alur oleh role lain tetap berjenjang: Laboran/Ketua Laboran (level 1) → Wakasek (level 2).
-6. Penolakan wajib disertai alasan (`reject_reason`).
-7. Otorisasi keputusan ditentukan di **backend** dari peran pengguna (`User::isApproverLevel2()`, `User::canDecideAt()`), bukan dari parameter request.
+5. **Persetujuan otomatis Laboran/K3**: bila seluruh barang berasal dari laboratorium yang ditugaskan kepada akun tersebut dan tidak ada barang bernilai tinggi, pengajuan langsung `APPROVED` dengan catatan "Persetujuan otomatis" dan aktor pemohon sendiri. Tidak ada persetujuan palsu atas nama pihak lain.
+6. **Barang bernilai tinggi** tidak pernah disetujui otomatis. Bila Laboran/K3 meminjam barang bernilai tinggi dari laboratoriumnya sendiri, sistem mencatat endorsemen level 1 otomatis lalu menunggu persetujuan khusus Wakasek.
+7. **Pengajuan lintas lingkup** (campuran laboratorium sendiri dan laboratorium lain/inventaris umum) tidak disetujui otomatis dan mengikuti alur persetujuan normal.
+8. Laboran/K3 **tidak boleh menyetujui pengajuannya sendiri**; pengecualian hanya persetujuan melekat Wakasek yang memang kewenangan jabatannya.
+9. Penolakan wajib disertai alasan (`reject_reason`).
+10. Otorisasi keputusan ditentukan di **backend** dari peran dan cakupan ruangan (`User::isApproverLevel2()`, `User::canDecideAt()`, `User::roomScopes()`), bukan dari parameter request.
 
 ### 9.2 Serah terima dan penugasan unit fisik
 
@@ -440,8 +443,26 @@ Selama masa transisi, `/items` dan `/items/{item}` tetap melayani data legacy, l
 2. **Penjagaan serah terima ganda**: baris peminjaman dikunci (`lockForUpdate`) dan `handed_over_at` yang sudah terisi ditolak. Satu peminjaman hanya dapat diserahterimakan sekali.
 3. Halaman serah terima (`/loans/{id}/serah-terima`) menampilkan **unit yang dapat diserahkan** per baris peminjaman: unit dalam cakupan akses petugas, `AKTIF`, kondisi `BAIK`, dan belum ditugaskan pada peminjaman lain yang terbuka.
 4. Jumlah unit yang dipilih **harus sama** dengan jumlah yang dipinjam pada baris tersebut. Penugasan parsial ditolak karena membuat pencatatan unit fisik dan pembukuan kuantitas tidak sinkron. Pengecualian: katalog tanpa unit fisik (data warisan) tetap memakai pembukuan kuantitas lama.
-5. Unit yang dipilih dicatat pada `loan_item_units` (waktu serah terima, kondisi keluar, `opened_at`), status unit menjadi `DIPINJAM`, dan audit log menyimpan daftar kode unit yang diserahkan.
-6. Saat pengembalian, penugasan ditutup (`returned_at`, `condition_in`, `closed_at`) dan unit kembali berstatus `AKTIF` dengan kondisi hasil pemeriksaan.
+5. Antarmuka membatasi pilihan per baris: setelah jumlah wajib terpenuhi, unit tambahan otomatis disabled; pengguna tetap dapat menghapus centang sebelum menyimpan. Batas ini juga divalidasi ulang di backend.
+6. Unit yang dipilih dicatat pada `loan_item_units` (waktu serah terima, kondisi keluar, `opened_at`), status unit menjadi `DIPINJAM`, dan audit log menyimpan daftar kode unit yang diserahkan.
+7. Server menolak unit di luar transaksi, unit yang sudah dipinjam/diserahkan, unit ganda, jumlah berlebih, dan request serah terima berulang. Baris unit dikunci (`lockForUpdate`) selama proses.
+8. Saat pengembalian, penugasan ditutup (`returned_at`, `condition_in`, `closed_at`) dan unit kembali berstatus `AKTIF` dengan kondisi hasil pemeriksaan.
+
+### 9.2.1 Katalog pada akun peminjam
+
+1. Peminjam memilih katalog langsung di menu **Peminjaman** (tidak ada menu katalog terpisah untuk role ini).
+2. Daftar katalog mendukung pencarian nama/spesifikasi/ID/kode unit serta filter kategori, gedung, ruangan, dan ketersediaan.
+3. Detail menampilkan spesifikasi, jumlah unit tersedia, dan contoh kode unit. Pemilihan unit fisik tetap dilakukan petugas pada serah terima sesuai keputusan 28.
+4. Katalog yang sama tidak dapat ditambahkan dua kali ke keranjang; backend juga menolak baris katalog duplikat.
+5. Wakasek, Ketua Laboran, dan Laboran/K3 tetap memakai menu katalog/inventaris manajemen sesuai kewenangan.
+
+### 9.2.2 Penghapusan katalog
+
+1. Katalog tanpa unit dan tanpa riwayat transaksi dapat dihapus permanen.
+2. Katalog yang memiliki unit atau riwayat transaksi **diarsipkan** (`archived_at`), bukan dihapus destruktif. Unit dan riwayat tetap tersimpan untuk audit.
+3. Katalog diarsipkan tidak tampil di daftar katalog, tidak ditawarkan untuk peminjaman baru, dan detailnya hanya dapat dibuka pengelola.
+4. Penghapusan hanya tersedia bagi Wakasek dan Ketua Laboran dalam cakupan laboratoriumnya; backend memeriksa kewenangan, bukan hanya menyembunyikan tombol.
+5. Konfirmasi UI menampilkan nama katalog serta jumlah unit/riwayat transaksi sebelum tindakan dijalankan.
 
 ### 9.3 Status dokumen terpisah dari status transaksi
 

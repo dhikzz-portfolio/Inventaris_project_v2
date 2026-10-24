@@ -20,15 +20,44 @@
                         <span class="material-icons-round text-lg">print</span> Cetak Label Unit
                     </a>
                 @endif
-                @if (auth()->user()->managesInventory())
+                @if (auth()->user()->managesInventory() && ! $catalog->isArchived())
                     <a href="{{ route('items.edit', $catalog) }}"
                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium">
                         <span class="material-icons-round text-lg">edit</span> Ubah Katalog
                     </a>
                 @endif
+                @if ($canDelete)
+                    @php
+                        $deleteMessage = 'Hapus katalog "'.$catalog->name.'"?'."\n\n".($canDeletePermanently
+                            ? 'Katalog belum memiliki unit/transaksi sehingga akan dihapus permanen.'
+                            : 'Katalog memiliki '.$unitCount.' unit fisik dan '.$loanItemCount.' riwayat transaksi. Katalog TIDAK dihapus permanen; data akan dinonaktifkan (arsip) dan riwayat tetap tersimpan.');
+                    @endphp
+                    <form method="POST" action="{{ route('catalogs.destroy', $catalog) }}"
+                          onsubmit="return confirm({{ \Illuminate\Support\Js::from($deleteMessage) }})">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium">
+                            <span class="material-icons-round text-lg">{{ $canDeletePermanently ? 'delete' : 'archive' }}</span>
+                            {{ $canDeletePermanently ? 'Hapus Katalog' : 'Nonaktifkan Katalog' }}
+                        </button>
+                    </form>
+                @endif
             </div>
         </div>
     </x-slot>
+
+    @if ($catalog->isArchived())
+        <div class="mb-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm flex items-start gap-2">
+            <span class="material-icons-round text-lg shrink-0">archive</span>
+            <div>
+                <strong>Katalog dinonaktifkan</strong> pada {{ $catalog->archived_at?->format('d M Y H:i') }}.
+                Katalog ini tidak ditawarkan untuk peminjaman baru. Unit dan riwayat transaksi tetap tersimpan untuk audit.
+                @if ($catalog->archive_reason)<div class="mt-1 text-xs">{{ $catalog->archive_reason }}</div>@endif
+                <div class="mt-1 text-xs">Unit: {{ $unitCount }} • Riwayat transaksi: {{ $loanItemCount }}</div>
+            </div>
+        </div>
+    @endif
 
     <livewire:catalog.catalog-units :catalog-id="$catalog->id" />
 </x-app-layout>

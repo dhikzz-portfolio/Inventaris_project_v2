@@ -5,7 +5,7 @@ namespace App\Enums;
 enum Role: string
 {
     case SUPER_ADMIN = 'SUPER_ADMIN';
-    case ADMIN_SARPRAS = 'ADMIN_SARPRAS';
+    case KETUA_LABORAN = 'KETUA_LABORAN';
     case LABORAN = 'LABORAN';
     case PEMINJAM = 'PEMINJAM';
 
@@ -13,9 +13,9 @@ enum Role: string
     {
         return match ($this) {
             self::SUPER_ADMIN => 'Wakasek Sarpras / Super Admin',
-            self::ADMIN_SARPRAS => 'Pengelola Inventaris / Admin Sarpras',
-            self::LABORAN => 'Laboran / Ketua Kompetensi Keahlian',
-            self::PEMINJAM => 'Peminjam / Guru / Staf',
+            self::KETUA_LABORAN => 'Ketua Laboran',
+            self::LABORAN => 'Laboran / K3',
+            self::PEMINJAM => 'Peminjam (Siswa / Guru / Staf)',
         };
     }
 
@@ -24,8 +24,8 @@ enum Role: string
     {
         return match ($this) {
             self::SUPER_ADMIN => 'Wakasek Sarpras',
-            self::ADMIN_SARPRAS => 'Pengelola Inventaris',
-            self::LABORAN => 'Laboran / Ketua Laboran',
+            self::KETUA_LABORAN => 'Ketua Laboran',
+            self::LABORAN => 'Laboran / K3',
             self::PEMINJAM => 'Peminjam',
         };
     }

@@ -38,7 +38,7 @@ class LoanFeatureTest extends TestCase
         $this->seed();
 
         $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->laboranTkj = User::where('username', 'laboran.tkj')->firstOrFail();
+        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
         $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
         $this->guruSari = User::where('username', 'guru.sari')->firstOrFail();
 

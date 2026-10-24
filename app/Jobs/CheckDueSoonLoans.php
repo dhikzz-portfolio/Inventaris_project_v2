@@ -40,7 +40,7 @@ class CheckDueSoonLoans implements ShouldQueue
 
             $this->notifyOnce($loan->borrower, NotificationType::PENGEMBALIAN, $message, $link);
 
-            foreach (User::whereIn('role', ['SUPER_ADMIN', 'ADMIN_SARPRAS'])->get() as $admin) {
+            foreach (User::whereIn('role', ['SUPER_ADMIN', 'KETUA_LABORAN'])->get() as $admin) {
                 $this->notifyOnce($admin, NotificationType::PENGEMBALIAN,
                     "Pengingat: \"{$loan->purpose}\" oleh {$loan->borrower->name} jatuh tempo {$loan->due_date->format('d/m/Y H:i')}.",
                     $link);

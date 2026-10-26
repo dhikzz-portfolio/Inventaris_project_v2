@@ -45,9 +45,9 @@
 
     <body class="min-h-dvh overflow-x-hidden bg-slate-50 font-sans text-slate-900 antialiased">
 
-    <main class="safe-area-bottom min-h-dvh">
+    <main class="safe-area-bottom min-h-dvh lg:grid lg:grid-cols-[minmax(24rem,0.9fr)_minmax(0,1.1fr)]">
 
-        {{-- Mobile Branding Header (Hidden on lg+) --}}
+        {{-- Mobile Branding Header (Hidden when the split layout fits) --}}
         <div class="safe-area-top border-b border-brand-700/60 bg-brand-600 lg:hidden">
             <div class="flex w-full items-center gap-3.5 px-5 py-3">
                 <div class="inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-600 shadow-lg shadow-brand-900/20 ring-1 ring-white/20">
@@ -64,8 +64,8 @@
             </div>
         </div>
 
-        {{-- Desktop Branding Sidebar --}}
-        <aside class="hidden lg:block lg:fixed lg:inset-y-0 lg:left-0 lg:w-1/2 lg:max-w-[480px]">
+        {{-- Branding panel for tablet and desktop --}}
+        <aside class="relative hidden min-h-dvh lg:block">
             <div class="relative h-full overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900">
                 {{-- Decorative blobs --}}
                 <div class="pointer-events-none absolute -right-32 top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" aria-hidden="true"></div>
@@ -134,7 +134,7 @@
         </aside>
 
         {{-- Login Form Column --}}
-        <section class="relative z-10 flex items-start justify-center px-4 pb-8 pt-5 sm:px-6 sm:pb-10 sm:pt-10 lg:ml-[480px] lg:min-h-dvh lg:items-center lg:px-8 lg:py-12">
+        <section class="relative z-10 flex items-start justify-center px-4 pb-8 pt-5 sm:px-6 sm:pb-10 sm:pt-10 lg:min-h-dvh lg:items-center lg:px-8 lg:py-12">
             <div class="w-full max-w-md animate-slide-up">
                 <div class="mb-5 sm:mb-8 w-full flex flex-col items-center justify-center text-center">
                     <h1 class="text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $heading }}</h1>

@@ -16,31 +16,31 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">person_add</span> Tambah Pengguna
+                <span class="material-icons-round text-blue-600">person_add</span> Tambah Pengguna
             </h3>
             <form method="POST" action="{{ route('users.store') }}" class="space-y-3">
                 @csrf
                 <div>
                     <x-input-label value="Nama Lengkap *" />
-                    <input type="text" name="name" value="{{ old('name') }}" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    <input type="text" name="name" value="{{ old('name') }}" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
                     <x-input-label value="Username *" />
-                    <input type="text" name="username" value="{{ old('username') }}" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500" placeholder="huruf/angka/titik/dash">
+                    <input type="text" name="username" value="{{ old('username') }}" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="huruf/angka/titik/dash">
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <x-input-label value="Password *" />
-                        <input type="password" name="password" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                        <input type="password" name="password" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div>
                         <x-input-label value="Ulangi Password *" />
-                        <input type="password" name="password_confirmation" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                        <input type="password" name="password_confirmation" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
                 <div>
                     <x-input-label value="Role *" />
-                    <select name="role" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    <select name="role" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                         @foreach ($roles as $role)
                             <option value="{{ $role->value }}" @selected(old('role') === $role->value)>{{ $role->label() }}</option>
                         @endforeach
@@ -48,7 +48,7 @@
                 </div>
                 <div>
                     <x-input-label value="Kategori peminjam (khusus role Peminjam)" />
-                    <select name="borrower_type" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    <select name="borrower_type" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                         <option value="">— bukan peminjam —</option>
                         @foreach ($borrowerTypes as $borrowerType)
                             <option value="{{ $borrowerType->value }}" @selected(old('borrower_type') === $borrowerType->value)>{{ $borrowerType->label() }}</option>
@@ -57,7 +57,7 @@
                 </div>
                 <div>
                     <x-input-label value="Jurusan (khusus Laboran)" />
-                    <select name="major_id" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    <select name="major_id" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                         <option value="">— tanpa jurusan —</option>
                         @foreach ($majors as $major)
                             <option value="{{ $major->id }}" @selected(old('major_id') == $major->id)>{{ $major->name }}</option>
@@ -66,14 +66,14 @@
                 </div>
                 <div>
                     <x-input-label value="Cakupan laboratorium (Laboran/K3)" />
-                    <select name="room_ids[]" multiple size="3" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    <select name="room_ids[]" multiple size="3" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                         @foreach ($labRooms as $labRoom)
                             <option value="{{ $labRoom->id }}" @selected(in_array($labRoom->id, old('room_ids', [])))>{{ $labRoom->name }}</option>
                         @endforeach
                     </select>
                     <p class="mt-1 text-[11px] text-gray-400">Tahan Ctrl/Cmd untuk memilih lebih dari satu laboratorium.</p>
                 </div>
-                <x-primary-button class="w-full justify-center bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">Buat Pengguna</x-primary-button>
+                <x-primary-button class="w-full justify-center bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Buat Pengguna</x-primary-button>
             </form>
         </div>
 
@@ -117,7 +117,7 @@
                                 <td class="px-4 py-3 text-center text-xs text-gray-400">{{ $user->last_login_at?->format('d M Y H:i') ?: 'belum pernah' }}</td>
                                 <td class="px-4 py-3 text-center">
                                     <div x-data="{ open: false }" class="relative inline-block">
-                                        <button @click="open = ! open" class="text-xs font-semibold text-amber-700 hover:underline">Ubah</button>
+                                        <button @click="open = ! open" class="text-xs font-semibold text-blue-700 hover:underline">Ubah</button>
                                         <div x-show="open" @click.outside="open = false" x-cloak
                                              class="absolute right-0 z-20 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-left">
                                             <form method="POST" action="{{ route('users.update', $user) }}" class="space-y-2">

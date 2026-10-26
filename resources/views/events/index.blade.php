@@ -17,38 +17,38 @@
         @if (auth()->user()->managesInventory())
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">event_available</span> Buat Kegiatan
+                    <span class="material-icons-round text-blue-600">event_available</span> Buat Kegiatan
                 </h3>
                 <form method="POST" action="{{ route('events.store') }}" class="space-y-3">
                     @csrf
                     <div>
                         <x-input-label value="Nama Kegiatan *" />
                         <input type="text" name="name" value="{{ old('name') }}" required
-                               class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500"
+                               class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500"
                                placeholder="Ujian Akhir Semester 2026...">
                     </div>
                     <div>
                         <x-input-label value="Penanggung Jawab *" />
                         <input type="text" name="pic_name" value="{{ old('pic_name') }}" required
-                               class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                               class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <x-input-label value="Mulai *" />
                             <input type="date" name="start_date" value="{{ old('start_date') }}" required
-                                   class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                                   class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
                             <x-input-label value="Selesai *" />
                             <input type="date" name="end_date" value="{{ old('end_date') }}" required
-                                   class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                                   class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                         </div>
                     </div>
                     <div>
                         <x-input-label value="Deskripsi" />
-                        <textarea name="description" rows="2" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">{{ old('description') }}</textarea>
+                        <textarea name="description" rows="2" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">{{ old('description') }}</textarea>
                     </div>
-                    <x-primary-button class="w-full justify-center bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">Simpan Kegiatan</x-primary-button>
+                    <x-primary-button class="w-full justify-center bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Simpan Kegiatan</x-primary-button>
                     @if ($errors->any())
                         <p class="text-xs text-red-600">{{ $errors->first() }}</p>
                     @endif
@@ -72,7 +72,7 @@
                         @forelse ($events as $event)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-5 py-3">
-                                    <a href="{{ route('events.show', $event) }}" class="font-medium text-gray-800 hover:text-amber-700">{{ $event->name }}</a>
+                                    <a href="{{ route('events.show', $event) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $event->name }}</a>
                                     @if ($event->description)
                                         <div class="text-[11px] text-gray-400">{{ \Illuminate\Support\Str::limit($event->description, 70) }}</div>
                                     @endif
@@ -86,7 +86,7 @@
                                     <span class="block text-[10px] text-gray-400">{{ $event->loans->sum('loan_items_count') }} item</span>
                                 </td>
                                 <td class="px-5 py-3 text-center">
-                                    <a href="{{ route('events.show', $event) }}" class="text-xs font-semibold text-amber-700 hover:underline">Detail →</a>
+                                    <a href="{{ route('events.show', $event) }}" class="text-xs font-semibold text-blue-700 hover:underline">Detail →</a>
                                 </td>
                             </tr>
                         @empty

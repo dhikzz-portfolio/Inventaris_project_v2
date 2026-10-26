@@ -6,16 +6,16 @@
         @page { margin: 30pt 36pt; }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #111; }
-        .kop { width: 100%; border-bottom: 3px solid #000; padding-bottom: 6px; margin-bottom: 12px; }
+        .kop { width: 100%; border-bottom: 3px solid #155dfc; padding-bottom: 6px; margin-bottom: 12px; }
         .kop img { max-width: 56px; max-height: 56px; }
         .kop .instansi { font-size: 12pt; font-weight: bold; text-transform: uppercase; }
         .kop .alamat { font-size: 8.5pt; }
         .judul { text-align: center; font-size: 11.5pt; font-weight: bold; text-transform: uppercase; margin: 8px 0 2px; }
         .periode { text-align: center; font-size: 9pt; margin-bottom: 12px; color: #444; }
-        h3 { font-size: 9.5pt; margin: 12px 0 4px; background: #eee; padding: 3px 5px; border-left: 4px solid #333; }
+        h3 { font-size: 9.5pt; margin: 12px 0 4px; background: #eff6ff; padding: 3px 5px; border-left: 4px solid #155dfc; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
         th, td { border: 1px solid #666; padding: 3px 5px; font-size: 8pt; }
-        th { background: #f0f0f0; text-align: left; }
+        th { background: #dbeafe; color: #1c398e; text-align: left; }
         .num { text-align: center; }
         .summary td { width: 16.66%; text-align: center; padding: 5px; }
         .summary .val { font-size: 13pt; font-weight: bold; }

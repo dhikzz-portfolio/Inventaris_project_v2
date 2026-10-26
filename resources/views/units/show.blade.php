@@ -3,9 +3,9 @@
         <div class="flex items-start justify-between gap-3 flex-wrap">
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <a href="{{ route('catalogs.index') }}" class="text-sm text-gray-500 hover:text-amber-700">Katalog</a>
+                    <a href="{{ route('catalogs.index') }}" class="text-sm text-gray-500 hover:text-blue-700">Katalog</a>
                     <span class="text-gray-300">/</span>
-                    <a href="{{ route('catalogs.show', $unit->catalog) }}" class="text-sm text-gray-500 hover:text-amber-700">{{ $unit->catalog?->name }}</a>
+                    <a href="{{ route('catalogs.show', $unit->catalog) }}" class="text-sm text-gray-500 hover:text-blue-700">{{ $unit->catalog?->name }}</a>
                     <span class="text-gray-300">/</span>
                     <h2 class="font-semibold text-xl text-gray-800 leading-tight font-mono">{{ $unit->inventory_code }}</h2>
                 </div>
@@ -37,7 +37,7 @@
         <div class="lg:col-span-2 space-y-5">
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">badge</span> Identitas &amp; Perolehan
+                    <span class="material-icons-round text-blue-600">badge</span> Identitas &amp; Perolehan
                 </h3>
                 <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                     <div><dt class="text-xs text-gray-400">Kode inventaris</dt><dd class="font-mono font-semibold">{{ $unit->inventory_code }}</dd></div>
@@ -59,7 +59,7 @@
             @unless (auth()->user()->isPeminjam())
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">swap_horiz</span> Riwayat Perpindahan
+                    <span class="material-icons-round text-blue-600">swap_horiz</span> Riwayat Perpindahan
                 </h3>
                 @if ($unit->movements->isEmpty())
                     <p class="text-sm text-gray-400">Belum pernah dipindahkan.</p>
@@ -87,7 +87,7 @@
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">build</span> Riwayat Pemeliharaan
+                    <span class="material-icons-round text-blue-600">build</span> Riwayat Pemeliharaan
                 </h3>
                 @if ($unit->maintenanceRecords->isEmpty())
                     <p class="text-sm text-gray-400">Belum ada catatan pemeliharaan.</p>
@@ -112,7 +112,7 @@
             @unless (auth()->user()->isPeminjam())
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">history</span> Riwayat Kode
+                    <span class="material-icons-round text-blue-600">history</span> Riwayat Kode
                 </h3>
                 <ul class="space-y-2 text-xs">
                     @foreach ($unit->codes as $code)
@@ -137,7 +137,7 @@
             @if (auth()->user()->canApproveLoans() && $unit->status !== \App\Enums\UnitStatus::DIHAPUS)
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h3 class="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-1.5">
-                        <span class="material-icons-round text-amber-600">health_and_safety</span> Kondisi &amp; Catatan Unit
+                        <span class="material-icons-round text-blue-600">health_and_safety</span> Kondisi &amp; Catatan Unit
                     </h3>
                     <p class="text-[11px] text-gray-500 mb-3">Perubahan kondisi tercatat di audit log. Status <em>Dihapus</em> hanya melalui inventaris keluar.</p>
                     <form method="POST" action="{{ route('units.update', $unit) }}" class="space-y-2">
@@ -166,7 +166,7 @@
                             <textarea id="unit-notes" name="notes" rows="2" maxlength="1000"
                                       class="w-full rounded-lg border-gray-300 text-sm">{{ old('notes', $unit->notes) }}</textarea>
                         </div>
-                        <button class="w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold py-2">Simpan Kondisi</button>
+                        <button class="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2">Simpan Kondisi</button>
                     </form>
                 </div>
             @endif
@@ -174,7 +174,7 @@
             @if (auth()->user()->managesInventory() && $unit->status !== \App\Enums\UnitStatus::DIHAPUS && $unit->status !== \App\Enums\UnitStatus::DIPINJAM && $destinationRooms->isNotEmpty())
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h3 class="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-1.5">
-                        <span class="material-icons-round text-amber-600">swap_horiz</span> Pindahkan Unit
+                        <span class="material-icons-round text-blue-600">swap_horiz</span> Pindahkan Unit
                     </h3>
                     <p class="text-[11px] text-gray-500 mb-3">Kode baru diterbitkan otomatis. Kode lama tetap tersimpan sebagai riwayat dan label wajib dicetak ulang.</p>
                     <form method="POST" action="{{ route('units.move', $unit) }}" class="space-y-2"
@@ -197,7 +197,7 @@
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-2">Kembali ke katalog</h3>
-                <a href="{{ route('catalogs.show', $unit->catalog) }}" class="text-sm font-semibold text-amber-700 hover:underline">
+                <a href="{{ route('catalogs.show', $unit->catalog) }}" class="text-sm font-semibold text-blue-700 hover:underline">
                     Lihat seluruh unit {{ $unit->catalog?->name }} →
                 </a>
             </div>

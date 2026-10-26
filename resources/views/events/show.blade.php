@@ -19,7 +19,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 @if (auth()->user()->managesInventory())
                     <a href="{{ route('events.bast', $event) }}" target="_blank"
-                       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">
+                       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
                         <span class="material-icons-round text-lg">description</span> BAST Gabungan (PDF)
                     </a>
                 @endif
@@ -42,7 +42,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">receipt_long</span> Peminjaman Terikat Kegiatan ({{ $event->loans->count() }})
+                <span class="material-icons-round text-blue-600">receipt_long</span> Peminjaman Terikat Kegiatan ({{ $event->loans->count() }})
             </h3>
 
             @if ($event->loans->isEmpty())
@@ -53,7 +53,7 @@
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="flex items-center justify-between gap-2 flex-wrap">
                                 <div>
-                                    <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-gray-800 hover:text-amber-700">#{{ $loan->id }} — {{ $loan->borrower?->name }}</a>
+                                    <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-gray-800 hover:text-blue-700">#{{ $loan->id }} — {{ $loan->borrower?->name }}</a>
                                     <div class="text-xs text-gray-400">{{ $loan->start_date->format('d/m/Y H:i') }} → {{ $loan->due_date->format('d/m/Y H:i') }}</div>
                                 </div>
                                 <span class="text-[10px] font-bold px-2 py-1 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
@@ -72,7 +72,7 @@
                                 @endforeach
                             </ul>
                             @if ($loan->bast_path)
-                                <a href="{{ route('loans.bast', $loan) }}" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold hover:underline">
+                                <a href="{{ route('loans.bast', $loan) }}" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 font-semibold hover:underline">
                                     <span class="material-icons-round text-sm">description</span> BAST/Surat pinjaman ini
                                 </a>
                             @endif
@@ -85,7 +85,7 @@
         <div class="space-y-5">
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">inventory_2</span> ID Barang Dibooking ({{ $bookedItems->count() }})
+                    <span class="material-icons-round text-blue-600">inventory_2</span> ID Barang Dibooking ({{ $bookedItems->count() }})
                 </h3>
                 @if ($bookedItems->isEmpty())
                     <p class="text-sm text-gray-400">Belum ada.</p>
@@ -106,7 +106,7 @@
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 text-sm">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">how_to_reg</span> Alur Kegiatan
+                    <span class="material-icons-round text-blue-600">how_to_reg</span> Alur Kegiatan
                 </h3>
                 <ol class="list-decimal ms-4 space-y-1.5 text-gray-600 text-xs">
                     <li>Peminjam mengajukan peminjaman <strong>dengan memilih kegiatan ini</strong>.</li>

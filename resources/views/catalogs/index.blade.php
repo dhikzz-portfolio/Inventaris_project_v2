@@ -7,7 +7,7 @@
             </div>
             @if (auth()->user()->managesInventory())
                 <a href="{{ route('items.create') }}"
-                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium">
+                   class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     <span class="material-icons-round text-lg">add_box</span> Tambah Katalog
                 </a>
             @endif

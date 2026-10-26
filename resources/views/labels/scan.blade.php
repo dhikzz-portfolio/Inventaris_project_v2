@@ -17,7 +17,7 @@
 
             <div class="mt-4 flex items-center justify-center gap-3">
                 <button x-show="!running" @click="start()"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold">
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
                     <span class="material-icons-round text-lg">photo_camera</span> Aktifkan Kamera
                 </button>
                 <button x-show="running" @click="stop()"
@@ -33,7 +33,7 @@
             <h3 class="font-semibold text-gray-800 text-sm mb-3">Input Manual (Kode Inventaris)</h3>
             <form @submit.prevent="goManual()" class="flex gap-2">
                 <input type="text" x-model="manual" placeholder="Contoh: G1-02-12"
-                       class="flex-1 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500 font-mono">
+                       class="flex-1 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 font-mono">
                 <button class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Cari</button>
             </form>
             <p class="text-[11px] text-gray-400 mt-2">Masukkan kode unit <span class="font-mono">G1-02-12</span> (ID internal lama tetap diterima). Berguna saat stiker pudar / kamera bermasalah.</p>

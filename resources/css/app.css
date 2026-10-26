@@ -10,17 +10,17 @@
 @theme {
     --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
 
-    /* PERUBAHAN: Palet brand mengaktifkan utilitas Tailwind brand-* di halaman login. */
+    /* Shared blue palette for primary actions, links, and focus states. */
     --color-brand-50: #eff6ff;
     --color-brand-100: #dbeafe;
-    --color-brand-200: #bfdbfe;
-    --color-brand-300: #93c5fd;
-    --color-brand-400: #60a5fa;
-    --color-brand-500: #3182ce;
-    --color-brand-600: #1f6fba;
-    --color-brand-700: #1b5f9e;
-    --color-brand-800: #174f82;
-    --color-brand-900: #123f66;
+    --color-brand-200: #bedbff;
+    --color-brand-300: #8ec5ff;
+    --color-brand-400: #51a2ff;
+    --color-brand-500: #2b7fff;
+    --color-brand-600: #155dfc;
+    --color-brand-700: #1447e6;
+    --color-brand-800: #193cb8;
+    --color-brand-900: #1c398e;
 }
 
 @layer base {
@@ -36,17 +36,33 @@
         overscroll-behavior-y: none;
     }
 
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+    button,
+    a {
+        -webkit-tap-highlight-color: transparent;
+    }
+
     /*
      * Mobile-first: iOS Safari auto-zooms halaman saat fokus ke input
      * dengan font-size < 16px. Pada layar kecil semua field form
      * dipaksa minimal 16px agar viewport tetap stabil.
      */
     @media (max-width: 640px) {
-        input:not([type='checkbox']):not([type='radio']):not([type='file']),
+        input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']),
         select,
         textarea {
             font-size: 16px;
         }
+    }
+
+    :focus-visible {
+        outline-color: #155dfc;
     }
 
     /* Area aman untuk iPhone (notch / home indicator). */

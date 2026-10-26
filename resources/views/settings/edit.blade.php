@@ -43,10 +43,10 @@
                 <div>
                     <x-input-label value="Logo Instansi (PNG transparan direkomendasikan)" />
                     <input type="file" name="logo" accept="image/*"
-                           class="mt-1 block w-full text-sm text-gray-600 file:me-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
+                           class="mt-1 block w-full text-sm text-gray-600 file:me-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                 </div>
 
-                <x-primary-button class="bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">Simpan Pengaturan</x-primary-button>
+                <x-primary-button class="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Simpan Pengaturan</x-primary-button>
             </div>
         </form>
 

@@ -6,7 +6,7 @@
         @page { margin: 30pt 36pt; }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #111; }
-        .kop { width: 100%; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
+        .kop { width: 100%; border-bottom: 3px solid #155dfc; padding-bottom: 8px; margin-bottom: 14px; }
         .kop img { max-width: 64px; max-height: 64px; }
         .kop .instansi { font-size: 13pt; font-weight: bold; text-transform: uppercase; }
         .kop .alamat { font-size: 9pt; }
@@ -16,8 +16,8 @@
         table.info td:first-child { width: 155px; }
         table.data { width: 100%; border-collapse: collapse; margin: 12px 0; }
         table.data th, table.data td { border: 1px solid #444; padding: 4px 6px; font-size: 8.5pt; }
-        table.data th { background: #f0f0f0; text-align: left; }
-        h3.bagian { font-size: 10pt; margin: 12px 0 4px; background: #eee; padding: 4px 6px; border-left: 4px solid #333; }
+        table.data th { background: #dbeafe; color: #1c398e; text-align: left; }
+        h3.bagian { font-size: 10pt; margin: 12px 0 4px; background: #eff6ff; padding: 4px 6px; border-left: 4px solid #155dfc; }
         .ttd { width: 100%; margin-top: 30px; }
         .ttd td { width: 33.33%; text-align: center; vertical-align: top; font-size: 9.5pt; }
         .ttd .role { font-weight: bold; text-decoration: underline; }

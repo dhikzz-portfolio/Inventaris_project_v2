@@ -5,7 +5,7 @@
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Approval Pengadaan Barang</h2>
                 <p class="text-sm text-gray-500">Wakasek Sarpras menyetujui/menolak pengadaan dari Ketua Laboran</p>
             </div>
-            <a href="{{ route('items.create') }}" class="text-sm text-amber-700 font-semibold hover:underline">+ Pengadaan baru</a>
+            <a href="{{ route('items.create') }}" class="text-sm text-blue-700 font-semibold hover:underline">+ Pengadaan baru</a>
         </div>
     </x-slot>
 
@@ -80,7 +80,7 @@
                     @foreach ($decided as $item)
                         <tr class="hover:bg-gray-50">
                             <td class="px-5 py-2.5">
-                                <a href="{{ route('items.show', $item) }}" class="font-medium text-gray-800 hover:text-amber-700">{{ $item->name }}</a>
+                                <a href="{{ route('items.show', $item) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $item->name }}</a>
                                 <div class="text-xs text-gray-400 font-mono">{{ $item->internal_id }}</div>
                             </td>
                             <td class="px-5 py-2.5">

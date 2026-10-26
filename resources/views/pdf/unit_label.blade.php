@@ -6,7 +6,7 @@
         @page { margin: 0; }
         * { box-sizing: border-box; }
         body { margin: 0; padding: 2pt; font-family: Helvetica, Arial, sans-serif; }
-        .label { width: 242pt; height: 106pt; border: 2pt solid #000; border-radius: 4pt; padding: 3pt 5pt; }
+        .label { width: 242pt; height: 106pt; border: 2pt solid #155dfc; border-radius: 4pt; padding: 3pt 5pt; }
         .head { height: 86pt; }
         table.inner { width: 100%; border-collapse: collapse; }
         table.inner td { vertical-align: top; padding: 0; }
@@ -14,12 +14,12 @@
         .logo-cell img { max-width: 40pt; max-height: 40pt; }
         .logo-fallback { font-size: 7pt; font-weight: bold; color: #333; }
         .codes { padding-left: 4pt !important; }
-        .kode-unit { font-family: 'Courier New', monospace; font-size: 17pt; font-weight: bold; line-height: 1.05; }
+        .kode-unit { font-family: 'Courier New', monospace; font-size: 17pt; font-weight: bold; line-height: 1.05; color: #1c398e; }
         .nama { font-size: 8pt; font-weight: bold; margin-top: 2pt; }
         .lokasi { font-size: 7pt; margin-top: 1pt; }
         .qr-cell { width: 46pt; text-align: right; }
         .qr-cell img { width: 42pt; height: 42pt; }
-        .footer { margin-top: 5pt; border-top: 1pt solid #000; padding-top: 2pt; font-size: 7.5pt; font-weight: bold; text-align: center; text-transform: uppercase; }
+        .footer { margin-top: 5pt; border-top: 1pt solid #8ec5ff; padding-top: 2pt; font-size: 7.5pt; font-weight: bold; text-align: center; text-transform: uppercase; color: #1c398e; }
     </style>
 </head>
 <body>

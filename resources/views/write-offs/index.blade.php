@@ -6,7 +6,7 @@
                 <p class="text-sm text-gray-500">Pemusnahan/write-off wajib mengunggah Berita Acara & disetujui Wakasek Sarpras</p>
             </div>
             @if (auth()->user()->isApproverLevel2())
-                <a href="{{ route('write-offs.pending') }}" class="text-sm text-amber-700 font-semibold hover:underline">
+                <a href="{{ route('write-offs.pending') }}" class="text-sm text-blue-700 font-semibold hover:underline">
                     Approval Penghapusan →
                 </a>
             @endif
@@ -56,7 +56,7 @@
 
         <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">inventory</span> Riwayat Inventaris Keluar
+                <span class="material-icons-round text-blue-600">inventory</span> Riwayat Inventaris Keluar
             </h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -73,7 +73,7 @@
                         @forelse ($history as $wo)
                             <tr class="hover:bg-gray-50">
                                 <td class="py-2.5">
-                                    <a href="{{ route('items.show', $wo->item) }}" class="font-medium text-gray-800 hover:text-amber-700">{{ $wo->item?->name }}</a>
+                                    <a href="{{ route('items.show', $wo->item) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $wo->item?->name }}</a>
                                     <div class="text-[11px] font-mono text-gray-400">{{ $wo->item?->internal_id }}</div>
                                 </td>
                                 <td class="py-2.5 text-center text-xs">{{ $wo->quantity }}</td>

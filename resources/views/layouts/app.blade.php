@@ -16,7 +16,7 @@
         <link rel="manifest" href="/manifest.json">
         <link rel="icon" href="/icons/icon-192.png" type="image/png">
         <link rel="apple-touch-icon" href="/icons/icon-192.png">
-        <meta name="theme-color" content="#d97706">
+        <meta name="theme-color" content="#155dfc">
 
         {{-- Terapkan preferensi tema sebelum paint untuk mencegah flash. --}}
         <script>
@@ -33,51 +33,55 @@
         @livewireStyles
         @stack('styles')
     </head>
-    <body class="bg-slate-50 font-sans antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
+    <body class="bg-blue-50/30 font-sans antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
         <div class="min-h-screen flex" x-data="{ menuOpen: false }">
             <aside id="main-menu"
-                   class="fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] -translate-x-full flex-col border-r border-slate-200 bg-white text-slate-700 shadow-xl transition-transform duration-200 ease-in-out dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 md:static md:shrink-0 md:translate-x-0 md:shadow-none"
+                   class="fixed inset-y-0 left-0 z-40 flex w-64 max-w-[85vw] -translate-x-full flex-col border-r border-slate-200 bg-white text-slate-700 shadow-xl transition-transform duration-200 ease-in-out dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:static sm:w-44 sm:shrink-0 sm:translate-x-0 sm:shadow-none lg:w-64"
                    :class="menuOpen ? 'translate-x-0' : '-translate-x-full'"
                    @keydown.escape.window="menuOpen = false">
-                <div class="flex min-h-16 items-center justify-between gap-3 border-b border-slate-100 px-4 dark:border-slate-800">
-                    <div class="flex min-w-0 items-center gap-3">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
+                <div class="flex min-h-14 items-center justify-between gap-2 border-b border-slate-100 px-3 dark:border-slate-800">
+                    <div class="flex min-w-0 items-center gap-2">
+                        <div class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
                             @if ($institution->logo_path)
-                                <img src="{{ asset('storage/'.$institution->logo_path) }}" alt="Logo {{ $institution->institution_name }}" class="h-full w-full object-contain p-1">
+                                <img src="{{ asset('storage/'.$institution->logo_path) }}" alt="Logo {{ $institution->institution_name }}" class="h-full w-full object-contain p-0.5">
                             @else
-                                <span class="material-icons-round text-2xl text-blue-600" aria-hidden="true">school</span>
+                                <span class="material-icons-round text-lg text-blue-600" aria-hidden="true">school</span>
                             @endif
                         </div>
                         <div class="min-w-0 leading-tight">
-                            <div class="truncate text-sm font-bold text-slate-900 dark:text-white">{{ $institution->institution_name }}</div>
-                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">Inventaris Sekolah</div>
+                            <div class="truncate text-[10px] font-bold text-slate-900 dark:text-white">{{ $institution->institution_name }}</div>
+                            <div class="mt-0.5 truncate text-[9px] text-slate-500 dark:text-slate-400">Inventaris Sekolah</div>
                         </div>
                     </div>
-                    <button type="button" @click="menuOpen = false" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 md:hidden dark:hover:bg-slate-800" aria-label="Tutup menu">
+                    <button type="button" @click="menuOpen = false" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden dark:hover:bg-slate-800" aria-label="Tutup menu">
                         <span class="material-icons-round" aria-hidden="true">close</span>
                     </button>
                 </div>
 
-                <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 pb-24 md:pb-4" aria-label="Menu utama">
+                <nav class="flex-1 space-y-1 overflow-y-auto px-2 py-3 pb-24 sm:pb-4" aria-label="Menu utama">
                     @include('layouts.menu')
                 </nav>
             </aside>
 
             <div x-cloak x-show="menuOpen" x-transition.opacity @click="menuOpen = false"
-                 class="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-[1px] md:hidden" aria-hidden="true"></div>
+                 class="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-[1px] sm:hidden" aria-hidden="true"></div>
 
             <div class="flex-1 flex flex-col min-w-0">
                 @include('layouts.navigation')
 
                 @isset($header)
-                    <header class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-                        <div class="mx-auto max-w-full px-4 py-4 sm:px-6 lg:px-8">
+                    <header @class([
+                        'border-b border-slate-200 dark:border-slate-800',
+                        'bg-sky-50/80 dark:bg-slate-950/30' => request()->routeIs('dashboard'),
+                        'bg-white dark:bg-slate-900' => ! request()->routeIs('dashboard'),
+                    ])>
+                        <div class="mx-auto max-w-full px-4 py-3 sm:px-5 sm:py-2 lg:px-8">
                             {{ $header }}
                         </div>
                     </header>
                 @endisset
 
-                <main class="flex-1 p-4 pb-24 sm:p-5 sm:pb-24 md:p-6">
+                <main class="flex-1 bg-blue-50/30 p-4 pb-24 sm:p-5 sm:pb-24 md:p-6 dark:bg-slate-950">
                     {{ $slot }}
                 </main>
             </div>

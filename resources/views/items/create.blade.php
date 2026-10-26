@@ -31,7 +31,7 @@
 
             <div>
                 <x-input-label for="category_id" value="Kategori *" />
-                <select id="category_id" name="category_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm" required>
+                <select id="category_id" name="category_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                     <option value="">— pilih kategori —</option>
                     @foreach ($categories as $category)
                         <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>
@@ -43,7 +43,7 @@
 
             <div>
                 <x-input-label for="room_id" value="Ruangan *" />
-                <select id="room_id" name="room_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm" required>
+                <select id="room_id" name="room_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                     <option value="">— pilih ruangan —</option>
                     @foreach ($rooms as $room)
                         <option value="{{ $room->id }}" @selected(old('room_id') == $room->id)>
@@ -87,24 +87,24 @@
             <div>
                 <x-input-label for="photo" value="Foto Barang (opsional)" />
                 <input id="photo" name="photo" type="file" accept="image/*"
-                       class="mt-1 block w-full text-sm text-gray-600 file:me-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
+                       class="mt-1 block w-full text-sm text-gray-600 file:me-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
             </div>
 
             <div class="md:col-span-2">
                 <x-input-label for="specification" value="Spesifikasi" />
                 <textarea id="specification" name="specification" rows="3"
-                          class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm">{{ old('specification') }}</textarea>
+                          class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">{{ old('specification') }}</textarea>
             </div>
 
             <label class="flex items-center gap-2 md:col-span-2">
                 <input type="checkbox" name="is_high_value" value="1" @checked(old('is_high_value'))
-                       class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 <span class="text-sm text-gray-700">Barang <strong>bernilai tinggi</strong> (laptop, kamera, dll) — wajib persetujuan berjenjang Laboran → Wakasek (tanda tangan digital opsional)</span>
             </label>
         </div>
 
         <div class="mt-6 flex items-center gap-3">
-            <x-primary-button class="bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">Ajukan Pengadaan</x-primary-button>
+            <x-primary-button class="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Ajukan Pengadaan</x-primary-button>
             <a href="{{ route('catalogs.index') }}" class="text-sm text-gray-500 hover:text-gray-800">Batal</a>
         </div>
     </form>

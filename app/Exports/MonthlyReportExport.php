@@ -7,7 +7,9 @@ use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
  * Ekspor laporan bulanan multi-sheet: barang, peminjaman, kerusakan,
@@ -20,9 +22,19 @@ class MonthlyReportExport implements Export, WithMultipleSheets
     public function sheets(): array
     {
         return [
-            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithTitle
+            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
             {
                 public function __construct(private readonly array $data) {}
+
+                public function styles(Worksheet $sheet): ?array
+                {
+                    return [
+                        1 => [
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
+                        ],
+                    ];
+                }
 
                 public function title(): string
                 {
@@ -55,9 +67,19 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                     return ['Kode Inventaris', 'Nama Barang', 'Kategori', 'Ruangan', 'Gedung', 'Lantai', 'No. Ruangan', 'Kondisi', 'Status', 'Tahun', 'Sumber Dana', 'No. Register', 'Nilai Tinggi'];
                 }
             },
-            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithTitle
+            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
             {
                 public function __construct(private readonly array $data) {}
+
+                public function styles(Worksheet $sheet): ?array
+                {
+                    return [
+                        1 => [
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
+                        ],
+                    ];
+                }
 
                 public function title(): string
                 {
@@ -85,9 +107,19 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                     return ['ID Pinjam', 'Peminjam', 'Tujuan', 'Kegiatan', 'Mulai', 'Jatuh Tempo', 'Dikembalikan', 'Status', 'Total Dipinjam', 'Total Kembali'];
                 }
             },
-            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithTitle
+            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
             {
                 public function __construct(private readonly array $data) {}
+
+                public function styles(Worksheet $sheet): ?array
+                {
+                    return [
+                        1 => [
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
+                        ],
+                    ];
+                }
 
                 public function title(): string
                 {
@@ -111,9 +143,19 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                     return ['ID Internal', 'Barang', 'Kondisi Akhir', 'Jumlah Rusak', 'Peminjam', 'Tanggal Kembali'];
                 }
             },
-            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithTitle
+            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
             {
                 public function __construct(private readonly array $data) {}
+
+                public function styles(Worksheet $sheet): ?array
+                {
+                    return [
+                        1 => [
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
+                        ],
+                    ];
+                }
 
                 public function title(): string
                 {
@@ -139,9 +181,19 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                     return ['Tanggal', 'ID Internal', 'Barang', 'Dari Ruangan', 'Ke Ruangan', 'Jumlah', 'Petugas', 'Catatan'];
                 }
             },
-            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithTitle
+            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
             {
                 public function __construct(private readonly array $data) {}
+
+                public function styles(Worksheet $sheet): ?array
+                {
+                    return [
+                        1 => [
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
+                        ],
+                    ];
+                }
 
                 public function title(): string
                 {

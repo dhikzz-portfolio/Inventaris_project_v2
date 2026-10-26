@@ -40,7 +40,7 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-        <meta name="theme-color" content="#1f6fba">
+        <meta name="theme-color" content="#155dfc">
     </head>
 
     <body class="min-h-dvh overflow-x-hidden bg-slate-50 font-sans text-slate-900 antialiased">

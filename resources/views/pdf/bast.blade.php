@@ -7,7 +7,7 @@
         * { box-sizing: border-box; }
         body { margin: 0; }
         body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #111; }
-        .kop { width: 100%; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
+        .kop { width: 100%; border-bottom: 3px solid #155dfc; padding-bottom: 8px; margin-bottom: 16px; }
         .kop td { vertical-align: middle; }
         .kop img { max-width: 64px; max-height: 64px; }
         .kop .instansi { font-size: 13pt; font-weight: bold; text-transform: uppercase; }
@@ -16,7 +16,7 @@
         .nomor { text-align: center; font-size: 9pt; margin-bottom: 14px; }
         table.data { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
         table.data th, table.data td { border: 1px solid #444; padding: 5px 7px; font-size: 9.5pt; }
-        table.data th { background: #f0f0f0; text-align: left; }
+        table.data th { background: #dbeafe; color: #1c398e; text-align: left; }
         .info td { padding: 2.5px 0; vertical-align: top; }
         .info td:first-child { width: 155px; }
         .ttd { width: 100%; margin-top: 34px; }
@@ -26,7 +26,7 @@
         .ttd img { max-height: 55px; max-width: 140px; }
         .ttd .nama { font-weight: bold; margin-top: 6px; }
         .footer { margin-top: 18px; font-size: 8pt; color: #555; border-top: 1px solid #ccc; padding-top: 5px; }
-        .catatan { font-size: 9pt; background: #f7f7f7; border: 1px dashed #aaa; padding: 7px; margin-bottom: 12px; }
+        .catatan { font-size: 9pt; background: #eff6ff; border: 1px dashed #8ec5ff; padding: 7px; margin-bottom: 12px; }
     </style>
 </head>
 <body>

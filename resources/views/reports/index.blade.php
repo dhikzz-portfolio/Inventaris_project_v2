@@ -12,18 +12,18 @@
 
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6" x-data="reportForm()">
         <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
-            <span class="material-icons-round text-amber-600">tune</span> Parameter Laporan
+            <span class="material-icons-round text-blue-600">tune</span> Parameter Laporan
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
                 <x-input-label value="Periode (Bulan)" />
                 <input type="month" x-model="period" min="2020-01" value="{{ $currentPeriod }}"
-                       class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                       class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
                 <x-input-label value="Cakupan" />
-                <select x-model="scope" x-on:change="scopeId = ''" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                <select x-model="scope" x-on:change="scopeId = ''" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                     <option value="SEMUA">{{ auth()->user()->isSuperAdmin() ? 'Seluruh sekolah' : 'Seluruh laboratorium' }}</option>
                     <option value="KATEGORI">Per Kategori</option>
                     <option value="RUANGAN">Per Ruangan</option>
@@ -32,7 +32,7 @@
             </div>
             <div x-show="scope !== 'SEMUA'" x-cloak>
                 <label class="block font-medium text-sm text-gray-700" x-text="scope === 'KATEGORI' ? 'Kategori' : (scope === 'RUANGAN' ? 'Ruangan' : 'Jurusan')"></label>
-                <select x-model="scopeId" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                <select x-model="scopeId" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                     <option value="">— pilih —</option>
                     <template x-if="scope === 'KATEGORI'">
                         <optgroup label="Kategori">

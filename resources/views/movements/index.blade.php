@@ -16,13 +16,13 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">move_to_inbox</span> Pindahkan Barang
+                <span class="material-icons-round text-blue-600">move_to_inbox</span> Pindahkan Barang
             </h3>
             <form method="POST" action="{{ route('movements.store') }}" class="space-y-4">
                 @csrf
                 <div>
                     <x-input-label value="Barang *" />
-                    <select name="item_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm" required>
+                    <select name="item_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                         <option value="">— pilih barang —</option>
                         @foreach ($items as $item)
                             <option value="{{ $item->id }}" @selected(old('item_id') == $item->id)>
@@ -33,7 +33,7 @@
                 </div>
                 <div>
                     <x-input-label value="Ruangan Tujuan *" />
-                    <select name="to_room_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm" required>
+                    <select name="to_room_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                         <option value="">— pilih ruangan tujuan —</option>
                         @foreach ($rooms as $room)
                             <option value="{{ $room->id }}" @selected(old('to_room_id') == $room->id)>
@@ -44,15 +44,15 @@
                 </div>
                 <div>
                     <x-input-label value="Catatan" />
-                    <textarea name="note" rows="2" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm">{{ old('note') }}</textarea>
+                    <textarea name="note" rows="2" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">{{ old('note') }}</textarea>
                 </div>
-                <x-primary-button class="bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">Catat Mutasi</x-primary-button>
+                <x-primary-button class="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Catat Mutasi</x-primary-button>
             </form>
         </div>
 
         <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">route</span> Riwayat Mutasi ({{ $movements->total() }})
+                <span class="material-icons-round text-blue-600">route</span> Riwayat Mutasi ({{ $movements->total() }})
             </h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -69,7 +69,7 @@
                         @forelse ($movements as $m)
                             <tr class="hover:bg-gray-50">
                                 <td class="py-2.5">
-                                    <a href="{{ route('items.show', $m->item) }}" class="font-medium text-gray-800 hover:text-amber-700">{{ $m->item?->name }}</a>
+                                    <a href="{{ route('items.show', $m->item) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $m->item?->name }}</a>
                                     <div class="text-[11px] font-mono text-gray-400">{{ $m->item?->internal_id }}</div>
                                 </td>
                                 <td class="py-2.5">

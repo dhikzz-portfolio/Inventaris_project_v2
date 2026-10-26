@@ -27,7 +27,7 @@
                             <span class="font-semibold text-gray-800">{{ $loan->borrower?->name }}</span>
                             <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                             @if ($loan->event)
-                                <span class="text-[11px] text-indigo-600">🎯 {{ $loan->event->name }}</span>
+                                <span class="text-[11px] text-blue-600">🎯 {{ $loan->event->name }}</span>
                             @endif
                         </div>
                         <div class="text-sm text-gray-600 truncate">{{ $loan->purpose }}</div>
@@ -47,7 +47,7 @@
                         </div>
                     </div>
                     <a href="{{ route('loans.return-form', $loan) }}"
-                       class="w-full md:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-3 md:py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold active:bg-amber-800">
+                       class="w-full md:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-3 md:py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold active:bg-blue-800">
                         <span class="material-icons-round text-lg">fact_check</span> Validasi Pengembalian
                     </a>
                 </div>

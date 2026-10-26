@@ -13,7 +13,7 @@
             @if ($unreadCount > 0)
                 <form method="POST" action="{{ route('notifications.read-all') }}">
                     @csrf
-                    <button class="text-sm text-amber-700 font-semibold hover:underline">Tandai semua dibaca</button>
+                    <button class="text-sm text-blue-700 font-semibold hover:underline">Tandai semua dibaca</button>
                 </form>
             @endif
         </div>
@@ -28,12 +28,12 @@
             @forelse ($notifications as $notification)
                 <li @class([
                     'flex items-start gap-3 px-5 py-4',
-                    'bg-amber-50/50' => ! $notification->isRead(),
+                    'bg-blue-50/50 dark:bg-blue-950/20' => ! $notification->isRead(),
                 ])>
                     <span @class([
                         'mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full',
                         'bg-red-100 text-red-600' => $notification->type->value === 'TERLAMBAT',
-                        'bg-indigo-100 text-indigo-600' => $notification->type->value === 'PERSETUJUAN',
+                        'bg-blue-100 text-blue-600' => $notification->type->value === 'PERSETUJUAN',
                         'bg-green-100 text-green-600' => $notification->type->value === 'PENGEMBALIAN',
                         'bg-blue-100 text-blue-600' => $notification->type->value === 'PENGADAAN',
                         'bg-gray-100 text-gray-600' => in_array($notification->type->value, ['PENGHAPUSAN', 'LAINNYA']),
@@ -53,7 +53,7 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-[11px] font-bold uppercase tracking-wide text-gray-400">{{ $notification->type->label() }}</span>
                             @if (! $notification->isRead())
-                                <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+                                <span class="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>
                             @endif
                             <span class="ms-auto text-[11px] text-gray-400">{{ $notification->created_at->diffForHumans() }}</span>
                         </div>
@@ -61,12 +61,12 @@
                         @if ($notification->link)
                             <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
                                 @csrf
-                                <button class="text-xs font-semibold text-amber-700 hover:underline">Buka detail →</button>
+                                <button class="text-xs font-semibold text-blue-700 hover:underline">Buka detail →</button>
                             </form>
                         @elseif (! $notification->isRead())
                             <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
                                 @csrf
-                                <button class="text-xs font-semibold text-amber-700 hover:underline">Tandai sudah dibaca</button>
+                                <button class="text-xs font-semibold text-blue-700 hover:underline">Tandai sudah dibaca</button>
                             </form>
                         @endif
                     </div>

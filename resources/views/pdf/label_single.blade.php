@@ -53,8 +53,8 @@
                     <td class="codes">
                         {{-- Kanan Atas: deret angka Kode Lokasi/Instansi (maks. 2 baris) --}}
                         <div class="kode-lokasi">{!! implode('<br>', array_map('e', $locationLines)) !!}</div>
-                        {{-- Kanan Bawah: Kode Klasifikasi Barang + Nomor Urut Registrasi --}}
-                        <div class="kode-barang">{{ $item->asset_code }}.{{ $item->register_no }}</div>
+                        {{-- Nama barang menjadi header pembeda kode inventaris --}}
+                        <div class="kode-barang">{{ strtoupper($item->name) }}</div>
                     </td>
                     <td width="46" class="qr-cell">
                         <img src="{{ $qr }}" alt="QR">

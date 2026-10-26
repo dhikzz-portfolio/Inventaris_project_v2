@@ -19,7 +19,10 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
-    protected $fillable = ['username', 'name', 'password', 'role', 'borrower_type', 'major_id', 'last_login_at'];
+    protected $fillable = [
+        'username', 'name', 'degree', 'email', 'email_verified_at', 'password',
+        'role', 'borrower_type', 'major_id', 'class_name', 'last_login_at',
+    ];
 
     /**
      * @return array<string, string>
@@ -29,6 +32,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'borrower_type' => BorrowerType::class,
+            'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
         ];
     }
@@ -36,6 +40,28 @@ class User extends Authenticatable
     public function major(): BelongsTo
     {
         return $this->belongsTo(Major::class);
+    }
+
+    /**
+     * Nama untuk sapaan dan dokumen resmi: nama lengkap + gelar bila ada.
+     */
+    public function displayName(): string
+    {
+        $name = trim((string) ($this->name ?: $this->username));
+        $degree = trim((string) ($this->degree ?? ''));
+
+        return $degree !== '' ? $name.', '.$degree : $name;
+    }
+
+    /** Nama tanpa gelar (dipakai bila gelar sudah menyatu pada nama lama). */
+    public function greetingName(): string
+    {
+        return $this->displayName() ?: (string) $this->username;
+    }
+
+    public function isGuru(): bool
+    {
+        return $this->borrower_type === BorrowerType::GURU;
     }
 
     public function loans(): HasMany
@@ -68,6 +94,11 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->role === Role::SUPER_ADMIN->value;
+    }
+
+    public function isAdminSarpras(): bool
+    {
+        return $this->role === Role::KETUA_LABORAN->value;
     }
 
     public function isKetuaLaboran(): bool
@@ -123,5 +154,11 @@ class User extends Authenticatable
     public function canManageLoanDocuments(): bool
     {
         return $this->managesInventory() || $this->canApproveLoans();
+    }
+
+    /** Guru dan staf boleh mencatat rekap kegiatan sekolah. */
+    public function canRecordActivities(): bool
+    {
+        return in_array($this->borrower_type, [BorrowerType::GURU, BorrowerType::STAF], true);
     }
 }

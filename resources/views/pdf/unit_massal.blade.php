@@ -28,7 +28,7 @@
             font-family: 'Courier New', monospace;
             font-size: 15pt; font-weight: bold; line-height: 1.05;
         }
-        .nama { font-size: 8pt; font-weight: bold; margin-top: 2pt; }
+        .nama { font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-bottom: 1pt; line-height: 1.1; }
         .lokasi { font-size: 7pt; margin-top: 1pt; }
         .qr-cell { width: 46pt; text-align: right; }
         .qr-cell img { width: 40pt; height: 40pt; }
@@ -60,9 +60,9 @@
                                             @endif
                                         </td>
                                         <td class="codes">
-                                            {{-- Kode inventaris unit fisik — unik per stiker --}}
-                                            <div class="kode-unit">{{ $unit->inventory_code }}</div>
+                                            {{-- Nama barang sebagai header, kode inventaris unik per stiker --}}
                                             <div class="nama">{{ $unit->catalog?->name }}</div>
+                                            <div class="kode-unit">{{ $unit->inventory_code }}</div>
                                             <div class="lokasi">{{ $unit->locationLabel() }}</div>
                                         </td>
                                         <td width="46" class="qr-cell">

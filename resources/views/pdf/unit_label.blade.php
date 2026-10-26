@@ -14,8 +14,8 @@
         .logo-cell img { max-width: 40pt; max-height: 40pt; }
         .logo-fallback { font-size: 7pt; font-weight: bold; color: #333; }
         .codes { padding-left: 4pt !important; }
-        .kode-unit { font-family: 'Courier New', monospace; font-size: 17pt; font-weight: bold; line-height: 1.05; }
-        .nama { font-size: 8pt; font-weight: bold; margin-top: 2pt; }
+        .kode-unit { font-family: 'Courier New', monospace; font-size: 16pt; font-weight: bold; line-height: 1.05; }
+        .nama { font-size: 9.5pt; font-weight: bold; text-transform: uppercase; margin-bottom: 1pt; line-height: 1.1; }
         .lokasi { font-size: 7pt; margin-top: 1pt; }
         .qr-cell { width: 46pt; text-align: right; }
         .qr-cell img { width: 42pt; height: 42pt; }
@@ -35,8 +35,9 @@
                         @endif
                     </td>
                     <td class="codes">
-                        <div class="kode-unit">{{ $unit->inventory_code }}</div>
+                        {{-- Nama barang = header pembeda; kode unit tetap satu-satunya identitas --}}
                         <div class="nama">{{ $unit->catalog?->name }}</div>
+                        <div class="kode-unit">{{ $unit->inventory_code }}</div>
                         <div class="lokasi">{{ $unit->locationLabel() }}</div>
                     </td>
                     <td width="46" class="qr-cell">

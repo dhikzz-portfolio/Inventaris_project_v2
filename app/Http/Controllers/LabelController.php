@@ -8,6 +8,7 @@ use App\Models\AssetUnit;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Room;
+use App\Models\User;
 use App\Services\InventoryCodeService;
 use App\Services\LabelService;
 use Illuminate\Http\RedirectResponse;
@@ -76,40 +77,130 @@ class LabelController extends Controller
         return $pdf->stream('label-massal-'.count($units).'-unit-'.now()->format('Ymd-His').'.pdf');
     }
 
-    public function scan(): View
+    /**
+     * Halaman scan universal untuk semua pengguna yang sudah login.
+     *
+     * Hasil pemindaian ditampilkan pada halaman yang sama (bukan dialihkan ke
+     * katalog). Parameter `u`/`c` dari QR hanya petunjuk; unit selalu dicari
+     * ulang dari database sehingga payload QR tidak pernah dipercaya mentah.
+     */
+    public function scan(Request $request): View
     {
-        return view('labels.scan');
+        $code = trim((string) $request->query('code', ''));
+        $unitId = $request->query('u');
+
+        return view('labels.scan', [
+            'code' => $code,
+            'result' => $this->scanResult($request->user(), $code, $unitId),
+            'qrRelease' => LabelService::QR_RELEASE,
+        ]);
     }
 
-    /** Hasil scan QR: dukung kode unit baru maupun ID internal lama. */
-    public function scanResolve(string $internalId): RedirectResponse
+    /** Kompatibilitas URL lama `/scan/{kode}`: tampilkan hasil di halaman scan. */
+    public function scanResolve(Request $request, string $internalId): View
     {
+        return view('labels.scan', [
+            'code' => $internalId,
+            'result' => $this->scanResult($request->user(), $internalId, null),
+            'qrRelease' => LabelService::QR_RELEASE,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function scanResult(User $user, string $code, mixed $unitHint): ?array
+    {
+        if ($code === '' && $unitHint === null) {
+            return null;
+        }
+
         $codes = app(InventoryCodeService::class);
-        $code = $codes->normalize($internalId);
+        $normalized = $codes->normalize($code);
 
-        if ($codes->isValidFormat($code)) {
-            $unit = $codes->resolve($code);
-            $visible = $unit !== null && AssetUnit::query()
-                ->visibleTo(request()->user())
-                ->whereKey($unit->id)
-                ->exists();
+        $unit = null;
 
-            if ($unit !== null && $visible) {
-                return redirect()->route('units.show', $unit);
+        // Identitas stabil (ID unit) diprioritaskan bila QR menyertakannya.
+        if ($unitHint !== null && ctype_digit((string) $unitHint)) {
+            $unit = AssetUnit::query()->with(['catalog.category', 'room.major', 'room.building'])->find((int) $unitHint);
+        }
+
+        if ($unit === null && $normalized !== '') {
+            if ($codes->isValidFormat($normalized)) {
+                $unit = $codes->resolve($normalized);
+                $unit?->load(['catalog.category', 'room.major', 'room.building']);
+            } else {
+                // Dukungan stiker lama berisi ID internal katalog.
+                $legacy = Item::where('internal_id', $code)->first();
+
+                if ($legacy !== null) {
+                    return [
+                        'status' => 'catalog',
+                        'code' => (string) $legacy->internal_id,
+                        'name' => $legacy->name,
+                        'url' => route('items.show', $legacy),
+                    ];
+                }
+
+                return [
+                    'status' => 'invalid',
+                    'code' => $code,
+                    'message' => 'Format kode tidak valid. Contoh yang benar: G1-02-12.',
+                ];
             }
-
-            return redirect()->route('labels.index')
-                ->with('error', "Kode \"{$code}\" tidak ditemukan dalam cakupan akses Anda.");
         }
 
-        $item = Item::where('internal_id', $internalId)->first();
-
-        if (! $item) {
-            return redirect()->route('labels.index')
-                ->with('error', "QR/ID \"{$internalId}\" tidak ditemukan di sistem.");
+        if ($unit === null) {
+            return [
+                'status' => 'missing',
+                'code' => $code,
+                'message' => 'Kode/QR tidak ditemukan. Periksa kembali kode inventaris pada stiker.',
+            ];
         }
 
-        return redirect()->route('items.show', $item);
+        $visible = AssetUnit::query()
+            ->visibleTo($user)
+            ->whereKey($unit->id)
+            ->exists();
+
+        if (! $visible) {
+            return [
+                'status' => 'restricted',
+                'code' => $unit->inventory_code,
+                'message' => 'Unit ini berada di luar cakupan akses Anda. Detail inventaris memerlukan kewenangan pengelola yang lebih tinggi.',
+            ];
+        }
+
+        $room = $unit->room;
+        // Peminjam hanya menerima identitas dasar unit; nilai perolehan,
+        // catatan internal, nomor register, dan riwayat tidak ditampilkan.
+        $internal = $user->managesInventory() || $user->canApproveLoans();
+
+        return [
+            'status' => 'found',
+            'unit_id' => $unit->id,
+            'code' => $unit->inventory_code,
+            'name' => $unit->catalog?->name,
+            'specification' => $unit->catalog?->specification,
+            'brand' => $unit->catalog?->brand,
+            'model_type' => $unit->catalog?->model_type,
+            'category' => $unit->catalog?->category?->name,
+            'major' => $room?->major?->name,
+            'building' => $room?->building?->name ?: ($room?->buildingCode() ? 'Gedung '.$room->buildingCode() : null),
+            'floor' => $room?->floor,
+            'room' => $room?->name,
+            'room_code' => $room?->code,
+            'unit_no' => $unit->unit_no,
+            'condition' => $unit->condition->label(),
+            'condition_badge' => $unit->condition->isDamaged() ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800',
+            'unit_status' => $unit->status->label(),
+            'unit_status_badge' => $unit->status->badgeClass(),
+            'archived' => $unit->archived_at !== null || $unit->status === UnitStatus::DIHAPUS,
+            'register_no' => $internal ? $unit->register_no : null,
+            'acquisition_value' => $internal ? $unit->acquisition_value : null,
+            'notes' => $internal ? $unit->notes : null,
+            'url' => route('units.show', $unit),
+        ];
     }
 
     /**

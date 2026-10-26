@@ -434,7 +434,6 @@ class InventoryCoreTest extends TestCase
         return Item::create([
             'internal_id' => 'T-'.Str::lower(Str::random(10)),
             'location_code' => InstitutionSetting::current()->location_code,
-            'asset_code' => $this->category->code,
             'register_no' => (string) random_int(1000, 9999),
             'name' => $name,
             'category_id' => $this->category->id,

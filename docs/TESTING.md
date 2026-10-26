@@ -1,9 +1,9 @@
 # Testing Report
 
-Tanggal eksekusi terakhir: **22 Oktober 2026**
+Tanggal eksekusi terakhir: **26 Oktober 2026**
 Lingkungan: Windows 11, PHP 8.3.32, Laravel 13, MySQL 8.4.3, Node 24, Chrome headless.
 
-> Hasil ini mencakup revisi terakhir (22 Oktober 2026): master data gedung (`buildings`), formulir ruangan baru, penugasan unit fisik saat serah terima (`loan_item_units`), status dokumen peminjaman (`loans.document_status`), approval Wakasek, dan verifikasi kode inventaris pasca-migrasi gedung.
+> Hasil ini mencakup revisi besar V2 (26 Oktober 2026): registrasi Gmail + role Peminjam, scan universal, gedung A–G, penghapusan `asset_code`, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus arsip laporan, status kegiatan, surat peminjaman per kategori + pratinjau cetak, dan UI pengguna berbasis kartu. Rincian: `REVISION_V2.md`.
 
 ## 1. Perintah
 
@@ -29,17 +29,23 @@ php artisan view:cache
 ## 2. Hasil otomatis
 
 ```
-Tests:    194 passed (932 assertions)
-Duration: ~170s
+Tests:    246 passed (1171 assertions)
+Duration: ~178s
 ```
 
-Tidak ada test yang di-skip. Hasil ini mencakup revisi 2.1 dan revisi 24 Oktober 2026: pemisahan katalog/unit, mesin kode inventaris, scope akses katalog/unit/URL, mutasi unit, label per unit, backfill, pengetatan cakupan laporan & privasi data unit untuk Peminjam, role `KETUA_LABORAN`, persetujuan otomatis Laboran/K3, penghapusan/arsip katalog, pencegahan katalog duplikat, dan pembatasan penyerahan unit.
+Tidak ada test yang di-skip. Angka ini mencakup seluruh revisi sebelumnya ditambah revisi besar V2: registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, dan UI pengguna.
 
-Test baru pada revisi ini:
+Test baru pada revisi V2:
 
-- `LaboranApprovalTest` — persetujuan otomatis laboratorium sendiri, pengecualian barang bernilai tinggi, penolakan lintas lingkup, dan penolakan katalog duplikat.
-- `CatalogDeletionTest` — hapus permanen tanpa relasi, arsip katalog berunit, kewenangan Ketua Laboran atas katalog non-lab, penolakan role tidak berwenang, dan katalog arsip tidak tampil di daftar.
-- `LoanUnitFlowTest` — penolakan unit melebihi jumlah pinjaman dan request serah terima berulang.
+- `RegistrationTest` (8 tes) — registrasi lengkap, Gmail ditolak, domain kapital dinormalisasi, duplikat, hash password, role selalu Peminjam, eskalasi role diabaikan, kelas wajib siswa, sapaan dashboard, profil tidak dapat mengubah role.
+- `UniversalScanTest` — semua role dapat scan, hasil tampil di halaman scan, kode invalid/missing, masking data internal, scan tidak mengubah data, payload QR memuat rilis skema + ID unit + kode + metadata lokasi tanpa rahasia, serta stiker ID internal katalog lama diarahkan tanpa redirect.
+- `MultiLocationProcurementTest` — alokasi 20+15+5, total lebih/kurang ditolak, unit dan kode unik per lokasi.
+- `ReportImportAndArchiveTest` — pratinjau, format/duplikat ditolak, impor atomik, hapus arsip tidak menghapus unit, audit log.
+- `EventActivityTest` — guru/staf mencatat kegiatan, siswa ditolak, status tersimpan & berubah, kepemilikan, tidak mengubah peminjaman.
+- `LoanLetterTest` — surat biasa tanpa kegiatan, surat kegiatan memuat kegiatan, tanggal tanpa jam, identitas per kategori, kode unit, otorisasi.
+- `UserManagementUiTest` — panel kartu tambah/edit, field kondisional, role hanya Super Admin.
+
+Test lama yang diperbarui: `BuildingMasterDataTest`, `InventoryCatalogTest`, `MovementAndWriteOffTest`, `LabelAndQrTest` (penghapusan `asset_code` dan perilaku baru).
 
 ### Cakupan utama
 
@@ -193,6 +199,8 @@ Jika muncul pesan `TEST ABORTED: ... SQLite in-memory ...`, jalankan `php artisa
 
 ## 9. Pengujian revisi 2.1 (SUDAH DIEKSEKUSI)
 
+> Untuk revisi besar V2 (26 Oktober 2026), lihat bagian 10 di bawah.
+
 Rencana disusun: 21 Oktober 2026. Dieksekusi: **22 Oktober 2026**.
 
 > Acceptance criteria 2.1 diuji di `tests/Feature/InventoryCoreTest.php` (SQLite in-memory) dan diverifikasi di browser. Seluruh test lulus; lihat bagian 2 untuk hasil lengkap. Bagian 1–8 di atas memuat hasil baseline model batch dan sudah diperbarui pada bagian 2.
@@ -253,3 +261,21 @@ vendor/bin/pint --dirty --format agent
 3. Rekonsiliasi pasca-migrasi 0 selisih (`inventory:verify-codes` diuji pada data seeder dan ledger rusak).
 4. Hasil pengukuran pencarian < 0,5 detik pada data uji minimal 5.000 unit: **belum diukur ulang pada 5.000 unit**; pengukuran sebelumnya pada data demo memenuhi target.
 5. `PROJECT_STATUS.md` diperbarui menjadi VERIFIED setelah butir 1–3 terpenuhi; butir 4 dicatat sebagai keterbatasan.
+
+## 10. Pengujian revisi besar V2 (26 Oktober 2026)
+
+Dijalankan dengan `php artisan test --compact` pada SQLite in-memory, locale `id`, timezone `Asia/Jakarta`.
+
+| Kelompok | Test | Bukti |
+| --- | --- | --- |
+| A. Autentikasi | `RegistrationTest` | registrasi lengkap, Gmail ditolak, domain kapital diterima, duplikat, hash, role Peminjam, eskalasi role, sapaan, profil |
+| B. Scan | `UniversalScanTest` | akses semua role, hasil di halaman scan, invalid/missing, masking internal, tidak mengubah data, kompatibilitas stiker katalog lama |
+| C. Master data | `BuildingMasterDataTest`, `InventoryCatalogTest` | validasi wajib, gedung A–G, seeder idempoten, kode lokasi/unit |
+| D. Pengadaan | `MultiLocationProcurementTest` | 20+15+5 valid, total lebih/kurang ditolak, kode otomatis & unik |
+| E. Label & QR | `LabelAndQrTest` | label per unit, header nama, kode unit, QR unit, tanpa `asset_code` |
+| F. Mutasi | `MovementAndWriteOffTest` | unit dipinjam ditolak, cakupan, riwayat; multi-select divalidasi backend |
+| G. Laporan | `ReportImportAndArchiveTest` | pratinjau, format/duplikat, atomik, hapus arsip, audit |
+| H. Dokumen | `LoanLetterTest`, `EventAndBastTest` | surat biasa vs kegiatan, tanggal tanpa jam, identitas, kode unit, otorisasi |
+| I. Regresi role | seluruh suite | 246 tes lulus untuk Super Admin, Ketua Laboran, Laboran, siswa, guru, staf |
+
+Batasan yang tidak diuji: kamera fisik pada perangkat nyata (diuji melalui jalur manual dan ketersediaan `html5-qrcode`), verifikasi email (SMTP belum dikonfigurasi), dan konkurensi MySQL nyata.

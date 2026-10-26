@@ -59,8 +59,8 @@ class ItemCatalog extends Component
                 $query->where(fn ($w) => $w
                     ->where('name', 'like', $term)
                     ->orWhere('internal_id', 'like', $term)
-                    ->orWhere('asset_code', 'like', $term)
                     ->orWhere('register_no', 'like', $term)
+                    ->orWhereHas('units', fn ($unit) => $unit->where('inventory_code', 'like', $term))
                     ->orWhere('specification', 'like', $term));
             })
             ->when($this->category, fn ($query) => $query->where('category_id', $this->category))

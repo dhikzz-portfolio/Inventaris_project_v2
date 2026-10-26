@@ -68,7 +68,6 @@ class LoanApprovalHandoverTest extends TestCase
         $catalog = Item::create([
             'internal_id' => 'REVISI-'.strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $name), 0, 6)).'-'.self::$sequence,
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => (string) (8000 + self::$sequence),
             'name' => $name,
             'category_id' => $this->category->id,

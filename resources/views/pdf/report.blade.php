@@ -74,7 +74,7 @@
                 <th width="70">Status</th>
                 <th width="46" class="num">Thn</th>
                 <th width="52">Dana</th>
-                <th width="105">Kode+Register</th>
+                <th width="105">Nomor Register</th>
             </tr>
         </thead>
         <tbody>
@@ -89,7 +89,7 @@
                     <td>{{ $item->status->label() }}</td>
                     <td class="num">{{ $item->acquisition_year }}</td>
                     <td>{{ $item->funding_source }}</td>
-                    <td style="font-family: monospace;">{{ $item->asset_code }}.{{ $item->register_no }}</td>
+                    <td style="font-family: monospace;">{{ $item->register_no ?: '—' }}</td>
                 </tr>
             @empty
                 <tr><td colspan="10" class="num">Tidak ada barang pada cakupan ini.</td></tr>

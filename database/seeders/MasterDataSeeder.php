@@ -45,16 +45,25 @@ class MasterDataSeeder extends Seeder
             ->whereDoesntHave('users')
             ->delete();
 
-        $buildings = collect([
-            ['name' => 'Gedung G', 'code' => 'G'],
+        // Master gedung resmi A–G. `updateOrCreate` membuat seeder idempoten:
+        // dijalankan berulang tidak menggandakan gedung dan tidak menimpa
+        // gedung historis (H/I) yang dipakai data demo lama.
+        $officialBuildings = collect(range('A', 'G'))
+            ->map(fn (string $code) => ['name' => 'Gedung '.$code, 'code' => $code]);
+
+        $historicalBuildings = collect([
             ['name' => 'Gedung H', 'code' => 'H'],
             ['name' => 'Gedung I', 'code' => 'I'],
-        ])->mapWithKeys(fn (array $building) => [
-            $building['code'] => Building::updateOrCreate(
-                ['code' => $building['code']],
-                $building + ['is_active' => true]
-            ),
         ]);
+
+        $buildings = $officialBuildings
+            ->concat($historicalBuildings)
+            ->mapWithKeys(fn (array $building) => [
+                $building['code'] => Building::updateOrCreate(
+                    ['code' => $building['code']],
+                    $building + ['is_active' => true]
+                ),
+            ]);
 
         // Kode ruangan dipertahankan dari data demo agar kode inventaris yang
         // sudah terbit tidak berubah. Nama laboratorium mengikuti lima jurusan.

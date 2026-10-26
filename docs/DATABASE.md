@@ -6,14 +6,14 @@ Testing: SQLite `:memory:` (lihat `phpunit.xml`).
 
 Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan mengubah tabel manual di produksi.
 
-> **Status dokumen (22 Oktober 2026).** Dokumen ini memuat skema katalog/unit yang **sudah berjalan** di aplikasi. Tabel inti revisi 2.1 (`item_catalogs`, `asset_units`, `asset_unit_codes`, `asset_unit_movements`, `maintenance_records`, `user_room_scopes`, `loan_item_units`) serta revisi lanjutan (`buildings`, `loans.document_status`) sudah dibuat lewat migration dan diuji. Yang masih tersisa hanyalah **pembukuan kuantitas warisan** pada tabel `items` (lihat `KNOWN_ISSUES.md` butir 1 & 3); rencana migrasi warisan ada di bagian 6.
+> **Status dokumen (26 Oktober 2026).** Dokumen ini memuat skema katalog/unit yang **sudah berjalan** di aplikasi, termasuk revisi besar V2: profil registrasi (`users.degree`, `class_name`, `email_verified_at`), alokasi pengadaan (`acquisition_allocations`), status kegiatan (`events.status`), soft delete arsip laporan (`reports.deleted_at`), dan penghapusan kolom `item_catalogs.asset_code`. Yang masih tersisa hanyalah **pembukuan kuantitas warisan** pada tabel `items` (lihat `KNOWN_ISSUES.md` butir 1 & 3); rencana migrasi warisan ada di bagian 6. Rincian revisi: `REVISION_V2.md`.
 
 ## 1. Daftar tabel
 
 | Tabel                                                                                             | Fungsi                                                                                                       | Status dokumen |
 | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------- |
 | `majors`                                                                                          | Jurusan/kompetensi keahlian.                                                                                 | Ada            |
-| `users`                                                                                           | Akun pengguna + role utama + jurusan.                                                                        | Ada            |
+| `users`                                                                                           | Akun pengguna + role utama + jurusan + profil registrasi (gelar, email, kelas).                              | Berubah        |
 | `buildings`                                                                                       | **Master gedung**: nama + kode satu huruf (A–Z) yang menjadi sumber kebenaran kode lokasi & kode inventaris. | Baru           |
 | `rooms`                                                                                           | Ruangan: gedung (relasi), lantai, nomor ruangan, jurusan, penanda laboratorium.                              | Berubah        |
 | `categories`                                                                                      | Kategori/klasifikasi barang dan kode aset.                                                                   | Ada            |
@@ -24,14 +24,15 @@ Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan m
 | `maintenance_records`                                                                             | Riwayat pemeliharaan perbaikan per unit.                                                                     | Baru           |
 | `user_room_scopes`                                                                                | Penetapan cakupan laboratorium/ruangan untuk Laboran/K3.                                                     | Baru           |
 | `loan_item_units`                                                                                 | Penugasan unit fisik pada baris peminjaman (saat serah terima).                                              | Baru           |
-| `events`                                                                                          | Kegiatan untuk mengikat peminjaman dan BAST gabungan.                                                        | Ada            |
+| `events`                                                                                          | Kegiatan untuk mengikat peminjaman dan BAST gabungan + status pelaksanaan tersimpan.                         | Berubah        |
+| `acquisition_allocations`                                                                         | **Alokasi pengadaan multi-lokasi**: jumlah unit per ruangan untuk satu katalog pengadaan.                    | Baru           |
 | `loans`                                                                                           | Header peminjaman (peminjam, periode, status transaksi, status dokumen).                                     | Berubah        |
 | `loan_items`                                                                                      | Baris barang dalam peminjaman + kuantitas kembali/rusak/hilang.                                              | Berubah        |
 | `loan_approvals`                                                                                  | Jejak approval berjenjang + tanda tangan gambar.                                                             | Ada            |
 | `write_offs`                                                                                      | Permohonan penghapusan aset + Berita Acara.                                                                  | Berubah        |
 | `notifications_app`                                                                               | Notifikasi in-app per pengguna.                                                                              | Ada            |
 | `institution_settings`                                                                            | Identitas sekolah, logo, kode lokasi, kepala sekolah.                                                        | Ada            |
-| `reports`                                                                                         | Arsip laporan bulanan (path PDF/Excel).                                                                      | Ada            |
+| `reports`                                                                                         | Arsip laporan bulanan (path PDF/Excel) dengan soft delete untuk penghapusan arsip.                           | Berubah        |
 | `activity_log`                                                                                    | Audit trail Spatie (immutable dari aplikasi).                                                                | Ada            |
 | `items`, `item_movements`                                                                         | Model batch lama; dipertahankan sementara sebagai `legacy_*` saat migrasi.                                   | Warisan        |
 | `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`        | Otorisasi Spatie Permission.                                                                                 | Ada            |
@@ -247,7 +248,51 @@ Status dokumen **tidak menentukan kelayakan transaksi**: dokumen yang belum dibu
 
 ### 2.11 Tabel lain yang tidak berubah
 
-`majors`, `users` (kecuali relasi `roomScopes`), `categories`, `events`, `loan_approvals`, `notifications_app`, `institution_settings`, `reports`, `activity_log` tetap seperti implementasi saat ini. `categories.code` tetap menjadi kode klasifikasi barang (dipakai pada label bersama `register_no`).
+`majors`, `categories`, `loan_approvals`, `notifications_app`, `institution_settings`, dan `activity_log` tetap seperti implementasi saat ini. `categories.code` tetap menjadi kode klasifikasi barang, bukan kode aset unit.
+
+### 2.12 `users` — profil registrasi mandiri
+
+| Kolom               | Tipe                 | Keterangan                                                                                                 |
+| ------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `degree`            | varchar(100) nullable | Gelar guru (`S.Kom`, `S.Pd`), disimpan terpisah dari `name`; hanya ditampilkan untuk kategori guru.         |
+| `email`             | varchar(255) nullable unique | Email akun. Registrasi mandiri mewajibkan `gmail.com`; akun lama/seeder tanpa email tetap dapat login. |
+| `email_verified_at` | timestamp nullable   | Disiapkan untuk verifikasi email. **Belum diisi otomatis** karena SMTP belum dikonfigurasi (lihat `KNOWN_ISSUES.md`). |
+| `class_name`        | varchar(50) nullable | Kelas siswa (mis. `X RPL 1`), dipakai pada identitas surat peminjaman.                                       |
+
+Role **tidak** ditentukan oleh kolom input registrasi. `users.role` dan role Spatie selalu diisi `PEMINJAM` oleh backend saat registrasi; role istimewa hanya lewat halaman pengguna oleh Super Admin.
+
+### 2.13 `acquisition_allocations`
+
+| Kolom             | Tipe                  | Keterangan                                                    |
+| ----------------- | --------------------- | ------------------------------------------------------------- |
+| `id`              | bigint PK             |                                                               |
+| `item_catalog_id` | FK `item_catalogs`    | Katalog pengadaan; cascade saat katalog dihapus permanen.     |
+| `room_id`         | FK `rooms`            | Lokasi tujuan alokasi.                                        |
+| `quantity`        | unsignedInteger       | Jumlah unit di lokasi tersebut; total seluruh baris = jumlah pengadaan. |
+| `created_at`, `updated_at` | timestamp    |                                                               |
+
+Index `unique(item_catalog_id, room_id)` — satu ruangan hanya boleh muncul sekali per pengadaan; jumlah tambahan diubah pada baris yang sama. Unit fisik dibuat dari baris alokasi ini saat pengadaan disetujui; kode unit tetap diterbitkan `InventoryCodeService` dan tidak disimpan di tabel alokasi.
+
+### 2.14 `events` — status pelaksanaan
+
+| Kolom        | Tipe                       | Keterangan                                                                                     |
+| ------------ | -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `status`     | varchar(30) default `BELUM_BERJALAN` | `BELUM_BERJALAN`, `SEDANG_BERJALAN`, `SUDAH_BERJALAN` (`App\Enums\EventStatus`).     |
+| `updated_by` | FK `users` nullable        | Pengguna terakhir yang memperbarui kegiatan; `nullOnDelete`.                                   |
+
+Status kegiatan **tidak** mengubah status persetujuan peminjaman terkait. Relasi `loans.event_id` tetap opsional; peminjaman biasa tidak wajib memiliki kegiatan.
+
+### 2.15 `reports` — penghapusan arsip
+
+| Kolom        | Tipe                | Keterangan                                                                 |
+| ------------ | ------------------- | -------------------------------------------------------------------------- |
+| `deleted_at` | timestamp nullable  | Soft delete arsip laporan. File PDF/Excel dihapus, baris tetap untuk audit. |
+
+Penghapusan arsip **tidak** menyentuh `asset_units`, `loans`, `write_offs`, atau data inventaris sumber. Hanya Super Admin (seluruh arsip) dan pembuat laporan (arsip sendiri) yang dapat menghapus; tidak ada persetujuan admin kedua.
+
+### 2.16 `item_catalogs.asset_code` dihapus
+
+Kolom `asset_code` dan unique index `(asset_code, register_no)` dihapus melalui migration `2026_10_26_202332_drop_asset_code_from_item_catalogs.php` setelah seluruh tampilan, label, QR, laporan, ekspor, dan seeder berhenti memakainya. `register_no` tetap ada sebagai nomor register administratif opsional, bukan kode identitas kedua. Identitas unit adalah `asset_units.inventory_code` (mis. `G1-01-01`) yang juga tercatat di `asset_unit_codes`. Migration memeriksa keberadaan kolom/index sehingga aman dijalankan pada database yang sudah bersih.
 
 ## 3. ERD
 
@@ -265,6 +310,8 @@ majors 1─n rooms n─1 buildings
 loans 1─n loan_items n─1 item_catalogs
 loans 1─n loan_approvals n─1 users
 loan_items 1─n loan_item_units n─1 asset_units
+item_catalogs 1─n acquisition_allocations n─1 rooms
+users 1─n reports (generated_by)
 users 1─n loans
 events 1─n loans
 asset_units 1─n write_offs
@@ -390,7 +437,7 @@ Migration terakhir (`normalize_room_codes_and_internal_ids_to_building_master`) 
 
 ## 7. Seeder & akun demo
 
-Seeder dipisah: `MasterDataSeeder` (role, instansi, 5 jurusan, 3 gedung, 18 ruangan, 5 kategori), `DemoAccountSeeder`, `DemoInventorySeeder`, dan `DemoLoanSeeder`. `DatabaseSeeder` memanggil keempatnya. Semua memakai `firstOrCreate`/`updateOrCreate` dan **tidak mereset password akun yang sudah ada** atau menghapus transaksi.
+Seeder dipisah: `MasterDataSeeder` (role, instansi, 5 jurusan, **9 gedung**, 18 ruangan, 5 kategori), `DemoAccountSeeder`, `DemoInventorySeeder`, dan `DemoLoanSeeder`. `DatabaseSeeder` memanggil keempatnya. Semua memakai `firstOrCreate`/`updateOrCreate` dan **tidak mereset password akun yang sudah ada** atau menghapus transaksi. Master gedung resmi **A–G** ditambahkan idempoten; **H dan I** dipertahankan karena seluruh ruangan/unit demo historis masih terelasi ke sana. Jangan menonaktifkan H/I sebelum data dipindahkan (lihat `REVISION_V2.md`).
 
 | Username        | Password     | Role            | Kategori  | Cakupan                              |
 | --------------- | ------------ | --------------- | --------- | ------------------------------------ |
@@ -410,7 +457,7 @@ Seeder dipisah: `MasterDataSeeder` (role, instansi, 5 jurusan, 3 gedung, 18 ruan
 
 Lima jurusan resmi: **RPL** (Rekayasa Perangkat Lunak), **DKV** (Desain Komunikasi Visual), **KLN** (Kuliner), **TP** (Teknik Pengelasan), **TKP** (Teknik Konstruksi Perumahan). Data contoh lama TKJ/MM hanya dihapus bila tidak memiliki ruangan/pengguna; data historis yang masih terelasi dibiarkan.
 
-Cakupan Laboran/K3 diisi lewat `user_room_scopes`. Data demo berisi **3 master gedung** (G, H, I), 5 jurusan, 5 kategori, **18 ruangan**, **42 katalog**, **125 unit fisik**, 2 kegiatan, dan 4 peminjaman (selesai, aktif, pending, terlambat). Katalog & unit tersebar di laboratorium lima jurusan serta inventaris umum di ruang kelas, ruang guru, tata usaha, dan gudang. **Ganti seluruh kredensial demo sebelum produksi.**
+Cakupan Laboran/K3 diisi lewat `user_room_scopes`. Data demo berisi **9 master gedung** (A–G resmi; G, H, I dipakai data demo), 5 jurusan, 5 kategori, **18 ruangan**, **42 katalog**, **125 unit fisik**, 2 kegiatan, dan 4 peminjaman (selesai, aktif, pending, terlambat). Katalog & unit tersebar di laboratorium lima jurusan serta inventaris umum di ruang kelas, ruang guru, tata usaha, dan gudang. **Ganti seluruh kredensial demo sebelum produksi.**
 
 Menjalankan ulang `php artisan db:seed` tidak menduplikasi master/unit dan tidak menimpa password atau kode inventaris yang sudah berubah.
 

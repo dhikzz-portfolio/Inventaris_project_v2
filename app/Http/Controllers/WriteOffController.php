@@ -57,28 +57,44 @@ class WriteOffController extends Controller
         abort_if((int) $data['quantity'] > $removable, 422,
             "Jumlah melebihi unit yang dapat dihapus (tersedia {$removable}, termasuk permohonan yang masih menunggu).");
 
-        DB::transaction(function () use ($data, $item, $request) {
+        // Wakasek Sarpras memiliki kewenangan penuh: penghapusan yang ia
+        // lakukan langsung sah tanpa persetujuan admin tambahan. Aktor dan
+        // waktunya tetap dicatat pada write_off + activity_log.
+        $direct = $request->user()->isApproverLevel2();
+
+        $writeOff = DB::transaction(function () use ($data, $item, $request, $direct) {
             $writeOff = WriteOff::create([
                 'item_id' => $item->id,
                 'quantity' => $data['quantity'],
                 'reason' => $data['reason'],
                 'berita_acara_path' => $request->file('berita_acara')->store('write-offs', 'local'),
-                'status' => 'PENDING',
+                'status' => $direct ? 'APPROVED' : 'PENDING',
                 'requested_by' => $request->user()->id,
+                'approved_by' => $direct ? $request->user()->id : null,
+                'approved_at' => $direct ? now() : null,
             ]);
 
             activity('penghapusan')
                 ->performedOn($writeOff)
                 ->causedBy($request->user())
-                ->log("Mengajukan penghapusan {$item->name} ({$data['quantity']} {$item->unit})");
+                ->log(($direct ? 'Menghapus langsung (kewenangan Wakasek) ' : 'Mengajukan penghapusan ')
+                    ."{$item->name} ({$data['quantity']} {$item->unit})");
 
-            NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGHAPUSAN,
-                "Permohonan inventaris keluar: \"{$item->name}\" ({$data['quantity']} {$item->unit}) menunggu persetujuan Wakasek.",
-                route('write-offs.pending'));
+            if ($direct) {
+                $this->archiveUnits($writeOff, $request->user());
+            } else {
+                NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGHAPUSAN,
+                    "Permohonan inventaris keluar: \"{$item->name}\" ({$data['quantity']} {$item->unit}) menunggu persetujuan Wakasek.",
+                    route('write-offs.pending'));
+            }
+
+            return $writeOff;
         });
 
         return redirect()->route('write-offs.index')
-            ->with('success', 'Permohonan inventaris keluar diajukan — menunggu persetujuan Wakasek Sarpras.');
+            ->with('success', $direct
+                ? "Penghapusan \"{$item->name}\" langsung diterapkan atas kewenangan Wakasek — {$writeOff->quantity} unit diarsipkan."
+                : 'Permohonan inventaris keluar diajukan — menunggu persetujuan Wakasek Sarpras.');
     }
 
     /** Daftar penghapusan menunggu approval (Wakasek). */
@@ -102,57 +118,69 @@ class WriteOffController extends Controller
         abort_unless($writeOff->isPending(), 404);
 
         DB::transaction(function () use ($request, $writeOff) {
-            $item = $writeOff->item;
-            $units = app(AssetUnitService::class);
-
             $writeOff->update([
                 'status' => 'APPROVED',
                 'approved_by' => $request->user()->id,
                 'approved_at' => now(),
             ]);
 
-            // Penghapusan berlaku pada unit fisik: arsipkan unit satu per satu
-            // (hilang → rusak berat → rusak ringan → baik, nomor tertinggi dulu),
-            // lalu hitung ulang counter katalog dari sisa unit agar angka katalog,
-            // dashboard, laporan, dan daftar unit tetap konsisten.
-            $candidates = $item->units()
-                ->where('status', '!=', UnitStatus::DIHAPUS->value)
-                ->get()
-                ->sort(function ($a, $b) {
-                    $rank = fn ($unit) => match (true) {
-                        $unit->status === UnitStatus::HILANG => 0,
-                        $unit->condition === Condition::RUSAK_BERAT => 1,
-                        $unit->condition === Condition::RUSAK_RINGAN => 2,
-                        default => 3,
-                    };
-
-                    return [$rank($a), -$a->unit_no] <=> [$rank($b), -$b->unit_no];
-                })
-                ->take($writeOff->quantity);
-
-            foreach ($candidates as $unit) {
-                $units->archive($unit);
-            }
-
-            $item->refresh();
-            $units->syncCatalogCounters($item);
-
-            $remaining = $item->units()->where('status', '!=', UnitStatus::DIHAPUS->value)->count();
-
-            if ($remaining === 0) {
-                $item->update(['status' => ItemStatus::DIHAPUS]);
-            }
-
-            activity('penghapusan')
-                ->performedOn($writeOff)
-                ->causedBy($request->user())
-                ->log("Menyetujui penghapusan {$item->name} ({$candidates->count()} unit diarsipkan, sisa unit: {$remaining})");
-
-            NotifyApp::to($writeOff->requester, NotificationType::PENGHAPUSAN,
-                "Penghapusan \"{$item->name}\" DISETUJUI Wakasek Sarpras.", route('items.show', $item));
+            $this->archiveUnits($writeOff, $request->user());
         });
 
         return back()->with('success', 'Penghapusan disetujui — stok barang dikurangi & status diperbarui.');
+    }
+
+    /**
+     * Arsipkan unit fisik sesuai jumlah penghapusan, lalu selaraskan counter
+     * katalog. Dipakai baik oleh persetujuan maupun penghapusan langsung
+     * Wakasek sehingga perilakunya identik.
+     */
+    private function archiveUnits(WriteOff $writeOff, $actor): void
+    {
+        $item = $writeOff->item;
+        $units = app(AssetUnitService::class);
+
+        // Penghapusan berlaku pada unit fisik: arsipkan unit satu per satu
+        // (hilang → rusak berat → rusak ringan → baik, nomor tertinggi dulu),
+        // lalu hitung ulang counter katalog dari sisa unit agar angka katalog,
+        // dashboard, laporan, dan daftar unit tetap konsisten.
+        $candidates = $item->units()
+            ->where('status', '!=', UnitStatus::DIHAPUS->value)
+            ->get()
+            ->sort(function ($a, $b) {
+                $rank = fn ($unit) => match (true) {
+                    $unit->status === UnitStatus::HILANG => 0,
+                    $unit->condition === Condition::RUSAK_BERAT => 1,
+                    $unit->condition === Condition::RUSAK_RINGAN => 2,
+                    default => 3,
+                };
+
+                return [$rank($a), -$a->unit_no] <=> [$rank($b), -$b->unit_no];
+            })
+            ->take($writeOff->quantity);
+
+        foreach ($candidates as $unit) {
+            $units->archive($unit, $actor);
+        }
+
+        $item->refresh();
+        $units->syncCatalogCounters($item);
+
+        $remaining = $item->units()->where('status', '!=', UnitStatus::DIHAPUS->value)->count();
+
+        if ($remaining === 0) {
+            $item->update(['status' => ItemStatus::DIHAPUS]);
+        }
+
+        activity('penghapusan')
+            ->performedOn($writeOff)
+            ->causedBy($actor)
+            ->log("Menyetujui/menerapkan penghapusan {$item->name} ({$candidates->count()} unit diarsipkan, sisa unit: {$remaining})");
+
+        if ($writeOff->requester !== null && (int) $writeOff->requester->id !== (int) $actor?->id) {
+            NotifyApp::to($writeOff->requester, NotificationType::PENGHAPUSAN,
+                "Penghapusan \"{$item->name}\" disetujui.", route('items.show', $item));
+        }
     }
 
     public function reject(Request $request, WriteOff $writeOff): RedirectResponse

@@ -48,7 +48,6 @@ class InventoryFlowTest extends TestCase
         $this->item = Item::create([
             'internal_id' => 'TEST-001',
             'location_code' => 'TEST-LOK',
-            'asset_code' => 'TEST-BRG',
             'register_no' => 'REG-001',
             'name' => 'Proyektor Uji Coba',
             'category_id' => Category::firstOrFail()->id,

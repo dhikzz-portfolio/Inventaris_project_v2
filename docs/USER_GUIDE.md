@@ -1,6 +1,6 @@
 # Panduan Pengguna
 
-> **Catatan versi (24 Oktober 2026).** Aplikasi memakai model katalog + unit fisik dan kode `G1-02-12`. Role resmi: **Wakasek Sarpras**, **Ketua Laboran**, **Laboran/K3**, dan **Peminjam**. Role lama `ADMIN_SARPRAS` sudah dimigrasikan menjadi `KETUA_LABORAN`.
+> **Catatan versi (26 Oktober 2026 — revisi V2).** Aplikasi memakai model katalog + unit fisik dan kode `G1-02-12`. Role resmi: **Wakasek Sarpras**, **Ketua Laboran**, **Laboran/K3**, dan **Peminjam**. Role lama `ADMIN_SARPRAS` sudah dimigrasikan menjadi `KETUA_LABORAN`.
 
 ## 1. Masuk & navigasi
 
@@ -23,7 +23,8 @@
 | Mutasi lokasi                           |      ✔      |       ✔       |     —      |     —     |
 | Penghapusan (ajukan)                    |      ✔      |       ✔       |     —      |     —     |
 | Approval penghapusan                    |      ✔      |       —       |     —      |     —     |
-| Label & scan QR                         |      ✔      |       ✔       |     ✔      |     —     |
+| Cetak label                            |      ✔      |       ✔       |     ✔      |     —     |
+| Scan QR (hasil di halaman scan)        |      ✔      |       ✔       |     ✔      |     ✔     |
 | Laporan & ekspor                        |      ✔      |       ✔       |     —      |     —     |
 | Master data                             |      ✔      |       ✔       |     —      |     —     |
 | Pengguna & pengaturan instansi          |      ✔      |       —       |     —      |     —     |
@@ -122,7 +123,7 @@ Saat serah terima, pilih unit fisik yang sesungguhnya diserahkan. Jumlah yang wa
 
 ### Scan QR
 
-Tombol kamera mengambang / menu **Scan QR**. Arahkan kamera ke stiker. Jika kamera tidak tersedia, masukkan **kode inventaris** secara manual. Scan hanya membuka detail; hak ubah tetap diperiksa server.
+Tombol kamera mengambang / menu **Scan QR**. Arahkan kamera ke stiker. Jika kamera tidak tersedia, masukkan **kode inventaris** secara manual. Hasil tampil langsung di halaman scan (tanpa pindah ke katalog); data unit selalu diverifikasi ulang ke database dan hak ubah tetap diperiksa server.
 
 ## 6. Ketua Laboran (pengelola inventaris)
 
@@ -215,3 +216,46 @@ Status dokumen peminjaman **terpisah** dari status transaksi:
 - Jangan menutup pinjaman dengan selisih sebelum barang benar-benar dicari.
 - Unduh BAST setelah approval lengkap agar memuat tanda tangan terbaru.
 - Di ponsel, gunakan mode gelap saat kondisi ruangan redup.
+
+## 12. Fitur baru revisi V2
+
+### Registrasi mandiri
+
+1. Buka **Daftar** dari halaman login.
+2. Pilih kategori **Siswa / Guru / Staf**, isi nama lengkap (guru dapat menambahkan gelar), email **@gmail.com**, username, dan password.
+3. Siswa wajib mengisi kelas; jurusan opsional.
+4. Setelah mendaftar, akun langsung masuk dengan role **Peminjam** (hak minimum). Role khusus hanya diberikan administrator melalui menu Pengguna.
+
+### Scan inventaris
+
+1. Buka menu **Scan** (tersedia untuk semua pengguna yang sudah login).
+2. Aktifkan kamera lalu arahkan ke QR, **atau** ketik kode unit (mis. `G1-02-12`) dan tekan Enter/Cari.
+3. Hasil muncul di halaman yang sama: nama, spesifikasi, kode, gedung/lantai/ruangan, nomor unit, kondisi, dan status.
+4. Bila unit di luar cakupan akses, aplikasi hanya menampilkan pesan terbatas — bukan detail internal.
+
+### Pengadaan banyak lokasi
+
+1. Buka **Pengadaan**, isi data barang dan jumlah (mis. 40 kursi).
+2. Di bagian alokasi, tambahkan baris lokasi (gedung → lantai → ruangan) dan jumlahnya (mis. 20 + 15 + 5).
+3. Sisa unit terlihat langsung; tombol simpan aktif hanya saat sisa 0. Kode unit dibuat otomatis setelah pengadaan disetujui.
+
+### Mutasi banyak unit
+
+1. Buka **Mutasi**, cari/filter unit (kode, katalog, gedung, lantai, ruangan, kondisi, status).
+2. Centang beberapa unit, pilih ruangan tujuan, lalu simpan.
+3. Unit yang sedang dipinjam atau di luar cakupan tidak dapat dipilih. Setiap unit mendapat kode baru dan riwayat lokasi; cetak ulang labelnya.
+
+### Rekap kegiatan
+
+- Guru dan staf dapat membuat kegiatan (nama, penanggung jawab, deskripsi, tanggal) dan memperbarui status **Belum Berjalan / Sedang Berjalan / Sudah Berjalan**.
+- Siswa hanya melihat daftar; status kegiatan tidak mengubah status persetujuan peminjaman.
+
+### Laporan
+
+- **Impor** (pengelola — Wakasek/Ketua Laboran): unggah CSV/XLSX berisi kode inventaris, periksa pratinjau, lalu konfirmasi. Impor tidak menghapus data lain dan bukan pengganti backup database.
+- **Hapus arsip**: tombol Hapus pada tabel arsip menghapus file dan menyembunyikan arsip (soft delete), tanpa menghapus unit/inventaris sumber. Super Admin dapat menghapus arsip mana pun.
+
+### Surat peminjaman
+
+- Buka detail pinjaman → **Pratinjau Surat** → periksa → **Cetak** (dialog browser). Unduh PDF tetap tersedia.
+- Surat biasa tidak memuat bagian kegiatan; surat yang terhubung kegiatan menampilkannya. Tanggal dicetak tanpa jam.

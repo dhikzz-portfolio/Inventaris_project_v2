@@ -11,6 +11,7 @@ use App\Models\Room;
 use App\Models\User;
 use App\Services\AssetUnitService;
 use App\Services\InventoryCodeService;
+use Database\Seeders\MasterDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,7 +19,7 @@ use Tests\TestCase;
  * Master data lokasi: gedung → lantai → nomor ruangan → unit inventaris.
  *
  * Identitas gedung menjadi sumber kebenaran generator kode lokasi
- * (`C1-03`) dan kode inventaris (`C1-03-21`).
+ * (`Z1-03`) dan kode inventaris (`Z1-03-21`).
  */
 class BuildingMasterDataTest extends TestCase
 {
@@ -40,19 +41,37 @@ class BuildingMasterDataTest extends TestCase
         $this->category = Category::firstOrFail();
     }
 
+    public function test_master_gedung_a_sampai_g_tersedia_dan_seeder_idempoten(): void
+    {
+        $officialCodes = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+        $this->assertSame(
+            $officialCodes,
+            Building::whereIn('code', $officialCodes)->orderBy('code')->pluck('code')->all()
+        );
+
+        // Jalankan ulang seeder: jumlah tidak boleh bertambah/duplikat, dan
+        // gedung historis (H/I) tetap dipertahankan.
+        $this->seed(MasterDataSeeder::class);
+
+        $this->assertSame(7, Building::whereIn('code', $officialCodes)->count());
+        $this->assertDatabaseHas('buildings', ['code' => 'H']);
+        $this->assertDatabaseHas('buildings', ['code' => 'I']);
+    }
+
     public function test_gedung_dapat_dibuat_dan_dikelola_terpisah(): void
     {
         $this->actingAs($this->admin)
             ->post(route('masters.store-building'), [
-                'name' => 'Gedung C',
-                'code' => 'c',
+                'name' => 'Gedung Z',
+                'code' => 'z',
             ])
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        $building = Building::where('code', 'C')->firstOrFail();
+        $building = Building::where('code', 'Z')->firstOrFail();
 
-        $this->assertSame('Gedung C', $building->name);
+        $this->assertSame('Gedung Z', $building->name);
         $this->assertTrue($building->is_active);
         $this->assertSame(0, $building->rooms()->count());
 
@@ -60,7 +79,7 @@ class BuildingMasterDataTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('masters.index'))
             ->assertOk()
-            ->assertSee('Gedung C')
+            ->assertSee('Gedung Z')
             ->assertSee('Master Gedung');
     }
 
@@ -68,16 +87,16 @@ class BuildingMasterDataTest extends TestCase
     {
         $this->actingAs($this->admin)
             ->post(route('masters.store-building'), [
-                'name' => 'Gedung C',
-                'code' => 'C',
+                'name' => 'Gedung Z',
+                'code' => 'Z',
             ])
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
         $this->actingAs($this->admin)
             ->post(route('masters.store-building'), [
-                'name' => 'Gedung C Bisa',
-                'code' => 'C',
+                'name' => 'Gedung Z Bisa',
+                'code' => 'Z',
             ])
             ->assertSessionHasErrors('code');
     }
@@ -86,20 +105,20 @@ class BuildingMasterDataTest extends TestCase
     {
         $this->actingAs($this->admin)
             ->post(route('masters.store-building'), [
-                'name' => 'Gedung C',
-                'code' => 'C',
+                'name' => 'Gedung Z',
+                'code' => 'Z',
             ])
             ->assertRedirect();
 
         $this->actingAs($this->admin)
             ->get(route('masters.index'))
             ->assertOk()
-            ->assertSee('Gedung C (C)');
+            ->assertSee('Gedung Z (Z)');
     }
 
     public function test_formulir_ruangan_hanya_meminta_gedung_lantai_dan_nomor_ruangan(): void
     {
-        $building = Building::create(['name' => 'Gedung C', 'code' => 'C']);
+        $building = Building::create(['name' => 'Gedung Z', 'code' => 'Z']);
 
         $this->actingAs($this->admin)
             ->post(route('masters.store-room'), [
@@ -113,16 +132,16 @@ class BuildingMasterDataTest extends TestCase
 
         $room = Room::where('building_id', $building->id)->firstOrFail();
 
-        $this->assertSame('C1-03', $room->code);
-        $this->assertSame('C', $room->building_letter);
+        $this->assertSame('Z1-03', $room->code);
+        $this->assertSame('Z', $room->building_letter);
         $this->assertSame(1, $room->floor);
         $this->assertSame(3, $room->room_no);
-        $this->assertSame('Gedung C', $room->building->name);
+        $this->assertSame('Gedung Z', $room->building->name);
     }
 
     public function test_ruangan_wajib_memilih_gedung_dan_kombinasi_tidak_boleh_terduplikasi(): void
     {
-        $building = Building::create(['name' => 'Gedung C', 'code' => 'C']);
+        $building = Building::create(['name' => 'Gedung Z', 'code' => 'Z']);
 
         $this->actingAs($this->admin)
             ->post(route('masters.store-room'), [
@@ -152,7 +171,7 @@ class BuildingMasterDataTest extends TestCase
 
     public function test_gedung_nonaktif_tidak_dapat_dipakai_untuk_lokasi_baru(): void
     {
-        $building = Building::create(['name' => 'Gedung C', 'code' => 'C', 'is_active' => false]);
+        $building = Building::create(['name' => 'Gedung Z', 'code' => 'Z', 'is_active' => false]);
 
         $this->actingAs($this->admin)
             ->post(route('masters.store-room'), [
@@ -165,7 +184,7 @@ class BuildingMasterDataTest extends TestCase
 
     public function test_kode_lokasi_dan_kode_unit_dibentuk_otomatis_dari_master_gedung(): void
     {
-        $building = Building::create(['name' => 'Gedung C', 'code' => 'C']);
+        $building = Building::create(['name' => 'Gedung Z', 'code' => 'Z']);
 
         $this->actingAs($this->admin)
             ->post(route('masters.store-room'), [
@@ -178,8 +197,8 @@ class BuildingMasterDataTest extends TestCase
 
         $room = Room::where('building_id', $building->id)->firstOrFail();
 
-        $this->assertSame('C1-03', $room->locationCode());
-        $this->assertSame('C1', $room->codePrefix());
+        $this->assertSame('Z1-03', $room->locationCode());
+        $this->assertSame('Z1', $room->codePrefix());
 
         // Pengadaan oleh Wakasek menerbitkan unit fisik dengan kode otomatis.
         $this->actingAs($this->wakasek)
@@ -198,25 +217,24 @@ class BuildingMasterDataTest extends TestCase
 
         $codes = AssetUnit::where('room_id', $room->id)->orderBy('inventory_code')->pluck('inventory_code')->all();
 
-        $this->assertSame(['C1-03-01', 'C1-03-02'], $codes);
+        $this->assertSame(['Z1-03-01', 'Z1-03-02'], $codes);
     }
 
     public function test_kode_unit_inventaris_tetap_unik(): void
     {
-        $building = Building::create(['name' => 'Gedung C', 'code' => 'C']);
+        $building = Building::create(['name' => 'Gedung Z', 'code' => 'Z']);
         $room = Room::create([
             'building_id' => $building->id,
-            'building_letter' => 'C',
+            'building_letter' => 'Z',
             'floor' => 1,
             'room_no' => 3,
-            'code' => 'C1-03',
+            'code' => 'Z1-03',
             'name' => 'Lab IPA',
         ]);
 
         $catalog = Item::create([
             'internal_id' => 'GEDUNG-C-01',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.15.02.01',
             'register_no' => '7001',
             'name' => 'Mikroskop',
             'category_id' => $this->category->id,
@@ -236,7 +254,7 @@ class BuildingMasterDataTest extends TestCase
             $codes[] = $service->create($catalog, $room, [], $this->wakasek)->inventory_code;
         }
 
-        $this->assertSame(['C1-03-01', 'C1-03-02', 'C1-03-03'], $codes);
+        $this->assertSame(['Z1-03-01', 'Z1-03-02', 'Z1-03-03'], $codes);
         $this->assertCount(3, array_unique($codes));
 
         $this->assertSame(
@@ -299,20 +317,19 @@ class BuildingMasterDataTest extends TestCase
 
     public function test_kode_gedung_tidak_dapat_diubah_saat_sudah_ada_unit_inventaris(): void
     {
-        $building = Building::create(['name' => 'Gedung C', 'code' => 'C']);
+        $building = Building::create(['name' => 'Gedung Z', 'code' => 'Z']);
         $room = Room::create([
             'building_id' => $building->id,
-            'building_letter' => 'C',
+            'building_letter' => 'Z',
             'floor' => 1,
             'room_no' => 3,
-            'code' => 'C1-03',
+            'code' => 'Z1-03',
             'name' => 'Lab IPA',
         ]);
 
         $catalog = Item::create([
             'internal_id' => 'GEDUNG-C-02',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.15.02.01',
             'register_no' => '7002',
             'name' => 'Pipet',
             'category_id' => $this->category->id,
@@ -329,12 +346,12 @@ class BuildingMasterDataTest extends TestCase
 
         $this->actingAs($this->admin)
             ->put(route('masters.update-building', $building), [
-                'name' => 'Gedung C',
+                'name' => 'Gedung Z',
                 'code' => 'D',
             ])
             ->assertSessionHasErrors('code');
 
-        $this->assertSame('C', $building->refresh()->code);
+        $this->assertSame('Z', $building->refresh()->code);
     }
 
     public function test_ruangan_yang_dipakai_unit_tidak_dapat_dihapus(): void

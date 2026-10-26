@@ -161,28 +161,31 @@ class LabelAndQrTest extends TestCase
         foreach ($service->splitLocationCode((string) $this->item->location_code) as $line) {
             $response->assertSee($line, false);
         }
-        // Kode barang + register, QR, dan footer nama instansi ikut tampil.
-        $response->assertSee($this->item->asset_code.'.'.$this->item->register_no, false);
+        // Nama barang sebagai header label, QR, dan footer nama instansi ikut tampil.
+        $response->assertSee($this->item->name, false);
         $response->assertSee(substr($dataUrl, 0, 60), false);
         $response->assertSee(InstitutionSetting::current()->institution_name, false);
     }
 
-    public function test_scan_resolve_mengarahkan_ke_halaman_detail_unit(): void
+    public function test_scan_menampilkan_hasil_pada_halaman_yang_sama(): void
     {
         $unit = AssetUnit::where('inventory_code', strtoupper($this->item->internal_id))->firstOrFail();
 
         $response = $this->actingAs($this->laboran)
             ->get(route('scan.resolve', ['internalId' => $this->item->internal_id]));
 
-        $response->assertRedirect(route('units.show', $unit));
+        // Tidak dialihkan ke katalog/detail: hasil tampil di halaman scan.
+        $response->assertOk();
+        $response->assertSee($unit->inventory_code);
+        $response->assertSee($unit->catalog->name);
     }
 
-    public function test_scan_resolve_qr_tidak_dikenal_memberikan_pesan_error(): void
+    public function test_scan_kode_tidak_dikenal_menampilkan_pesan_error(): void
     {
         $response = $this->actingAs($this->laboran)
-            ->get(route('scan.resolve', ['internalId' => 'BARANG-TIDAK-ADA-999']));
+            ->get(route('scan.resolve', ['internalId' => 'Z9-99-99']));
 
-        $response->assertRedirect(route('labels.index'));
-        $response->assertSessionHas('error');
+        $response->assertOk();
+        $response->assertSee('tidak ditemukan', false);
     }
 }

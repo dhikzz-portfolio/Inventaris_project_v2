@@ -42,7 +42,6 @@ class EventAndBastTest extends TestCase
         $this->item = Item::create([
             'internal_id' => 'EVT-G1-01-01',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '5501',
             'name' => 'Kamera Liputan Event',
             'category_id' => $category->id,

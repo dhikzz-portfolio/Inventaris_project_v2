@@ -2,48 +2,108 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Services\BastService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class EventController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $status = trim((string) $request->query('status', ''));
+
         return view('events.index', [
             'events' => Event::withCount('loans')
                 ->with(['creator', 'loans' => fn ($q) => $q->withCount('loanItems')])
+                ->when(in_array($status, EventStatus::values(), true), fn ($query) => $query->where('status', $status))
                 ->latest('start_date')
-                ->paginate(12),
+                ->paginate(12)
+                ->withQueryString(),
+            'statuses' => EventStatus::cases(),
+            'activeStatus' => $status,
         ]);
     }
 
+    /**
+     * Guru, staf, dan pengelola inventaris boleh mencatat kegiatan sekolah.
+     * Pencatatan kegiatan tidak memberikan akses pengelolaan inventaris.
+     */
     public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        // Siswa/peminjam biasa hanya melihat rekap; pencatatan kegiatan
+        // diperuntukkan bagi guru, staf, dan pengelola inventaris.
+        abort_unless($user->canRecordActivities() || $user->managesInventory(), 403);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'pic_name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'status' => ['nullable', Rule::in(EventStatus::values())],
         ]);
 
-        $event = Event::create($data + ['created_by' => $request->user()->id]);
+        $event = Event::create([
+            'name' => $data['name'],
+            'pic_name' => $data['pic_name'],
+            'description' => $data['description'] ?? null,
+            'start_date' => $data['start_date'],
+            'end_date' => $data['end_date'],
+            'status' => $data['status'] ?? EventStatus::BELUM_BERJALAN->value,
+            'created_by' => $request->user()->id,
+        ]);
 
         activity('kegiatan')->performedOn($event)->causedBy($request->user())->log('Membuat kegiatan baru');
 
-        return redirect()->route('events.show', $event)->with('success', 'Kegiatan dibuat. Peminjaman dapat ditautkan lewat form peminjaman.');
+        return redirect()->route('events.show', $event)
+            ->with('success', 'Kegiatan dibuat. Status dapat diperbarui pada halaman detail.');
+    }
+
+    /**
+     * Perbarui kegiatan. Guru/staf hanya boleh mengubah kegiatan miliknya;
+     * pengelola inventaris boleh memantau seluruh kegiatan. Perubahan status
+     * kegiatan tidak mengubah status persetujuan peminjaman terkait.
+     */
+    public function update(Request $request, Event $event): RedirectResponse
+    {
+        abort_unless($event->isManageableBy($request->user()), 403);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'pic_name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'status' => ['required', Rule::in(EventStatus::values())],
+        ]);
+
+        $before = $event->status?->value;
+
+        $event->update($data + ['updated_by' => $request->user()->id]);
+
+        activity('kegiatan')
+            ->performedOn($event)
+            ->causedBy($request->user())
+            ->withProperties(['status_sebelum' => $before, 'status_sesudah' => $event->status?->value])
+            ->log('Memperbarui kegiatan');
+
+        return back()->with('success', 'Kegiatan diperbarui.');
     }
 
     public function show(Event $event): View
     {
-        $event->load(['loans.borrower', 'loans.loanItems.item', 'creator']);
+        $event->load(['loans.borrower', 'loans.loanItems.item', 'loans.loanItems.unitAssignments.unit', 'creator', 'editor']);
 
         return view('events.show', [
             'event' => $event,
             'bookedItems' => collect($event->bookedItemIds()),
+            'statuses' => EventStatus::cases(),
         ]);
     }
 

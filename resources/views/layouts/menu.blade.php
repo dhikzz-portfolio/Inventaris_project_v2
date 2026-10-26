@@ -16,6 +16,10 @@
 <x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isPeminjam() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
 <x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" label="Peminjaman Saya" />
 
+{{-- Scan universal: semua pengguna yang sudah login boleh memindai. --}}
+<x-menu-link :href="route('scan')" :active="request()->routeIs('scan') || request()->routeIs('scan.resolve')" icon="qr_code_scanner" label="Scan Inventaris" />
+<x-menu-link :href="route('events.index')" :active="request()->routeIs('events.*')" icon="event" label="Rekap Kegiatan" />
+
 @if ($canApprove)
     <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Persetujuan &amp; Pengembalian</div>
     <x-menu-link :href="route('loans.pending')" :active="request()->routeIs('loans.pending')" icon="how_to_reg" label="Persetujuan Pinjam" />
@@ -34,14 +38,8 @@
 @if ($canManage)
     <x-menu-link :href="route('items.create')" :active="request()->routeIs('items.create') || request()->routeIs('items.store')" icon="add_box" label="Pengadaan Barang" />
     <x-menu-link :href="route('write-offs.index')" :active="request()->routeIs('write-offs.*')" icon="delete_forever" label="Inventaris Keluar" />
-    <x-menu-link :href="route('events.index')" :active="request()->routeIs('events.*')" icon="event" label="Rekap Kegiatan" />
     <x-menu-link :href="route('reports.index')" :active="request()->routeIs('reports.*')" icon="assessment" label="Laporan Bulanan" />
     <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" label="Master Data" />
-@endif
-
-@if ($canApprove)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Alat</div>
-    <x-menu-link :href="route('scan')" :active="request()->routeIs('scan')" icon="qr_code_scanner" label="Scan QR" />
 @endif
 
 <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Akun</div>

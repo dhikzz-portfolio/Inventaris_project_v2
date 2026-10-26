@@ -50,21 +50,18 @@ class IdGenerator
     }
 
     /**
-     * Baris 2 label: Kode Barang (klasifikasi kategori) + Nomor Register.
-     * Contoh gabungan: 01.01.11.04.01.0001
+     * Nomor register administratif berurutan (bukan kode aset kedua).
+     * Kode inventaris unit tetap satu-satunya identitas barang pada label,
+     * QR, scan, laporan, dan dokumen.
      *
-     * @return array{asset_code: string, register_no: string}
+     * @return array{register_no: string}
      */
-    public static function register(?string $categoryCode): array
+    public static function register(?string $categoryCode = null): array
     {
         $last = (int) Item::max('register_no');
 
-        $registerNo = str_pad((string) ($last + 1), 4, '0', STR_PAD_LEFT);
-        $assetCode = $categoryCode ?: '00.00.00.00.00';
-
         return [
-            'asset_code' => $assetCode,
-            'register_no' => $registerNo,
+            'register_no' => str_pad((string) ($last + 1), 4, '0', STR_PAD_LEFT),
         ];
     }
 

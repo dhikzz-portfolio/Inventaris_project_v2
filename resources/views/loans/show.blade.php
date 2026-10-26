@@ -15,6 +15,10 @@
                 <p class="text-sm text-gray-500">{{ $loan->purpose }}</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
+                <a href="{{ route('loans.letter.preview', $loan) }}" target="_blank"
+                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">
+                    <span class="material-icons-round text-lg">print</span> Pratinjau Surat
+                </a>
                 @if ($loan->bast_path)
                     <a href="{{ route('loans.bast', $loan) }}"
                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">

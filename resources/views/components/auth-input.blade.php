@@ -8,6 +8,7 @@
     'autocomplete' => null,
     'autofocus' => false,
     'readonly' => false,
+    'pattern' => null,
     'toggleable' => false,
     'icon' => null,
     'error' => null,
@@ -37,6 +38,7 @@
             @if (! is_null($value)) value="{{ $value }}" @endif
             @if ($placeholder) placeholder="{{ $placeholder }}" @endif
             @if ($autocomplete) autocomplete="{{ $autocomplete }}" @endif
+            @if ($pattern) pattern="{{ $pattern }}" @endif
             @if ($autofocus) autofocus @endif
             @readonly($readonly)
             required

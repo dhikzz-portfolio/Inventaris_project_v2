@@ -9,6 +9,7 @@ use App\Enums\LoanStatus;
 use App\Enums\UnitStatus;
 use App\Exceptions\AvailabilityException;
 use App\Models\AssetUnit;
+use App\Models\InstitutionSetting;
 use App\Models\Loan;
 use App\Models\LoanItem;
 use App\Models\LoanItemUnit;
@@ -519,6 +520,34 @@ class LoanController extends Controller
         }
 
         return back()->with('success', 'Peminjaman dibatalkan dan jadwalnya tidak lagi memblokir ketersediaan.');
+    }
+
+    /**
+     * Pratinjau surat sebelum dicetak — tanpa mewajibkan unduh PDF.
+     * Hak akses sama dengan detail transaksi (peminjam hanya miliknya).
+     */
+    public function previewLetter(Request $request, Loan $loan): View
+    {
+        abort_unless($loan->canBeViewedBy($request->user()), 403);
+
+        $loan->load([
+            'loanItems.item.category',
+            'loanItems.item.room',
+            'loanItems.unitAssignments.unit',
+            'borrower.major',
+            'event',
+            'approvals.approver',
+            'handoverOfficer',
+        ]);
+
+        $bast = app(BastService::class);
+
+        return view('loans.letter_preview', [
+            'loan' => $loan,
+            'setting' => InstitutionSetting::current(),
+            'title' => $bast->documentTitle($loan),
+            'documentNumber' => $bast->documentNumber($loan),
+        ]);
     }
 
     public function downloadBast(Request $request, Loan $loan)

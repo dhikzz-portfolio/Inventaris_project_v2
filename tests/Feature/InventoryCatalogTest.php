@@ -13,6 +13,7 @@ use App\Services\IdGenerator;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -53,7 +54,6 @@ class InventoryCatalogTest extends TestCase
         Item::create([
             'internal_id' => $id1,
             'location_code' => InstitutionSetting::current()->location_code,
-            'asset_code' => $this->category->code,
             'register_no' => '9001',
             'name' => 'Meja Uji Format ID',
             'category_id' => $this->category->id,
@@ -68,7 +68,8 @@ class InventoryCatalogTest extends TestCase
         $this->assertNotSame($id1, IdGenerator::internalId($this->room));
 
         $reg1 = IdGenerator::register($this->category->code);
-        $this->assertSame($this->category->code, $reg1['asset_code']);
+        // Kode aset terpisah sudah dihapus; register hanya nomor administratif.
+        $this->assertArrayNotHasKey('asset_code', $reg1);
         $this->assertMatchesRegularExpression('/^\d{4}$/', $reg1['register_no']);
     }
 
@@ -109,7 +110,6 @@ class InventoryCatalogTest extends TestCase
         Item::create([
             'internal_id' => 'UNIQUE-ITEM-01',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '8801',
             'name' => 'Barang Unik 1',
             'category_id' => $this->category->id,
@@ -127,7 +127,6 @@ class InventoryCatalogTest extends TestCase
         Item::create([
             'internal_id' => 'UNIQUE-ITEM-01', // Duplikat internal_id
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '8802',
             'name' => 'Barang Duplikat ID',
             'category_id' => $this->category->id,
@@ -141,41 +140,30 @@ class InventoryCatalogTest extends TestCase
         ]);
     }
 
-    public function test_unique_constraint_asset_code_dan_register_no(): void
+    public function test_kolom_kode_aset_terpisah_sudah_dihapus_dan_register_hanya_metadata(): void
     {
-        Item::create([
-            'internal_id' => 'ASSET-ITEM-01',
-            'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.99',
-            'register_no' => '9999',
-            'name' => 'Barang Reg 1',
-            'category_id' => $this->category->id,
-            'room_id' => $this->room->id,
-            'acquisition_year' => 2024,
-            'funding_source' => 'BOS',
-            'quantity' => 1,
-            'unit' => 'unit',
-            'status' => ItemStatus::BAIK,
-            'acquisition_status' => 'APPROVED',
-        ]);
+        $this->assertFalse(Schema::hasColumn('item_catalogs', 'asset_code'));
 
-        $this->expectException(QueryException::class);
+        // Nomor register bukan kode aset kedua; boleh berulang sebagai metadata
+        // administratif selama identitas barang tetap kode inventaris unit.
+        foreach (['ASSET-ITEM-01', 'ASSET-ITEM-02'] as $internalId) {
+            Item::create([
+                'internal_id' => $internalId,
+                'location_code' => '12.24.13.08.01.07.01.01',
+                'register_no' => '9999',
+                'name' => 'Barang Reg '.$internalId,
+                'category_id' => $this->category->id,
+                'room_id' => $this->room->id,
+                'acquisition_year' => 2024,
+                'funding_source' => 'BOS',
+                'quantity' => 1,
+                'unit' => 'unit',
+                'status' => ItemStatus::BAIK,
+                'acquisition_status' => 'APPROVED',
+            ]);
+        }
 
-        Item::create([
-            'internal_id' => 'ASSET-ITEM-02',
-            'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.99',
-            'register_no' => '9999', // Duplikat asset_code + register_no
-            'name' => 'Barang Reg 2',
-            'category_id' => $this->category->id,
-            'room_id' => $this->room->id,
-            'acquisition_year' => 2024,
-            'funding_source' => 'BOS',
-            'quantity' => 1,
-            'unit' => 'unit',
-            'status' => ItemStatus::BAIK,
-            'acquisition_status' => 'APPROVED',
-        ]);
+        $this->assertSame(2, Item::where('register_no', '9999')->count());
     }
 
     public function test_performa_pencarian_katalog_kurang_dari_setengah_detik(): void
@@ -186,7 +174,6 @@ class InventoryCatalogTest extends TestCase
             $items[] = [
                 'internal_id' => 'PERF-'.$this->room->code.'-'.$i,
                 'location_code' => '12.24.13.08.01.07.01.01',
-                'asset_code' => '01.01.11.04.01',
                 'register_no' => str_pad((string) (7000 + $i), 4, '0', STR_PAD_LEFT),
                 'name' => 'Perangkat Batch Uji '.$i,
                 'category_id' => $this->category->id,

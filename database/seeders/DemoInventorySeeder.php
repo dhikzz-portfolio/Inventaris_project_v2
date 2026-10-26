@@ -45,7 +45,6 @@ class DemoInventorySeeder extends Seeder
                 [
                     'internal_id' => IdGenerator::internalId($room),
                     'location_code' => $setting?->location_code ?? '12.24.13.08.01.07.01.01',
-                    'asset_code' => $register['asset_code'],
                     'register_no' => $register['register_no'],
                     'name' => $def['name'],
                     'brand' => $def['brand'] ?? '',

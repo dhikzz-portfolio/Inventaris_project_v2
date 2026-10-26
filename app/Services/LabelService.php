@@ -14,6 +14,12 @@ use Illuminate\Database\Eloquent\Collection;
 class LabelService
 {
     /**
+     * Versi skema payload QR. Dinaikkan bila struktur berubah; scanner tetap
+     * menyelesaikan QR lama karena unit selalu dicari ulang di database.
+     */
+    public const QR_RELEASE = 1;
+
+    /**
      * QR PNG base64 berisi URL detail barang yang tervalidasi.
      * Kamera bawaan ponsel akan membuka halaman detail (login bila belum),
      * sementara scanner internal juga menerima URL maupun ID internal.
@@ -23,9 +29,32 @@ class LabelService
         return 'data:image/png;base64,'.base64_encode($this->renderQrPng(route('items.show', $item)));
     }
 
+    /**
+     * Payload QR unit: URL halaman scan dengan metadata identitas.
+     *
+     * Isi QR memuat release skema, ID unit stabil, kode inventaris, serta
+     * nama gedung/lantai/ruangan/nomor unit sebagai petunjuk. Saat dipindai,
+     * server memvalidasi ulang unit dan lokasi aktif dari database — nilai
+     * pada QR tidak pernah menjadi sumber kebenaran.
+     */
+    public function unitQrPayload(AssetUnit $unit): string
+    {
+        $room = $unit->room;
+
+        return route('scan', [
+            'u' => $unit->id,
+            'c' => $unit->inventory_code,
+            'r' => self::QR_RELEASE,
+            'b' => $room?->building?->name ?: ($room?->buildingCode() ?? ''),
+            'f' => $room?->floor,
+            'rn' => $room?->room_no,
+            'un' => $unit->unit_no,
+        ]);
+    }
+
     public function unitQrDataUrl(AssetUnit $unit): string
     {
-        return 'data:image/png;base64,'.base64_encode($this->renderQrPng(route('units.show', $unit)));
+        return 'data:image/png;base64,'.base64_encode($this->renderQrPng($this->unitQrPayload($unit)));
     }
 
     /** Label per unit fisik (revisi 2.1). */

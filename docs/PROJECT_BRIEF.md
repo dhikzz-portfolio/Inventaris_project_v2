@@ -8,6 +8,7 @@ Riwayat revisi:
 
 | Versi | Tanggal    | Perubahan                                                                                                          |
 | ----- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| 2.3   | 2026-10-26 | Revisi besar V2: registrasi mandiri Gmail + role Peminjam, welcome screen, scan universal di halaman scan, validasi master data wajib + gedung A–G, penghapusan `asset_code`, pengadaan multi-lokasi, label/QR per unit, mutasi multi-unit, impor & hapus arsip laporan, status kegiatan, surat peminjaman + pratinjau cetak, UI pengguna berbasis kartu (`REVISION_V2.md`) |
 | 2.2   | 2026-10-22 | Master gedung sebagai sumber kebenaran kode lokasi; tanda tangan digital opsional; status dokumen terpisah dari status transaksi; penugasan unit fisik saat serah terima; kewenangan persetujuan Wakasek |
 | 2.1   | 2026-10-21 | Katalog dipisahkan dari unit fisik; format kode `G1-02-12`; kebijakan mutasi; pencarian/filter sadar cakupan akses |
 | 2.0   | 2026-10-20 | Baseline implementasi v2 (model batch per baris barang)                                                            |

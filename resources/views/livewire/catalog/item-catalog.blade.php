@@ -5,7 +5,7 @@
             <div class="relative col-span-full">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                 <input type="text" wire:model.live.debounce.400ms="search"
-                       placeholder="Cari nama, ID internal, kode aset, register..."
+                       placeholder="Cari nama, ID internal, kode unit, register..."
                        class="w-full pl-10 pr-3 py-2.5 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
             </div>
             <select wire:model.live="status" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">

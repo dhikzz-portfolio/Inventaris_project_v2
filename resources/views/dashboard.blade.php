@@ -26,6 +26,22 @@
         </div>
     </x-slot>
 
+    {{-- Sapaan setelah login: nama lengkap + gelar, fallback username. --}}
+    <div class="mb-4 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex items-center gap-3">
+            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <span class="material-icons-round text-xl" aria-hidden="true">waving_hand</span>
+            </span>
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Selamat datang</p>
+                <p class="truncate text-base font-bold text-slate-900 dark:text-white">{{ $dashboardUser->greetingName() }}!</p>
+            </div>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ $dashboardUser->isPeminjam() ? 'Ajukan peminjaman dan pantau statusnya di sini.' : 'Pantau inventaris sesuai kewenangan Anda.' }}
+        </p>
+    </div>
+
     <div @class([
         'rounded-3xl',
         'bg-sky-50/80 p-3 sm:p-4 dark:bg-slate-950/30' => $isWakasek,

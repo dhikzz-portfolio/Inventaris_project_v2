@@ -20,7 +20,7 @@ class Item extends Model
     protected $table = 'item_catalogs';
 
     protected $fillable = [
-        'internal_id', 'location_code', 'asset_code', 'register_no', 'name',
+        'internal_id', 'location_code', 'register_no', 'name',
         'brand', 'model_type', 'description',
         'category_id', 'room_id', 'specification', 'acquisition_year',
         'funding_source', 'quantity', 'qty_damaged', 'qty_lost', 'unit', 'is_high_value',
@@ -72,6 +72,18 @@ class Item extends Model
     public function units(): HasMany
     {
         return $this->hasMany(AssetUnit::class, 'item_catalog_id');
+    }
+
+    /** Alokasi lokasi pada pengadaan multi-lokasi. */
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(AcquisitionAllocation::class, 'item_catalog_id');
+    }
+
+    /** Total unit yang dialokasikan (0 bila pengadaan legacy tanpa alokasi). */
+    public function allocatedQuantity(): int
+    {
+        return (int) $this->allocations()->sum('quantity');
     }
 
     /**

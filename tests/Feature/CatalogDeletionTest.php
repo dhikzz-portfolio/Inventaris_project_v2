@@ -127,7 +127,6 @@ class CatalogDeletionTest extends TestCase
         return Item::create([
             'internal_id' => 'DEL-'.strtoupper(substr(md5($name), 0, 6)),
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '9901',
             'name' => $name,
             'category_id' => $category->id,

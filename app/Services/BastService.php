@@ -30,7 +30,14 @@ class BastService
      */
     public function generateForLoan(Loan $loan): ?string
     {
-        $loan->load(['loanItems.item.category', 'borrower', 'event', 'approvals.approver']);
+        $loan->load([
+            'loanItems.item.category',
+            'loanItems.item.room',
+            'loanItems.unitAssignments.unit',
+            'borrower.major',
+            'event',
+            'approvals.approver',
+        ]);
         $setting = InstitutionSetting::current();
 
         $filename = sprintf('BAST-%s-%s.pdf', 'PINJAM'.$loan->id, now()->format('YmdHis'));

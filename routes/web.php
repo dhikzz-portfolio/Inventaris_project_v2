@@ -39,6 +39,11 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
     Route::get('/units/{unit}', [UnitController::class, 'show'])->name('units.show');
     Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:SUPER_ADMIN|KETUA_LABORAN|LABORAN')->name('units.label');
 
+    // Scan universal: semua pengguna yang sudah login boleh memindai, tetapi
+    // detail internal tetap dibatasi cakupan akses di backend.
+    Route::get('/scan', [LabelController::class, 'scan'])->name('scan');
+    Route::get('/scan/{internalId}', [LabelController::class, 'scanResolve'])->name('scan.resolve')->where('internalId', '.*');
+
     // Rute lama dipertahankan selama masa transisi.
     Route::get('/items', [ItemController::class, 'index'])->name('items.index');
     Route::get('/items/{item}', [ItemController::class, 'show'])->name('items.show');
@@ -49,11 +54,15 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
     Route::post('/loans', [LoanController::class, 'store'])->name('loans.store');
     Route::get('/loans', [LoanController::class, 'index'])->name('loans.index');
     Route::get('/loans/{loan}', [LoanController::class, 'show'])->name('loans.show');
+    Route::get('/loans/{loan}/surat', [LoanController::class, 'previewLetter'])->name('loans.letter.preview');
     Route::get('/loans/{loan}/bast', [LoanController::class, 'downloadBast'])->name('loans.bast');
     Route::post('/loans/{loan}/cancel', [LoanController::class, 'cancel'])->name('loans.cancel');
 
     // ================= EVENT / KEGIATAN =================
+    // Semua pengguna melihat rekap; guru & staf boleh mencatat kegiatannya sendiri.
     Route::get('/kegiatan', [EventController::class, 'index'])->name('events.index');
+    Route::post('/kegiatan', [EventController::class, 'store'])->name('events.store');
+    Route::patch('/kegiatan/{event}', [EventController::class, 'update'])->name('events.update');
     Route::get('/kegiatan/{event}', [EventController::class, 'show'])->name('events.show');
 
     // ================= NOTIFIKASI =================
@@ -85,8 +94,6 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
 
         Route::get('/label', [LabelController::class, 'index'])->name('labels.index');
         Route::post('/label/cetak', [LabelController::class, 'print'])->name('labels.print');
-        Route::get('/scan', [LabelController::class, 'scan'])->name('scan');
-        Route::get('/scan/{internalId}', [LabelController::class, 'scanResolve'])->name('scan.resolve')->where('internalId', '.*');
 
     });
 
@@ -96,6 +103,12 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
         Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/laporan/export/{type}/{period}', [ReportController::class, 'export'])->name('reports.export');
         Route::post('/laporan/generate', [ReportController::class, 'generate'])->name('reports.generate');
+        Route::delete('/laporan/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
+
+        // Impor laporan = pemulihan data unit, bukan pengganti backup database.
+        Route::get('/laporan/impor', [ReportController::class, 'importForm'])->name('reports.import.form');
+        Route::post('/laporan/impor/pratinjau', [ReportController::class, 'importPreview'])->name('reports.import.preview');
+        Route::post('/laporan/impor', [ReportController::class, 'importConfirm'])->name('reports.import.confirm');
 
         // Pengadaan
         Route::get('/pengadaan/create', [ItemController::class, 'create'])->name('items.create');
@@ -112,8 +125,7 @@ Route::middleware('auth')->group(function () use ($managers, $approvers) {
         Route::get('/inventaris-keluar', [WriteOffController::class, 'index'])->name('write-offs.index');
         Route::post('/inventaris-keluar', [WriteOffController::class, 'store'])->name('write-offs.store');
 
-        // Kegiatan
-        Route::post('/kegiatan', [EventController::class, 'store'])->name('events.store');
+        // Kegiatan (dokumen gabungan tetap khusus pengelola)
         Route::get('/kegiatan/{event}/bast', [EventController::class, 'downloadBast'])->name('events.bast');
 
         // Penghapusan/arsip katalog (aman: katalog bertransaksi tidak dihapus destruktif).

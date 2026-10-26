@@ -67,7 +67,6 @@ class CriticalBusinessRulesTest extends TestCase
         $this->highValueItem = Item::create([
             'internal_id' => 'CAM-G1-01-99',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.16.03.01',
             'register_no' => '9901',
             'name' => 'Kamera DSLR Sony Alpha',
             'category_id' => $category->id,
@@ -84,7 +83,6 @@ class CriticalBusinessRulesTest extends TestCase
         $this->normalItem = Item::create([
             'internal_id' => 'MIC-G1-01-98',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '9902',
             'name' => 'Microphone Wireless',
             'category_id' => $category->id,

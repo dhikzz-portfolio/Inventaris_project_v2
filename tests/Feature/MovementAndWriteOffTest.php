@@ -11,7 +11,6 @@ use App\Models\Room;
 use App\Models\User;
 use App\Models\WriteOff;
 use App\Services\AssetUnitService;
-use App\Services\IdGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -48,7 +47,6 @@ class MovementAndWriteOffTest extends TestCase
         $this->item = Item::create([
             'internal_id' => 'MOV-G1-01-01',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '6601',
             'name' => 'Server Rack Unit',
             'category_id' => $category->id,
@@ -62,12 +60,16 @@ class MovementAndWriteOffTest extends TestCase
         ]);
     }
 
-    public function test_mutasi_lokasi_memperbarui_ruangan_dan_id_internal_dalam_transaksi(): void
+    public function test_mutasi_multi_unit_memperbarui_lokasi_kode_dan_riwayat(): void
     {
-        $oldInternalId = $this->item->internal_id;
+        $service = app(AssetUnitService::class);
+        $first = $service->create($this->item, $this->room1);
+        $second = $service->create($this->item, $this->room1);
+
+        $oldCodes = [$first->inventory_code, $second->inventory_code];
 
         $response = $this->actingAs($this->admin)->post(route('movements.store'), [
-            'item_id' => $this->item->id,
+            'unit_ids' => [$first->id, $second->id],
             'to_room_id' => $this->room2->id,
             'note' => 'Pemindahan untuk pemeliharaan server',
         ]);
@@ -75,30 +77,35 @@ class MovementAndWriteOffTest extends TestCase
         $response->assertRedirect(route('movements.index'));
         $response->assertSessionHas('success');
 
-        $this->item->refresh();
-        $this->assertSame($this->room2->id, $this->item->room_id);
-        $this->assertNotSame($oldInternalId, $this->item->internal_id);
-        $this->assertStringStartsWith(IdGenerator::roomPrefix($this->room2), $this->item->internal_id);
+        foreach ([$first, $second] as $index => $unit) {
+            $unit->refresh();
+            $this->assertSame($this->room2->id, $unit->room_id);
+            $this->assertNotSame($oldCodes[$index], $unit->inventory_code);
+            $this->assertStringStartsWith($this->room2->buildingCode().(int) $this->room2->floor, $unit->inventory_code);
 
-        $this->assertDatabaseHas('item_movements', [
-            'item_id' => $this->item->id,
-            'from_room_id' => $this->room1->id,
-            'to_room_id' => $this->room2->id,
-            'moved_by' => $this->admin->id,
-        ]);
+            $this->assertDatabaseHas('asset_unit_movements', [
+                'asset_unit_id' => $unit->id,
+                'from_room_id' => $this->room1->id,
+                'to_room_id' => $this->room2->id,
+                'moved_by' => $this->admin->id,
+                'old_code' => $oldCodes[$index],
+                'new_code' => $unit->inventory_code,
+            ]);
+        }
 
-        $this->assertDatabaseHas('activity_log', [
-            'log_name' => 'mutasi',
-            'subject_id' => $this->item->id,
-        ]);
+        $this->assertDatabaseHas('activity_log', ['log_name' => 'mutasi']);
     }
 
     public function test_mutasi_ke_ruangan_yang_sama_ditolak(): void
     {
+        $unit = app(AssetUnitService::class)->create($this->item, $this->room1);
+
         $this->actingAs($this->admin)->post(route('movements.store'), [
-            'item_id' => $this->item->id,
+            'unit_ids' => [$unit->id],
             'to_room_id' => $this->room1->id, // ruangan yang sama
-        ])->assertStatus(422);
+        ])->assertSessionHasErrors('unit_ids');
+
+        $this->assertSame($this->room1->id, $unit->refresh()->room_id);
     }
 
     public function test_write_off_lengkap_dengan_berita_acara_approval_dan_audit(): void
@@ -191,7 +198,6 @@ class MovementAndWriteOffTest extends TestCase
         $nonLabItem = Item::create([
             'internal_id' => 'WH-G3-01-01',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => $category->code,
             'register_no' => '6699',
             'name' => 'Meja Gudang Non Lab',
             'category_id' => $category->id,

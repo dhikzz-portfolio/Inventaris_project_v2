@@ -4,13 +4,7 @@
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $event->name }}</h2>
-                    @if ($event->end_date->isPast())
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-gray-200 text-gray-600">SELESAI</span>
-                    @elseif ($event->start_date->isFuture())
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700">MENDATANG</span>
-                    @else
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700">BERLANGSUNG</span>
-                    @endif
+                    <span class="text-[11px] font-bold px-2 py-1 rounded-full {{ $event->status->badgeClass() }}">{{ $event->status->label() }}</span>
                 </div>
                 <p class="text-sm text-gray-500">
                     PJ: {{ $event->pic_name }} • {{ $event->start_date->format('d M Y') }} — {{ $event->end_date->format('d M Y') }}
@@ -103,6 +97,50 @@
                     </div>
                 @endif
             </div>
+
+            @if ($event->isManageableBy(auth()->user()))
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                    <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
+                        <span class="material-icons-round text-amber-600">edit_calendar</span> Kelola Kegiatan
+                    </h3>
+                    <form method="POST" action="{{ route('events.update', $event) }}" class="space-y-2.5">
+                        @csrf
+                        @method('PATCH')
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-500 mb-1">Status *</label>
+                            <select name="status" class="w-full rounded-lg border-gray-300 text-sm" required>
+                                @foreach ($statuses as $status)
+                                    <option value="{{ $status->value }}" @selected($event->status === $status)>{{ $status->label() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-500 mb-1">Nama kegiatan *</label>
+                            <input type="text" name="name" value="{{ $event->name }}" required class="w-full rounded-lg border-gray-300 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-500 mb-1">Penanggung jawab *</label>
+                            <input type="text" name="pic_name" value="{{ $event->pic_name }}" required class="w-full rounded-lg border-gray-300 text-xs">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-gray-500 mb-1">Mulai *</label>
+                                <input type="date" name="start_date" value="{{ $event->start_date->toDateString() }}" required class="w-full rounded-lg border-gray-300 text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-gray-500 mb-1">Selesai *</label>
+                                <input type="date" name="end_date" value="{{ $event->end_date->toDateString() }}" required class="w-full rounded-lg border-gray-300 text-xs">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-500 mb-1">Deskripsi</label>
+                            <textarea name="description" rows="2" class="w-full rounded-lg border-gray-300 text-xs">{{ $event->description }}</textarea>
+                        </div>
+                        <button type="submit" class="w-full rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2">Simpan Perubahan</button>
+                        <p class="text-[10px] text-gray-400">Status kegiatan tidak mengubah status persetujuan peminjaman.</p>
+                    </form>
+                </div>
+            @endif
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 text-sm">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">

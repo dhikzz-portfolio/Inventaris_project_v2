@@ -80,7 +80,7 @@
             {{-- Dua format ID --}}
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">tag</span> Sistem ID Inventaris (Dua Format)
+                    <span class="material-icons-round text-amber-600">tag</span> Identitas Inventaris
                 </h3>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
@@ -96,9 +96,9 @@
                                 <td class="py-2.5 text-xs text-gray-400">Pelaporan dinas/yayasan</td>
                             </tr>
                             <tr>
-                                <td class="py-2.5 pe-4 text-xs text-gray-500">Standar Aset — Baris 2<br><span class="text-[10px]">Kode Barang + No. Register</span></td>
-                                <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->asset_code }}.{{ $item->register_no }}</td>
-                                <td class="py-2.5 text-xs text-gray-400">Klasifikasi + registrasi</td>
+                                <td class="py-2.5 pe-4 text-xs text-gray-500">Nomor Register<br><span class="text-[10px]">opsional, administratif</span></td>
+                                <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->register_no ?: '—' }}</td>
+                                <td class="py-2.5 text-xs text-gray-400">Bukan kode inventaris unit</td>
                             </tr>
                         </tbody>
                     </table>
@@ -184,8 +184,8 @@
                                     {{ $locationLine }}@unless($loop->last)<br>@endunless
                                 @endforeach
                             </div>
-                            <div class="font-mono font-bold text-gray-900 leading-tight text-xs sm:text-sm mt-0.5 break-words">
-                                {{ $item->asset_code }}.{{ $item->register_no }}
+                            <div class="font-bold text-gray-900 leading-tight text-xs sm:text-sm mt-0.5 break-words uppercase">
+                                {{ $item->name }}
                             </div>
                         </div>
                         <img src="{{ app(\App\Services\LabelService::class)->qrDataUrl($item) }}" alt="QR" class="shrink-0 h-12 w-12 sm:h-14 sm:w-14">

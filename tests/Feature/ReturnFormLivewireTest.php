@@ -50,7 +50,6 @@ class ReturnFormLivewireTest extends TestCase
         $this->item = Item::create([
             'internal_id' => 'RET-G1-01-01',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '7701',
             'name' => 'Barang Uji Pengembalian',
             'category_id' => $category->id,

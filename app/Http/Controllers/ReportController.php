@@ -7,9 +7,12 @@ use App\Models\Category;
 use App\Models\Major;
 use App\Models\Report;
 use App\Models\Room;
+use App\Services\ReportImportService;
 use App\Services\ReportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -81,5 +84,123 @@ class ReportController extends Controller
         );
 
         return back()->with('success', "Laporan {$data['period']} tersimpan (PDF & Excel).");
+    }
+
+    /** Form impor laporan (pemulihan/migrasi). */
+    public function importForm(Request $request): View
+    {
+        $preview = $request->session()->get('report_import_preview');
+
+        return view('reports.import', [
+            'preview' => $preview['analysis'] ?? null,
+            'token' => $preview['token'] ?? null,
+            'filename' => $preview['filename'] ?? null,
+        ]);
+    }
+
+    /** Pratinjau berkas sebelum perubahan database. */
+    public function importPreview(Request $request, ReportImportService $imports): RedirectResponse
+    {
+        $data = $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx', 'max:2048'],
+            'mode' => ['required', 'in:create,update'],
+        ], [
+            'file.mimes' => 'Format berkas harus CSV atau XLSX (maksimal 2 MB).',
+            'file.max' => 'Ukuran berkas maksimal 2 MB.',
+        ]);
+
+        $rows = $imports->parse($request->file('file'));
+
+        if ($rows === []) {
+            return back()->withErrors(['file' => 'Berkas tidak memuat baris data yang dapat dibaca.'])->withInput();
+        }
+
+        $analysis = $imports->analyze($rows, $data['mode']);
+        $token = (string) Str::uuid();
+
+        $request->session()->put('report_import_preview', [
+            'token' => $token,
+            'filename' => $request->file('file')->getClientOriginalName(),
+            'analysis' => $analysis,
+        ]);
+
+        activity('laporan')
+            ->causedBy($request->user())
+            ->withProperties([
+                'file' => $request->file('file')->getClientOriginalName(),
+                'mode' => $data['mode'],
+                'total' => $analysis['summary']['total'],
+                'valid' => $analysis['summary']['valid'],
+                'invalid' => $analysis['summary']['invalid'],
+            ])
+            ->log('Pratinjau impor laporan unit');
+
+        return redirect()->route('reports.import.form')
+            ->with('success', 'Pratinjau siap. Periksa baris valid dan bermasalah sebelum mengimpor.');
+    }
+
+    /** Konfirmasi impor — atomik dan hanya dari pratinjau yang sah. */
+    public function importConfirm(Request $request, ReportImportService $imports): RedirectResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string'],
+        ]);
+
+        $preview = $request->session()->get('report_import_preview');
+
+        if (! is_array($preview) || ($preview['token'] ?? null) !== $data['token']) {
+            return redirect()->route('reports.import.form')
+                ->withErrors(['file' => 'Sesi pratinjau tidak ditemukan/kedaluwarsa. Unggah ulang berkas.']);
+        }
+
+        $analysis = $preview['analysis'];
+
+        if (! ($analysis['can_import'] ?? false)) {
+            return redirect()->route('reports.import.form')
+                ->withErrors(['file' => 'Impor diblokir: masih ada baris bermasalah. Perbaiki berkas lalu ulangi pratinjau.']);
+        }
+
+        $result = $imports->apply($analysis, $request->user(), $preview['filename']);
+
+        $request->session()->forget('report_import_preview');
+
+        return redirect()->route('reports.index')
+            ->with('success', "Impor selesai: {$result['created']} unit dibuat, {$result['updated']} unit diperbarui. Data inventaris tidak dihapus.");
+    }
+
+    /**
+     * Hapus arsip laporan (soft delete + hapus file). Data inventaris sumber,
+     * transaksi, dan unit tidak disentuh.
+     */
+    public function destroy(Request $request, Report $report): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user->isSuperAdmin() || (int) $report->generated_by === (int) $user->id, 403);
+
+        $period = $report->period;
+        $scope = $report->scope;
+
+        foreach ([$report->pdf_path, $report->excel_path] as $path) {
+            if ($path && Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+        }
+
+        activity('laporan')
+            ->performedOn($report)
+            ->causedBy($user)
+            ->withProperties([
+                'period' => $period,
+                'scope' => $scope,
+                'scope_id' => $report->scope_id,
+                'pdf_path' => $report->pdf_path,
+                'excel_path' => $report->excel_path,
+            ])
+            ->log("Menghapus arsip laporan {$period} ({$scope})");
+
+        $report->delete();
+
+        return back()->with('success', "Arsip laporan periode {$period} dihapus. Data inventaris sumber tidak berubah.");
     }
 }

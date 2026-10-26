@@ -37,7 +37,6 @@ class SecurityAccessTest extends TestCase
         $item = Item::create([
             'internal_id' => 'SEC-G1-01-01',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '7777',
             'name' => 'Alat Uji Keamanan',
             'category_id' => $category->id,

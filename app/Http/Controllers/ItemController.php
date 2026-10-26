@@ -4,21 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Enums\ItemStatus;
 use App\Enums\NotificationType;
+use App\Models\AcquisitionAllocation;
+use App\Models\Building;
 use App\Models\Category;
+use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\AssetUnitService;
 use App\Services\IdGenerator;
+use App\Services\InventoryCodeService;
 use App\Services\LabelService;
 use App\Services\LoanService;
 use App\Services\NotifyApp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class ItemController extends Controller
 {
@@ -54,12 +61,46 @@ class ItemController extends Controller
         ]);
     }
 
-    /** Form pengadaan (tambah barang baru). */
+    /**
+     * Form pengadaan multi-lokasi.
+     *
+     * Bagian A: katalog & jumlah pengadaan. Bagian B: alokasi beberapa
+     * ruangan sekaligus. Pratinjau kode inventaris dihitung backend dan
+     * ditampilkan baca-saja; pengguna tidak pernah mengetik kode.
+     */
     public function create(Request $request): View
     {
+        $rooms = $this->availableRooms($request->user());
+        $codes = app(InventoryCodeService::class);
+
+        $roomOptions = $rooms->map(function (Room $room) use ($codes): array {
+            $preview = null;
+
+            try {
+                $preview = $codes->preview($room);
+            } catch (Throwable) {
+                $preview = null;
+            }
+
+            return [
+                'id' => $room->id,
+                'building_id' => $room->building_id,
+                'building' => $room->buildingCode(),
+                'building_name' => $room->building?->name ?: 'Gedung '.$room->buildingCode(),
+                'floor' => (int) $room->floor,
+                'room_no' => (int) $room->room_no,
+                'name' => $room->name,
+                'code' => $room->code,
+                'preview' => $preview,
+            ];
+        })->values();
+
         return view('items.create', [
             'categories' => Category::orderBy('name')->get(),
-            'rooms' => $this->availableRooms($request->user()),
+            'rooms' => $rooms,
+            'roomOptions' => $roomOptions,
+            'buildings' => Building::query()->whereIn('id', $rooms->pluck('building_id')->filter()->unique())
+                ->orderBy('code')->get(),
         ]);
     }
 
@@ -68,37 +109,45 @@ class ItemController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'category_id' => ['required', 'exists:categories,id'],
-            'room_id' => ['required', $this->roomRule($request->user())],
             'specification' => ['nullable', 'string'],
             'acquisition_year' => ['required', 'integer', 'min:1990', 'max:'.(now()->year + 1)],
             'funding_source' => ['required', 'string', 'max:100'],
             'quantity' => ['required', 'integer', 'min:1'],
             'unit' => ['required', 'string', 'max:30'],
             'is_high_value' => ['nullable', 'boolean'],
-            'location_code' => ['required', 'string', 'max:50'],
             'photo' => ['nullable', 'image', 'max:2048'],
+            // Kompatibilitas form lama satu ruangan.
+            'room_id' => ['nullable', $this->roomRule($request->user())],
+            'allocations' => ['nullable', 'array'],
+            'allocations.*.room_id' => ['required_with:allocations', 'integer', 'distinct', $this->roomRule($request->user())],
+            'allocations.*.quantity' => ['required_with:allocations', 'integer', 'min:1'],
+        ], [
+            'allocations.*.room_id.distinct' => 'Satu ruangan hanya boleh muncul sekali pada daftar alokasi.',
+            'allocations.*.quantity.min' => 'Jumlah alokasi setiap lokasi minimal 1 unit.',
         ]);
 
         $category = Category::findOrFail($data['category_id']);
-        $room = Room::findOrFail($data['room_id']);
+        $total = (int) $data['quantity'];
+        $allocations = $this->normalizeAllocations($request, $data, $total);
+        $this->assertAllocationsValid($allocations, $total);
 
-        DB::transaction(function () use ($data, $category, $room, $request) {
+        $firstRoom = Room::findOrFail($allocations->first()['room_id']);
+
+        DB::transaction(function () use ($data, $category, $firstRoom, $total, $allocations, $request) {
             $register = IdGenerator::register($category->code);
-
             $isWakasek = $request->user()->isApproverLevel2();
 
             $item = Item::create([
-                'internal_id' => IdGenerator::internalId($room),
-                'location_code' => $data['location_code'],
-                'asset_code' => $register['asset_code'],
+                'internal_id' => IdGenerator::internalId($firstRoom),
+                'location_code' => InstitutionSetting::current()->location_code,
                 'register_no' => $register['register_no'],
                 'name' => $data['name'],
                 'category_id' => $category->id,
-                'room_id' => $room->id,
+                'room_id' => $firstRoom->id,
                 'specification' => $data['specification'] ?? null,
                 'acquisition_year' => $data['acquisition_year'],
                 'funding_source' => $data['funding_source'],
-                'quantity' => $isWakasek ? 0 : $data['quantity'],
+                'quantity' => $total,
                 'unit' => $data['unit'],
                 'is_high_value' => $request->boolean('is_high_value'),
                 'status' => ItemStatus::BAIK->value,
@@ -109,26 +158,109 @@ class ItemController extends Controller
                 'acquisition_decided_at' => $isWakasek ? now() : null,
             ]);
 
+            foreach ($allocations as $allocation) {
+                AcquisitionAllocation::create([
+                    'item_catalog_id' => $item->id,
+                    'room_id' => $allocation['room_id'],
+                    'quantity' => $allocation['quantity'],
+                ]);
+            }
+
             activity('pengadaan')
                 ->performedOn($item)
                 ->causedBy($request->user())
+                ->withProperties(['alokasi' => $allocations->all()])
                 ->log($isWakasek
-                    ? 'Menambah barang via pengadaan (disetujui langsung oleh Wakasek)'
+                    ? 'Menambah barang via pengadaan multi-lokasi (disetujui langsung oleh Wakasek)'
                     : 'Mengajukan pengadaan barang baru (menunggu approval Wakasek)');
 
             if ($isWakasek) {
-                $this->provisionUnits($item, (int) $data['quantity'], $request->user());
+                $this->provisionUnits($item, $request->user());
             } else {
                 NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
-                    "Pengadaan baru: \"{$item->name}\" ({$data['quantity']} {$item->unit}) menunggu persetujuan.",
+                    "Pengadaan baru: \"{$item->name}\" ({$total} {$item->unit}) menunggu persetujuan.",
                     route('items.acquisitions'));
             }
         });
 
         return redirect()->route('catalogs.index')
             ->with('success', 'Barang berhasil ditambahkan.'.($request->user()->isApproverLevel2()
-                ? ' Kode inventaris unit diterbitkan otomatis.'
+                ? ' Kode inventaris unit diterbitkan otomatis sesuai alokasi lokasi.'
                 : ' Menunggu persetujuan Wakasek Sarpras sebelum kode unit diterbitkan.'));
+    }
+
+    /**
+     * Ubah input alokasi (banyak baris) menjadi koleksi unik per ruangan.
+     * Form lama tanpa alokasi diperlakukan sebagai satu alokasi.
+     *
+     * @param  array<string, mixed>  $data
+     * @return Collection<int, array{room_id: int, quantity: int}>
+     */
+    private function normalizeAllocations(Request $request, array $data, int $total): Collection
+    {
+        $rows = collect($request->input('allocations', []))
+            ->filter(fn ($row) => is_array($row) && filled($row['room_id'] ?? null) && filled($row['quantity'] ?? null))
+            ->map(fn (array $row) => [
+                'room_id' => (int) $row['room_id'],
+                'quantity' => (int) $row['quantity'],
+            ])
+            ->values();
+
+        if ($rows->isEmpty() && filled($data['room_id'] ?? null)) {
+            $rows = collect([['room_id' => (int) $data['room_id'], 'quantity' => $total]]);
+        }
+
+        if ($rows->isEmpty()) {
+            throw ValidationException::withMessages([
+                'allocations' => 'Tambahkan minimal satu lokasi alokasi untuk unit yang dibeli.',
+            ]);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Validasi backend (bukan hanya frontend): total alokasi harus tepat sama
+     * dengan jumlah pengadaan dan setiap ruangan harus mampu menampung nomor
+     * unit baru tanpa melewati batas 99.
+     *
+     * @param  Collection<int, array{room_id: int, quantity: int}>  $allocations
+     */
+    private function assertAllocationsValid(Collection $allocations, int $total): void
+    {
+        $sum = (int) $allocations->sum('quantity');
+
+        if ($sum !== $total) {
+            throw ValidationException::withMessages([
+                'allocations' => "Total alokasi ({$sum} unit) harus sama dengan jumlah pengadaan ({$total} unit). Sisa yang belum dialokasikan: ".($total - $sum).' unit.',
+            ]);
+        }
+
+        $codes = app(InventoryCodeService::class);
+
+        foreach ($allocations as $index => $allocation) {
+            $room = Room::find($allocation['room_id']);
+
+            if ($room === null) {
+                continue;
+            }
+
+            try {
+                $next = $codes->nextUnitNo($room);
+            } catch (ValidationException $exception) {
+                throw ValidationException::withMessages([
+                    "allocations.{$index}.quantity" => $exception->validator->errors()->first(),
+                ]);
+            }
+
+            $availableSlots = InventoryCodeService::MAX_UNIT_NO - $next + 1;
+
+            if ($allocation['quantity'] > $availableSlots) {
+                throw ValidationException::withMessages([
+                    "allocations.{$index}.quantity" => "Ruangan {$room->code} hanya memiliki {$availableSlots} nomor unit tersisa (maksimal 99 seumur hidup).",
+                ]);
+            }
+        }
     }
 
     public function edit(Request $request, Item $item): View
@@ -216,17 +348,22 @@ class ItemController extends Controller
     {
         abort_unless($item->isAcquisitionPending(), 404);
 
-        $quantity = (int) $item->quantity;
+        DB::transaction(function () use ($request, $item) {
+            // Kunci katalog agar dua approval bersamaan tidak menggandakan unit.
+            $item = Item::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
 
-        $item->update([
-            'acquisition_status' => 'APPROVED',
-            'acquisition_approved_by' => $request->user()->id,
-            'acquisition_decided_at' => now(),
-        ]);
+            abort_unless($item->isAcquisitionPending(), 404);
 
-        // Unit fisik baru diterbitkan setelah pengadaan disetujui agar kode
-        // inventaris tidak terpakai untuk pengajuan yang ditolak.
-        $this->provisionUnits($item, $quantity, $request->user());
+            $item->update([
+                'acquisition_status' => 'APPROVED',
+                'acquisition_approved_by' => $request->user()->id,
+                'acquisition_decided_at' => now(),
+            ]);
+
+            // Unit fisik baru diterbitkan setelah pengadaan disetujui agar kode
+            // inventaris tidak terpakai untuk pengajuan yang ditolak.
+            $this->provisionUnits($item, $request->user());
+        });
 
         activity('pengadaan')->performedOn($item)->causedBy($request->user())->log('Menyetujui pengadaan barang');
 
@@ -284,78 +421,45 @@ class ItemController extends Controller
         );
     }
 
-    private function provisionUnits(Item $item, int $quantity, $actor): void
+    /**
+     * Terbitkan unit fisik sesuai alokasi lokasi. Dipanggil di dalam
+     * transaksi approval/pengadaan langsung. Jumlah unit yang dibuat harus
+     * sama dengan total alokasi; kegagalan satu ruangan membatalkan semuanya.
+     */
+    private function provisionUnits(Item $item, ?User $actor = null): void
     {
-        if ($quantity < 1 || $item->units()->exists()) {
+        if ($item->units()->exists()) {
             return;
         }
 
-        $room = $item->room;
-        if ($room === null) {
-            return;
+        $allocations = $item->allocations()->with('room')->get();
+
+        // Katalog legacy tanpa alokasi tetap memakai ruangan katalognya.
+        if ($allocations->isEmpty()) {
+            $allocations = collect([
+                new AcquisitionAllocation([
+                    'room_id' => $item->room_id,
+                    'quantity' => (int) $item->quantity,
+                ]),
+            ]);
         }
 
         $service = app(AssetUnitService::class);
 
-        if ($room->building_letter !== null && $room->floor !== null && $room->room_no !== null) {
-            for ($i = 0; $i < $quantity; $i++) {
+        foreach ($allocations as $allocation) {
+            $room = $allocation->room ?: Room::find($allocation->room_id);
+
+            if ($room === null) {
+                continue;
+            }
+
+            for ($i = 0; $i < (int) $allocation->quantity; $i++) {
                 $service->create($item, $room, [], $actor);
             }
-
-            return;
         }
 
-        $resolved = false;
-
-        $lastCode = AssetUnitCode::query()
-            ->where('room_id', $room->id)
-            ->whereNull('revoked_at')
-            ->orderByDesc('issued_at')
-            ->value('inventory_code');
-
-        if ($lastCode !== null) {
-            for ($i = 0; $i < $quantity; $i++) {
-                $code = app(InventoryCodeService::class)->formatFromCode($lastCode, $i + 1);
-
-                $unit = AssetUnit::create([
-                    'item_catalog_id' => $item->id,
-                    'room_id' => $room->id,
-                    'unit_no' => $i + 1,
-                    'inventory_code' => $code,
-                    'status' => 'TERSEDIA',
-                    'condition' => 'BAIK',
-                ]);
-
-                AssetUnitCode::create([
-                    'asset_unit_id' => $unit->id,
-                    'inventory_code' => $code,
-                    'room_id' => $room->id,
-                    'unit_no' => $i + 1,
-                    'issued_at' => now(),
-                    'reason' => 'PENEMPATAN',
-                ]);
-
-                activity('inventaris')
-                    ->performedOn($unit)
-                    ->causedBy($actor)
-                    ->withProperties(['code' => $code, 'room' => $room->code])
-                    ->log('Unit fisik diterbitkan (resolusi dari kode katalog)');
-
-                $resolved = true;
-            }
-        }
-
-        if (! $resolved) {
-            activity('inventaris')
-                ->performedOn($item)
-                ->causedBy($actor)
-                ->withProperties(['quantity' => $quantity, 'room' => $room->code])
-                ->log('Pengadaan disetujui, namun unit tidak dapat diterbitkan tanpa identitas ruangan.');
-
-            NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
-                "Pengadaan \"{$item->name}\" disetujui, tetapi unit fisik tidak dapat diterbitkan karena ruangan belum memiliki identitas. Perbaiki ruangan \"{$room->code}\".",
-                route('items.show', $item));
-        }
+        // Samakan kolom kuantitas legacy dengan jumlah unit yang benar-benar ada.
+        $service->syncCatalogCounters($item->refresh());
     }
 
     /** Cetak label satuan / re-print dari halaman detail barang. */

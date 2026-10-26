@@ -48,7 +48,6 @@ class LoanFeatureTest extends TestCase
         $this->laptop = Item::create([
             'internal_id' => 'LP-G1-01-91',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.11.04.01',
             'register_no' => '9101',
             'name' => 'Laptop Core i7',
             'category_id' => $category->id,
@@ -65,7 +64,6 @@ class LoanFeatureTest extends TestCase
         $this->kamera = Item::create([
             'internal_id' => 'CAM-G1-01-92',
             'location_code' => '12.24.13.08.01.07.01.01',
-            'asset_code' => '01.01.16.03.01',
             'register_no' => '9102',
             'name' => 'Kamera Video 4K',
             'category_id' => $category->id,

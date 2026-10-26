@@ -5,11 +5,11 @@
     $isWakasek = $user?->isApproverLevel2();
 @endphp
 
-<x-menu-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" icon="dashboard" label="Dashboard" />
+<x-menu-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" icon="dashboard" label="Beranda" />
 
-{{-- Peminjam memilih katalog langsung di halaman peminjaman. --}}
+{{-- Peminjam memilih barang langsung di halaman peminjaman. --}}
 @unless ($user?->isPeminjam())
-    <x-menu-link :href="route('catalogs.index')" :active="request()->routeIs('catalogs.*') || request()->routeIs('units.*')" icon="inventory_2" label="Katalog Barang" />
+    <x-menu-link :href="route('catalogs.index')" :active="request()->routeIs('catalogs.*') || request()->routeIs('units.*')" icon="inventory_2" label="Daftar Barang" />
 @endunless
 
 {{-- Peminjaman --}}
@@ -21,35 +21,35 @@
 <x-menu-link :href="route('events.index')" :active="request()->routeIs('events.*')" icon="event" label="Rekap Kegiatan" />
 
 @if ($canApprove)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Persetujuan &amp; Pengembalian</div>
-    <x-menu-link :href="route('loans.pending')" :active="request()->routeIs('loans.pending')" icon="how_to_reg" label="Persetujuan Pinjam" />
+    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Pinjaman &amp; Pengembalian</div>
+    <x-menu-link :href="route('loans.pending')" :active="request()->routeIs('loans.pending')" icon="how_to_reg" label="Permintaan Pinjam" />
     <x-menu-link :href="route('loans.returns')" :active="request()->routeIs('loans.returns')" icon="assignment_return" label="Pengembalian" />
 @endif
 
 @if ($canManage || $canApprove)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Inventaris</div>
+    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Barang Sekolah</div>
     {{-- Mutasi memerlukan hak kelola; Laboran hanya dapat mencetak label. --}}
     @if ($canManage)
-        <x-menu-link :href="route('movements.index')" :active="request()->routeIs('movements.*')" icon="swap_horiz" label="Mutasi Lokasi" />
+        <x-menu-link :href="route('movements.index')" :active="request()->routeIs('movements.*')" icon="swap_horiz" label="Pindah Barang" />
     @endif
-    <x-menu-link :href="route('labels.index')" :active="request()->routeIs('labels.*')" icon="label" label="Cetak Label" />
+    <x-menu-link :href="route('labels.index')" :active="request()->routeIs('labels.*')" icon="label" label="Cetak Label Barang" />
 @endif
 
 @if ($canManage)
     <x-menu-link :href="route('items.create')" :active="request()->routeIs('items.create') || request()->routeIs('items.store')" icon="add_box" label="Pengadaan Barang" />
     <x-menu-link :href="route('write-offs.index')" :active="request()->routeIs('write-offs.*')" icon="delete_forever" label="Inventaris Keluar" />
     <x-menu-link :href="route('reports.index')" :active="request()->routeIs('reports.*')" icon="assessment" label="Laporan Bulanan" />
-    <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" label="Master Data" />
+    <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" label="Data Sekolah" />
 @endif
 
-<div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Akun</div>
-<x-menu-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" icon="notifications" label="Notifikasi"
+<div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Akun Saya</div>
+<x-menu-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" icon="notifications" label="Pemberitahuan"
              :badge="$user?->unreadNotifications()->count() ?? 0" />
 
 @if ($isWakasek)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Administrasi</div>
-    <x-menu-link :href="route('write-offs.pending')" :active="request()->routeIs('write-offs.pending')" icon="verified_user" label="Approval Penghapusan" />
-    <x-menu-link :href="route('items.acquisitions')" :active="request()->routeIs('items.acquisitions')" icon="rule" label="Approval Pengadaan" />
-    <x-menu-link :href="route('users.index')" :active="request()->routeIs('users.*')" icon="manage_accounts" label="Pengguna" />
-    <x-menu-link :href="route('settings.edit')" :active="request()->routeIs('settings.*')" icon="settings" label="Pengaturan Instansi" />
+    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Pengelolaan Sekolah</div>
+    <x-menu-link :href="route('write-offs.pending')" :active="request()->routeIs('write-offs.pending')" icon="verified_user" label="Setujui Penghapusan" />
+    <x-menu-link :href="route('items.acquisitions')" :active="request()->routeIs('items.acquisitions')" icon="rule" label="Setujui Barang Baru" />
+    <x-menu-link :href="route('users.index')" :active="request()->routeIs('users.*')" icon="manage_accounts" label="Akun Pengguna" />
+    <x-menu-link :href="route('settings.edit')" :active="request()->routeIs('settings.*')" icon="settings" label="Pengaturan Sekolah" />
 @endif

@@ -6,7 +6,7 @@
                 <p class="text-sm text-gray-500">Satu stiker untuk satu unit fisik dengan kode inventaris <span class="font-mono">G1-02-12</span>. Pilih unit per baris, atau cetak semua unit yang sesuai filter.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-                <a href="{{ route('catalogs.index') }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold">
+                <a href="{{ route('catalogs.index') }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
                     <span class="material-icons-round text-lg">inventory_2</span> Katalog
                 </a>
                 <a href="{{ route('scan') }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">
@@ -27,33 +27,33 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-5">
         <form method="GET" action="{{ route('labels.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari kode unit (G1-02-12)"
-                   class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
-            <select name="catalog" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                   class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <select name="catalog" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Semua katalog</option>
                 @foreach ($catalogs as $catalogId => $catalogName)
                     <option value="{{ $catalogId }}" @selected(request('catalog') == $catalogId)>{{ $catalogName }}</option>
                 @endforeach
             </select>
-            <select name="room" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+            <select name="room" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Semua ruangan</option>
                 @foreach ($rooms as $room)
                     <option value="{{ $room->id }}" @selected(request('room') == $room->id)>{{ $room->code }} — {{ $room->name }}</option>
                 @endforeach
             </select>
-            <select name="category" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+            <select name="category" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Semua kategori</option>
                 @foreach ($categories as $category)
                     <option value="{{ $category->id }}" @selected(request('category') == $category->id)>{{ $category->name }}</option>
                 @endforeach
             </select>
-            <select name="condition" class="rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+            <select name="condition" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Semua kondisi</option>
                 @foreach ($conditions as $conditionOption)
                     <option value="{{ $conditionOption->value }}" @selected(request('condition') == $conditionOption->value)>{{ $conditionOption->label() }}</option>
                 @endforeach
             </select>
             <div class="flex items-center gap-2">
-                <select name="status" class="grow rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                <select name="status" class="grow rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua status</option>
                     @foreach ($statuses as $statusOption)
                         <option value="{{ $statusOption->value }}" @selected(request('status') == $statusOption->value)>{{ $statusOption->label() }}</option>
@@ -76,17 +76,17 @@
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
                 <label class="flex items-center gap-2 text-sm font-semibold text-gray-700">
                     <input type="checkbox" id="select-all-labels" onclick="toggleAllLabels(this)"
-                           class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                     Pilih semua di halaman ini
                 </label>
                 <div class="flex flex-wrap items-center gap-3">
                     <label class="flex items-center gap-1.5 text-xs text-gray-600">
-                        <input type="checkbox" name="select_all" value="1" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                        <input type="checkbox" name="select_all" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                title="Cetak semua unit yang sesuai filter, termasuk halaman lain">
                         Cetak semua yang sesuai filter ({{ $units->total() }} unit)
                     </label>
                     <span class="text-xs text-gray-500" id="label-count">0 unit dipilih</span>
-                    <button class="grow sm:grow-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold">
+                    <button class="grow sm:grow-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
                         <span class="material-icons-round text-lg">print</span> Cetak Massal (PDF)
                     </button>
                 </div>
@@ -110,13 +110,13 @@
                         @forelse ($units as $unit)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-2 text-center">
-                                    <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                    <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                            onchange="updateLabelCount()"
                                            @checked(in_array($unit->id, old('unit_ids', [])))>
                                 </td>
                                 <td class="px-4 py-2 font-mono font-semibold text-gray-800">{{ $unit->inventory_code }}</td>
                                 <td class="px-4 py-2">
-                                    <a href="{{ route('units.show', $unit) }}" class="font-medium text-gray-800 hover:text-amber-700">{{ $unit->catalog?->name }}</a>
+                                    <a href="{{ route('units.show', $unit) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $unit->catalog?->name }}</a>
                                     <div class="text-[11px] text-gray-400">{{ $unit->catalog?->category?->name }}</div>
                                 </td>
                                 <td class="px-4 py-2 text-xs text-gray-500">
@@ -134,7 +134,7 @@
                                 <td class="px-4 py-2 text-center text-xs text-gray-400">{{ $unit->last_label_printed_at?->format('d/m/Y') ?: '—' }}</td>
                                 <td class="px-4 py-2 text-center">
                                     <a href="{{ route('units.label', $unit) }}" target="_blank" title="Cetak label satuan / re-print"
-                                       class="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-amber-50 text-gray-500 hover:text-amber-700">
+                                       class="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50 text-gray-500 hover:text-blue-700">
                                         <span class="material-icons-round text-lg">print</span>
                                     </a>
                                 </td>

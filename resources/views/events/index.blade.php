@@ -91,7 +91,7 @@
                         @forelse ($events as $event)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-5 py-3">
-                                    <a href="{{ route('events.show', $event) }}" class="font-medium text-gray-800 hover:text-amber-700">{{ $event->name }}</a>
+                                    <a href="{{ route('events.show', $event) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $event->name }}</a>
                                     @if ($event->description)
                                         <div class="text-[11px] text-gray-400">{{ \Illuminate\Support\Str::limit($event->description, 70) }}</div>
                                     @endif
@@ -108,7 +108,7 @@
                                     <span class="block text-[10px] text-gray-400">{{ $event->loans->sum('loan_items_count') }} item</span>
                                 </td>
                                 <td class="px-5 py-3 text-center">
-                                    <a href="{{ route('events.show', $event) }}" class="text-xs font-semibold text-amber-700 hover:underline">Detail →</a>
+                                    <a href="{{ route('events.show', $event) }}" class="text-xs font-semibold text-blue-700 hover:underline">Detail →</a>
                                 </td>
                             </tr>
                         @empty

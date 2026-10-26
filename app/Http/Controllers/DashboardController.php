@@ -117,15 +117,15 @@ class DashboardController extends Controller
             'mode' => 'operational',
             'scopeLabel' => match (true) {
                 $user->isSuperAdmin() => 'seluruh sekolah',
-                $user->isKetuaLaboran() => 'seluruh laboratorium',
-                default => 'laboratorium dalam cakupan Anda',
+                $user->isKetuaLaboran() => 'semua laboratorium',
+                default => 'laboratorium Anda',
             },
             'stats' => [
-                ['label' => 'Katalog Barang', 'value' => $catalogCount, 'unit' => 'katalog', 'icon' => 'category', 'color' => 'slate'],
-                ['label' => 'Unit Inventaris', 'value' => $unitTotal, 'unit' => 'unit', 'icon' => 'inventory_2', 'color' => 'green'],
-                ['label' => 'Sedang Dipinjam', 'value' => $activeCount, 'unit' => 'pinjaman', 'icon' => 'swap_horiz', 'color' => 'blue'],
-                ['label' => 'Menunggu Persetujuan', 'value' => $pendingCount, 'unit' => 'request', 'icon' => 'how_to_reg', 'color' => 'amber'],
-                ['label' => 'Terlambat', 'value' => $overdueCount, 'unit' => 'pinjaman', 'icon' => 'alarm', 'color' => 'red'],
+                ['label' => 'Jenis Barang', 'value' => $catalogCount, 'unit' => 'jenis barang', 'icon' => 'category', 'color' => 'slate'],
+                ['label' => 'Jumlah Barang', 'value' => $unitTotal, 'unit' => 'barang', 'icon' => 'inventory_2', 'color' => 'green'],
+                ['label' => 'Sedang Dipinjam', 'value' => $activeCount, 'unit' => 'peminjaman', 'icon' => 'swap_horiz', 'color' => 'blue'],
+                ['label' => 'Menunggu Jawaban', 'value' => $pendingCount, 'unit' => 'permintaan', 'icon' => 'how_to_reg', 'color' => 'amber'],
+                ['label' => 'Terlambat Dikembalikan', 'value' => $overdueCount, 'unit' => 'peminjaman', 'icon' => 'alarm', 'color' => 'red'],
                 ['label' => 'Rusak / Hilang', 'value' => $rusakRingan + $rusakBerat + $hilang, 'unit' => 'unit', 'icon' => 'report_problem', 'color' => 'purple'],
             ],
             'topBorrowed' => $topBorrowed,
@@ -166,10 +166,10 @@ class DashboardController extends Controller
         return [
             'mode' => 'personal',
             'stats' => [
-                ['label' => 'Pinjaman Aktif', 'value' => (clone $mine)->whereIn('status', ['APPROVED', 'DIPINJAM'])->count(), 'unit' => 'pinjaman', 'icon' => 'swap_horiz', 'color' => 'blue'],
-                ['label' => 'Menunggu Persetujuan', 'value' => (clone $mine)->where('status', 'PENDING')->count(), 'unit' => 'request', 'icon' => 'hourglass_top', 'color' => 'amber'],
-                ['label' => 'Terlambat', 'value' => (clone $mine)->whereIn('status', ['APPROVED', 'DIPINJAM'])->where('due_date', '<', now())->count(), 'unit' => 'pinjaman', 'icon' => 'alarm', 'color' => 'red'],
-                ['label' => 'Selesai', 'value' => (clone $mine)->where('status', 'SELESAI')->count(), 'unit' => 'pinjaman', 'icon' => 'task_alt', 'color' => 'green'],
+                ['label' => 'Sedang Dipinjam', 'value' => (clone $mine)->whereIn('status', ['APPROVED', 'DIPINJAM'])->count(), 'unit' => 'peminjaman', 'icon' => 'swap_horiz', 'color' => 'blue'],
+                ['label' => 'Menunggu Jawaban', 'value' => (clone $mine)->where('status', 'PENDING')->count(), 'unit' => 'permintaan', 'icon' => 'hourglass_top', 'color' => 'amber'],
+                ['label' => 'Terlambat Dikembalikan', 'value' => (clone $mine)->whereIn('status', ['APPROVED', 'DIPINJAM'])->where('due_date', '<', now())->count(), 'unit' => 'peminjaman', 'icon' => 'alarm', 'color' => 'red'],
+                ['label' => 'Sudah Dikembalikan', 'value' => (clone $mine)->where('status', 'SELESAI')->count(), 'unit' => 'peminjaman', 'icon' => 'task_alt', 'color' => 'green'],
             ],
             'myActive' => (clone $mine)->whereIn('status', ['PENDING', 'APPROVED', 'DIPINJAM'])
                 ->with(['loanItems.item', 'event'])

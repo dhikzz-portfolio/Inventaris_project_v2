@@ -61,7 +61,11 @@ class DashboardAndReportingTest extends TestCase
         $laboran = User::where('username', 'laboran.tp')->firstOrFail();
 
         $unitStat = function ($response): int {
-            return (int) collect($response->viewData('stats'))->firstWhere('label', 'Unit Inventaris')['value'];
+            $stat = collect($response->viewData('stats'))->firstWhere('label', 'Jumlah Barang');
+
+            $this->assertNotNull($stat, 'Statistik Jumlah Barang harus tersedia pada dashboard pengelola.');
+
+            return (int) $stat['value'];
         };
 
         $wakasekResponse = $this->actingAs($wakasek)->get(route('dashboard'))->assertOk();
@@ -76,8 +80,8 @@ class DashboardAndReportingTest extends TestCase
         $this->assertLessThan($unitStat($wakasekResponse), $unitStat($laboranResponse));
 
         $wakasekResponse->assertSee('seluruh sekolah');
-        $adminResponse->assertSee('seluruh laboratorium');
-        $laboranResponse->assertSee('laboratorium dalam cakupan Anda');
+        $adminResponse->assertSee('semua laboratorium');
+        $laboranResponse->assertSee('laboratorium Anda');
     }
 
     public function test_menu_laboran_tidak_menautkan_mutasi_yang_bukan_kewenangannya(): void

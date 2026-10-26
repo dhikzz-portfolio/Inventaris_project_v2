@@ -8,19 +8,19 @@
                        placeholder="Cari nama, ID internal, kode unit, register..."
                        class="w-full pl-10 pr-3 py-2.5 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
             </div>
-            <select wire:model.live="status" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+            <select wire:model.live="status" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Semua Status</option>
                 @foreach ($statuses as $s)
                     <option value="{{ $s->value }}">{{ $s->label() }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="category" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+            <select wire:model.live="category" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Semua Kategori</option>
                 @foreach ($categories as $c)
                     <option value="{{ $c->id }}">{{ $c->name }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="room" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+            <select wire:model.live="room" class="w-full min-w-0 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Semua Ruangan</option>
                 @foreach ($rooms as $r)
                     <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
@@ -39,7 +39,7 @@
                 @endif
             </div>
             @if (\Illuminate\Support\Facades\Auth::user()->managesInventory())
-                <a href="{{ route('items.create') }}" class="inline-flex items-center gap-1 text-amber-700 font-semibold hover:underline">
+                <a href="{{ route('items.create') }}" class="inline-flex items-center gap-1 text-blue-700 font-semibold hover:underline">
                     <span class="material-icons-round text-base">add_box</span> Tambah Barang (Pengadaan)
                 </a>
             @endif
@@ -61,7 +61,7 @@
                 </div>
                 <div class="p-3 flex-1 flex flex-col">
                     <div class="flex items-start justify-between gap-2">
-                        <h3 class="font-semibold text-sm text-gray-800 group-hover:text-amber-700 leading-snug">{{ $item->name }}</h3>
+                        <h3 class="font-semibold text-sm text-gray-800 group-hover:text-blue-700 leading-snug">{{ $item->name }}</h3>
                         <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $effective->badgeClass() }}">{{ $effective->label() }}</span>
                     </div>
                     <div class="mt-1 text-[11px] text-gray-500 space-y-0.5">
@@ -86,7 +86,7 @@
                         @else
                             <span class="text-gray-400">Reg. {{ $item->register_no }}</span>
                         @endif
-                        <span class="text-gray-400 group-hover:text-amber-600">Detail →</span>
+                        <span class="text-gray-400 group-hover:text-blue-600">Detail →</span>
                     </div>
                 </div>
             </a>

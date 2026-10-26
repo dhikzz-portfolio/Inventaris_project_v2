@@ -105,14 +105,14 @@
                 </div>
                 <div class="mt-3 text-xs text-gray-400">
                     Label terakhir dicetak: {{ $item->last_label_printed_at?->format('d M Y H:i') ?: 'belum pernah' }}
-                    — <a href="{{ route('items.label', $item) }}" target="_blank" class="text-amber-700 hover:underline">re-print stiker</a>
+                    — <a href="{{ route('items.label', $item) }}" target="_blank" class="text-blue-700 hover:underline">re-print stiker</a>
                 </div>
             </div>
 
             {{-- Riwayat peminjaman --}}
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">history</span> Riwayat Peminjaman
+                    <span class="material-icons-round text-blue-600">history</span> Riwayat Peminjaman
                     @if ($lastBorrower)
                         <span class="ms-auto text-xs font-normal text-gray-500">
                             Peminjam terakhir: <strong>{{ $lastBorrower->name }}</strong>
@@ -138,7 +138,7 @@
                                 @foreach ($loanHistory as $li)
                                     <tr class="hover:bg-gray-50">
                                         <td class="py-2">
-                                            <a href="{{ route('loans.show', $li->loan) }}" class="text-gray-700 hover:text-amber-700 font-medium">{{ $li->loan?->borrower?->name }}</a>
+                                            <a href="{{ route('loans.show', $li->loan) }}" class="text-gray-700 hover:text-blue-700 font-medium">{{ $li->loan?->borrower?->name }}</a>
                                             <div class="text-[11px] text-gray-400">{{ $li->loan?->event?->name ?: '—' }}</div>
                                         </td>
                                         <td class="py-2 text-xs text-gray-500">{{ \Illuminate\Support\Str::limit($li->loan?->purpose, 40) }}</td>
@@ -195,7 +195,7 @@
                     </div>
                 </div>
                 <a href="{{ route('items.label', $item) }}" target="_blank"
-                   class="mt-3 inline-flex items-center gap-1.5 text-sm text-amber-700 font-semibold hover:underline">
+                   class="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-700 font-semibold hover:underline">
                     <span class="material-icons-round text-lg">print</span> Cetak / Re-print Stiker
                 </a>
             </div>
@@ -203,7 +203,7 @@
             {{-- Jadwal (anti-bentrok) --}}
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">event_available</span> Jadwal Pemesanan
+                    <span class="material-icons-round text-blue-600">event_available</span> Jadwal Pemesanan
                 </h3>
                 @if ($upcoming->isEmpty())
                     <p class="text-sm text-gray-400">Belum ada pemesanan mendatang — barang bebas dibooking.</p>
@@ -220,7 +220,7 @@
                         @endforeach
                     </ul>
                 @endif
-                <a href="{{ route('loans.create') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm text-amber-700 font-semibold hover:underline">
+                <a href="{{ route('loans.create') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-700 font-semibold hover:underline">
                     <span class="material-icons-round text-lg">add_shopping_cart</span> Ajukan Peminjaman
                 </a>
             </div>
@@ -228,7 +228,7 @@
             {{-- Riwayat mutasi --}}
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">swap_horiz</span> Riwayat Mutasi Lokasi
+                    <span class="material-icons-round text-blue-600">swap_horiz</span> Riwayat Mutasi Lokasi
                 </h3>
                 @if ($item->movements->isEmpty())
                     <p class="text-sm text-gray-400">Belum pernah dipindahkan.</p>
@@ -253,7 +253,7 @@
             @if ($lastBorrower)
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                        <span class="material-icons-round text-amber-600">person</span> Peminjam Terakhir
+                        <span class="material-icons-round text-blue-600">person</span> Peminjam Terakhir
                     </h3>
                     <div class="text-sm">
                         <div class="font-medium text-gray-800">{{ $lastBorrower->name }}</div>

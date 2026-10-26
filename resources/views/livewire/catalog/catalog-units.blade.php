@@ -21,7 +21,7 @@
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">qr_code_2</span>
                 <input type="text" wire:model.live.debounce.350ms="search"
                        placeholder="Cari kode inventaris (G1-02-12, G1-02, G1)"
-                       class="w-full pl-10 pr-3 py-2.5 rounded-lg text-sm {{ $codeError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-amber-500 focus:border-amber-500' }}">
+                       class="w-full pl-10 pr-3 py-2.5 rounded-lg text-sm {{ $codeError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500' }}">
             </div>
 
             <select wire:model.live="building" class="w-full rounded-lg border-gray-300 text-sm">
@@ -113,7 +113,7 @@
                             </td>
                             <td class="px-4 py-3 text-xs text-gray-500">{{ $unit->acquisition_year ?: '—' }}</td>
                             <td class="px-4 py-3 text-right">
-                                <a href="{{ route('units.show', $unit) }}" class="text-xs font-semibold text-amber-700 hover:underline">Detail</a>
+                                <a href="{{ route('units.show', $unit) }}" class="text-xs font-semibold text-blue-700 hover:underline">Detail</a>
                             </td>
                         </tr>
                     @empty

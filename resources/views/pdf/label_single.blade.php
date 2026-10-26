@@ -8,7 +8,7 @@
         /* width/height = content box; padding+border (14pt x 10pt) melengkapi 256x116pt */
         .label {
             width: 242pt; height: 106pt;
-            border: 2pt solid #000;
+            border: 2pt solid #155dfc;
             border-radius: 4pt;
             padding: 3pt 5pt;
         }
@@ -22,20 +22,23 @@
         .kode-lokasi {
             font-family: 'Courier New', monospace;
             font-size: 14pt; font-weight: bold; line-height: 1.1;
+            color: #1c398e;
         }
         .kode-barang {
             font-family: 'Courier New', monospace;
             font-size: 11pt; font-weight: bold; line-height: 1.1;
             margin-top: 3pt;
+            color: #1c398e;
         }
         .qr-cell { width: 46pt; text-align: right; }
         .qr-cell img { width: 42pt; height: 42pt; }
         .footer {
             margin-top: 5pt;
-            border-top: 1pt solid #000;
+            border-top: 1pt solid #8ec5ff;
             padding-top: 2pt;
             font-size: 7.5pt; font-weight: bold; text-align: center;
             text-transform: uppercase;
+            color: #1c398e;
         }</style>
 </head>
 <body>

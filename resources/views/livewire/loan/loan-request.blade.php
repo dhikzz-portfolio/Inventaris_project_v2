@@ -3,35 +3,35 @@
     <div class="lg:col-span-3 space-y-5">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">add_shopping_cart</span> 1. Pilih Barang dari Katalog
+                <span class="material-icons-round text-blue-600">add_shopping_cart</span> 1. Pilih Barang dari Katalog
             </h3>
             <div class="relative">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                 <input type="text" wire:model.live.debounce.300ms="search"
                        placeholder="Cari nama, spesifikasi, kode inventaris..."
-                       class="w-full pl-10 pr-3 py-2.5 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                       class="w-full pl-10 pr-3 py-2.5 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
             </div>
 
             <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
-                <select wire:model.live="category" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                <select wire:model.live="category" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua kategori</option>
                     @foreach ($categories as $c)
                         <option value="{{ $c->id }}">{{ $c->name }}</option>
                     @endforeach
                 </select>
-                <select wire:model.live="building" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                <select wire:model.live="building" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua gedung</option>
                     @foreach ($buildings as $b)
                         <option value="{{ $b['code'] }}">{{ $b['name'] }}</option>
                     @endforeach
                 </select>
-                <select wire:model.live="room" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                <select wire:model.live="room" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua ruangan</option>
                     @foreach ($rooms as $r)
                         <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
                     @endforeach
                 </select>
-                <select wire:model.live="availability" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                <select wire:model.live="availability" class="w-full min-w-0 rounded-lg border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua ketersediaan</option>
                     <option value="available">Ada unit tersedia</option>
                     <option value="unavailable">Tidak ada unit tersedia</option>
@@ -39,7 +39,7 @@
             </div>
             @if ($activeFilters > 0)
                 <div class="mt-2 text-right">
-                    <button wire:click="resetFilters" class="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-amber-700">
+                    <button wire:click="resetFilters" class="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-blue-700">
                         <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
                     </button>
                 </div>
@@ -74,7 +74,7 @@
                                 <span class="shrink-0 text-[10px] text-gray-400">tidak tersedia</span>
                             @else
                                 <button wire:click="add({{ $item->id }})"
-                                        class="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold">
+                                        class="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-600 text-white text-xs font-semibold">
                                     <span class="material-icons-round text-sm">add</span> Tambah
                                 </button>
                             @endif
@@ -88,7 +88,7 @@
 
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">shopping_basket</span> 2. Keranjang ({{ count($cart) }} barang)
+                <span class="material-icons-round text-blue-600">shopping_basket</span> 2. Keranjang ({{ count($cart) }} barang)
             </h3>
 
             @if ($cart === [])
@@ -115,7 +115,7 @@
                                     <td class="py-2.5 text-xs text-gray-500">{{ $line['room'] }}</td>
                                     <td class="py-2.5 text-center">
                                         <input type="number" min="1" max="{{ $line['max'] }}" wire:model.live="cart.{{ $index }}.qty"
-                                               class="w-20 text-center rounded-lg border-gray-300 text-xs focus:ring-amber-500 focus:border-amber-500">
+                                               class="w-20 text-center rounded-lg border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500">
                                         <div class="text-[10px] text-gray-400">maks {{ $line['max'] }}</div>
                                     </td>
                                     <td class="py-2.5">
@@ -155,7 +155,7 @@
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">calendar_month</span> Kalender Ketersediaan
+                    <span class="material-icons-round text-blue-600">calendar_month</span> Kalender Ketersediaan
                 </h3>
                 <div class="flex items-center gap-1">
                     <button wire:click="prevMonth" class="p-1 rounded hover:bg-gray-100 text-gray-500"><span class="material-icons-round text-lg">chevron_left</span></button>
@@ -205,7 +205,7 @@
     <div class="lg:col-span-2">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 sticky top-20">
             <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
-                <span class="material-icons-round text-amber-600">edit_note</span> 3. Detail Pengajuan
+                <span class="material-icons-round text-blue-600">edit_note</span> 3. Detail Pengajuan
             </h3>
 
             @if ($error)
@@ -219,25 +219,25 @@
                 <div>
                     <x-input-label value="Tujuan Peminjaman *" />
                     <textarea wire:model.live="purpose" rows="2"
-                              class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                              class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
                               placeholder="Ujian praktik, kegiatan sekolah, praktikum..."></textarea>
                 </div>
 
                 <div>
                     <x-input-label value="Tanggal & Waktu Pinjam *" />
                     <input type="datetime-local" wire:model.live="start_date"
-                           class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm">
+                           class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
                 </div>
 
                 <div>
                     <x-input-label value="Tanggal & Waktu Kembali *" />
                     <input type="datetime-local" wire:model.live="due_date"
-                           class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm">
+                           class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
                 </div>
 
                 <div>
                     <x-input-label value="Kegiatan / Event (opsional)" />
-                    <select wire:model.live="event_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm">
+                    <select wire:model.live="event_id" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
                         <option value="">— tanpa kegiatan (pinjam biasa) —</option>
                         @foreach ($events as $event)
                             <option value="{{ $event->id }}">{{ $event->name }} ({{ $event->start_date->format('d/m') }}–{{ $event->end_date->format('d/m/Y') }})</option>
@@ -247,7 +247,7 @@
                 </div>
 
                 <button wire:click="submit" wire:loading.attr="disabled"
-                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-bold">
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold">
                     <span wire:loading.remove wire:target="submit" class="material-icons-round text-lg">send</span>
                     <span wire:loading wire:target="submit" class="material-icons-round text-lg animate-spin">progress_activity</span>
                     Kirim Request Peminjaman

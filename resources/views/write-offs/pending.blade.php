@@ -32,7 +32,7 @@
                                 Diajukan {{ $wo->created_at->diffForHumans() }} oleh {{ $wo->requester?->name }}
                             </div>
                             <a href="{{ route('files.show', ['path' => $wo->berita_acara_path]) }}" target="_blank"
-                               class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:underline">
+                               class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:underline">
                                 <span class="material-icons-round text-sm">description</span> Lihat Berita Acara
                             </a>
                         </div>

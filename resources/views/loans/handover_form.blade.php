@@ -65,7 +65,7 @@
                                                value="{{ $unit->id }}"
                                                x-model="selected"
                                                :disabled="selected.length >= max && ! selected.includes('{{ $unit->id }}')"
-                                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed">
+                                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed">
                                         <div class="flex-1 min-w-0">
                                             <div class="font-mono font-semibold text-gray-800 text-sm">{{ $unit->inventory_code }}</div>
                                             <div class="text-[11px] text-gray-500">{{ $unit->locationLabel() }}</div>
@@ -93,13 +93,13 @@
                 <div>
                     <x-input-label value="Catatan serah terima (opsional)" />
                     <textarea name="note" rows="2"
-                              class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                              class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
                               placeholder="Kondisi saat serah terima, catatan khusus..."></textarea>
                 </div>
 
                 <div class="flex gap-3">
                     <button type="submit"
-                            class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold">
+                            class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
                         <span class="material-icons-round text-lg">inventory</span>
                         Serahkan Barang + Tandai Unit Dipinjam
                     </button>

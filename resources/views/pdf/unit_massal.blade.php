@@ -12,7 +12,7 @@
         /* width/height = content box; padding+border (14pt x 10pt) muat di sel 50% A4 */
         .label {
             width: 252pt; height: 90pt;
-            border: 2pt solid #000;
+            border: 2pt solid #155dfc;
             border-radius: 4pt;
             padding: 3pt 5pt;
             page-break-inside: avoid;
@@ -27,6 +27,7 @@
         .kode-unit {
             font-family: 'Courier New', monospace;
             font-size: 15pt; font-weight: bold; line-height: 1.05;
+            color: #1c398e;
         }
         .nama { font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-bottom: 1pt; line-height: 1.1; }
         .lokasi { font-size: 7pt; margin-top: 1pt; }
@@ -34,12 +35,13 @@
         .qr-cell img { width: 40pt; height: 40pt; }
         .footer {
             margin-top: 4pt;
-            border-top: 1pt solid #000;
+            border-top: 1pt solid #8ec5ff;
             padding-top: 2pt;
             font-size: 7pt;
             font-weight: bold;
             text-align: center;
             text-transform: uppercase;
+            color: #1c398e;
         }</style>
 </head>
 <body>

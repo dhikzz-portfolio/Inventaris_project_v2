@@ -25,7 +25,7 @@
             <a href="{{ $item['href'] }}"
                @class([
                    'flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold h-full',
-                   'text-amber-700' => $item['active'],
+                   'text-blue-700' => $item['active'],
                    'text-gray-500 active:bg-gray-50' => ! $item['active'],
                ])>
                 <span class="material-icons-round text-[22px] leading-none">{{ $item['icon'] }}</span>

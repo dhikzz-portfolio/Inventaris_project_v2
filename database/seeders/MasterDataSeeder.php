@@ -108,11 +108,11 @@ class MasterDataSeeder extends Seeder
         }
 
         foreach ([
-            ['name' => 'Furnitur', 'code' => '01.01.09.01.01'],
-            ['name' => 'Elektronik & Komputer', 'code' => '01.01.11.04.01'],
-            ['name' => 'Alat Laboratorium', 'code' => '01.01.15.02.01'],
-            ['name' => 'Alat Peraga / Kamera', 'code' => '01.01.16.03.01'],
-            ['name' => 'Peralatan Kantor', 'code' => '01.01.11.04.02'],
+            ['name' => 'Furnitur'],
+            ['name' => 'Elektronik & Komputer'],
+            ['name' => 'Alat Laboratorium'],
+            ['name' => 'Alat Peraga / Kamera'],
+            ['name' => 'Peralatan Kantor'],
         ] as $category) {
             Category::updateOrCreate(['name' => $category['name']], $category);
         }

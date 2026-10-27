@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Services\BastService;
+use App\Services\EventStatusService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -12,9 +13,15 @@ use Illuminate\View\View;
 
 class EventController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, EventStatusService $statusService): View
     {
         $status = trim((string) $request->query('status', ''));
+
+        Event::chunk(100, function ($events) use ($statusService) {
+            foreach ($events as $event) {
+                $statusService->updateStatusIfNeeded($event);
+            }
+        });
 
         return view('events.index', [
             'events' => Event::withCount('loans')
@@ -96,8 +103,9 @@ class EventController extends Controller
         return back()->with('success', 'Kegiatan diperbarui.');
     }
 
-    public function show(Event $event): View
+    public function show(Event $event, EventStatusService $statusService): View
     {
+        $statusService->updateStatusIfNeeded($event);
         $event->load(['loans.borrower', 'loans.loanItems.item', 'loans.loanItems.unitAssignments.unit', 'creator', 'editor']);
 
         return view('events.show', [

@@ -22,6 +22,7 @@ class User extends Authenticatable
     protected $fillable = [
         'username', 'name', 'degree', 'email', 'email_verified_at', 'password',
         'role', 'borrower_type', 'major_id', 'class_name', 'last_login_at',
+        'birth_date', 'profile_completed_at', 'profile_completed', 'work_unit',
     ];
 
     /**
@@ -34,6 +35,9 @@ class User extends Authenticatable
             'borrower_type' => BorrowerType::class,
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'birth_date' => 'date',
+            'profile_completed_at' => 'datetime',
+            'profile_completed' => 'boolean',
         ];
     }
 

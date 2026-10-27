@@ -1,7 +1,7 @@
 @php
-    $usernameErrors = collect($errors->get('username'))
+    $emailErrors = collect($errors->get('email'))
         ->map(fn (string $message) => $message === 'auth.failed'
-            ? 'NIP/username atau kata sandi tidak sesuai.'
+            ? 'Email atau kata sandi tidak sesuai.'
             : $message)
         ->all();
 @endphp
@@ -17,15 +17,15 @@
         @csrf
 
         <x-auth-input
-            id="username"
-            label="Username"
-            type="text"
-            :value="old('username')"
-            placeholder="Masukkan username atau NIP"
-            autocomplete="username"
+            id="email"
+            label="Email"
+            type="email"
+            :value="old('email')"
+            placeholder="Masukkan email Gmail"
+            autocomplete="email"
             autofocus
-            icon="person"
-            :error="$usernameErrors[0] ?? null"
+            icon="mail"
+            :error="$emailErrors[0] ?? null"
         />
 
         <x-auth-input
@@ -50,6 +50,15 @@
 
         <x-auth-button label="Masuk" />
     </form>
+
+    <div class="mt-5">
+        <form method="POST" action="{{ route('register.start') }}">
+            @csrf
+            <button type="submit" class="w-full inline-flex items-center justify-center rounded-xl border border-brand-600 px-4 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2">
+                Daftar Akun
+            </button>
+        </form>
+    </div>
 
     <p class="mt-5 text-center text-xs leading-relaxed text-slate-400">
         Gunakan akun sekolah Anda. Hubungi administrator jika mengalami kendala masuk.

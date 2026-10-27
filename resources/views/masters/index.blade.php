@@ -208,7 +208,6 @@
                                 @csrf @method('PUT')
                                 <input type="text" name="name" value="{{ $category->name }}" class="w-full rounded border-gray-300 text-xs" required>
                                 <div class="flex gap-1 items-center">
-                                    <input type="text" name="code" value="{{ $category->code }}" class="flex-1 rounded border-gray-300 text-xs" placeholder="Kode">
                                     <button class="px-2 py-1 rounded bg-slate-800 text-white text-xs font-semibold">Simpan</button>
                                 </div>
                             </form>
@@ -223,7 +222,6 @@
             <form method="POST" action="{{ route('masters.store-category') }}" class="space-y-2">
                 @csrf
                 <input type="text" name="name" placeholder="Nama kategori *" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
-                <input type="text" name="code" placeholder="Kode klasifikasi aset (01.01.11.04.01)" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <button class="w-full rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Tambah Kategori</button>
             </form>
         </div>

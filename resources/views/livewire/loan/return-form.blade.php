@@ -28,97 +28,86 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div class="flex items-center justify-between mb-4">
             <h3 class="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
-                <span class="material-icons-round text-blue-600">fact_check</span> Validasi Per Unit / Per Barang
+                <span class="material-icons-round text-blue-600">fact_check</span> Validasi Pengembalian per Kelompok Barang
             </h3>
             <span class="text-xs text-gray-400">Peminjam: <strong>{{ $loan->borrower?->name }}</strong> • Kembali {{ $loan->due_date->format('d/m/Y H:i') }}</span>
         </div>
 
-        <div class="space-y-6">
-            @foreach ($rows as $i => $row)
-                @php($isMismatch = in_array($i, $mismatches, true))
-                <div @class([
-                    'border rounded-lg p-4',
-                    'border-orange-300 bg-orange-50/40' => $isMismatch,
-                    'border-gray-200' => ! $isMismatch,
-                ]) wire:key="row-{{ $i }}">
-                    <div class="flex items-start justify-between gap-3 flex-wrap">
+        <div class="space-y-4">
+            @foreach ($groupedRows as $gIndex => $group)
+                <details class="border border-gray-200 rounded-lg" open>
+                    <summary class="cursor-pointer bg-gray-50 px-4 py-3 flex items-center justify-between">
                         <div>
-                            <div class="font-semibold text-gray-800 text-sm">{{ $row['item_name'] }}</div>
-                            @if (! empty($row['inventory_code']))
-                                <div class="text-[11px] font-mono text-gray-500">Kode: {{ $row['inventory_code'] }} • {{ $row['unit_location'] ?? $row['room_code'] }}</div>
-                            @else
-                                <div class="text-[11px] font-mono text-gray-400">{{ $row['internal_id'] }} • Ruang asal: {{ $row['room_code'] }}</div>
-                            @endif
+                            <span class="font-semibold text-gray-800">{{ $group['item_name'] }}</span>
+                            <span class="ml-2 text-xs text-gray-500">— {{ $group['total_borrowed'] }} unit dipinjam</span>
                         </div>
-                        <div class="text-xs text-gray-500">
-                            Dipinjam: <strong>{{ $row['borrowed'] }} {{ $row['unit'] }}</strong>
-                            @if ($row['already_returned'] > 0)
-                                • terkembalikan sebelumnya: {{ $row['already_returned'] }}
-                            @endif
-                            <span class="block text-[10px] text-gray-400">Kondisi keluar: {{ \App\Enums\Condition::from($row['condition_out'])->label() }}</span>
+                        <div class="text-xs text-gray-600">
+                            Sudah kembali: <strong>{{ $group['already_returned'] + $group['returned'] }}</strong> / {{ $group['total_borrowed'] }} |
+                            Belum: <strong>{{ max(0, $group['total_borrowed'] - ($group['already_returned'] + $group['returned'])) }}</strong>
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                        <div>
-                            <x-input-label value="Jumlah Kembali *" />
-                            <input type="number" min="0" max="{{ $row['remaining'] }}" wire:model.live="rows.{{ $i }}.qty_returned"
-                                   class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                            <x-input-error :messages="$errors->get('rows.'.$i.'.qty_returned')" class="mt-1" />
-                            @php($short = max(0, (int) $row['remaining'] - (int) $row['qty_returned']))
-                            @if ($short > 0)
-                                <p class="text-[11px] text-red-600 font-semibold mt-1">
-                                    ⚠ Selisih {{ $short }} {{ $row['unit'] }} —
-                                    dicatat sebagai <strong>HILANG sementara</strong>; dapat dikembalikan menyusul atau ditutup oleh Wakasek
-                                </p>
-                            @elseif ($row['already_returned'] > 0)
-                                <p class="text-[11px] text-gray-400 mt-1">Sisa unit akan kembali seluruhnya.</p>
-                            @endif
-                        </div>
-
-                        <div>
-                            <x-input-label value="Kondisi Akhir *" />
-                            <select wire:model.live="rows.{{ $i }}.condition_in"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                                @foreach ($conditions as $c)
-                                    <option value="{{ $c->value }}">{{ $c->label() }}</option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('rows.'.$i.'.condition_in')" class="mt-1" />
-
-                            @if ($row['condition_in'] !== 'BAIK')
-                                <div class="mt-2">
-                                    <x-input-label value="Foto Bukti Kerusakan *" />
-                                    <input type="file" wire:model.live="rows.{{ $i }}.damage_photo" accept="image/*"
-                                           class="mt-1 block w-full text-xs text-gray-600 file:me-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-50 file:text-red-700">
-                                    <x-input-error :messages="$errors->get('rows.'.$i.'.damage_photo')" class="mt-1" />
-                                    <div wire:loading wire:target="rows.{{ $i }}.damage_photo" class="text-[11px] text-blue-600 mt-1">Mengunggah...</div>
+                    </summary>
+                    <div class="p-4 space-y-3">
+                        @foreach ($group['rows'] as $rowKey => $row)
+                            @php($i = $loop->parent->index * 100 + $loop->index)
+                            @php($isMismatch = in_array($i, $mismatches, true))
+                            <div @class([
+                                'border rounded-lg p-3',
+                                'border-orange-300 bg-orange-50/40' => $isMismatch,
+                                'border-gray-200' => ! $isMismatch,
+                            ]) wire:key="row-{{ $i }}">
+                                <div class="flex items-start justify-between gap-3 flex-wrap">
+                                    <div>
+                                        @if (! empty($row['inventory_code']))
+                                            <div class="text-sm font-mono font-semibold text-gray-800">{{ $row['inventory_code'] }}</div>
+                                            <div class="text-[11px] text-gray-500">{{ $row['unit_location'] ?? $row['room_code'] }}</div>
+                                        @else
+                                            <div class="text-sm text-gray-800">{{ $row['item_name'] }}</div>
+                                            <div class="text-[11px] font-mono text-gray-400">{{ $row['internal_id'] }} • Ruang asal: {{ $row['room_code'] }}</div>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        Status: <strong>{{ ($row['remaining'] ?? 0) == 0 ? 'Sudah dikembalikan' : 'Belum dikembalikan' }}</strong>
+                                        <span class="block text-[10px] text-gray-400">Kondisi keluar: {{ \App\Enums\Condition::from($row['condition_out'])->label() }}</span>
+                                    </div>
                                 </div>
-                            @endif
-                        </div>
 
-                        <div>
-                            <x-input-label value="Dikembalikan ke Ruangan *" />
-                            <select wire:model.live="rows.{{ $i }}.returned_room_id"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 @if($isMismatch) border-orange-400 @endif">
-                                @foreach ($rooms as $room)
-                                    <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('rows.'.$i.'.returned_room_id')" class="mt-1" />
-                            @if ($isMismatch)
-                                <p class="text-[11px] text-orange-700 font-semibold mt-1">⚠ Berbeda dari ruangan asal — jadi mutasi</p>
-                            @endif
-                        </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                                    <div>
+                                        <x-input-label value="Jumlah Kembali *" />
+                                        <input type="number" min="0" max="{{ $row['remaining'] }}" wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.qty_returned"
+                                               class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+
+                                    <div>
+                                        <x-input-label value="Kondisi Akhir *" />
+                                        <select wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.condition_in"
+                                                class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                            @foreach ($conditions as $c)
+                                                <option value="{{ $c->value }}">{{ $c->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                        @if (($row['condition_in'] ?? 'BAIK') !== 'BAIK')
+                                            <div class="mt-2">
+                                                <input type="file" wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.damage_photo" accept="image/*"
+                                                       class="mt-1 block w-full text-xs text-gray-600 file:me-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-red-50 file:text-red-700">
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div>
+                                        <x-input-label value="Dikembalikan ke Ruangan *" />
+                                        <select wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.returned_room_id"
+                                                class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 @if($isMismatch) border-orange-400 @endif">
+                                            @foreach ($rooms as $room)
+                                                <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
-
-                    @if (! empty($row['inventory_code']))
-                        <div class="text-[10px] text-gray-400 mt-2 flex items-center gap-2">
-                            <span class="inline-block w-2 h-2 rounded-full {{ $row['has_assignment'] && $row['remaining'] === 0 ? 'bg-green-500' : 'bg-gray-300' }}"></span>
-                            {{ $row['remaining'] === 0 ? 'Unit ini sudah dikembalikan.' : 'Unit ini belum dikembalikan.' }}
-                        </div>
-                    @endif
-                </div>
+                </details>
             @endforeach
         </div>
     </div>

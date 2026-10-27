@@ -20,7 +20,7 @@ class Item extends Model
     protected $table = 'item_catalogs';
 
     protected $fillable = [
-        'internal_id', 'location_code', 'register_no', 'name',
+        'internal_id', 'location_code', 'register_no', 'name', 'item_type_code',
         'brand', 'model_type', 'description',
         'category_id', 'room_id', 'specification', 'acquisition_year',
         'funding_source', 'quantity', 'qty_damaged', 'qty_lost', 'unit', 'is_high_value',

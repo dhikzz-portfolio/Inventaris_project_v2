@@ -66,11 +66,15 @@
                     </template>
                 </select>
             </div>
-            <div class="flex items-end gap-2">
+            <div class="flex items-end gap-2 flex-wrap">
                 <a :href="exportUrl('pdf')" target="_blank"
                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold">
-                    <span class="material-icons-round text-lg">picture_as_pdf</span> PDF
+                    <span class="material-icons-round text-lg">picture_as_pdf</span> Pratinjau PDF
                 </a>
+                <button type="button" @click="window.open(exportUrl('pdf'), '_blank').print()"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold">
+                    <span class="material-icons-round text-lg">print</span> Cetak
+                </button>
                 <a :href="exportUrl('excel')" target="_blank"
                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-bold">
                     <span class="material-icons-round text-lg">table_view</span> Excel

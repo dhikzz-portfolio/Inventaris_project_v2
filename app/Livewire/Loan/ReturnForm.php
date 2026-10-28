@@ -4,6 +4,7 @@ namespace App\Livewire\Loan;
 
 use App\Enums\Condition;
 use App\Models\Loan;
+use App\Models\LoanItem;
 use App\Models\Room;
 use App\Services\LoanService;
 use Livewire\Component;
@@ -21,7 +22,7 @@ class ReturnForm extends Component
 
     public function mount(Loan $loan): void
     {
-        $this->loan = $loan->load(['loanItems.item.room', 'borrower', 'loanItems.unitAssignments.unit.room']);
+        $this->loan = $loan->load(['loanItems.item.room', 'loanItems.item.units', 'borrower', 'loanItems.unitAssignments.unit.room']);
 
         foreach ($this->loan->loanItems as $li) {
             $remaining = $li->qty_borrowed - (int) $li->qty_returned;
@@ -29,6 +30,7 @@ class ReturnForm extends Component
                 'loan_item_id' => $li->id,
                 'item_id' => $li->item_id,
                 'item_name' => $li->item?->name,
+                'specification' => $li->item?->specification,
                 'internal_id' => $li->item?->internal_id,
                 'unit' => $li->item?->unit,
                 'room_code' => $li->item?->room?->code,
@@ -75,16 +77,18 @@ class ReturnForm extends Component
                     'loan_item_id' => $li->id,
                     'item_id' => $li->item_id,
                     'item_name' => $li->item?->name,
+                    'specification' => $li->item?->specification,
                     'internal_id' => $li->item?->internal_id,
                     'unit' => $li->item?->unit,
                     'room_code' => $li->item?->room?->code,
                     'unit_id' => $assignment->asset_unit_id,
                     'inventory_code' => $assignment->unit?->inventory_code,
                     'unit_location' => $assignment->unit?->locationLabel(),
+                    'unit_room_id' => $assignment->unit?->room_id,
                     'borrowed' => 1,
                     'already_returned' => $assignment->returned_at !== null ? 1 : 0,
                     'remaining' => $assignment->returned_at === null ? 1 : 0,
-                    'qty_returned' => $assignment->returned_at !== null ? 1 : 0,
+                    'qty_returned' => 0,
                     'condition_out' => $assignment->condition_out?->value ?? Condition::BAIK->value,
                     'condition_in' => $assignment->condition_in?->value ?? Condition::BAIK->value,
                     'returned_room_id' => $assignment->unit?->room_id ?? $li->item?->room_id,
@@ -104,12 +108,14 @@ class ReturnForm extends Component
             'loan_item_id' => $li->id,
             'item_id' => $li->item_id,
             'item_name' => $li->item?->name,
+            'specification' => $li->item?->specification,
             'internal_id' => $li->item?->internal_id,
             'unit' => $li->item?->unit,
             'room_code' => $li->item?->room?->code,
             'unit_id' => null,
             'inventory_code' => null,
             'unit_location' => null,
+            'unit_room_id' => null,
             'borrowed' => $li->qty_borrowed,
             'already_returned' => (int) $li->qty_returned,
             'remaining' => max(0, $li->qty_borrowed - (int) $li->qty_returned),
@@ -169,7 +175,12 @@ class ReturnForm extends Component
     {
         $out = [];
         foreach ($this->rows as $i => $row) {
-            $origRoom = $this->loan->loanItems->firstWhere('item_id', $row['item_id'])?->item?->room_id;
+            if ((int) ($row['qty_returned'] ?? 0) < 1) {
+                continue;
+            }
+
+            $origRoom = $row['unit_room_id']
+                ?? $this->loan->loanItems->firstWhere('item_id', $row['item_id'])?->item?->room_id;
             if ((int) ($row['returned_room_id'] ?? 0) !== (int) $origRoom) {
                 $out[] = $i;
             }
@@ -208,22 +219,25 @@ class ReturnForm extends Component
     {
         $rooms = Room::orderBy('code')->get();
 
-        $hasUnitAssignmentsInRows = collect($this->rows)->some(fn (array $row) => (! empty($row['assignment_id'])));
+        $hasUnitAssignmentsInRows = collect($this->rows)->some(fn (array $row) => ! empty($row['assignment_id']));
 
-        // Group rows by item catalog (barang sejenis)
         $groupedRows = collect($this->rows)->groupBy('item_id')->map(function ($groupRows, $itemId) {
             $first = $groupRows->first();
-            $totalBorrowed = $groupRows->sum('borrowed');
-            $alreadyReturned = $groupRows->sum('already_returned');
-            $totalRemaining = $groupRows->sum('remaining');
-            $totalQtyReturned = $groupRows->sum('qty_returned');
+            $alreadyReturned = (int) $groupRows->sum('already_returned');
+            $pendingReturns = (int) $groupRows->sum('qty_returned');
+            $totalBorrowed = (int) $groupRows->sum('borrowed');
+            $effectiveReturned = min($totalBorrowed, $alreadyReturned + $pendingReturns);
+            $totalRemaining = max(0, $totalBorrowed - $effectiveReturned);
+
             return [
                 'item_id' => $itemId,
                 'item_name' => $first['item_name'] ?? '-',
                 'total_borrowed' => $totalBorrowed,
-                'already_returned' => $alreadyReturned,
+                'already_returned' => $effectiveReturned,
+                'pending_returns' => $pendingReturns,
                 'remaining' => $totalRemaining,
-                'returned' => $totalQtyReturned,
+                'returned' => $alreadyReturned,
+                'status' => $effectiveReturned >= $totalBorrowed ? 'Selesai' : ($effectiveReturned > 0 ? 'Pengembalian sebagian' : 'Belum dikembalikan'),
                 'rows' => $groupRows,
             ];
         })->values();
@@ -232,7 +246,12 @@ class ReturnForm extends Component
             'rooms' => $rooms,
             'conditions' => Condition::cases(),
             'mismatches' => $this->mismatchRows(),
-            'totalShortfall' => collect($this->rows)->sum(fn ($r) => max(0, (int) $r['remaining'] - (int) $r['qty_returned'])),
+            'totalShortfall' => collect($this->rows)
+                ->filter(fn (array $row) => empty($row['assignment_id']))
+                ->sum(fn (array $row) => max(0, (int) $row['remaining'] - (int) $row['qty_returned'])),
+            'totalPendingReturn' => (int) collect($this->rows)->sum('qty_returned'),
+            'totalOutstanding' => (int) $groupedRows->sum('remaining'),
+            'hasAssignedUnits' => $hasUnitAssignmentsInRows,
             'hasUnitAssignmentsInRows' => $hasUnitAssignmentsInRows,
             'groupedRows' => $groupedRows,
         ]);

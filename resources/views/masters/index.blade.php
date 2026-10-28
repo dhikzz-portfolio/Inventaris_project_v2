@@ -202,7 +202,7 @@
                         <details>
                             <summary class="flex items-center justify-between cursor-pointer list-none">
                                 <span class="text-gray-700">{{ $category->name }}</span>
-                                <span class="text-[11px] text-gray-400 font-mono">{{ $category->code ?: '—' }} • {{ $category->items_count }} brg</span>
+                                <span class="text-[11px] text-gray-400">{{ $category->items_count }} brg</span>
                             </summary>
                             <form method="POST" action="{{ route('masters.update-category', $category) }}" class="mt-2 space-y-1">
                                 @csrf @method('PUT')

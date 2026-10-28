@@ -675,9 +675,7 @@ class LoanService
             throw new \RuntimeException('Layanan inventaris belum terhubung. Pemrosesan pengembalian tidak dapat dilanjutkan.');
         }
 
-        $loanItemIds = array_unique(array_column($rows, 'loan_item_id'));
-
-        return DB::transaction(function () use ($loan, $returner, $rows) {
+return DB::transaction(function () use ($loan, $returner, $rows) {
             /** @var Loan $loan */
             $loan = Loan::whereKey($loan->id)->lockForUpdate()->firstOrFail();
 
@@ -688,13 +686,59 @@ class LoanService
             $hasShortage = false;
             $hasDamage = false;
             $misplaced = false;
+            $seenLoanItemIds = [];
+            $seenAssignmentIds = [];
 
             foreach ($rows as $row) {
                 /** @var LoanItem $loanItem */
                 $loanItem = LoanItem::with('item.room')->lockForUpdate()->findOrFail($row['loan_item_id']);
                 abort_unless($loanItem->loan_id === $loan->id, 403);
 
+                $assignmentId = isset($row['assignment_id']) ? (int) $row['assignment_id'] : null;
+                $hasUnitAssignments = $loanItem->hasUnitAssignments();
+
+                if ($hasUnitAssignments && $assignmentId === null) {
+                    $qtyForLegacyReturn = (int) $row['qty_returned'];
+                    $openAssignmentCount = $loanItem->openUnitAssignments()->count();
+
+                    if ($qtyForLegacyReturn > $openAssignmentCount) {
+                        throw ValidationException::withMessages([
+                            'rows' => 'Pengembalian per unit wajib mencantumkan identitas unit yang dikembalikan.',
+                        ]);
+                    }
+                }
+                if (! $hasUnitAssignments && $assignmentId !== null) {
+                    throw ValidationException::withMessages([
+                        'rows' => 'Identitas unit tidak cocok dengan baris peminjaman yang dipilih.',
+                    ]);
+                }
+                if ($assignmentId !== null && ! $loanItem->unitAssignments()->whereKey($assignmentId)->exists()) {
+                    throw ValidationException::withMessages([
+                        'rows' => 'Unit yang dipilih tidak termasuk baris peminjaman ini.',
+                    ]);
+                }
+                if (isset($seenLoanItemIds[$loanItem->id]) && $assignmentId === null) {
+                    throw ValidationException::withMessages([
+                        'rows' => 'Setiap baris katalog hanya boleh diproses satu kali per pengembalian.',
+                    ]);
+                }
+                if ($assignmentId !== null && isset($seenAssignmentIds[$assignmentId])) {
+                    throw ValidationException::withMessages([
+                        'rows' => 'Setiap unit fisik hanya boleh diproses satu kali per pengembalian.',
+                    ]);
+                }
+                $seenLoanItemIds[$loanItem->id] = true;
+                if ($assignmentId !== null) {
+                    $seenAssignmentIds[$assignmentId] = true;
+                }
+
                 $qtyNow = (int) $row['qty_returned'];
+                if ($hasUnitAssignments && $assignmentId === null && $qtyNow === 0) {
+                    continue;
+                }
+                if ($qtyNow === 0 && $assignmentId !== null) {
+                    continue;
+                }
                 $alreadyReturned = (int) $loanItem->qty_returned;
                 $remaining = max(0, $loanItem->qty_borrowed - $alreadyReturned);
 
@@ -723,19 +767,17 @@ class LoanService
 
                 $loanItem->update([
                     'qty_returned' => $cumulative,
-                    'qty_lost' => $missing,
+                    'qty_lost' => $hasUnitAssignments ? 0 : $missing,
                     'qty_damaged' => $loanItem->qty_damaged + ($qtyNow > 0 && $condition->isDamaged() ? $qtyNow : 0),
                     'condition_in' => $qtyNow > 0 ? $condition->value : $loanItem->condition_in,
                     'damage_photo_path' => $damagePath,
                     'returned_room_id' => $room->id,
                 ]);
 
-                $hasUnitAssignments = $loanItem->hasUnitAssignments();
-
                 $item = $loanItem->item;
                 $item->refresh();
 
-                if ($missing > 0) {
+                if ($missing > 0 && ! $hasUnitAssignments) {
                     $hasShortage = true;
                 }
 
@@ -766,7 +808,7 @@ class LoanService
 
                 // Tandai hilang hanya bila seluruh unit tidak tersedia; unit hilang sementara
                 // tetap dilacak di loan_items.qty_lost sampai pinjaman ditutup.
-                if ($missing > 0 && $item->availableQuantity() === 0 && $item->qty_damaged === 0) {
+                if (! $hasUnitAssignments && $missing > 0 && $item->availableQuantity() === 0 && $item->qty_damaged === 0) {
                     $item->update(['status' => ItemStatus::HILANG]);
                 } elseif ($missing === 0 && ! $condition->isDamaged() && $item->qty_damaged === 0 && $item->qty_lost === 0) {
                     $item->update(['status' => ItemStatus::BAIK]);
@@ -789,7 +831,9 @@ class LoanService
             }
 
             $loan->refresh();
-            $fullyReturned = $loan->loanItems()->get()->every(fn ($li) => $li->missingQuantity() === 0);
+            $loanItems = $loan->loanItems()->get();
+            $fullyReturned = $loanItems->every(fn ($li) => $li->missingQuantity() === 0);
+            $hasShortage = $loanItems->contains(fn (LoanItem $li) => (int) $li->qty_lost > 0);
 
             if ($fullyReturned) {
                 $loan->update([

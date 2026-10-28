@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use App\Services\ItemTypeCodeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +21,7 @@ class Item extends Model
     protected $table = 'item_catalogs';
 
     protected $fillable = [
-        'internal_id', 'location_code', 'register_no', 'name', 'item_type_code',
+        'internal_id', 'location_code', 'register_no', 'name',
         'brand', 'model_type', 'description',
         'category_id', 'room_id', 'specification', 'acquisition_year',
         'funding_source', 'quantity', 'qty_damaged', 'qty_lost', 'unit', 'is_high_value',
@@ -43,6 +44,21 @@ class Item extends Model
             'archived_at' => 'datetime',
             'acquisition_decided_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $catalog): void {
+            if (blank($catalog->item_type_code)) {
+                $catalog->item_type_code = app(ItemTypeCodeService::class)->generate((string) $catalog->name);
+            }
+        });
+
+        static::updating(function (self $catalog): void {
+            if ($catalog->isDirty('item_type_code')) {
+                throw new \LogicException('Kode jenis barang tidak dapat diubah setelah dibuat.');
+            }
+        });
     }
 
     public function getActivitylogOptions(): LogOptions

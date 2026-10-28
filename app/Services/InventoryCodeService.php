@@ -6,6 +6,7 @@ use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
 use App\Models\AssetUnitMovement;
+use App\Models\Item;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -64,9 +65,13 @@ class InventoryCodeService
 
         $prefix = $resolved['prefix'];
         $roomNo = (int) $resolved['room_no'];
-        $typeCode = $itemTypeCode && preg_match('/^[0-9]{3}$/', $itemTypeCode) ? $itemTypeCode : '000';
+        if ($itemTypeCode === null || preg_match('/^[0-9]{3}$/', $itemTypeCode) !== 1) {
+            throw ValidationException::withMessages([
+                'item_type_code' => 'Kode jenis barang tiga digit harus tersedia sebelum kode unit diterbitkan.',
+            ]);
+        }
 
-        return sprintf('%s-%02d-%s-%02d', $prefix, $roomNo, $typeCode, $unitNo);
+        return sprintf('%s-%02d-%s-%02d', $prefix, $roomNo, $itemTypeCode, $unitNo);
     }
 
     /**
@@ -146,11 +151,11 @@ class InventoryCodeService
      */
     public function nextUnitNo(Room $room): int
     {
-        $resolved = $this->assertOrResolveRoomIdentity($room);
+        $this->assertOrResolveRoomIdentity($room);
 
-        $max = (int) AssetUnitCode::query()
-            ->where('room_id', $room->id)
-            ->max('unit_no');
+        $query = AssetUnitCode::query()->where('room_id', $room->id);
+
+        $max = (int) $query->max('unit_no');
 
         $next = $max + 1;
 
@@ -163,9 +168,15 @@ class InventoryCodeService
         return $next;
     }
 
-    public function preview(Room $room, ?string $itemTypeCode = null): string
+    public function preview(Room $room, ?int $unitNo = null, ?Item $catalog = null): ?string
     {
-        return $this->format($room, $this->nextUnitNo($room), $itemTypeCode);
+        if ($catalog === null) {
+            return null;
+        }
+
+        app(ItemTypeCodeService::class)->ensureCode($catalog);
+
+        return $this->format($room, $unitNo ?? $this->nextUnitNo($room), $catalog->item_type_code);
     }
 
     /**
@@ -177,8 +188,9 @@ class InventoryCodeService
         return $this->withRetry(function () use ($unit, $room, $reason, $itemTypeCode) {
             return DB::transaction(function () use ($unit, $room, $reason, $itemTypeCode) {
                 $this->lockRoom($room);
+                $unit->loadMissing('catalog');
+                $itemTypeCode = $itemTypeCode ?? $unit->catalog?->item_type_code;
                 $unitNo = $this->nextUnitNo($room);
-                $itemTypeCode = $itemTypeCode ?? ($unit->catalog?->item_type_code ?? '000');
                 $code = $this->format($room, $unitNo, $itemTypeCode);
 
                 $unit->forceFill([
@@ -192,6 +204,7 @@ class InventoryCodeService
                     'asset_unit_id' => $unit->id,
                     'inventory_code' => $code,
                     'room_id' => $room->id,
+                    'item_type_code' => $itemTypeCode,
                     'unit_no' => $unitNo,
                     'issued_at' => now(),
                     'reason' => $reason,
@@ -231,8 +244,9 @@ class InventoryCodeService
                 $oldCode = $locked->inventory_code;
 
                 $this->lockRoom($toRoom);
+                app(ItemTypeCodeService::class)->ensureCode($locked->catalog);
+                $itemTypeCode = $locked->catalog?->item_type_code;
                 $unitNo = $this->nextUnitNo($toRoom);
-                $itemTypeCode = $locked->catalog?->item_type_code ?? '000';
                 $newCode = $this->format($toRoom, $unitNo, $itemTypeCode);
 
                 AssetUnitCode::query()
@@ -244,6 +258,7 @@ class InventoryCodeService
                     'asset_unit_id' => $locked->id,
                     'inventory_code' => $newCode,
                     'room_id' => $toRoom->id,
+                    'item_type_code' => $itemTypeCode,
                     'unit_no' => $unitNo,
                     'issued_at' => now(),
                     'reason' => 'MUTASI',
@@ -343,6 +358,18 @@ class InventoryCodeService
             ]);
         }
 
-        return sprintf('%s-%02d-%02d', $this->codePrefix($existingCode), $this->roomNoFromCode($existingCode), $unitNo);
+        $parts = explode('-', $existingCode);
+
+        if (count($parts) === 3) {
+            return sprintf('%s-%02d-%s-%02d', $parts[0], (int) $parts[1], '000', $unitNo);
+        }
+
+        if (count($parts) !== 4 || preg_match('/^[0-9]{3}$/', $parts[2]) !== 1) {
+            throw ValidationException::withMessages([
+                'inventory_code' => 'Kode inventaris tidak memakai format empat segmen yang berlaku.',
+            ]);
+        }
+
+        return sprintf('%s-%02d-%s-%02d', $parts[0], (int) $parts[1], $parts[2], $unitNo);
     }
 }

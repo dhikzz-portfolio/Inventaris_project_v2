@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\BorrowerType;
 use App\Rules\GmailAddress;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -42,8 +41,9 @@ class ProfileUpdateRequest extends FormRequest
                 },
                 Rule::unique('users', 'email')->ignore($this->user()->id),
             ],
-            'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
-            'class_name' => ['nullable', 'string', 'max:50', 'required_if:borrower_type,SISWA'],
+            'class_name' => ['nullable', 'string', 'max:50'],
+            'work_unit' => ['nullable', 'string', 'max:255'],
+            'birth_date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'major_id' => ['nullable', 'exists:majors,id'],
         ];
     }

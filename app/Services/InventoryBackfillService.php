@@ -127,37 +127,38 @@ class InventoryBackfillService
             $lostQuota = min((int) $catalog->qty_lost, $quantity);
             $damagedQuota = min((int) $catalog->qty_damaged, max(0, $quantity - $lostQuota));
 
-                $nextUnitNo = (int) DB::table('asset_unit_codes')->where('room_id', $room->id)->max('unit_no');
-                $itemTypeCode = $catalog->item_type_code ?? '000';
-                if (! preg_match('/^[0-9]{3}$/', $itemTypeCode)) {
-                    $itemTypeCode = '000';
+            $nextUnitNo = (int) DB::table('asset_unit_codes')->where('room_id', $room->id)->max('unit_no');
+            $itemTypeCode = $catalog->item_type_code;
+            if (! preg_match('/^[0-9]{3}$/', (string) $itemTypeCode)) {
+                $itemTypeCode = app(ItemTypeCodeService::class)->generate($catalog->name);
+                DB::table('item_catalogs')->where('id', $catalog->id)->update(['item_type_code' => $itemTypeCode]);
+            }
+
+            for ($i = $existing; $i < $quantity; $i++) {
+                $condition = $baseCondition;
+                $status = $unitStatus;
+
+                if ($unitStatus === 'AKTIF') {
+                    if ($i < $lostQuota) {
+                        $status = 'HILANG';
+                    } elseif ($i < $lostQuota + $damagedQuota) {
+                        $condition = 'RUSAK_BERAT';
+                    }
                 }
 
-                for ($i = $existing; $i < $quantity; $i++) {
-                    $condition = $baseCondition;
-                    $status = $unitStatus;
+                $unitNo = ++$nextUnitNo;
+                if ($unitNo > InventoryCodeService::MAX_UNIT_NO) {
+                    break;
+                }
 
-                    if ($unitStatus === 'AKTIF') {
-                        if ($i < $lostQuota) {
-                            $status = 'HILANG';
-                        } elseif ($i < $lostQuota + $damagedQuota) {
-                            $condition = 'RUSAK_BERAT';
-                        }
-                    }
-
-                    $unitNo = ++$nextUnitNo;
-                    if ($unitNo > InventoryCodeService::MAX_UNIT_NO) {
-                        break;
-                    }
-
-                    $code = sprintf(
-                        '%s%d-%02d-%s-%02d',
-                        $room->building_letter,
-                        (int) $room->floor,
-                        (int) $room->room_no,
-                        $itemTypeCode,
-                        $unitNo
-                    );
+                $code = sprintf(
+                    '%s%d-%02d-%s-%02d',
+                    $room->building_letter,
+                    (int) $room->floor,
+                    (int) $room->room_no,
+                    $itemTypeCode,
+                    $unitNo
+                );
 
                 $unitId = DB::table('asset_units')->insertGetId([
                     'item_catalog_id' => $catalog->id,
@@ -179,6 +180,7 @@ class InventoryBackfillService
                     'asset_unit_id' => $unitId,
                     'inventory_code' => $code,
                     'room_id' => $room->id,
+                    'item_type_code' => $itemTypeCode,
                     'unit_no' => $unitNo,
                     'issued_at' => now(),
                     'revoked_at' => null,

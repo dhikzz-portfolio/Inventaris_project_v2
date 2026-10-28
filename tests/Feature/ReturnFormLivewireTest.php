@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use App\Enums\UnitStatus;
 use App\Livewire\Loan\ReturnForm;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Loan;
+use App\Models\LoanItemUnit;
 use App\Models\Room;
 use App\Models\User;
+use App\Services\AssetUnitService;
 use App\Services\LoanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -110,6 +113,73 @@ class ReturnFormLivewireTest extends TestCase
         $this->item->refresh();
         $this->assertSame($this->targetRoom->id, $this->item->room_id);
         $this->assertNotSame($oldInternalId, $this->item->internal_id);
+    }
+
+    public function test_pengembalian_unit_fisik_dikelompokkan_dan_dapat_diproses_sebagian(): void
+    {
+        $catalog = Item::create([
+            'internal_id' => 'RET-GROUP-01',
+            'location_code' => '12.24.13.08.01.07.01.01',
+            'register_no' => '7702',
+            'name' => 'Kursi Kelompok Uji',
+            'specification' => 'Kursi besi',
+            'category_id' => $this->item->category_id,
+            'room_id' => $this->origRoom->id,
+            'acquisition_year' => 2024,
+            'funding_source' => 'BOS',
+            'quantity' => 0,
+            'unit' => 'unit',
+            'status' => ItemStatus::BAIK,
+            'acquisition_status' => 'APPROVED',
+        ]);
+
+        $unitService = app(AssetUnitService::class);
+        $units = collect();
+        for ($index = 0; $index < 3; $index++) {
+            $units->push($unitService->create($catalog, $this->origRoom));
+        }
+
+        $loan = app(LoanService::class)->requestLoan(
+            $this->guru,
+            [['item_id' => $catalog->id, 'qty' => 3]],
+            'Uji pengembalian parsial per unit',
+            '2026-11-01',
+            '2026-11-03'
+        );
+        $loan->update(['status' => LoanStatus::DIPINJAM]);
+        $loanItem = $loan->loanItems()->firstOrFail();
+
+        foreach ($units as $unit) {
+            $unit->forceFill(['status' => UnitStatus::DIPINJAM])->save();
+            LoanItemUnit::create([
+                'loan_item_id' => $loanItem->id,
+                'asset_unit_id' => $unit->id,
+                'assigned_at' => now(),
+                'opened_at' => now(),
+                'condition_out' => Condition::BAIK,
+            ]);
+        }
+
+        $this->actingAs($this->laboran);
+
+        $component = Livewire::test(ReturnForm::class, ['loan' => $loan])
+            ->assertSee('Kursi Kelompok Uji')
+            ->assertSee('3 unit dipinjam')
+            ->assertSee('Sudah kembali:')
+            ->set('rows.0.qty_returned', 1)
+            ->set('rows.0.returned_room_id', $this->origRoom->id)
+            ->assertSee('Status:')
+            ->assertSee('1 unit dipilih untuk dikembalikan; 2 unit masih belum diselesaikan.');
+
+        $component->call('submit')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('loans.show', $loan));
+
+        $this->assertSame(LoanStatus::DIPINJAM, $loan->refresh()->status);
+        $this->assertSame(1, $loanItem->refresh()->qty_returned);
+        $this->assertSame(2, LoanItemUnit::where('loan_item_id', $loanItem->id)->whereNull('returned_at')->count());
+        $this->assertSame(1, LoanItemUnit::where('loan_item_id', $loanItem->id)->whereNotNull('returned_at')->count());
+        $this->assertSame(0, (int) $loanItem->refresh()->qty_lost);
     }
 
     public function test_pengembalian_kondisi_rusak_validasi_foto_bukti(): void

@@ -17,6 +17,7 @@
 
     <form method="POST" action="{{ route('register') }}" class="space-y-4 sm:space-y-5">
         @csrf
+        <input type="hidden" name="registration_token" value="{{ request()->query('token') }}">
 
         <x-auth-input id="name" label="Nama lengkap *" :value="old('name')" placeholder="Nama sesuai identitas" autocomplete="name" icon="badge" autofocus required />
 

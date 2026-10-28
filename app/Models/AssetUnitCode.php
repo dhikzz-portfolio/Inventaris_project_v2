@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AssetUnitCode extends Model
 {
     protected $fillable = [
-        'asset_unit_id', 'inventory_code', 'room_id', 'unit_no',
+        'asset_unit_id', 'inventory_code', 'room_id', 'item_type_code', 'unit_no',
         'issued_at', 'revoked_at', 'reason',
     ];
 

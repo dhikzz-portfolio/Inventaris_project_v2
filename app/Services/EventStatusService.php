@@ -10,9 +10,10 @@ class EventStatusService
 {
     public function calculateStatus(Event $event, ?Carbon $now = null): EventStatus
     {
-        $now = $now ?? now()->startOfDay();
-        $start = $event->start_date ? Carbon::parse($event->start_date)->startOfDay() : null;
-        $end = $event->end_date ? Carbon::parse($event->end_date)->startOfDay() : ($start ? $start->copy() : null);
+        $timezone = config('app.timezone');
+        $now = ($now ?? now($timezone))->copy()->setTimezone($timezone)->startOfDay();
+        $start = $event->start_date ? Carbon::parse($event->start_date, $timezone)->startOfDay() : null;
+        $end = $event->end_date ? Carbon::parse($event->end_date, $timezone)->startOfDay() : ($start ? $start->copy() : null);
 
         if (! $start) {
             return EventStatus::BELUM_BERJALAN;

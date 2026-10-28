@@ -7,19 +7,21 @@ use App\Http\Controllers\Controller;
 use App\Models\Major;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ProfileCompletionController extends Controller
 {
-    public function show(Request $request): View
+    public function show(Request $request): View|RedirectResponse
     {
         $user = $request->user();
+
+        if ($user->hasCompletedProfile() || ! $user->isPeminjam()) {
+            return redirect()->route('dashboard');
+        }
+
         return view('auth.profile-complete', [
             'user' => $user,
-            'borrowerTypes' => BorrowerType::cases(),
             'majors' => Major::orderBy('name')->get(),
         ]);
     }
@@ -28,60 +30,63 @@ class ProfileCompletionController extends Controller
     {
         $user = $request->user();
 
+        abort_unless($user->isPeminjam(), 403);
+
+        if ($user->hasCompletedProfile()) {
+            return redirect()->route('dashboard');
+        }
+
+        $borrowerType = $user->borrower_type;
         $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'birth_date' => ['required', 'date'],
-            'borrower_type' => ['required', Rule::in(BorrowerType::values())],
         ];
 
-        if ($request->input('borrower_type') === BorrowerType::SISWA->value) {
+        if ($user->birth_date === null) {
+            $rules['birth_date'] = ['required', 'date_format:Y-m-d', 'before_or_equal:today'];
+        }
+
+        if ($borrowerType === null) {
+            $rules['borrower_type'] = ['prohibited'];
+        }
+
+        if ($borrowerType === BorrowerType::SISWA || ($borrowerType === null && $user->birth_date === null)) {
             $rules['class_name'] = ['required', 'string', 'max:50'];
-            $rules['major_id'] = ['nullable', 'exists:majors,id'];
-        } elseif ($request->input('borrower_type') === BorrowerType::GURU->value) {
+            $rules['major_id'] = ['required', 'exists:majors,id'];
+        } elseif ($borrowerType === BorrowerType::GURU || ($borrowerType === null && $user->birth_date === null)) {
             $rules['degree'] = ['nullable', 'string', 'max:100'];
-            $rules['major_id'] = ['nullable', 'exists:majors,id'];
-        } else {
-            $rules['work_unit'] = ['nullable', 'string', 'max:255'];
-            $rules['major_id'] = ['nullable', 'exists:majors,id'];
+        } elseif ($borrowerType === BorrowerType::STAF) {
+            $rules['work_unit'] = ['required', 'string', 'max:255'];
+        } elseif ($borrowerType !== null) {
+            abort(403, 'Kategori profil tidak dikenali. Hubungi pengelola sekolah.');
         }
 
         $data = $request->validate($rules);
 
-        $birthDate = Carbon::parse($data['birth_date']);
-        $age = $birthDate->age;
-        // If not calculated properly by Carbon age, do manual
-        if ($age < 0 || $age > 150) {
-            $age = now()->diffInYears($birthDate);
-        }
-
-        // Determine initial borrower type based on age if needed? The requirement says:
-        // "Usia kurang dari 20 tahun saat akun dibuat: kategori awal Siswa. Usia 20 tahun atau lebih saat akun dibuat: kategori awal Guru."
-        // But also says "Kategori pengguna berbeda dari role sistem. Semua akun hasil registrasi publik tetap memperoleh role Peminjam sampai role khusus ditetapkan melalui mekanisme berwenang."
-        // And profile must be completed - we need to follow age-based classification for initial category if not set? Or enforce per requirements.
-
         $user->name = $data['name'];
-        $user->birth_date = $birthDate;
-        $user->borrower_type = $data['borrower_type'];
-        if (isset($data['degree']) && $data['borrower_type'] === BorrowerType::GURU->value) {
-            $user->degree = $data['degree'];
-        } elseif ($data['borrower_type'] !== BorrowerType::GURU->value) {
-            $user->degree = null;
+
+        if ($user->birth_date === null) {
+            $user->birth_date = Carbon::parse($data['birth_date'])->startOfDay();
         }
-        if (isset($data['class_name'])) {
-            $user->class_name = $data['class_name'];
-        }
-        if (isset($data['major_id'])) {
-            $user->major_id = $data['major_id'];
-        }
-        if (isset($data['work_unit'])) {
+
+        if ($borrowerType === BorrowerType::SISWA) {
+            $user->class_name = $data['class_name'] ?? null;
+            $user->major_id = $data['major_id'] ?? null;
+        } elseif ($borrowerType === BorrowerType::GURU) {
+            $user->degree = $data['degree'] ?? null;
+        } elseif ($borrowerType === BorrowerType::STAF) {
             $user->work_unit = $data['work_unit'];
         }
 
-        // Mark profile as completed
+        if (! $user->profileIsComplete()) {
+            return back()->withErrors(['profile' => 'Lengkapi seluruh data wajib sebelum melanjutkan.'])->withInput();
+        }
+
         $user->profile_completed = true;
         $user->profile_completed_at = now();
         $user->save();
 
-        return redirect()->intended(route('dashboard'))->with('success', 'Profil berhasil dilengkapi.');
+        $request->session()->forget('url.intended');
+
+        return redirect()->route('dashboard')->with('success', 'Profil berhasil dilengkapi.');
     }
 }

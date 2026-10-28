@@ -8,7 +8,6 @@ use App\Services\BastService;
 use App\Services\EventStatusService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class EventController extends Controller
@@ -16,8 +15,9 @@ class EventController extends Controller
     public function index(Request $request, EventStatusService $statusService): View
     {
         $status = trim((string) $request->query('status', ''));
+        $today = now(config('app.timezone'))->toDateString();
 
-        Event::chunk(100, function ($events) use ($statusService) {
+        Event::query()->orderBy('id')->chunk(100, function ($events) use ($statusService): void {
             foreach ($events as $event) {
                 $statusService->updateStatusIfNeeded($event);
             }
@@ -26,7 +26,13 @@ class EventController extends Controller
         return view('events.index', [
             'events' => Event::withCount('loans')
                 ->with(['creator', 'loans' => fn ($q) => $q->withCount('loanItems')])
-                ->when(in_array($status, EventStatus::values(), true), fn ($query) => $query->where('status', $status))
+                ->when(in_array($status, EventStatus::values(), true), function ($query) use ($status, $today): void {
+                    match ($status) {
+                        EventStatus::BELUM_BERJALAN->value => $query->whereDate('start_date', '>', $today),
+                        EventStatus::SEDANG_BERJALAN->value => $query->whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today),
+                        EventStatus::SUDAH_BERJALAN->value => $query->whereDate('end_date', '<', $today),
+                    };
+                })
                 ->latest('start_date')
                 ->paginate(12)
                 ->withQueryString(),
@@ -53,7 +59,6 @@ class EventController extends Controller
             'description' => ['nullable', 'string', 'max:1000'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'status' => ['nullable', Rule::in(EventStatus::values())],
         ]);
 
         $event = Event::create([
@@ -62,14 +67,14 @@ class EventController extends Controller
             'description' => $data['description'] ?? null,
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
-            'status' => $data['status'] ?? EventStatus::BELUM_BERJALAN->value,
+            'status' => app(EventStatusService::class)->calculateStatus(new Event(['start_date' => $data['start_date'], 'end_date' => $data['end_date']]))->value,
             'created_by' => $request->user()->id,
         ]);
 
         activity('kegiatan')->performedOn($event)->causedBy($request->user())->log('Membuat kegiatan baru');
 
         return redirect()->route('events.show', $event)
-            ->with('success', 'Kegiatan dibuat. Status dapat diperbarui pada halaman detail.');
+            ->with('success', 'Kegiatan dibuat. Status dihitung otomatis berdasarkan tanggal pelaksanaan.');
     }
 
     /**
@@ -87,12 +92,13 @@ class EventController extends Controller
             'description' => ['nullable', 'string', 'max:1000'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'status' => ['required', Rule::in(EventStatus::values())],
         ]);
 
         $before = $event->status?->value;
-
-        $event->update($data + ['updated_by' => $request->user()->id]);
+        unset($data['status']);
+        $event->fill($data + ['updated_by' => $request->user()->id]);
+        $event->status = app(EventStatusService::class)->calculateStatus($event);
+        $event->save();
 
         activity('kegiatan')
             ->performedOn($event)
@@ -100,7 +106,7 @@ class EventController extends Controller
             ->withProperties(['status_sebelum' => $before, 'status_sesudah' => $event->status?->value])
             ->log('Memperbarui kegiatan');
 
-        return back()->with('success', 'Kegiatan diperbarui.');
+        return back()->with('success', 'Kegiatan diperbarui. Status dihitung otomatis berdasarkan tanggal pelaksanaan.');
     }
 
     public function show(Event $event, EventStatusService $statusService): View

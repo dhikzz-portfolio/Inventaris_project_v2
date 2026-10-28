@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\ProfileCompletionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
@@ -16,15 +17,16 @@ Route::middleware('guest')->group(function () {
 
     // Start registration via button - server side session/token
     Route::post('register/start', function (Request $request) {
-        $token = \Illuminate\Support\Str::random(40);
+        $token = Str::random(64);
         $request->session()->put('registration_token', $token);
         $request->session()->put('registration_token_expires_at', now()->addMinutes(10)->timestamp);
-        return redirect()->route('register');
-    })->name('register.start');
 
-    // Registrasi mandiri: role selalu ditetapkan backend sebagai PEMINJAM.
+        return redirect()->route('register', ['token' => $token]);
+    })->middleware('throttle:5,1')->name('register.start');
+
+    // Both endpoints require the server-created session flow token.
     Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    Route::post('register', [RegisteredUserController::class, 'store'])->middleware('throttle:10,1');
 });
 
 Route::middleware('auth')->group(function () {

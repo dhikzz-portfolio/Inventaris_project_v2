@@ -68,6 +68,29 @@ class User extends Authenticatable
         return $this->borrower_type === BorrowerType::GURU;
     }
 
+    /**
+     * Profile readiness is derived from the current required fields; the
+     * legacy completion flag is retained only for compatibility and auditing.
+     */
+    public function profileIsComplete(): bool
+    {
+        if (blank($this->name) || $this->birth_date === null || $this->birth_date->isFuture()) {
+            return false;
+        }
+
+        return match ($this->borrower_type) {
+            BorrowerType::SISWA => filled($this->class_name) && $this->major_id !== null,
+            BorrowerType::GURU => true,
+            BorrowerType::STAF => filled($this->work_unit),
+            default => false,
+        };
+    }
+
+    public function hasCompletedProfile(): bool
+    {
+        return (bool) $this->profile_completed && $this->profileIsComplete();
+    }
+
     public function loans(): HasMany
     {
         return $this->hasMany(Loan::class, 'borrower_id');

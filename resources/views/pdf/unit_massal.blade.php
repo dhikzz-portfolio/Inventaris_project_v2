@@ -30,7 +30,6 @@
             color: #1c398e;
         }
         .nama { font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-bottom: 1pt; line-height: 1.1; }
-        .lokasi { font-size: 7pt; margin-top: 1pt; }
         .qr-cell { width: 46pt; text-align: right; }
         .qr-cell img { width: 40pt; height: 40pt; }
         .footer {
@@ -65,7 +64,6 @@
                                             {{-- Nama barang sebagai header, kode inventaris unik per stiker --}}
                                             <div class="nama">{{ $unit->catalog?->name }}</div>
                                             <div class="kode-unit">{{ $unit->inventory_code }}</div>
-                                            <div class="lokasi">{{ $unit->locationLabel() }}</div>
                                         </td>
                                         <td width="46" class="qr-cell">
                                             {{-- QR menunjuk ke detail unit berbasis ID stabil --}}

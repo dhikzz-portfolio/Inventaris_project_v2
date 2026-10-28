@@ -77,7 +77,7 @@ class ItemController extends Controller
             $preview = null;
 
             try {
-                $preview = $codes->preview($room);
+                $preview = $codes->preview($room, null, null);
             } catch (Throwable) {
                 $preview = null;
             }

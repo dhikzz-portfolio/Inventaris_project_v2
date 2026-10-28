@@ -101,7 +101,7 @@ class InventoryVerifyCodes extends Command
                 }
 
                 try {
-                    $expected = $codes->format($unit->room, (int) $unit->unit_no);
+                    $expected = $codes->format($unit->room, (int) $unit->unit_no, $unit->catalog?->item_type_code);
                 } catch (ValidationException) {
                     $expected = null;
                 }

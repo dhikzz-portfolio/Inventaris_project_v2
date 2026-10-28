@@ -27,8 +27,9 @@ class AssetUnitService
         return DB::transaction(function () use ($catalog, $room, $data, $actor) {
             DB::table('rooms')->where('id', $room->id)->lockForUpdate()->first();
 
+            app(ItemTypeCodeService::class)->ensureCode($catalog);
             $unitNo = $this->codes->nextUnitNo($room);
-            $code = $this->codes->format($room, $unitNo);
+            $code = $this->codes->format($room, $unitNo, $catalog->item_type_code);
 
             $unit = AssetUnit::create([
                 'item_catalog_id' => $catalog->id,
@@ -51,6 +52,7 @@ class AssetUnitService
                 'asset_unit_id' => $unit->id,
                 'inventory_code' => $code,
                 'room_id' => $room->id,
+                'item_type_code' => $catalog->item_type_code,
                 'unit_no' => $unitNo,
                 'issued_at' => now(),
                 'reason' => 'PENEMPATAN',

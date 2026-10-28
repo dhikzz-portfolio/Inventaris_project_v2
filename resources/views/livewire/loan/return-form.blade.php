@@ -35,20 +35,22 @@
 
         <div class="space-y-4">
             @foreach ($groupedRows as $gIndex => $group)
-                <details class="border border-gray-200 rounded-lg" open>
+                <details class="border border-gray-200 rounded-lg">
                     <summary class="cursor-pointer bg-gray-50 px-4 py-3 flex items-center justify-between">
                         <div>
                             <span class="font-semibold text-gray-800">{{ $group['item_name'] }}</span>
                             <span class="ml-2 text-xs text-gray-500">— {{ $group['total_borrowed'] }} unit dipinjam</span>
                         </div>
                         <div class="text-xs text-gray-600">
-                            Sudah kembali: <strong>{{ $group['already_returned'] + $group['returned'] }}</strong> / {{ $group['total_borrowed'] }} |
-                            Belum: <strong>{{ max(0, $group['total_borrowed'] - ($group['already_returned'] + $group['returned'])) }}</strong>
+                            Total: <strong>{{ $group['total_borrowed'] }}</strong> |
+                            Sudah kembali: <strong>{{ $group['already_returned'] + $group['pending_returns'] }}</strong> |
+                            Belum: <strong>{{ $group['remaining'] }}</strong> |
+                            Status: <strong>{{ $group['status'] }}</strong>
                         </div>
                     </summary>
                     <div class="p-4 space-y-3">
                         @foreach ($group['rows'] as $rowKey => $row)
-                            @php($i = $loop->parent->index * 100 + $loop->index)
+                            @php($i = array_search($row, $this->rows, true))
                             @php($isMismatch = in_array($i, $mismatches, true))
                             <div @class([
                                 'border rounded-lg p-3',
@@ -58,6 +60,8 @@
                                 <div class="flex items-start justify-between gap-3 flex-wrap">
                                     <div>
                                         @if (! empty($row['inventory_code']))
+                                            <div class="text-sm text-gray-800">{{ $row['item_name'] }}</div>
+                                            <div class="text-xs text-gray-500">{{ $row['specification'] ?: 'Spesifikasi tidak tersedia' }}</div>
                                             <div class="text-sm font-mono font-semibold text-gray-800">{{ $row['inventory_code'] }}</div>
                                             <div class="text-[11px] text-gray-500">{{ $row['unit_location'] ?? $row['room_code'] }}</div>
                                         @else
@@ -73,14 +77,24 @@
 
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
                                     <div>
-                                        <x-input-label value="Jumlah Kembali *" />
-                                        <input type="number" min="0" max="{{ $row['remaining'] }}" wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.qty_returned"
-                                               class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                        @if (! empty($row['assignment_id']))
+                                            <x-input-label value="Pengembalian unit" />
+                                            <label class="mt-2 flex items-center gap-2 text-sm text-gray-700">
+                                                <input type="checkbox" value="1" @checked((int) $row['qty_returned'] === 1)
+                                                       wire:model.live="rows.{{ $i }}.qty_returned"
+                                                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                Tandai unit sudah dikembalikan
+                                            </label>
+                                        @else
+                                            <x-input-label value="Jumlah Kembali *" />
+                                            <input type="number" min="0" max="{{ $row['remaining'] }}" wire:model.live="rows.{{ $i }}.qty_returned"
+                                                   class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                        @endif
                                     </div>
 
                                     <div>
                                         <x-input-label value="Kondisi Akhir *" />
-                                        <select wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.condition_in"
+                                        <select wire:model.live="rows.{{ $i }}.condition_in"
                                                 class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                                             @foreach ($conditions as $c)
                                                 <option value="{{ $c->value }}">{{ $c->label() }}</option>
@@ -88,7 +102,7 @@
                                         </select>
                                         @if (($row['condition_in'] ?? 'BAIK') !== 'BAIK')
                                             <div class="mt-2">
-                                                <input type="file" wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.damage_photo" accept="image/*"
+                                                <input type="file" wire:model.live="rows.{{ $i }}.damage_photo" accept="image/*"
                                                        class="mt-1 block w-full text-xs text-gray-600 file:me-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-red-50 file:text-red-700">
                                             </div>
                                         @endif
@@ -96,7 +110,7 @@
 
                                     <div>
                                         <x-input-label value="Dikembalikan ke Ruangan *" />
-                                        <select wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.returned_room_id"
+                                        <select wire:model.live="rows.{{ $i }}.returned_room_id"
                                                 class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 @if($isMismatch) border-orange-400 @endif">
                                             @foreach ($rooms as $room)
                                                 <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
@@ -116,10 +130,13 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="text-sm">
-                @if ($totalShortfall > 0)
-                    <span class="text-red-600 font-semibold">⚠ Total selisih: {{ $totalShortfall }} barang — flag Hilang akan dicatat.</span>
+                @if ($totalOutstanding > 0)
+                    <span class="text-blue-700 font-semibold">{{ $totalPendingReturn }} unit dipilih untuk dikembalikan; {{ $totalOutstanding }} unit masih belum diselesaikan.</span>
+                    @if ($totalShortfall > 0)
+                        <span class="block text-red-600 font-semibold mt-1">⚠ Selisih katalog legacy: {{ $totalShortfall }} barang — flag Hilang akan dicatat.</span>
+                    @endif
                 @else
-                    <span class="text-green-700 font-semibold">✓ Semua barang kembali lengkap — pinjaman akan berstatus Selesai.</span>
+                    <span class="text-green-700 font-semibold">✓ Semua unit telah dikembalikan — pinjaman akan berstatus Selesai.</span>
                 @endif
             </div>
         </div>

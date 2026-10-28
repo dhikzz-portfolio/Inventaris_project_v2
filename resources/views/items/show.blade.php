@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $item->name }}</h2>
+                    <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">{{ $item->name }}</h2>
                     @php($effective = $item->effectiveStatus())
                     <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $effective->badgeClass() }}">{{ $effective->label() }}</span>
                     @if ($item->is_high_value)
@@ -13,17 +13,17 @@
                         <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">PENGADAAN MENUNGGU APPROVAL</span>
                     @endif
                 </div>
-                <p class="text-sm text-gray-500 font-mono">{{ $item->internal_id }}</p>
+                <p class="font-mono text-sm text-slate-500 dark:text-slate-400">{{ $item->internal_id }}</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
                 <a href="{{ route('items.label', $item) }}" target="_blank"
-                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium"
+                   class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                    title="Re-print label stiker">
                     <span class="material-icons-round text-lg">print</span> Cetak Label
                 </a>
                 @if (auth()->user()->managesInventory())
                     <a href="{{ route('items.edit', $item) }}"
-                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                         <span class="material-icons-round text-lg">edit</span> Ubah Data
                     </a>
                 @endif
@@ -32,14 +32,14 @@
     </x-slot>
 
     @if (session('success'))
-        <div class="mb-4 rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">{{ session('success') }}</div>
+        <div role="status" class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">{{ session('success') }}</div>
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {{-- Kolom utama --}}
         <div class="lg:col-span-2 space-y-5">
             {{-- Foto & spesifikasi --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-col sm:flex-row gap-5">
                     <div class="w-full sm:w-48 h-40 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                         @if ($item->photo_path)
@@ -48,8 +48,8 @@
                             <span class="material-icons-round text-6xl text-slate-400">inventory_2</span>
                         @endif
                     </div>
-                    <div class="flex-1 text-sm space-y-1.5 text-gray-600">
-                        <p class="text-gray-800 font-medium">{{ $item->specification ?: 'Tidak ada spesifikasi detail.' }}</p>
+                    <div class="flex-1 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+                        <p class="font-medium text-slate-800 dark:text-slate-100">{{ $item->specification ?: 'Tidak ada spesifikasi detail.' }}</p>
                         <div class="grid grid-cols-2 gap-x-4 gap-y-1">
                             <div><span class="text-gray-400">Kategori:</span> <strong>{{ $item->category?->name }}</strong></div>
                             <div><span class="text-gray-400">Jumlah:</span> <strong>{{ $item->quantity }} {{ $item->unit }}</strong></div>
@@ -78,13 +78,13 @@
             </div>
 
             {{-- Dua format ID --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-amber-600">tag</span> Identitas Inventaris
+            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                    <span class="material-icons-round text-blue-600">tag</span> Identitas Inventaris
                 </h3>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                             <tr>
                                 <td class="py-2.5 pe-4 text-xs text-gray-500 w-52">ID Internal / Spasial</td>
                                 <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->internal_id }}</td>
@@ -110,7 +110,7 @@
             </div>
 
             {{-- Riwayat peminjaman --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
                     <span class="material-icons-round text-blue-600">history</span> Riwayat Peminjaman
                     @if ($lastBorrower)
@@ -167,7 +167,7 @@
         <div class="space-y-5">
             {{-- QR & label preview (cerminan dari label cetak pdf.label_single) --}}
             @php($locationLines = app(\App\Services\LabelService::class)->splitLocationCode((string) $item->location_code))
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 text-center">
+            <div class="rounded-2xl border border-sky-100 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3">Pratinjau Label Stiker</h3>
                 <div class="inline-block w-full max-w-[320px] border-2 border-slate-800 rounded-lg p-2.5 bg-white text-left">
                     <div class="flex items-center gap-2.5">
@@ -201,7 +201,7 @@
             </div>
 
             {{-- Jadwal (anti-bentrok) --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
                     <span class="material-icons-round text-blue-600">event_available</span> Jadwal Pemesanan
                 </h3>
@@ -226,7 +226,7 @@
             </div>
 
             {{-- Riwayat mutasi --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
                     <span class="material-icons-round text-blue-600">swap_horiz</span> Riwayat Mutasi Lokasi
                 </h3>
@@ -251,7 +251,7 @@
 
             {{-- Peminjam terakhir --}}
             @if ($lastBorrower)
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
                         <span class="material-icons-round text-blue-600">person</span> Peminjam Terakhir
                     </h3>

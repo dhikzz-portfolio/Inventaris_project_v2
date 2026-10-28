@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">Peminjaman #{{ $loan->id }}</h2>
+                    <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Peminjaman #{{ $loan->id }}</h2>
                     <span class="text-[11px] font-bold px-2 py-1 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                     @if ($loan->needs_high_value_approval)
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-800">NILAI TINGGI</span>
@@ -12,7 +12,7 @@
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700">⚠ TERLAMBAT</span>
                     @endif
                 </div>
-                <p class="text-sm text-gray-500">{{ $loan->purpose }}</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">{{ $loan->purpose }}</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
                 <a href="{{ route('loans.letter.preview', $loan) }}" target="_blank"
@@ -21,34 +21,38 @@
                 </a>
                 @if ($loan->bast_path)
                     <a href="{{ route('loans.bast', $loan) }}"
-                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <span class="material-icons-round text-lg">description</span> Unduh BAST / Surat
                     </a>
                 @endif
                 @if ($loan->borrower_id === auth()->id())
-                    <a href="{{ route('loans.index') }}" class="text-sm text-gray-500 hover:text-gray-800">← Kembali</a>
+                    <a href="{{ route('loans.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Kembali</a>
                 @endif
             </div>
         </div>
     </x-slot>
 
     @if (session('success'))
-        <div class="mb-4 rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">{{ session('success') }}</div>
+        <div role="status" class="mb-4 flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">check_circle</span><span>{{ session('success') }}</span>
+        </div>
     @endif
     @if ($errors->any())
-        <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">{{ $errors->first() }}</div>
+        <div role="alert" class="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">error_outline</span><span>{{ $errors->first() }}</span>
+        </div>
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div class="lg:col-span-2 space-y-5">
             {{-- Rincian barang --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
+            <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-blue-600">format_list_bulleted</span> Rincian Barang
                 </h3>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="text-xs uppercase text-gray-400 border-b border-gray-100">
+                        <thead class="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-slate-700 dark:text-slate-400">
                             <tr>
                                 <th class="text-left py-2">Barang</th>
                                 <th class="text-left py-2">Ruangan</th>
@@ -58,7 +62,7 @@
                                 <th class="text-center py-2">Kondisi Masuk</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                             @foreach ($loan->loanItems as $li)
                                 @if ($li->hasUnitAssignments())
                                     <tr>
@@ -66,10 +70,10 @@
                                             <div class="text-[10px] uppercase text-gray-400 font-semibold mb-1">Unit fisik — {{ $li->item?->name }} ({{ $li->qty_borrowed }} {{ $li->item?->unit }})</div>
                                             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
                                                 @forelse ($li->unitAssignments()->with('unit.room')->get() as $assignment)
-                                                    <div class="rounded-lg border {{ $assignment->isOpen() ? 'border-blue-200 bg-blue-50/40' : 'border-gray-200' }}"
+                                                    <div class="rounded-xl border p-2 {{ $assignment->isOpen() ? 'border-blue-200 bg-blue-50/40 dark:border-blue-900 dark:bg-blue-950/30' : 'border-slate-200 dark:border-slate-700' }}"
                                                          title="{{ $assignment->unit->locationLabel() }}">
-                                                        <div class="font-mono font-semibold text-gray-800">{{ $assignment->unit->inventory_code }}</div>
-                                                        <div class="text-[10px] text-gray-500">{{ $assignment->unit->room?->code ?? '-' }}</div>
+                                                        <div class="font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $assignment->unit->inventory_code }}</div>
+                                                        <div class="text-[10px] text-slate-500 dark:text-slate-400">{{ $assignment->unit->room?->code ?? '-' }}</div>
                                                         <div class="text-[10px] {{ $assignment->unit->condition->isDamaged() ? 'text-red-600 font-semibold' : 'text-green-700' }}">
                                                             {{ $assignment->unit->condition->label() }}
                                                         </div>
@@ -86,7 +90,7 @@
                                                         @endif
                                                     </div>
                                                 @empty
-                                                    <div class="col-span-full text-[11px] text-gray-400 italic">
+                                                    <div class="col-span-full text-[11px] italic text-slate-500 dark:text-slate-400">
                                                         Unit fisik ditugaskan, namun tidak ditemukan catatan penugasan.
                                                     </div>
                                                 @endforelse
@@ -95,13 +99,13 @@
                                     </tr>
                                     <tr>
                                         <td class="py-2.5">
-                                            <a href="{{ route('items.show', $li->item) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $li->item?->name }}</a>
-                                            <div class="text-[11px] font-mono text-gray-400">{{ $li->item?->internal_id }}</div>
+                                            <a href="{{ route('items.show', $li->item) }}" class="font-semibold text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $li->item?->name }}</a>
+                                            <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $li->item?->internal_id }}</div>
                                             @if ($li->item?->is_high_value)
                                                 <span class="text-[10px] font-bold text-purple-600">NILAI TINGGI</span>
                                             @endif
                                         </td>
-                                        <td class="py-2.5 text-xs text-gray-500">{{ $li->item?->room?->code }}</td>
+                                        <td class="py-2.5 text-xs text-slate-600 dark:text-slate-300">{{ $li->item?->room?->code }}</td>
                                         <td class="py-2.5 text-center text-xs font-semibold">{{ $li->qty_borrowed }}</td>
                                         <td class="py-2.5 text-center text-xs">
                                             @if ($li->qty_returned === null)
@@ -164,7 +168,7 @@
                 </div>
 
                 @if ($hasShortage)
-                    <div class="mt-4 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-800">
+                    <div role="alert" class="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
                         <div class="flex items-start gap-2">
                             <span class="material-icons-round">warning</span>
                             <div>
@@ -173,7 +177,7 @@
                                     <form method="POST" action="{{ route('loans.close-shortage', $loan) }}" class="mt-3"
                                           onsubmit="return confirm('Tutup pinjaman ini? Barang tetap berstatus Hilang sampai ditemukan kembali.')">
                                         @csrf
-                                        <button class="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold">
+                                        <button                                         class="min-h-9 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
                                             Tutup Pinjaman (barang tetap Hilang)
                                         </button>
                                     </form>
@@ -184,16 +188,16 @@
                 @endif
 
                 @if ($loan->status === \App\Enums\LoanStatus::APPROVED && $canManage)
-                    <div class="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
+                    <div class="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
                         <div class="flex items-center justify-between gap-3 flex-wrap">
                             <span>Disetujui. Serahkan barang kepada peminjam untuk memulai masa pinjam.</span>
                             <a href="{{ route('loans.handover-form', $loan) }}"
-                               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
+                               class="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700">
                                 <span class="material-icons-round text-sm">inventory</span> Serah Terima + Pilih Unit
                             </a>
                         </div>
                         @if ($loan->loanItems->isNotEmpty())
-                            <div class="mt-3 text-[11px] text-blue-700">
+                            <div class="mt-3 text-xs leading-relaxed text-blue-800 dark:text-blue-200">
                                 Pilih unit fisik yang diserahkan pada halaman serah terima. Unit yang dipinjam orang lain, tidak aktif, atau rusak tidak dapat dipilih.
                             </div>
                         @endif
@@ -203,7 +207,7 @@
                 @if ($loan->status === \App\Enums\LoanStatus::DIPINJAM && $canManage)
                     <div class="mt-4 flex justify-end">
                         <a href="{{ route('loans.return-form', $loan) }}"
-                           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+                           class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <span class="material-icons-round text-lg">assignment_return</span> Proses Pengembalian
                         </a>
                     </div>
@@ -211,8 +215,8 @@
             </div>
 
             {{-- Approval --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
+            <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-blue-600">verified_user</span> Jejak Persetujuan (Berjenjang)
                 </h3>
 
@@ -226,22 +230,22 @@
                                     ? \App\Enums\Role::from($approval->approver->role)->shortLabel()
                                     : 'Pihak berwenang';
                             @endphp
-                            <li class="flex items-start gap-3 border-b border-dashed border-gray-100 pb-4 last:border-0 last:pb-0">
+                            <li class="flex items-start gap-3 border-b border-dashed border-slate-200 pb-4 last:border-0 last:pb-0 dark:border-slate-700">
                                 <span class="inline-flex items-center justify-center h-9 w-9 rounded-full
                                     {{ $approval->decision->value === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
                                     <span class="material-icons-round text-xl">{{ $approval->decision->value === 'APPROVED' ? 'check_circle' : 'cancel' }}</span>
                                 </span>
                                 <div class="flex-1">
-                                    <div class="text-sm font-semibold text-gray-800">
+                                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">
                                         Level {{ $approval->level }} — {{ $approverRole }}:
                                         {{ $approval->approver?->name }}
                                         <span class="text-[11px] font-bold {{ $approval->decision->value === 'APPROVED' ? 'text-green-600' : 'text-red-600' }}">
                                             {{ $approval->decision->label() }}
                                         </span>
                                     </div>
-                                    <div class="text-xs text-gray-400">{{ $approval->decided_at->format('d M Y H:i') }}</div>
+                                    <div class="text-xs text-slate-500 dark:text-slate-400">{{ $approval->decided_at->format('d M Y H:i') }}</div>
                                     @if ($approval->note)
-                                        <div class="text-xs text-gray-600 mt-1 italic">"{{ $approval->note }}"</div>
+                                        <div class="mt-1 text-xs italic text-slate-600 dark:text-slate-300">"{{ $approval->note }}"</div>
                                     @endif
                                 </div>
                                 @if ($approval->signature_path)
@@ -258,7 +262,7 @@
                 {{-- Form persetujuan --}}
                 @if ($canAct && $nextLevel !== null)
                     @php $actorRole = \App\Enums\Role::from(auth()->user()->role)->shortLabel(); @endphp
-                    <div class="mt-5 pt-5 border-t border-gray-100">
+                    <div class="mt-5 border-t border-slate-200 pt-5 dark:border-slate-700">
                         <div class="flex items-center gap-2 mb-3 text-sm text-gray-700">
                             <span class="material-icons-round text-blue-600">gesture</span>
                             Keputusan Anda: <strong>Persetujuan Level {{ $nextLevel }} ({{ $actorRole }})</strong>
@@ -269,11 +273,11 @@
                             <input type="hidden" name="signature" id="signature-input">
                             <div>
                                 <x-input-label value="Catatan (opsional)" />
-                                <textarea name="note" rows="2" class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                <textarea name="note" rows="2" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
                                           placeholder="Syarat/catatan persetujuan..."></textarea>
                             </div>
 
-                            <div x-data="signaturePad()" class="border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                            <div x-data="signaturePad()" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-800">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-xs font-semibold text-gray-600">
                                         Tanda Tangan Digital
@@ -282,7 +286,7 @@
                                     <button type="button" @click="clear()" class="text-xs text-gray-500 hover:text-gray-800 underline">Hapus</button>
                                 </div>
                                 <canvas id="signature-pad" width="420" height="140"
-                                        class="w-full bg-white rounded border border-gray-200 touch-none"></canvas>
+                                        class="w-full touch-none rounded-lg border border-slate-200 bg-white dark:border-slate-600"></canvas>
                                 <p class="text-[10px] text-gray-400 mt-1">
                                     Tanda tangan digital bersifat opsional. Dokumen resmi dapat dipratinjau, dicetak, dan ditandatangani secara fisik/manual.
                                 </p>
@@ -309,7 +313,7 @@
                             </button>
                         </form>
 
-                        <p class="text-[11px] text-gray-400 mt-3">
+                        <p class="mt-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                             @if (auth()->user()->isApproverLevel2())
                                 Persetujuan Anda sebagai Wakasek Sarpras langsung menutup rangkaian persetujuan — tidak dituntut persetujuan Admin tambahan.
                             @elseif ($loan->requiresLevel2() && $nextLevel === 1)
@@ -323,96 +327,98 @@
 
         {{-- Kolom kanan --}}
         <div class="space-y-5">
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 text-sm space-y-3">
-                <h3 class="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
+            <div class="space-y-3 rounded-2xl border border-sky-100 bg-white p-5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-blue-600">info</span> Ringkasan
                 </h3>
-                <div><span class="text-gray-400">Peminjam:</span> <strong>{{ $loan->borrower?->name }}</strong></div>
-                <div><span class="text-gray-400">Username:</span> {{ $loan->borrower?->username }}</div>
-                <div><span class="text-gray-400">Jurusan:</span> {{ $loan->borrower?->major?->name ?: '-' }}</div>
-                <div><span class="text-gray-400">Pinjam:</span> <strong>{{ $loan->start_date->format('d M Y H:i') }}</strong></div>
-                <div><span class="text-gray-400">Kembali:</span> <strong class="{{ $loan->isOverdue() ? 'text-red-600' : '' }}">{{ $loan->due_date->format('d M Y H:i') }}</strong></div>
+                @unless (auth()->user()->isPeminjam())
+                    <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Peminjam:</span> <strong>{{ $loan->borrower?->name }}</strong></div>
+                    <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Username:</span> {{ $loan->borrower?->username }}</div>
+                    <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Jurusan:</span> {{ $loan->borrower?->major?->name ?: '-' }}</div>
+                @endunless
+                <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">{{ auth()->user()->isPeminjam() ? 'Mulai pinjam:' : 'Pinjam:' }}</span> <strong>{{ $loan->start_date->format('d M Y H:i') }}</strong></div>
+                <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">{{ auth()->user()->isPeminjam() ? 'Batas pengembalian:' : 'Kembali:' }}</span> <strong class="{{ $loan->isOverdue() ? 'text-red-600 dark:text-red-400' : '' }}">{{ $loan->due_date->format('d M Y H:i') }}</strong></div>
                 @if ($loan->event)
-                    <div class="pt-3 border-t border-dashed border-gray-100">
-                        <div class="text-gray-400 text-xs">Kegiatan:</div>
-                        <div class="font-semibold text-gray-800">{{ $loan->event->name }}</div>
-                        <div class="text-xs text-gray-500">PJ: {{ $loan->event->pic_name }}</div>
-                        <div class="text-xs text-gray-500">{{ $loan->event->start_date->format('d/m/Y') }} — {{ $loan->event->end_date->format('d/m/Y') }}</div>
-                        <a href="{{ route('events.show', $loan->event) }}" class="text-xs text-blue-700 hover:underline">Lihat rekap kegiatan →</a>
+                    <div class="border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
+                        <div class="text-xs text-slate-500 dark:text-slate-400">Kegiatan:</div>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $loan->event->name }}</div>
+                        <div class="text-xs text-slate-600 dark:text-slate-300">PJ: {{ $loan->event->pic_name }}</div>
+                        <div class="text-xs text-slate-600 dark:text-slate-300">{{ $loan->event->start_date->format('d/m/Y') }} — {{ $loan->event->end_date->format('d/m/Y') }}</div>
+                        <a href="{{ route('events.show', $loan->event) }}" class="inline-flex min-h-8 items-center text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">Lihat rekap kegiatan →</a>
                     </div>
                 @endif
                 @if ($loan->status === \App\Enums\LoanStatus::DITOLAK && $loan->reject_reason)
-                    <div class="pt-3 border-t border-dashed border-gray-100 text-red-600">
+                    <div class="border-t border-dashed border-slate-200 pt-3 text-red-600 dark:border-slate-700 dark:text-red-400">
                         <div class="text-xs font-bold">DITOLAK:</div>
                         <div class="text-xs">{{ $loan->reject_reason }}</div>
                     </div>
                 @endif
                 @if ($loan->status === \App\Enums\LoanStatus::DIBATALKAN)
-                    <div class="pt-3 border-t border-dashed border-gray-100 text-gray-600">
+                    <div class="border-t border-dashed border-slate-200 pt-3 text-slate-600 dark:border-slate-700 dark:text-slate-300">
                         <div class="text-xs font-bold">DIBATALKAN:</div>
                         <div class="text-xs">{{ $loan->cancel_reason ?: 'Tanpa alasan tertulis' }}</div>
-                        <div class="text-[11px] text-gray-400">oleh {{ $loan->canceller?->name }} • {{ $loan->cancelled_at?->format('d M Y H:i') }}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">oleh {{ $loan->canceller?->name }} • {{ $loan->cancelled_at?->format('d M Y H:i') }}</div>
                     </div>
                 @endif
                 @if ($loan->handed_over_at)
-                    <div class="pt-3 border-t border-dashed border-gray-100">
-                        <span class="text-gray-400">Diserahkan:</span> {{ $loan->handed_over_at->format('d M Y H:i') }}
-                        <div class="text-xs text-gray-400">oleh {{ $loan->handoverOfficer?->name }}</div>
+                    <div class="border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
+                        <span class="text-slate-500 dark:text-slate-400">Diserahkan:</span> <span class="text-slate-700 dark:text-slate-200">{{ $loan->handed_over_at->format('d M Y H:i') }}</span>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">oleh {{ $loan->handoverOfficer?->name }}</div>
                     </div>
                 @endif
 
                 @if ($canCancel)
-                    <div class="pt-3 border-t border-dashed border-gray-100">
+                    <div class="border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
                         <form method="POST" action="{{ route('loans.cancel', $loan) }}"
                               onsubmit="return confirm('Batalkan pengajuan peminjaman ini? Jadwal akan dibebaskan.')"
                               class="space-y-2">
                             @csrf
                             <input type="text" name="cancel_reason" maxlength="500" placeholder="Alasan pembatalan (opsional)"
-                                   class="w-full rounded-lg border-gray-300 text-xs focus:ring-red-500 focus:border-red-500">
-                            <button class="w-full inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-700 text-xs font-semibold">
+                                   class="w-full rounded-xl border-slate-300 bg-white text-xs text-slate-800 focus:border-red-500 focus:ring-red-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <button class="inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-red-50 hover:text-red-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-red-950/40 dark:hover:text-red-300">
                                 <span class="material-icons-round text-sm">cancel</span> Batalkan Pengajuan
                             </button>
                         </form>
                     </div>
                 @endif
                 @if ($loan->returned_at)
-                    <div class="pt-3 border-t border-dashed border-gray-100">
-                        <span class="text-gray-400">Dikembalikan:</span> {{ $loan->returned_at->format('d M Y H:i') }}
-                        <div class="text-xs text-gray-400">oleh {{ $loan->returner?->name }}</div>
+                    <div class="border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
+                        <span class="text-slate-500 dark:text-slate-400">Dikembalikan:</span> <span class="text-slate-700 dark:text-slate-200">{{ $loan->returned_at->format('d M Y H:i') }}</span>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">oleh {{ $loan->returner?->name }}</div>
                     </div>
                 @endif
             </div>
 
             @if (in_array($loan->status, [\App\Enums\LoanStatus::PENDING, \App\Enums\LoanStatus::APPROVED, \App\Enums\LoanStatus::DIPINJAM, \App\Enums\LoanStatus::SELESAI], true))
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                    <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
+                <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                         <span class="material-icons-round text-blue-600">description</span> Dokumen Resmi
                     </h3>
 
-                    <div class="flex items-center justify-between gap-2 mb-3 text-xs">
-                        <span class="text-gray-400">Status dokumen</span>
+                    <div class="mb-3 flex items-center justify-between gap-2 text-xs">
+                        <span class="text-slate-500 dark:text-slate-400">Status dokumen</span>
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full {{ $loan->document_status->badgeClass() }}">
                             {{ $loan->document_status->label() }}
                         </span>
                     </div>
 
                     <a href="{{ route('loans.bast', $loan) }}" target="_blank"
-                       class="block w-full text-center px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold mb-2">
+                       class="mb-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         {{ $loan->event ? 'Surat Peminjaman / BAST (PDF)' : 'Buat Surat Peminjaman (PDF)' }}
                     </a>
-                    <p class="text-[11px] text-gray-400">
+                    <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                         Dokumen dapat dipratinjau dan dicetak, lalu ditandatangani secara fisik oleh Peminjam, Laboran, dan Wakasek.
                         Status dokumen terpisah dari status persetujuan transaksi.
                     </p>
 
                     @if ($canManageDocuments)
-                        <div class="mt-3 pt-3 border-t border-dashed border-gray-100 space-y-1.5">
-                            <p class="text-[11px] font-semibold text-gray-500">Catatan petugas</p>
+                        <div class="mt-3 space-y-2 border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
+                            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Catatan petugas</p>
                             <div class="flex flex-wrap gap-1.5">
                                 @unless ($loan->document_status === \App\Enums\DocumentStatus::DICETAK)
                                     <form method="POST" action="{{ route('loans.document.printed', $loan) }}">
                                         @csrf
-                                        <button class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-semibold">
+                                        <button class="min-h-8 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                                             Tandai sudah dicetak
                                         </button>
                                     </form>
@@ -420,7 +426,7 @@
                                 @unless ($loan->document_status->isSigned())
                                     <form method="POST" action="{{ route('loans.document.signed-physical', $loan) }}">
                                         @csrf
-                                        <button class="px-2.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-[11px] font-semibold">
+                                        <button class="min-h-8 rounded-lg bg-green-600 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700">
                                             Sudah ditandatangani (fisik)
                                         </button>
                                     </form>
@@ -428,13 +434,13 @@
                                 @if ($loan->approvals->contains(fn ($a) => $a->signature_path) && ! $loan->document_status->isSigned())
                                     <form method="POST" action="{{ route('loans.document.signed-digital', $loan) }}">
                                         @csrf
-                                        <button class="px-2.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-[11px] font-semibold">
+                                        <button class="min-h-8 rounded-lg bg-green-600 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700">
                                             Sudah ditandatangani (digital)
                                         </button>
                                     </form>
                                 @endif
                             </div>
-                            <p class="text-[10px] text-gray-400">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
                                 Mencatat tanda tangan tidak mengubah status persetujuan transaksi.
                             </p>
                         </div>

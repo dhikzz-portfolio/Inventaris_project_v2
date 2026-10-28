@@ -1,10 +1,10 @@
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">
             Informasi Profil
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600">
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Nama, gelar, email, dan data kategori dapat Anda perbarui sendiri. Username, role, dan hak istimewa hanya diatur administrator sekolah.
         </p>
     </header>
@@ -19,7 +19,7 @@
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
                 <x-input-label for="degree" :value="__('Gelar (khusus guru, opsional)')" />
                 <x-text-input id="degree" name="degree" type="text" class="mt-1 block w-full" :value="old('degree', $user->degree)" placeholder="S.Kom, S.Pd" />
@@ -36,13 +36,13 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <x-input-label for="borrower_type" :value="__('Kategori pengguna')" />
-                    <select id="borrower_type" name="borrower_type" class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    <select id="borrower_type" name="borrower_type" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">— pilih kategori —</option>
                         @foreach (\App\Enums\BorrowerType::cases() as $type)
                             <option value="{{ $type->value }}" @selected(old('borrower_type', $user->borrower_type?->value) === $type->value)>{{ $type->label() }}</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-[11px] text-gray-400">Perubahan kategori tidak menambah role atau hak istimewa.</p>
+                    <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Perubahan kategori tidak menambah role atau hak istimewa.</p>
                     <x-input-error class="mt-2" :messages="$errors->get('borrower_type')" />
                 </div>
                 <div>
@@ -55,19 +55,19 @@
 
         <div>
             <x-input-label for="username" :value="__('Username')" />
-            <x-text-input id="username" name="username" type="text" class="mt-1 block w-full bg-gray-50" :value="$user->username" readonly />
+            <x-text-input id="username" name="username" type="text" class="mt-1 block w-full rounded-xl border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" :value="$user->username" readonly />
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <x-input-label :value="__('Role')" />
-                <div class="mt-1 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-700">
+                <div class="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                     {{ \App\Enums\Role::tryFrom($user->role)?->label() ?? $user->role }}
                 </div>
             </div>
             <div>
                 <x-input-label :value="__('Jurusan')" />
-                <div class="mt-1 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-700">
+                <div class="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                     {{ $user->major?->name ?? '-' }}
                 </div>
             </div>

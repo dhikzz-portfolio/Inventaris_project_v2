@@ -1,25 +1,25 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Master Data</h2>
-            <p class="text-sm text-gray-500">Gedung, ruangan, jurusan, dan kategori barang</p>
+            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Master Data</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Gedung, ruangan, jurusan, dan kategori barang</p>
         </div>
     </x-slot>
 
     @if (session('success'))
-        <div class="mb-4 rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">{{ session('success') }}</div>
+        <div role="status" class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">{{ session('success') }}</div>
     @endif
     @if ($errors->any())
-        <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">{{ $errors->first() }}</div>
+        <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {{-- Master Gedung --}}
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <h3 class="font-semibold text-gray-800 text-sm mb-1 flex items-center gap-1.5">
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <h3 class="mb-1 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-blue-600">apartment</span> Master Gedung
             </h3>
-            <p class="text-[11px] text-gray-400 mb-4">
+            <p class="mb-4 text-[11px] text-slate-500 dark:text-slate-400">
                 Identitas kode gedung dipakai generator kode lokasi &amp; kode inventaris (mis. Gedung C lantai 1 ruang 03 → <span class="font-mono">C1-03-21</span>).
             </p>
 
@@ -67,17 +67,17 @@
         </div>
 
         {{-- Ruangan --}}
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <h3 class="font-semibold text-gray-800 text-sm mb-1 flex items-center gap-1.5">
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <h3 class="mb-1 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-blue-600">domain</span> Ruangan ({{ $rooms->count() }})
             </h3>
-            <p class="text-[11px] text-gray-400 mb-4">
+            <p class="mb-4 text-[11px] text-slate-500 dark:text-slate-400">
                 Kode lokasi dibentuk otomatis dari gedung + lantai + nomor ruangan.
             </p>
 
             <div class="max-h-72 overflow-auto mb-4">
                 <table class="w-full text-sm">
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         @foreach ($rooms as $room)
                             <tr>
                                 <td class="py-1.5 font-mono text-xs font-semibold text-gray-700 w-16">{{ $room->code }}</td>
@@ -157,7 +157,7 @@
         </div>
 
         {{-- Jurusan --}}
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
                 <span class="material-icons-round text-blue-600">school</span> Jurusan / Kompetensi Keahlian
             </h3>
@@ -192,7 +192,7 @@
         </div>
 
         {{-- Kategori --}}
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
                 <span class="material-icons-round text-blue-600">category</span> Kategori Barang
             </h3>

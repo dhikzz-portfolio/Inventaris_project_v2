@@ -3,12 +3,12 @@
         <div class="flex items-start justify-between gap-3 flex-wrap">
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <a href="{{ route('catalogs.index') }}" class="text-sm text-gray-500 hover:text-blue-700">Katalog</a>
-                    <span class="text-gray-300">/</span>
-                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $catalog->name }}</h2>
-                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">{{ $catalog->category?->name }}</span>
+                    <a href="{{ route('catalogs.index') }}" class="text-sm font-medium text-blue-700 hover:underline dark:text-blue-300">Katalog</a>
+                    <span class="text-slate-300 dark:text-slate-600">/</span>
+                    <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">{{ $catalog->name }}</h2>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $catalog->category?->name }}</span>
                 </div>
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-slate-500 dark:text-slate-400">
                     {{ $catalog->brand ?: 'Tanpa merek' }}{{ $catalog->model_type ? ' • '.$catalog->model_type : '' }}
                     {{ $catalog->specification ? ' • '.$catalog->specification : '' }}
                 </p>
@@ -16,13 +16,13 @@
             <div class="flex items-center gap-2 flex-wrap">
                 @if (auth()->user()->canApproveLoans())
                     <a href="{{ route('labels.index', ['catalog' => $catalog->id]) }}"
-                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                         <span class="material-icons-round text-lg">print</span> Cetak Label Unit
                     </a>
                 @endif
                 @if (auth()->user()->managesInventory() && ! $catalog->isArchived())
                     <a href="{{ route('items.edit', $catalog) }}"
-                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                         <span class="material-icons-round text-lg">edit</span> Ubah Katalog
                     </a>
                 @endif
@@ -37,7 +37,7 @@
                         @csrf
                         @method('DELETE')
                         <button type="submit"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium">
+                                class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/70">
                             <span class="material-icons-round text-lg">{{ $canDeletePermanently ? 'delete' : 'archive' }}</span>
                             {{ $canDeletePermanently ? 'Hapus Katalog' : 'Nonaktifkan Katalog' }}
                         </button>
@@ -48,7 +48,7 @@
     </x-slot>
 
     @if ($catalog->isArchived())
-        <div class="mb-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm flex items-start gap-2">
+        <div role="status" class="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
             <span class="material-icons-round text-lg shrink-0">archive</span>
             <div>
                 <strong>Katalog dinonaktifkan</strong> pada {{ $catalog->archived_at?->format('d M Y H:i') }}.

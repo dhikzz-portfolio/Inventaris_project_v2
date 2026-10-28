@@ -1,16 +1,16 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Pengguna &amp; Hak Akses</h2>
-            <p class="text-sm text-gray-500">Empat role: Wakasek Sarpras, Ketua Laboran, Laboran/K3, Peminjam</p>
+            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengguna &amp; Hak Akses</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Empat role: Wakasek Sarpras, Ketua Laboran, Laboran/K3, Peminjam</p>
         </div>
     </x-slot>
 
     @if (session('success'))
-        <div class="mb-4 rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">{{ session('success') }}</div>
+        <div role="status" class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">{{ session('success') }}</div>
     @endif
     @if ($errors->any())
-        <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+        <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
             <ul class="list-disc ms-5 space-y-1">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -38,11 +38,11 @@
             @endif
         </div>
 
-        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden self-start">
-            <div class="px-4 py-3 border-b border-gray-100 text-sm font-semibold text-gray-700">Daftar Pengguna</div>
+        <div class="lg:col-span-2 self-start overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">Daftar Pengguna</div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                    <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
                             <th class="text-left px-4 py-3">Pengguna</th>
                             <th class="text-left px-4 py-3">Role</th>
@@ -51,12 +51,12 @@
                             <th class="text-center px-4 py-3">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         @foreach ($users as $user)
-                            <tr class="{{ $editUser && $editUser->id === $user->id ? 'bg-amber-50/60' : 'hover:bg-gray-50' }}">
+                            <tr class="{{ $editUser && $editUser->id === $user->id ? 'bg-blue-50 dark:bg-blue-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60' }}">
                                 <td class="px-4 py-3">
-                                    <div class="font-medium text-gray-800">{{ $user->displayName() }}</div>
-                                    <div class="text-[11px] font-mono text-gray-400">{{ $user->username }}</div>
+                                    <div class="font-medium text-slate-800 dark:text-slate-100">{{ $user->displayName() }}</div>
+                                    <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $user->username }}</div>
                                     @if ($user->email)
                                         <div class="text-[10px] text-gray-400">{{ $user->email }}</div>
                                     @endif
@@ -67,7 +67,7 @@
                                         'bg-purple-100 text-purple-700' => $user->role === 'SUPER_ADMIN',
                                         'bg-blue-100 text-blue-700' => $user->role === 'KETUA_LABORAN',
                                         'bg-teal-100 text-teal-700' => $user->role === 'LABORAN',
-                                        'bg-gray-100 text-gray-600' => $user->role === 'PEMINJAM',
+                                        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => $user->role === 'PEMINJAM',
                                     ])>{{ \App\Enums\Role::tryFrom($user->role)?->label() }}</span>
                                 </td>
                                 <td class="px-4 py-3 text-xs text-gray-500">
@@ -82,7 +82,7 @@
                                 <td class="px-4 py-3 text-center text-xs text-gray-400">{{ $user->last_login_at?->format('d M Y H:i') ?: 'belum pernah' }}</td>
                                 <td class="px-4 py-3 text-center">
                                     <a href="{{ route('users.index', ['edit' => $user->id]) }}"
-                                       class="text-xs font-semibold text-amber-700 hover:underline">Ubah</a>
+                                       class="text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">Ubah</a>
                                 </td>
                             </tr>
                         @endforeach

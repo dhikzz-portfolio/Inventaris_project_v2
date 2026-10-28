@@ -2,14 +2,14 @@
     <x-slot name="header">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Cetak Label Unit Inventaris</h2>
-                <p class="text-sm text-gray-500">Satu stiker untuk satu unit fisik dengan kode inventaris <span class="font-mono">G1-02-12</span>. Pilih unit per baris, atau cetak semua unit yang sesuai filter.</p>
+                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Cetak Label Barang</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Pilih barang yang ingin dicetak labelnya atau cetak semua hasil filter.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-                <a href="{{ route('catalogs.index') }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+                <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <span class="material-icons-round text-lg">inventory_2</span> Katalog
                 </a>
-                <a href="{{ route('scan') }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">
+                <a href="{{ route('scan') }}" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                     <span class="material-icons-round text-lg">qr_code_scanner</span> Scan QR
                 </a>
             </div>
@@ -17,49 +17,55 @@
     </x-slot>
 
     @if (session('success'))
-        <div class="mb-4 rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">{{ session('success') }}</div>
+        <div role="status" class="mb-4 flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">check_circle</span>
+            <span>{{ session('success') }}</span>
+        </div>
     @endif
     @if (session('error'))
-        <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">{{ session('error') }}</div>
+        <div role="alert" class="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">error_outline</span>
+            <span>{{ session('error') }}</span>
+        </div>
     @endif
 
     {{-- Filter --}}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-5">
+    <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <form method="GET" action="{{ route('labels.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari kode unit (G1-02-12)"
-                   class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-            <select name="catalog" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                   class="rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select name="catalog" class="rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua katalog</option>
                 @foreach ($catalogs as $catalogId => $catalogName)
                     <option value="{{ $catalogId }}" @selected(request('catalog') == $catalogId)>{{ $catalogName }}</option>
                 @endforeach
             </select>
-            <select name="room" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <select name="room" class="rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua ruangan</option>
                 @foreach ($rooms as $room)
                     <option value="{{ $room->id }}" @selected(request('room') == $room->id)>{{ $room->code }} — {{ $room->name }}</option>
                 @endforeach
             </select>
-            <select name="category" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <select name="category" class="rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua kategori</option>
                 @foreach ($categories as $category)
                     <option value="{{ $category->id }}" @selected(request('category') == $category->id)>{{ $category->name }}</option>
                 @endforeach
             </select>
-            <select name="condition" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <select name="condition" class="rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua kondisi</option>
                 @foreach ($conditions as $conditionOption)
                     <option value="{{ $conditionOption->value }}" @selected(request('condition') == $conditionOption->value)>{{ $conditionOption->label() }}</option>
                 @endforeach
             </select>
             <div class="flex items-center gap-2">
-                <select name="status" class="grow rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                <select name="status" class="grow rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     <option value="">Semua status</option>
                     @foreach ($statuses as $statusOption)
                         <option value="{{ $statusOption->value }}" @selected(request('status') == $statusOption->value)>{{ $statusOption->label() }}</option>
                     @endforeach
                 </select>
-                <button class="rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold px-4 py-2">Filter</button>
+                <button class="min-h-10 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Terapkan</button>
             </div>
         </form>
     </div>
@@ -72,21 +78,21 @@
             @endif
         @endforeach
 
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
-                <label class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+        <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
                     <input type="checkbox" id="select-all-labels" onclick="toggleAllLabels(this)"
                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                     Pilih semua di halaman ini
                 </label>
                 <div class="flex flex-wrap items-center gap-3">
-                    <label class="flex items-center gap-1.5 text-xs text-gray-600">
+                    <label class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                         <input type="checkbox" name="select_all" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                title="Cetak semua unit yang sesuai filter, termasuk halaman lain">
                         Cetak semua yang sesuai filter ({{ $units->total() }} unit)
                     </label>
-                    <span class="text-xs text-gray-500" id="label-count">0 unit dipilih</span>
-                    <button class="grow sm:grow-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
+                    <span class="text-xs text-slate-600 dark:text-slate-300" id="label-count">0 unit dipilih</span>
+                    <button class="inline-flex min-h-10 grow items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:grow-0">
                         <span class="material-icons-round text-lg">print</span> Cetak Massal (PDF)
                     </button>
                 </div>
@@ -94,7 +100,7 @@
 
             <div class="overflow-x-auto max-h-[60vh] overflow-y-auto">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0">
+                    <thead class="sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
                             <th class="px-4 py-2.5 w-10"></th>
                             <th class="text-left px-4 py-2.5">Kode Inventaris</th>
@@ -106,9 +112,9 @@
                             <th class="text-center px-4 py-2.5">Satuan</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         @forelse ($units as $unit)
-                            <tr class="hover:bg-gray-50">
+                            <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                 <td class="px-4 py-2 text-center">
                                     <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                            onchange="updateLabelCount()"

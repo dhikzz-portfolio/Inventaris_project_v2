@@ -3,39 +3,39 @@
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $event->name }}</h2>
+                    <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">{{ $event->name }}</h2>
                     <span class="text-[11px] font-bold px-2 py-1 rounded-full {{ $event->status->badgeClass() }}">{{ $event->status->label() }}</span>
                 </div>
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-slate-500 dark:text-slate-400">
                     PJ: {{ $event->pic_name }} • {{ $event->start_date->format('d M Y') }} — {{ $event->end_date->format('d M Y') }}
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 @if (auth()->user()->managesInventory())
                     <a href="{{ route('events.bast', $event) }}" target="_blank"
-                       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <span class="material-icons-round text-lg">description</span> BAST Gabungan (PDF)
                     </a>
                 @endif
-                <a href="{{ route('events.index') }}" class="text-sm text-gray-500 hover:text-gray-800">← Semua kegiatan</a>
+                <a href="{{ route('events.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Semua kegiatan</a>
             </div>
         </div>
     </x-slot>
 
     @if (session('success'))
-        <div class="mb-4 rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">{{ session('success') }}</div>
+        <div role="status" class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">{{ session('success') }}</div>
     @endif
     @if (session('error'))
-        <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">{{ session('error') }}</div>
+        <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ session('error') }}</div>
     @endif
 
     @if ($event->description)
-        <div class="mb-5 rounded-xl bg-white border border-gray-200 p-4 text-sm text-gray-600">{{ $event->description }}</div>
+        <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 text-sm leading-relaxed text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{{ $event->description }}</div>
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
+        <div class="lg:col-span-2 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-blue-600">receipt_long</span> Peminjaman Terikat Kegiatan ({{ $event->loans->count() }})
             </h3>
 
@@ -44,17 +44,17 @@
             @else
                 <div class="space-y-4">
                     @foreach ($event->loans as $loan)
-                        <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
                             <div class="flex items-center justify-between gap-2 flex-wrap">
                                 <div>
-                                    <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-gray-800 hover:text-blue-700">#{{ $loan->id }} — {{ $loan->borrower?->name }}</a>
-                                    <div class="text-xs text-gray-400">{{ $loan->start_date->format('d/m/Y H:i') }} → {{ $loan->due_date->format('d/m/Y H:i') }}</div>
+                                    <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">#{{ $loan->id }} — {{ $loan->borrower?->name }}</a>
+                                    <div class="text-xs text-slate-500 dark:text-slate-400">{{ $loan->start_date->format('d/m/Y H:i') }} → {{ $loan->due_date->format('d/m/Y H:i') }}</div>
                                 </div>
                                 <span class="text-[10px] font-bold px-2 py-1 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                             </div>
                             <ul class="mt-2 space-y-1">
                                 @foreach ($loan->loanItems as $li)
-                                    <li class="flex items-center justify-between text-xs text-gray-600 border-b border-dashed border-gray-100 pb-1">
+                                    <li class="flex items-center justify-between border-b border-dashed border-slate-100 pb-2 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300">
                                         <span>{{ $li->item?->name }} <span class="font-mono text-gray-400">({{ $li->item?->internal_id }})</span></span>
                                         <span>×{{ $li->qty_borrowed }}
                                             @if ($li->qty_returned !== null)
@@ -77,8 +77,8 @@
         </div>
 
         <div class="space-y-5">
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
+            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-blue-600">inventory_2</span> ID Barang Dibooking ({{ $bookedItems->count() }})
                 </h3>
                 @if ($bookedItems->isEmpty())
@@ -99,9 +99,9 @@
             </div>
 
             @if ($event->isManageableBy(auth()->user()))
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                    <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                        <span class="material-icons-round text-amber-600">edit_calendar</span> Kelola Kegiatan
+                <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                        <span class="material-icons-round text-blue-600">edit_calendar</span> Kelola Kegiatan
                     </h3>
                     <form method="POST" action="{{ route('events.update', $event) }}" class="space-y-2.5">
                         @csrf
@@ -142,7 +142,7 @@
                 </div>
             @endif
 
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 text-sm">
+            <div class="rounded-2xl border border-sky-100 bg-white p-5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
                     <span class="material-icons-round text-blue-600">how_to_reg</span> Alur Kegiatan
                 </h3>

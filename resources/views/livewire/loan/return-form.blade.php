@@ -1,13 +1,13 @@
 <div class="space-y-5">
     @if ($loan->status === \App\Enums\LoanStatus::APPROVED)
-        <div class="rounded-lg bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 text-sm">
+        <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
             Peminjaman masih berstatus <strong>Disetujui (belum diambil/diproses)</strong> — pengembalian tetap dapat divalidasi di sini.
         </div>
     @endif
 
     {{-- Alert ruangan tertukar --}}
     @if ($mismatches !== [])
-        <div class="rounded-lg bg-orange-50 border border-orange-300 text-orange-800 px-4 py-3 text-sm flex items-start gap-2"
+        <div class="flex items-start gap-2 rounded-xl border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-800 dark:border-orange-900 dark:bg-orange-950/30 dark:text-orange-200"
              wire:key="mismatch-alert">
             <span class="material-icons-round">warning</span>
             <div>
@@ -20,28 +20,28 @@
     @endif
 
     @if ($loan->loanItems->isNotEmpty() && ! $hasUnitAssignmentsInRows)
-        <div class="rounded-lg bg-gray-50 border border-gray-200 text-gray-600 px-4 py-3 text-sm">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
             Peminjaman ini belum memiliki penugasan unit fisik (data legacy). Pengembalian dicatat per baris katalog.
         </div>
     @endif
 
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
+            <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-blue-600">fact_check</span> Validasi Pengembalian per Kelompok Barang
             </h3>
-            <span class="text-xs text-gray-400">Peminjam: <strong>{{ $loan->borrower?->name }}</strong> • Kembali {{ $loan->due_date->format('d/m/Y H:i') }}</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">Peminjam: <strong>{{ $loan->borrower?->name }}</strong> • Kembali {{ $loan->due_date->format('d/m/Y H:i') }}</span>
         </div>
 
         <div class="space-y-4">
             @foreach ($groupedRows as $gIndex => $group)
-                <details class="border border-gray-200 rounded-lg" open>
-                    <summary class="cursor-pointer bg-gray-50 px-4 py-3 flex items-center justify-between">
+                <details class="rounded-xl border border-slate-200 dark:border-slate-700" open>
+                    <summary class="flex cursor-pointer items-center justify-between rounded-t-xl bg-slate-50 px-4 py-3 dark:bg-slate-800">
                         <div>
-                            <span class="font-semibold text-gray-800">{{ $group['item_name'] }}</span>
-                            <span class="ml-2 text-xs text-gray-500">— {{ $group['total_borrowed'] }} unit dipinjam</span>
+                            <span class="font-semibold text-slate-800 dark:text-slate-100">{{ $group['item_name'] }}</span>
+                            <span class="ml-2 text-xs text-slate-500 dark:text-slate-400">— {{ $group['total_borrowed'] }} unit dipinjam</span>
                         </div>
-                        <div class="text-xs text-gray-600">
+                        <div class="text-xs text-slate-600 dark:text-slate-300">
                             Sudah kembali: <strong>{{ $group['already_returned'] + $group['returned'] }}</strong> / {{ $group['total_borrowed'] }} |
                             Belum: <strong>{{ max(0, $group['total_borrowed'] - ($group['already_returned'] + $group['returned'])) }}</strong>
                         </div>
@@ -51,9 +51,9 @@
                             @php($i = $loop->parent->index * 100 + $loop->index)
                             @php($isMismatch = in_array($i, $mismatches, true))
                             <div @class([
-                                'border rounded-lg p-3',
-                                'border-orange-300 bg-orange-50/40' => $isMismatch,
-                                'border-gray-200' => ! $isMismatch,
+                                'rounded-xl border p-3',
+                                'border-orange-300 bg-orange-50/40 dark:border-orange-900 dark:bg-orange-950/20' => $isMismatch,
+                                'border-slate-200 dark:border-slate-700' => ! $isMismatch,
                             ]) wire:key="row-{{ $i }}">
                                 <div class="flex items-start justify-between gap-3 flex-wrap">
                                     <div>
@@ -75,13 +75,13 @@
                                     <div>
                                         <x-input-label value="Jumlah Kembali *" />
                                         <input type="number" min="0" max="{{ $row['remaining'] }}" wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.qty_returned"
-                                               class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                               class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                     </div>
 
                                     <div>
                                         <x-input-label value="Kondisi Akhir *" />
                                         <select wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.condition_in"
-                                                class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                                class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                             @foreach ($conditions as $c)
                                                 <option value="{{ $c->value }}">{{ $c->label() }}</option>
                                             @endforeach
@@ -89,7 +89,7 @@
                                         @if (($row['condition_in'] ?? 'BAIK') !== 'BAIK')
                                             <div class="mt-2">
                                                 <input type="file" wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.damage_photo" accept="image/*"
-                                                       class="mt-1 block w-full text-xs text-gray-600 file:me-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-red-50 file:text-red-700">
+                                                       class="mt-1 block w-full text-xs text-slate-600 file:me-2 file:rounded-lg file:border-0 file:bg-red-50 file:px-2 file:py-1.5 file:text-red-700 dark:text-slate-300">
                                             </div>
                                         @endif
                                     </div>
@@ -97,7 +97,7 @@
                                     <div>
                                         <x-input-label value="Dikembalikan ke Ruangan *" />
                                         <select wire:model.live="rows.{{ array_search($row, $this->rows, true) }}.returned_room_id"
-                                                class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 @if($isMismatch) border-orange-400 @endif">
+                                                class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 @if($isMismatch) border-orange-400 dark:border-orange-500 @endif">
                                             @foreach ($rooms as $room)
                                                 <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
                                             @endforeach
@@ -113,7 +113,7 @@
     </div>
 
     {{-- Ringkasan & konfirmasi --}}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="text-sm">
                 @if ($totalShortfall > 0)

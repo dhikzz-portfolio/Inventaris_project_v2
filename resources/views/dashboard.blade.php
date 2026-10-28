@@ -8,7 +8,13 @@
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
                 <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-                    {{ $mode === 'operational' ? 'Ringkasan sekolah' : 'Ringkasan pinjaman saya' }}
+                    @if ($mode !== 'operational')
+                        Ringkasan pinjaman saya
+                    @elseif ($dashboardUser->isLaboran())
+                        Ringkasan laboratorium
+                    @else
+                        Ringkasan sekolah
+                    @endif
                 </p>
                 <h2 class="mt-1 text-xl font-bold leading-tight text-slate-900 dark:text-white">Ringkasan</h2>
                 <p class="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
@@ -83,7 +89,7 @@
                         @elseif ($dashboardUser->isKetuaLaboran())
                             Kelola barang dan permintaan pinjam dari {{ $scopeLabel }}.
                         @else
-                            Lihat barang dan permintaan pinjam di {{ $scopeLabel }}.
+                            Tinjau barang dan permintaan pinjam di {{ $scopeLabel }}.
                         @endif
                     </p>
                 </div>
@@ -97,7 +103,7 @@
                             Tambah barang
                         </a>
                     @else
-                        <a href="{{ route('scan') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-900">
+                        <a href="{{ route('scan') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-900 dark:hover:bg-blue-500">
                             <span class="material-icons-round text-lg" aria-hidden="true">qr_code_scanner</span>
                             Pindai kode barang
                         </a>
@@ -148,7 +154,7 @@
                         <p class="mt-1 text-xs text-slate-400">Data bulan ini akan muncul di sini.</p>
                     </div>
                 @else
-                    <div class="h-28"><canvas id="chartTopBorrowed" aria-label="Grafik barang paling sering dipinjam bulan ini"></canvas></div>
+                    <div class="h-44"><canvas id="chartTopBorrowed" aria-label="Grafik barang paling sering dipinjam bulan ini"></canvas></div>
                 @endif
             </x-dashboard.panel>
 

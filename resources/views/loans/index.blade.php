@@ -55,6 +55,10 @@
             @endforeach
         </div>
     </nav>
+    <p class="-mt-2 mb-4 flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 sm:hidden">
+        <span class="material-icons-round text-sm" aria-hidden="true">swipe</span>
+        Geser untuk melihat filter status lainnya.
+    </p>
 
     <div class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 md:block">
         <div class="overflow-x-auto">

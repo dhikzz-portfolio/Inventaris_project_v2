@@ -2,18 +2,18 @@
     <x-slot name="header">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Scan Inventaris</h2>
-                <p class="text-sm text-gray-500">Pindai QR unit atau ketik kode inventaris — hasil tampil langsung di
+                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Scan Inventaris</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Pindai QR unit atau ketik kode inventaris — hasil tampil langsung di
                     halaman ini</p>
             </div>
             @if (auth()->user()->canApproveLoans())
-                <a href="{{ route('labels.index') }}" class="text-sm text-gray-500 hover:text-gray-800">← Cetak Label</a>
+                <a href="{{ route('labels.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Cetak Label</a>
             @endif
         </div>
     </x-slot>
 
     <div class="max-w-3xl mx-auto space-y-5">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5" x-data="scanner()"
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900" x-data="scanner()"
             x-init="init()">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
@@ -25,33 +25,33 @@
 
                     <div class="mt-3 flex items-center justify-center gap-2">
                         <button type="button" x-show="!running" @click="start()"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold">
+                            class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <span class="material-icons-round text-lg">photo_camera</span> Aktifkan Kamera
                         </button>
                         <button type="button" x-show="running" @click="stop()"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold">
+                            class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
                             <span class="material-icons-round text-lg">photo_camera_back</span> Matikan Kamera
                         </button>
                     </div>
 
-                    <p class="mt-2 text-center text-xs" :class="error ? 'text-red-600' : 'text-gray-400'"
+                    <p class="mt-2 text-center text-xs" :class="error ? 'text-red-600 dark:text-red-300' : 'text-slate-500 dark:text-slate-400'"
                         x-text="message || error"></p>
                 </div>
 
                 <div>
-                    <h3 class="font-semibold text-gray-800 text-sm mb-2">Input Manual (Kode Inventaris)</h3>
+                    <h3 class="mb-2 text-base font-bold text-slate-900 dark:text-slate-100">Input Manual (Kode Inventaris)</h3>
                     <form method="GET" action="{{ route('scan') }}" class="flex gap-2" @submit="running = false">
                         <input type="text" name="code" value="{{ $code }}" inputmode="text"
                             autocomplete="off" placeholder="Contoh: G1-02-12"
-                            class="flex-1 rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500 font-mono uppercase">
+                            class="min-w-0 flex-1 rounded-xl border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <button
-                            class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Cari</button>
+                            class="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Cari</button>
                     </form>
-                    <p class="text-[11px] text-gray-400 mt-2">
+                    <p class="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
                         Masukkan kode unit <span class="font-mono">G1-02-12</span> (kode lama tetap diterima). Kamera
                         hanya diperlukan bila perangkat mendukung; input manual selalu tersedia.
                     </p>
-                    <div class="mt-3 rounded-lg bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-500">
+                    <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
                         Pemindaian tidak mengubah data inventaris. Informasi detail mengikuti kewenangan akun Anda.
                     </div>
                 </div>
@@ -59,17 +59,17 @@
         </div>
 
         @if ($result !== null)
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5" id="scan-result">
+            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900" id="scan-result">
                 @if ($result['status'] === 'found')
                     <div class="flex items-start justify-between gap-3 flex-wrap mb-4">
                         <div>
-                            <h3 class="font-bold text-lg text-gray-900">{{ $result['name'] }}</h3>
-                            <p class="text-sm text-gray-500">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $result['name'] }}</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">
                                 {{ $result['specification'] ?: 'Spesifikasi belum dicatat' }}</p>
                         </div>
                         <div class="text-right">
-                            <div class="font-mono font-bold text-lg text-gray-900">{{ $result['code'] }}</div>
-                            <div class="text-xs text-gray-400">Kode Inventaris</div>
+                            <div class="font-mono text-lg font-bold text-slate-900 dark:text-slate-100">{{ $result['code'] }}</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">Kode Inventaris</div>
                         </div>
                     </div>
 

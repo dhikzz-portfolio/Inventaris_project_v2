@@ -30,7 +30,7 @@ Legenda status: **NOT STARTED**, **IN PROGRESS**, **IMPLEMENTED**, **VERIFIED**,
 | 20   | Revisi besar 24 Oktober: role `KETUA_LABORAN`, 5 jurusan, seeder terpisah, akun demo lengkap | VERIFIED | Migrasi role + seeder terpisah; 194 tes |
 | 21   | Alur peminjaman: auto-approval Laboran/K3, nilai tinggi, katalog peminjam, duplikasi | VERIFIED | `LaboranApprovalTest`; regresi suite |
 | 22   | Katalog aman + batas penyerahan unit + sinkronisasi dokumentasi | VERIFIED | `CatalogDeletionTest`, `LoanUnitFlowTest`; dokumen diperbarui |
-| 23   | Revisi besar V2: registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat + pratinjau, UI pengguna | VERIFIED | `REVISION_V2.md`; 246 tes, 1171 asersi |
+| 23   | Revisi besar V2: registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat + pratinjau, UI pengguna | VERIFIED | `REVISION_V2.md`; 249 tes, 1190 asersi |
 
 ## Catatan fase 14
 

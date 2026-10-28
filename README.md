@@ -110,7 +110,7 @@ npm run build
 vendor/bin/pint --test
 ```
 
-Hasil terakhir: **91 passed, 0 skipped, 407 assertions** (SQLite in-memory). Verifikasi browser end-to-end juga dilakukan: ajukan → setujui → serah terima → kembalikan → selesai.
+Hasil terakhir: **249 passed, 0 skipped, 1190 assertions** (SQLite in-memory). Verifikasi browser end-to-end juga dilakukan: ajukan → setujui → serah terima → kembalikan → selesai.
 
 Detail: [`docs/TESTING.md`](docs/TESTING.md).
 

@@ -45,7 +45,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Verifikasi email (SMTP)                                      | **BELUM** — kolom & event siap; SMTP/MustVerifyEmail belum dikonfigurasi                                                    |
 | Deployment produksi                                          | **BLOCKED** — tidak ada akses server/domain pada lingkungan ini                            |
 
-Pengujian terakhir (26 Oktober 2026): **246 passed, 0 skipped, 1171 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`). `vendor/bin/pint --dirty` dijalankan. Verifikasi browser (Playwright/Chrome) pada rilis sebelumnya tetap berlaku untuk alur katalog/unit/navigasi; perubahan UI revisi V2 diverifikasi melalui render Blade, Livewire test, dan HTTP test (bukan screenshot baru).
+Pengujian terakhir (27 Oktober 2026): **249 passed, 0 skipped, 1190 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`). `vendor/bin/pint --dirty` dijalankan. Verifikasi browser (Playwright/Chrome) pada rilis sebelumnya tetap berlaku untuk alur katalog/unit/navigasi; perubahan UI revisi V2 diverifikasi melalui render Blade, Livewire test, dan HTTP test (bukan screenshot baru).
 
 ## 2. Status per modul
 
@@ -59,7 +59,7 @@ Pengujian terakhir (26 Oktober 2026): **246 passed, 0 skipped, 1171 assertions**
 | Kode inventaris `G1-02-12`              | VERIFIED    | Validasi pola/lokasi, ledger kode, transaksi + unique index, batas 99, larangan daur ulang         |
 | Detail katalog & pencarian kode         | VERIFIED    | Pencarian exact/prefix, pesan format, scope, empty state, pagination 25 unit                       |
 | Filter lokasi/kondisi/status/tahun      | VERIFIED    | Filter AND; pilihan filter mengikuti data yang terlihat                                           |
-| Master data                             | VERIFIED    | CRUD jurusan/gedung/ruangan/kategori; master gedung A–G (+H/I demo), validasi wajib, identitas ruangan (`building_id`, `floor`, `room_no`, `is_lab`) |
+| Master data                             | VERIFIED    | CRUD jurusan/gedung/ruangan/kategori; master gedung A–G (+H/I demo), validasi identitas wajib; nama ruangan opsional; identitas ruangan (`building_id`, `floor`, `room_no`, `is_lab`) |
 | Scan universal                          | VERIFIED    | Kamera + manual, hasil di halaman scan, masking data internal, unit di luar cakupan dibatasi |
 | Pengadaan multi-lokasi                  | VERIFIED    | Alokasi banyak ruangan, total wajib sama, unit & kode dibuat per lokasi |
 | Pengguna & cakupan laboratorium         | VERIFIED    | `user_room_scopes`; perubahan cakupan dicatat di audit log dengan ruangan sebelum/sesudah          |
@@ -71,7 +71,7 @@ Pengujian terakhir (26 Oktober 2026): **246 passed, 0 skipped, 1171 assertions**
 | BAST & surat                            | VERIFIED    | Per pinjaman & gabungan kegiatan, PDF privat                                                       || Laporan                                             | VERIFIED    | Impor CSV/XLSX (pratinjau + atomik), hapus arsip soft delete; PDF + Excel 5 sheet (sheet **Unit** per unit fisik; ringkasan kondisi dihitung per unit), filter 4 cakupan; Ketua Laboran hanya data laboratorium, arsip seluruh sekolah khusus Super Admin |
 | Notifikasi                              | VERIFIED    | In-app + 4 job terjadwal, deduplikasi                                                             |
 | Audit log                               | VERIFIED    | Immutable dari Eloquent; mutasi kode dan unit dicatat                                              |
-| Tema & mobile                          | VERIFIED    | Desain lama dipertahankan; bottom nav, dark mode, PWA; tanpa overflow horizontal di 390px           || Pengujian                                           | VERIFIED    | 246 passed, 1171 assertions (SQLite in-memory)                                                      |
+| Tema & mobile                          | VERIFIED    | Desain lama dipertahankan; bottom nav, dark mode, PWA; tanpa overflow horizontal di 390px           || Pengujian                                           | VERIFIED    | 249 passed, 1190 assertions (SQLite in-memory)                                                      |
 | Seeder                                  | VERIFIED    | Master data, akun demo, inventaris demo, dan transaksi demo dipisah; aman dijalankan ulang        |
 | Dokumentasi                             | VERIFIED    | README + 12 dokumen `docs/`; status implementasi diselaraskan                                      |
 | Deployment                              | BLOCKED     | Panduan + Docker siap; server tidak tersedia                                                       |
@@ -81,7 +81,7 @@ Pengujian terakhir (26 Oktober 2026): **246 passed, 0 skipped, 1171 assertions**
 - PHP 8.3.32, Composer 2.10.2
 - Laravel 13, Livewire 4, Vite 8, Tailwind CSS 4.3
 - MySQL 8.4.3 (Laragon), Node 24; pengujian memakai SQLite in-memory
-- `php artisan test` (246 tes), `npm run build` (CSS ±78 KB dengan utility lengkap), migrasi + seed SQLite terpisah
+- `php artisan test` (249 tes), `npm run build` (CSS ±78 KB dengan utility lengkap), migrasi + seed SQLite terpisah
 - Chrome headless (Playwright) untuk verifikasi UI: 19 halaman, alur katalog/unit, laporan, 4 role, mobile 390px, dan tema gelap
 - `config:cache`, `route:cache`, `view:cache` diperiksa ulang setelah perubahan
 

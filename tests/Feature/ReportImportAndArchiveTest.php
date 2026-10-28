@@ -102,6 +102,29 @@ class ReportImportAndArchiveTest extends TestCase
         $this->assertDatabaseMissing('asset_units', ['inventory_code' => 'Z9-99-99']);
     }
 
+    public function test_mode_buat_menolak_kode_yang_sudah_ada_dan_tidak_mengubah_unit(): void
+    {
+        $unit = AssetUnit::query()->where('condition', Condition::BAIK->value)->firstOrFail();
+        $before = $unit->only(['condition', 'status']);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([[$unit->inventory_code, $unit->catalog->name, '', '', '', 'Rusak Berat', 'Hilang']]),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview');
+
+        $this->assertFalse($preview['analysis']['can_import']);
+        $this->assertSame(1, $preview['analysis']['summary']['invalid']);
+        $this->assertStringContainsString('sudah terdaftar', $preview['analysis']['rows'][0]['errors'][0]);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => $preview['token'],
+        ])->assertSessionHasErrors('file');
+
+        $this->assertSame($before, $unit->refresh()->only(['condition', 'status']));
+    }
+
     public function test_mode_pemulihan_membuat_unit_baru_dengan_kode_dan_ruangan_valid(): void
     {
         $room = Room::where('is_lab', true)->firstOrFail();

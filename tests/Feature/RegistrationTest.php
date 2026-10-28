@@ -154,4 +154,41 @@ class RegistrationTest extends TestCase
         $this->assertSame(Role::PEMINJAM->value, $user->refresh()->role);
         $this->assertFalse($user->hasRole(Role::SUPER_ADMIN->value));
     }
+
+    public function test_profil_akun_lama_dapat_menyimpan_email_non_gmail_yang_tidak_diubah(): void
+    {
+        $user = User::create([
+            'name' => 'Akun Lama',
+            'username' => 'akun.lama',
+            'email' => 'guru@sekolah.id',
+            'password' => 'password-uji',
+            'role' => Role::PEMINJAM->value,
+        ]);
+
+        $this->actingAs($user)->patch(route('profile.update'), [
+            'name' => 'Nama Baru Akun Lama',
+            'email' => 'guru@sekolah.id',
+        ])->assertRedirect(route('profile.edit'))->assertSessionHasNoErrors();
+
+        $this->assertSame('Nama Baru Akun Lama', $user->refresh()->name);
+        $this->assertSame('guru@sekolah.id', $user->email);
+    }
+
+    public function test_profil_menolak_perubahan_email_ke_domain_selain_gmail(): void
+    {
+        $user = User::create([
+            'name' => 'Akun Lama',
+            'username' => 'akun.lama',
+            'email' => 'guru@sekolah.id',
+            'password' => 'password-uji',
+            'role' => Role::PEMINJAM->value,
+        ]);
+
+        $this->actingAs($user)->patch(route('profile.update'), [
+            'name' => 'Akun Lama',
+            'email' => 'guru@yahoo.com',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertSame('guru@sekolah.id', $user->refresh()->email);
+    }
 }

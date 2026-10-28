@@ -1,6 +1,6 @@
 # Testing Report
 
-Tanggal eksekusi terakhir: **26 Oktober 2026**
+Tanggal eksekusi terakhir: **27 Oktober 2026**
 Lingkungan: Windows 11, PHP 8.3.32, Laravel 13, MySQL 8.4.3, Node 24, Chrome headless.
 
 > Hasil ini mencakup revisi besar V2 (26 Oktober 2026): registrasi Gmail + role Peminjam, scan universal, gedung A–G, penghapusan `asset_code`, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus arsip laporan, status kegiatan, surat peminjaman per kategori + pratinjau cetak, dan UI pengguna berbasis kartu. Rincian: `REVISION_V2.md`.
@@ -29,18 +29,18 @@ php artisan view:cache
 ## 2. Hasil otomatis
 
 ```
-Tests:    246 passed (1171 assertions)
-Duration: ~178s
+Tests:    249 passed (1190 assertions)
+Duration: ~172s
 ```
 
 Tidak ada test yang di-skip. Angka ini mencakup seluruh revisi sebelumnya ditambah revisi besar V2: registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, dan UI pengguna.
 
 Test baru pada revisi V2:
 
-- `RegistrationTest` (8 tes) — registrasi lengkap, Gmail ditolak, domain kapital dinormalisasi, duplikat, hash password, role selalu Peminjam, eskalasi role diabaikan, kelas wajib siswa, sapaan dashboard, profil tidak dapat mengubah role.
+- `RegistrationTest` (11 tes) — registrasi lengkap, Gmail ditolak, domain kapital dinormalisasi, duplikat, hash password, role selalu Peminjam, eskalasi role diabaikan, kelas wajib siswa, sapaan dashboard, profil tidak dapat mengubah role, akun lama non-Gmail dapat mempertahankan email, perubahan ke domain non-Gmail ditolak.
 - `UniversalScanTest` — semua role dapat scan, hasil tampil di halaman scan, kode invalid/missing, masking data internal, scan tidak mengubah data, payload QR memuat rilis skema + ID unit + kode + metadata lokasi tanpa rahasia, serta stiker ID internal katalog lama diarahkan tanpa redirect.
 - `MultiLocationProcurementTest` — alokasi 20+15+5, total lebih/kurang ditolak, unit dan kode unik per lokasi.
-- `ReportImportAndArchiveTest` — pratinjau, format/duplikat ditolak, impor atomik, hapus arsip tidak menghapus unit, audit log.
+- `ReportImportAndArchiveTest` — pratinjau, format/duplikat ditolak, impor atomik, hapus arsip tidak menghapus unit, audit log, mode buat menolak kode lama tanpa mengubah unit.
 - `EventActivityTest` — guru/staf mencatat kegiatan, siswa ditolak, status tersimpan & berubah, kepemilikan, tidak mengubah peminjaman.
 - `LoanLetterTest` — surat biasa tanpa kegiatan, surat kegiatan memuat kegiatan, tanggal tanpa jam, identitas per kategori, kode unit, otorisasi.
 - `UserManagementUiTest` — panel kartu tambah/edit, field kondisional, role hanya Super Admin.
@@ -274,8 +274,8 @@ Dijalankan dengan `php artisan test --compact` pada SQLite in-memory, locale `id
 | D. Pengadaan | `MultiLocationProcurementTest` | 20+15+5 valid, total lebih/kurang ditolak, kode otomatis & unik |
 | E. Label & QR | `LabelAndQrTest` | label per unit, header nama, kode unit, QR unit, tanpa `asset_code` |
 | F. Mutasi | `MovementAndWriteOffTest` | unit dipinjam ditolak, cakupan, riwayat; multi-select divalidasi backend |
-| G. Laporan | `ReportImportAndArchiveTest` | pratinjau, format/duplikat, atomik, hapus arsip, audit |
+| G. Laporan | `ReportImportAndArchiveTest` | pratinjau, format/duplikat, atomik, mode buat menolak kode lama, hapus arsip, audit |
 | H. Dokumen | `LoanLetterTest`, `EventAndBastTest` | surat biasa vs kegiatan, tanggal tanpa jam, identitas, kode unit, otorisasi |
-| I. Regresi role | seluruh suite | 246 tes lulus untuk Super Admin, Ketua Laboran, Laboran, siswa, guru, staf |
+| I. Regresi role | seluruh suite | 249 tes lulus untuk Super Admin, Ketua Laboran, Laboran, siswa, guru, staf |
 
 Batasan yang tidak diuji: kamera fisik pada perangkat nyata (diuji melalui jalur manual dan ketersediaan `html5-qrcode`), verifikasi email (SMTP belum dikonfigurasi), dan konkurensi MySQL nyata.

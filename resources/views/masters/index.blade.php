@@ -185,8 +185,8 @@
             </ul>
             <form method="POST" action="{{ route('masters.store-major') }}" class="grid grid-cols-2 gap-2">
                 @csrf
-                <input type="text" name="name" placeholder="Nama jurusan *" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
-                <input type="text" name="code" placeholder="Kode (opsional)" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                <input type="text" name="name" placeholder="Nama jurusan * (Teknik Pengelasan)" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
+                <input type="text" name="code" placeholder="Kode (opsional), mis. TP" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                 <button class="rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Tambah</button>
             </form>
         </div>

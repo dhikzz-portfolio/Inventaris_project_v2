@@ -123,7 +123,8 @@ Keamanan/kinerja:
 ### 4.1 Validasi wajib
 
 - Form master gedung: nama + kode satu huruf wajib; kode dinormalisasi kapital dan unik.
-- Form ruangan: gedung (dropdown master), lantai 1–9, nomor 1–99, nama wajib; kombinasi `gedung+lantai+nomor` unik.
+- Form ruangan: gedung (dropdown master), lantai 1–9, nomor 1–99, nama opsional (default `Ruang NN`); kombinasi `gedung+lantai+nomor` unik.
+- Form jurusan: nama wajib; kode opsional (contoh `TP`) dan unik bila diisi.
 - Katalog: nama, kategori, tahun, sumber dana, jumlah, satuan wajib; jumlah minimal 1.
 - Unit: lokasi wajib dan identitas ruangan lengkap sebelum kode diterbitkan.
 - Pengguna: nama, username, role, password (saat tambah) wajib; email opsional untuk akun non-registrasi.
@@ -245,7 +246,7 @@ Route pengelola (`role:SUPER_ADMIN|KETUA_LABORAN`): `GET /laporan/impor`, `POST 
 
 - Format: **CSV/TXT/XLSX**, maksimal 2 MB, baris header.
 - Kolom yang dibaca: `kode_inventaris` (wajib), `nama`, `gedung`, `lantai`, `ruangan`, `kondisi`, `status`, `catatan` (nama kolom dinormalisasi).
-- Mode: `create` (hanya kode baru) dan `update` (memperbarui unit yang cocok berdasarkan kode inventaris).
+- Mode: `create` (hanya kode baru; kode yang sudah ada ditolak dan diarahkan ke mode perbarui) dan `update` (memperbarui unit yang cocok berdasarkan kode inventaris).
 - Pratinjau menampilkan total, valid, invalid, duplikat, dan alasan per baris; impor diblokir bila masih ada baris bermasalah.
 - Konfirmasi memakai token sesi dari pratinjau; impor dijalankan atomik dan tidak menghapus data lain.
 - Hasil impor dicatat di `activity_log` (aktor, waktu, nama file, jumlah).
@@ -353,26 +354,26 @@ Tidak ada migration destruktif otomatis: penghapusan kolom hanya `asset_code` se
 
 ## 16. Pengujian
 
-Hasil terakhir (26 Oktober 2026):
+Hasil terakhir (27 Oktober 2026):
 
 ```text
-Tests:    246 passed (1171 assertions)
-Duration: ~178s
+Tests:    249 passed (1190 assertions)
+Duration: ~172s
 Database: SQLite in-memory
 ```
 
 Test baru/berubah pada revisi ini:
 
-- `RegistrationTest` — registrasi lengkap, Gmail ditolak, domain kapital diterima & dinormalisasi, duplikat email/username, password hash, role selalu Peminjam, eskalasi `role` diabaikan, kelas wajib untuk siswa, sapaan nama+gelar/username, profil tidak dapat mengubah role.
+- `RegistrationTest` — registrasi lengkap, Gmail ditolak, domain kapital diterima & dinormalisasi, duplikat email/username, password hash, role selalu Peminjam, eskalasi `role` diabaikan, kelas wajib untuk siswa, sapaan nama+gelar/username, profil tidak dapat mengubah role, akun lama non-Gmail dapat mempertahankan email lama, perubahan email ke domain non-Gmail ditolak.
 - `UniversalScanTest` — akses semua role, hasil di halaman scan, kode tidak valid/tidak ditemukan, pembatasan data internal, scan tidak mengubah data, payload QR bertanda rilis + metadata lokasi, dan stiker ID internal katalog lama diarahkan tanpa redirect.
 - `MultiLocationProcurementTest` — 40 = 20+15+5, total lebih/kurang ditolak, kode unit otomatis & unik, alokasi tersimpan.
-- `ReportImportAndArchiveTest` — pratinjau, format/duplikat ditolak, impor atomik, hapus arsip tidak menghapus unit, audit log.
+- `ReportImportAndArchiveTest` — pratinjau, format/duplikat ditolak, impor atomik, hapus arsip tidak menghapus unit, audit log, mode buat menolak kode yang sudah ada tanpa mengubah unit.
 - `EventActivityTest` — guru/staf dapat mencatat, siswa tidak, status tersimpan & berubah, kepemilikan, status tidak mengubah peminjaman.
 - `LoanLetterTest` — surat biasa tanpa field kegiatan, surat kegiatan memuat kegiatan, tanggal tanpa jam, identitas per kategori, kode unit, otorisasi.
 - `UserManagementUiTest` — panel kartu tambah/edit, field kondisional, role hanya Super Admin.
 - `BuildingMasterDataTest`, `LabelAndQrTest`, `MovementAndWriteOffTest`, `InventoryCatalogTest` disesuaikan dengan `asset_code` yang dihapus dan perilaku baru.
 
-Regresi: seluruh suite (246 tes) lulus. `vendor/bin/pint --dirty` dijalankan. Build frontend tidak diubah pada revisi ini (tidak ada perubahan CSS/JS baru selain atribut HTML).
+Regresi: seluruh suite (249 tes) lulus. `vendor/bin/pint --dirty` dijalankan. Build frontend tidak diubah pada revisi ini (tidak ada perubahan CSS/JS baru selain atribut HTML).
 
 ---
 
@@ -381,7 +382,7 @@ Regresi: seluruh suite (246 tes) lulus. `vendor/bin/pint --dirty` dijalankan. Bu
 - `docs/REVISION_V2.md` (dokumen ini).
 - `docs/PROJECT_STATUS.md` — status modul, jumlah tes, data master.
 - `docs/DATABASE.md` — tabel/kolom baru, `asset_code` dihapus, seeder A–I.
-- `docs/TESTING.md` — hasil 246 tes dan daftar test baru.
+- `docs/TESTING.md` — hasil 249 tes dan daftar test baru.
 - `docs/KNOWN_ISSUES.md` — butir yang selesai dan sisa keterbatasan.
 - `docs/IMPLEMENTATION_PLAN.md` — penunjuk status revisi V2.
 

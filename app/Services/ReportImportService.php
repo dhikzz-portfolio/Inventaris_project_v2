@@ -111,6 +111,11 @@ class ReportImportService
                 $errors[] = "Mode perbarui: unit {$code} tidak ditemukan.";
             }
 
+            if ($mode === 'create' && $existing) {
+                $errors[] = "Mode buat: kode {$code} sudah terdaftar. Gunakan mode perbarui untuk mengubah unit yang ada.";
+                $action = 'DITOLAK';
+            }
+
             if ($mode === 'create' && ! $existing) {
                 $catalogName = trim((string) ($row['nama_barang'] ?? ''));
                 $catalog = $catalogName !== ''
@@ -211,6 +216,12 @@ class ReportImportService
                 }
 
                 $existing = AssetUnit::where('inventory_code', $row['code'])->lockForUpdate()->first();
+
+                if ($existing && $analysis['mode'] === 'create') {
+                    throw ValidationException::withMessages([
+                        'file' => "Mode buat tidak boleh mengubah unit yang sudah ada ({$row['code']}).",
+                    ]);
+                }
 
                 if ($existing) {
                     $existing->update([

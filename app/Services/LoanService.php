@@ -675,7 +675,7 @@ class LoanService
             throw new \RuntimeException('Layanan inventaris belum terhubung. Pemrosesan pengembalian tidak dapat dilanjutkan.');
         }
 
-return DB::transaction(function () use ($loan, $returner, $rows) {
+        return DB::transaction(function () use ($loan, $returner, $rows) {
             /** @var Loan $loan */
             $loan = Loan::whereKey($loan->id)->lockForUpdate()->firstOrFail();
 

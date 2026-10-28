@@ -20,6 +20,7 @@ class UpdateEventStatuses extends Command
         }
 
         $this->info('Event statuses updated.');
+
         return self::SUCCESS;
     }
 }

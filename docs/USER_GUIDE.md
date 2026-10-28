@@ -115,11 +115,13 @@ Saat serah terima, pilih unit fisik yang sesungguhnya diserahkan. Jumlah yang wa
 ### Pengembalian
 
 1. Buka **Pengembalian** → pilih pinjaman → **Proses Pengembalian**.
-2. Untuk setiap barang isi jumlah yang kembali, kondisi akhir, dan ruangan tujuan.
-3. Jika kondisi **Rusak Ringan/Berat**, unggah **foto bukti** (wajib).
-4. Jika ruangan tujuan berbeda dari asal, konfirmasi peringatan — sistem akan mencatat mutasi dan menerbitkan kode baru (⚠ 2.1).
-5. Jika jumlah kembali kurang, selisih dicatat sebagai **Hilang sementara**. Pinjaman tetap aktif sampai barang ditemukan/dikembalikan atau ditutup oleh Wakasek.
-6. Pengembalian dapat dilakukan bertahap; jumlah kembali bersifat akumulatif.
+2. Pada pinjaman dengan **unit fisik**, setiap unit tampil terpisah beserta kode inventaris dan lokasinya. Centang unit yang sedang diperiksa, lalu isi kondisi akhir, catatan, dan ruangan tujuan untuk unit tersebut.
+3. **Centang saja tidak mengonfirmasi pengembalian.** Tekan **Konfirmasi unit ini** untuk satu unit, atau **Konfirmasi unit terpilih** untuk beberapa unit sekaligus. Setiap unit dapat memiliki kondisi dan catatan yang berbeda.
+4. Jika kondisi **Rusak Ringan/Berat**, unggah **foto bukti** (wajib) pada unit tersebut.
+5. Untuk kelompok katalog sejenis dengan **minimal 11 unit**, tombol **Validasi Semua** tersedia. Sistem menampilkan konfirmasi berisi jumlah unit dan nama kelompok sebelum memproses; hanya unit yang belum dikonfirmasi pada kelompok itu yang diproses, unit dari katalog lain tidak ikut.
+6. Jika ruangan tujuan berbeda dari asal, konfirmasi peringatan — sistem akan mencatat mutasi unit dan menerbitkan kode baru (⚠ 2.1).
+7. Tombol **Selesaikan Pengembalian** baru aktif setelah seluruh unit dikonfirmasi. Status pinjaman berubah menjadi **Selesai** hanya setelah tombol ini ditekan; backend memeriksa ulang seluruh unit sebelum menyelesaikan.
+8. Untuk pinjaman **tanpa unit fisik (data lama)**, jumlah kembali, kondisi, dan ruangan diisi per baris katalog. Pengembalian dapat dilakukan bertahap dan jumlahnya akumulatif. Jika jumlah kembali kurang, selisih dicatat sebagai **Hilang sementara** dan pinjaman tetap aktif sampai barang ditemukan/dikembalikan atau ditutup oleh Wakasek.
 
 ### Scan QR
 
@@ -195,7 +197,8 @@ Notifikasi dihasilkan oleh queue worker. Jika tidak muncul, pastikan worker berj
 
 Aplikasi kini mendukung dua cara serah terima, tergantung kesiapan data:
 
-- **Serah terima dengan unit fisik (direkomendasikan):** petugas memilih/memindai unit fisik yang diserahkan. Unit akan dicatat pada pinjaman, statusnya menjadi `DIPINJAM`, dan kondisi keluar tersimpan. Saat pengembalian, kondisi masuk dan ruangan tujuan tercatat; unit kembali ke `AKTIF`.
+- **Serah terima dengan unit fisik (direkomendasikan):** petugas memilih/memindai unit fisik yang diserahkan. Unit akan dicatat pada pinjaman, statusnya menjadi `DIPINJAM`, dan kondisi keluar tersimpan. Saat pengembalian, setiap unit dikonfirmasi terpisah; kondisi masuk, catatan pemeriksaan, petugas konfirmasi, dan waktu konfirmasi tercatat. Unit kembali ke `AKTIF` dengan kondisi hasil pemeriksaan.
+- **Validasi massal** hanya muncul untuk kelompok sejenis dengan minimal 11 unit (termasuk unit yang sudah dikonfirmasi) dan tidak pernah mencampur katalog. Status pemeriksaan (`BELUM_DIPERIKSA`, `MENUNGGU_KONFIRMASI`, `SUDAH_DIKONFIRMASI`, `PERLU_TINDAK_LANJUT`) terpisah dari kondisi fisik barang.
 - **Serah terima tanpa unit fisik (data lama):** bila katalog belum memiliki unit fisik, serah terima tetap dapat dilakukan dengan langsung menekan **Serahkan Barang**. Penugasan unit tidak wajib; pembukuan masih memakai jumlah katalog.
 
 Aturan penugasan unit:

@@ -35,31 +35,7 @@ class LoanController extends Controller
      */
     private function canActOn(Loan $loan, Request $request): bool
     {
-        $user = $request->user();
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        $items = $loan->loanItems()->with('item.room')->get();
-
-        if ($items->isEmpty()) {
-            return false;
-        }
-
-        if ($user->isKetuaLaboran()) {
-            return $items->every(fn ($li) => (bool) $li->item?->room?->is_lab);
-        }
-
-        if ($user->isLaboran()) {
-            $roomIds = $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
-
-            return $roomIds !== [] && $items->every(
-                fn ($li) => in_array((int) $li->item?->room_id, $roomIds, true)
-            );
-        }
-
-        return false;
+        return $loan->canBeManagedBy($request->user());
     }
 
     // ================= AJUKAN (fallback non-Livewire) =================
@@ -345,12 +321,30 @@ class LoanController extends Controller
             'rows.*.condition_in' => ['required', 'in:BAIK,RUSAK_RINGAN,RUSAK_BERAT'],
             'rows.*.returned_room_id' => ['required', 'exists:rooms,id'],
             'rows.*.damage_photo' => ['nullable', 'image', 'max:4096'],
+            'rows.*.return_notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $service->processReturn($loan, $request->user(), $data['rows']);
 
         return redirect()->route('loans.show', $loan)
             ->with('success', 'Pengembalian diproses.');
+    }
+
+    /** Selesaikan pengembalian setelah backend memeriksa ulang seluruh unit. */
+    public function finishReturn(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        try {
+            $service->completeReturn($loan, $request->user());
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['finish' => $e->getMessage()]);
+        }
+
+        return redirect()->route('loans.show', $loan)
+            ->with('success', 'Pengembalian selesai — seluruh unit telah dikonfirmasi.');
     }
 
     /** Wakasek menutup pinjaman dengan selisih (barang tetap berflag Hilang). */

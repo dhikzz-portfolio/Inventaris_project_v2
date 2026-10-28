@@ -58,7 +58,7 @@ Test lama yang diperbarui: `BuildingMasterDataTest`, `InventoryCatalogTest`, `Mo
 | Anti-bentrok                      | R4, `test_anti_double_booking_pada_stok_terbatas`                                                       |
 | Approval berjenjang + TTD         | R6, `test_approval_berjenjang_dengan_ttd_digital_level_2`                                               |
 | Serah terima & pembatalan         | `LoanLifecycleTest`                                                                                     |
-| Pengembalian parsial/rusak/hilang | R1, R2, R3, `ReturnFormLivewireTest`, `LoanLifecycleTest`                                               |
+| Pengembalian parsial/rusak/hilang | R1, R2, R3, `ReturnFormLivewireTest`, `ReturnUnitValidationTest`, `LoanLifecycleTest`                    |
 | Mutasi & penghapusan              | `MovementAndWriteOffTest`, R7                                                                           |
 | Penghapusan mengarsip unit fisik  | `MovementAndWriteOffTest::test_persetujuan_penghapusan_mengarsipkan_unit_fisik_dan_sinkron_dengan_katalog` |
 | Cakupan mutasi/penghapusan        | `MovementAndWriteOffTest::test_ketua_laboran_tidak_dapat_mengajukan_penghapusan_barang_di_luar_laboratorium` |
@@ -250,6 +250,8 @@ php artisan test --compact --filter=BuildingMasterDataTest
 php artisan test --compact --filter=LoanApprovalHandoverTest
 php artisan test --compact --filter=ItemQuantityConsistencyTest
 php artisan test --compact --filter=LoanUnitFlowTest
+php artisan test --compact --filter=ReturnFormLivewireTest
+php artisan test --compact --filter=ReturnUnitValidationTest
 php artisan inventory:verify-codes
 vendor/bin/pint --dirty --format agent
 ```
@@ -279,3 +281,21 @@ Dijalankan dengan `php artisan test --compact` pada SQLite in-memory, locale `id
 | I. Regresi role | seluruh suite | 249 tes lulus untuk Super Admin, Ketua Laboran, Laboran, siswa, guru, staf |
 
 Batasan yang tidak diuji: kamera fisik pada perangkat nyata (diuji melalui jalur manual dan ketersediaan `html5-qrcode`), verifikasi email (SMTP belum dikonfigurasi), dan konkurensi MySQL nyata.
+
+## 11. Pengujian validasi pengembalian per unit (28 Oktober 2026)
+
+`tests/Feature/ReturnUnitValidationTest.php` mencakup perilaku berikut:
+
+- Memilih unit tidak mengubah `returned_at`, `qty_returned`, atau status pinjaman.
+- Konfirmasi satu unit tidak menyentuh unit lain dan menyimpan kondisi, catatan, petugas, serta waktu konfirmasi per unit.
+- Kelompok 10 unit tidak menampilkan validasi massal; permintaan langsung ditolak.
+- Kelompok 11 unit menampilkan validasi massal, hanya memproses unit yang belum dikonfirmasi, dan tidak memproses ulang unit yang sudah selesai.
+- Validasi massal pada satu katalog tidak memproses katalog lain dalam pinjaman yang sama.
+- Tombol penyelesaian tertahan dan backend menolak `completeReturn()` selama masih ada unit belum dikonfirmasi.
+- Status `SELESAI` baru tercapai setelah semua unit dikonfirmasi dan aksi penyelesaian dijalankan.
+- Kondisi dan catatan berbeda dapat disimpan untuk setiap unit, termasuk foto bukti rusak per unit.
+- Foto unit rusak sebelumnya tidak boleh dipakai sebagai bukti untuk unit rusak berikutnya; backend menolak unit rusak tanpa foto sendiri.
+- Petugas di luar cakupan dan peminjam tidak dapat membuka form pengembalian.
+- Unit yang sudah dikonfirmasi tidak dapat diproses dua kali, baik dari komponen maupun service.
+
+Regresi yang dijalankan bersama: `ReturnFormLivewireTest`, `LoanUnitFlowTest`, `LoanLifecycleTest`, `InventoryFlowTest`, dan `CriticalBusinessRulesTest`.

@@ -219,6 +219,10 @@ Cakupan efektif:
 | `returned_at`              | timestamp nullable | Waktu unit kembali; `NULL` = penugasan masih terbuka. |
 | `condition_out`            | string             | Kondisi saat keluar.                                  |
 | `condition_in`             | string nullable    | Kondisi saat kembali.                                 |
+| `return_status`            | string (30)        | Status pemeriksaan unit; default `BELUM_DIPERIKSA`.   |
+| `return_notes`             | text nullable      | Catatan pemeriksaan/kerusakan per unit (maks. 1000).  |
+| `confirmed_by`             | FK `users` nullable| Petugas yang mengonfirmasi pengembalian unit.         |
+| `confirmed_at`             | timestamp nullable | Waktu konfirmasi pengembalian unit.                   |
 | `opened_at`                | timestamp nullable | Penugasan dibuka (barang keluar ke peminjam).         |
 | `closed_at`                | timestamp nullable | Penugasan ditutup (barang kembali).                   |
 | `created_at`, `updated_at` | timestamp          |                                                       |
@@ -226,6 +230,8 @@ Cakupan efektif:
 Index: `unique(loan_item_id, asset_unit_id)` — satu unit tidak boleh ditugaskan dua kali pada baris peminjaman yang sama. `index(asset_unit_id)`, `index(asset_unit_id, returned_at)`, dan `unique(asset_unit_id, returned_at)` sebagai pengaman penugasan terbuka.
 
 > **Catatan dialek:** pada MySQL/MariaDB, `NULL` pada unique index diperlakukan sebagai berbeda, sehingga `unique(asset_unit_id, returned_at)` **tidak** dengan sendirinya mencegah dua penugasan terbuka pada unit yang sama. Aturan "satu unit = satu penugasan terbuka" ditegakkan di service (`LoanService::assignUnitsOnHandover()` memakai `LoanItemUnit::openForUnit()`) dan diuji pada kedua dialek.
+
+`return_status` memakai nilai `BELUM_DIPERIKSA`, `MENUNGGU_KONFIRMASI`, `SUDAH_DIKONFIRMASI`, dan `PERLU_TINDAK_LANJUT`. Migration `2026_10_28_200920_add_per_unit_return_validation_to_loan_item_units_table.php` menambahkan kolom konfirmasi dan mengisi baris lama yang sudah memiliki `returned_at` menjadi `SUDAH_DIKONFIRMASI` dengan `confirmed_at = returned_at`. Status pemeriksaan ini **terpisah** dari `condition_in`: unit dapat sudah dikonfirmasi dengan kondisi rusak.
 
 Catatan: penugasan unit dibuat **saat serah terima**. Peminjaman lama yang belum memiliki penugasan unit tetap sah dan dihitung dari `qty_borrowed`; laporan menandainya `unit_assignment_status = LEGACY`.
 
@@ -370,7 +376,8 @@ kode    = segmen1 || '-' || segmen2 || '-' || segmen3
 - **Rusak** = unit `condition IN ('RUSAK_RINGAN','RUSAK_BERAT')` dan `status = 'AKTIF'`.
 - **Hilang** = unit `status = 'HILANG'`; tidak menambah ketersediaan dan tidak dihitung sebagai unit aktif yang dapat dipinjam.
 - **Dihapus** = unit `status = 'DIHAPUS'` dengan `archived_at` terisi; tetap mengunci kode dan tetap muncul di laporan arsip.
-- Pengembalian parsial menambah `loan_items.qty_returned` dan menutup `loan_item_units` terkait; unit yang kembali dengan kondisi rusak mengubah `condition`, bukan `quantity`.
+- Pengembalian parsial menambah `loan_items.qty_returned` dan menutup `loan_item_units` terkait; `return_status`, `confirmed_by`, `confirmed_at`, dan `return_notes` mencatat konfirmasi per unit. Unit yang kembali dengan kondisi rusak mengubah `condition`, bukan `quantity`.
+- Pinjaman berbasis unit **tidak** otomatis berstatus `SELESAI` saat semua baris katalog penuh. `LoanService::completeReturn()` memeriksa ulang seluruh unit dalam transaksi dan baru mengubah status setelah seluruh unit `SUDAH_DIKONFIRMASI`.
 - Selisih hilang menutup penugasan unit dan mengubah `status` unit menjadi `HILANG` setelah disetujui; tidak ada lagi counter `items.qty_lost`.
 
 ## 6. Rencana migrasi dari model batch

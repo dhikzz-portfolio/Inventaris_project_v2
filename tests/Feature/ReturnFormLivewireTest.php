@@ -169,7 +169,8 @@ class ReturnFormLivewireTest extends TestCase
             ->set('rows.0.qty_returned', 1)
             ->set('rows.0.returned_room_id', $this->origRoom->id)
             ->assertSee('Status:')
-            ->assertSee('1 unit dipilih untuk dikembalikan; 2 unit masih belum diselesaikan.');
+            ->assertSee('0 dari 3 unit sudah dikonfirmasi')
+            ->assertSee('3 unit belum dikonfirmasi');
 
         $component->call('submit')
             ->assertHasNoErrors()

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Loan extends Model
 {
@@ -52,14 +53,15 @@ class Loan extends Model
     }
 
     /** Satu baris peminjaman dapat memiliki beberapa unit fisik yang ditugaskan. */
-    public function loanItemUnits(): HasMany
+    public function loanItemUnits(): HasManyThrough
     {
-        return $this->hasMany(LoanItemUnit::class)->whereNull('returned_at');
+        return $this->hasManyThrough(LoanItemUnit::class, LoanItem::class)
+            ->whereNull('loan_item_units.returned_at');
     }
 
-    public function loanItemUnitsWithReturned(): HasMany
+    public function loanItemUnitsWithReturned(): HasManyThrough
     {
-        return $this->hasMany(LoanItemUnit::class);
+        return $this->hasManyThrough(LoanItemUnit::class, LoanItem::class);
     }
 
     public function approvals(): HasMany
@@ -116,6 +118,38 @@ class Loan extends Model
         return $query->where('borrower_id', $user->id);
     }
 
+    /**
+     * Boleh memproses serah terima/pengembalian? Berbeda dari canBeViewedBy():
+     * peminjam boleh melihat transaksinya sendiri, tetapi tidak boleh
+     * memvalidasi pengembalian.
+     */
+    public function canBeManagedBy(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        $items = $this->loanItems()->with('item.room')->get();
+
+        if ($items->isEmpty()) {
+            return false;
+        }
+
+        if ($user->isKetuaLaboran()) {
+            return $items->every(fn (LoanItem $line) => (bool) $line->item?->room?->is_lab);
+        }
+
+        if ($user->isLaboran()) {
+            $roomIds = $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
+
+            return $roomIds !== [] && $items->every(
+                fn (LoanItem $line) => in_array((int) $line->item?->room_id, $roomIds, true)
+            );
+        }
+
+        return false;
+    }
+
     public function canBeViewedBy(User $user): bool
     {
         if ($user->isSuperAdmin() || $this->borrower_id === $user->id) {
@@ -142,14 +176,90 @@ class Loan extends Model
     }
 
     /** Unit fisik yang sedang dipinjam dalam transaksi ini (hanya yang terbuka). */
-    public function openLoanItemUnits(): HasMany
+    public function openLoanItemUnits(): HasManyThrough
     {
-        return $this->hasMany(LoanItemUnit::class)->whereNull('returned_at');
+        return $this->hasManyThrough(LoanItemUnit::class, LoanItem::class)
+            ->whereNull('loan_item_units.returned_at');
     }
 
     public function isActive(): bool
     {
         return in_array($this->status, [LoanStatus::APPROVED, LoanStatus::DIPINJAM], true);
+    }
+
+    /**
+     * Progres validasi pengembalian per unit. Bila transaksi memiliki
+     * penugasan unit fisik, yang dihitung adalah unit; baris legacy tanpa
+     * penugasan dihitung dari kuantitas katalog.
+     *
+     * @return array{total: int, confirmed: int, pending: int, percent: int, complete: bool, unit_based: bool, pending_labels: list<string>}
+     */
+    public function returnProgress(): array
+    {
+        $items = $this->relationLoaded('loanItems')
+            ? $this->loanItems
+            : $this->loanItems()->get();
+
+        $items->loadMissing(['item', 'unitAssignments.unit']);
+
+        $total = 0;
+        $confirmed = 0;
+        $unitBased = false;
+        $pendingLabels = [];
+
+        foreach ($items as $loanItem) {
+            if ($loanItem->unitAssignments->isNotEmpty()) {
+                $unitBased = true;
+                $assigned = $loanItem->unitAssignments->count();
+                $total += max((int) $loanItem->qty_borrowed, $assigned);
+
+                foreach ($loanItem->unitAssignments as $assignment) {
+                    if ($assignment->isConfirmed()) {
+                        $confirmed++;
+
+                        continue;
+                    }
+
+                    $pendingLabels[] = $assignment->unit?->inventory_code
+                        ?? $loanItem->item?->name
+                        ?? 'Unit';
+                }
+
+                // Penugasan yang tidak lengkap tidak boleh dianggap selesai.
+                $unassigned = (int) $loanItem->qty_borrowed - $assigned;
+                for ($i = 0; $i < max(0, $unassigned); $i++) {
+                    $pendingLabels[] = ($loanItem->item?->name ?? 'Barang').' (belum ada unit)';
+                }
+
+                continue;
+            }
+
+            $borrowed = (int) $loanItem->qty_borrowed;
+            $returned = min($borrowed, (int) $loanItem->qty_returned);
+            $total += $borrowed;
+            $confirmed += $returned;
+
+            if ($borrowed > $returned) {
+                $pendingLabels[] = $loanItem->item?->name ?? 'Baris peminjaman';
+            }
+        }
+
+        $pending = max(0, $total - $confirmed);
+
+        return [
+            'total' => $total,
+            'confirmed' => $confirmed,
+            'pending' => $pending,
+            'percent' => $total > 0 ? (int) round(($confirmed / $total) * 100) : 0,
+            'complete' => $total > 0 && $pending === 0,
+            'unit_based' => $unitBased,
+            'pending_labels' => $pendingLabels,
+        ];
+    }
+
+    public function canCompleteReturn(): bool
+    {
+        return $this->isActive() && $this->returnProgress()['complete'];
     }
 
     public function isOverdue(): bool

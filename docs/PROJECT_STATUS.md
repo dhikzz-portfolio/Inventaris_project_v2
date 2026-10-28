@@ -1,7 +1,7 @@
 # Project Status
 
-Tanggal: **26 Oktober 2026**
-Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026** (role, seeder lima jurusan, persetujuan otomatis, katalog peminjam, arsip katalog, batas penyerahan), dan **revisi besar V2 26 Oktober 2026** (registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, UI pengguna). Rincian: `REVISION_V2.md`.
+Tanggal: **28 Oktober 2026**
+Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026** (role, seeder lima jurusan, persetujuan otomatis, katalog peminjam, arsip katalog, batas penyerahan), dan **revisi besar V2 26 Oktober 2026** (registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, UI pengguna), serta **revisi validasi pengembalian per unit 28 Oktober 2026**. Rincian: `REVISION_V2.md` dan `DECISIONS.md` butir 38.
 Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 
 ## 1. Ringkasan status
@@ -17,7 +17,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Audit log perubahan cakupan akses ruangan                    | **IMPLEMENTED & VERIFIED**                                                                 |
 | UI/UX desain lama + responsif + tema gelap                   | **IMPLEMENTED & VERIFIED** — Tailwind v4 menghasilkan utility CSS; 19 halaman diperiksa |
 | Dashboard per role (katalog, unit, cakupan lab)              | **IMPLEMENTED & VERIFIED**                                                                 |
-| Penugasan unit fisik pada peminjaman (`loan_item_units`)      | **IMPLEMENTED & VERIFIED** — unit ditugaskan saat serah terima, status `DIPINJAM`/`AKTIF` + kondisi mengikuti pengembalian |
+| Penugasan unit fisik pada peminjaman (`loan_item_units`)      | **IMPLEMENTED & VERIFIED** — unit ditugaskan saat serah terima, dikonfirmasi terpisah saat kembali, status `DIPINJAM`/`AKTIF` + kondisi mengikuti pengembalian |
 | Alur serah terima (tanpa error 422 palsu)                    | **IMPLEMENTED & VERIFIED** — status transaksi menutup rantai persetujuan; pesan blokir tampil di UI |
 | Persetujuan Wakasek tanpa Admin tambahan                      | **IMPLEMENTED & VERIFIED** — satu persetujuan sah Wakasek cukup; alur role lain tetap berjenjang |
 | Tanda tangan digital opsional + status dokumen terpisah       | **IMPLEMENTED & VERIFIED** — `DocumentStatus` terpisah dari status transaksi               |
@@ -45,7 +45,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Verifikasi email (SMTP)                                      | **BELUM** — kolom & event siap; SMTP/MustVerifyEmail belum dikonfigurasi                                                    |
 | Deployment produksi                                          | **BLOCKED** — tidak ada akses server/domain pada lingkungan ini                            |
 
-Pengujian terakhir (27 Oktober 2026): **249 passed, 0 skipped, 1190 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`). `vendor/bin/pint --dirty` dijalankan. Verifikasi browser (Playwright/Chrome) pada rilis sebelumnya tetap berlaku untuk alur katalog/unit/navigasi; perubahan UI revisi V2 diverifikasi melalui render Blade, Livewire test, dan HTTP test (bukan screenshot baru).
+Pengujian terakhir (28 Oktober 2026): **265 passed, 0 skipped, 1299 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`, dijalankan dengan `memory_limit=1G`). `vendor/bin/pint --dirty` dijalankan. Verifikasi browser (Playwright/Chrome) pada rilis sebelumnya tetap berlaku untuk alur katalog/unit/navigasi; perubahan UI revisi V2 diverifikasi melalui render Blade, Livewire test, dan HTTP test (bukan screenshot baru).
 
 ## 2. Status per modul
 
@@ -66,12 +66,12 @@ Pengujian terakhir (27 Oktober 2026): **249 passed, 0 skipped, 1190 assertions**
 | Pengadaan                               | VERIFIED    | Unit baru diterbitkan saat pengadaan disetujui; pengajuan ditolak tidak memakai kode               |
 | Peminjaman multi-item                   | VERIFIED    | Multi-item; ketersediaan katalog dikurangi pinjaman aktif; status transaksi menutup rantai persetujuan (PENDING → APPROVED) |
 | Serah terima & pembatalan               | VERIFIED    | Timestamp petugas, pembebasan jadwal, penugasan unit fisik, penjagaan serah terima ganda           |
-| Pengembalian                            | VERIFIED    | Parsial akumulatif, foto bukti, mutasi katalog, selisih                                            |
+| Pengembalian                            | VERIFIED    | Per unit: konfirmasi individual, validasi massal ≥11 unit per katalog, foto bukti, mutasi unit, penyelesaian eksplisit; legacy kuantitas akumulatif |
 | Mutasi unit                             | VERIFIED    | Multi-select + pencarian/filter, kode baru diterbitkan, kode lama pensiun, riwayat, label perlu dicetak ulang || Penghapusan                                         | VERIFIED    | Level baris katalog; persetujuan kini **mengarsipkan unit fisik** dan menghitung ulang counter katalog; pemilihan unit per BA belum || QR & label                                          | VERIFIED    | Label unit (PDF), **massal per unit terpilih (filter + select-all lintas halaman)**, re-print, scan kode/ID lama |
 | BAST & surat                            | VERIFIED    | Per pinjaman & gabungan kegiatan, PDF privat                                                       || Laporan                                             | VERIFIED    | Impor CSV/XLSX (pratinjau + atomik), hapus arsip soft delete; PDF + Excel 5 sheet (sheet **Unit** per unit fisik; ringkasan kondisi dihitung per unit), filter 4 cakupan; Ketua Laboran hanya data laboratorium, arsip seluruh sekolah khusus Super Admin |
 | Notifikasi                              | VERIFIED    | In-app + 4 job terjadwal, deduplikasi                                                             |
 | Audit log                               | VERIFIED    | Immutable dari Eloquent; mutasi kode dan unit dicatat                                              |
-| Tema & mobile                          | VERIFIED    | Desain lama dipertahankan; bottom nav, dark mode, PWA; tanpa overflow horizontal di 390px           || Pengujian                                           | VERIFIED    | 249 passed, 1190 assertions (SQLite in-memory)                                                      |
+| Tema & mobile                          | VERIFIED    | Desain lama dipertahankan; bottom nav, dark mode, PWA; tanpa overflow horizontal di 390px           || Pengujian                                           | VERIFIED    | 265 passed, 1299 assertions (SQLite in-memory)                                                      |
 | Seeder                                  | VERIFIED    | Master data, akun demo, inventaris demo, dan transaksi demo dipisah; aman dijalankan ulang        |
 | Dokumentasi                             | VERIFIED    | README + 12 dokumen `docs/`; status implementasi diselaraskan                                      |
 | Deployment                              | BLOCKED     | Panduan + Docker siap; server tidak tersedia                                                       |

@@ -88,6 +88,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
         Route::get('/pengembalian', [LoanController::class, 'returns'])->name('loans.returns');
         Route::get('/pengembalian/{loan}', [LoanController::class, 'returnForm'])->name('loans.return-form');
         Route::post('/pengembalian/{loan}', [LoanController::class, 'processReturn'])->name('loans.return');
+        Route::post('/pengembalian/{loan}/selesai', [LoanController::class, 'finishReturn'])->name('loans.return.finish');
 
         // Label & Scan QR
         Route::patch('/units/{unit}', [UnitController::class, 'update'])->name('units.update');

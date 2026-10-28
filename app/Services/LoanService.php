@@ -750,12 +750,32 @@ class LoanService
 
                 $condition = Condition::from($row['condition_in']);
                 $room = Room::findOrFail((int) $row['returned_room_id']);
+                $returnNotes = isset($row['return_notes']) ? trim((string) $row['return_notes']) : null;
+
+                if ($returnNotes !== null && mb_strlen($returnNotes) > 1000) {
+                    throw ValidationException::withMessages([
+                        'rows' => 'Catatan pemeriksaan maksimal 1000 karakter.',
+                    ]);
+                }
 
                 // Foto bukti wajib jika ada unit yang benar-benar kembali dalam kondisi rusak.
+                // Pada alur unit fisik, setiap unit rusak wajib membawa fotonya sendiri;
+                // foto unit sebelumnya tidak boleh dianggap sebagai bukti unit berikutnya.
+                $hasUploadedPhoto = isset($row['damage_photo'])
+                    && $row['damage_photo']
+                    && $row['damage_photo']->isValid();
                 $damagePath = $loanItem->damage_photo_path;
-                if ($qtyNow > 0 && $condition->isDamaged() && isset($row['damage_photo']) && $row['damage_photo'] && $row['damage_photo']->isValid()) {
+
+                if ($qtyNow > 0 && $condition->isDamaged() && $hasUnitAssignments && ! $hasUploadedPhoto) {
+                    throw ValidationException::withMessages([
+                        'rows' => "Foto bukti kerusakan wajib diunggah untuk setiap unit rusak pada \"{$loanItem->item->name}\".",
+                    ]);
+                }
+
+                if ($qtyNow > 0 && $condition->isDamaged() && $hasUploadedPhoto) {
                     $damagePath = $this->storeDamageFile($row['damage_photo'], $loan->id);
                 }
+
                 if ($qtyNow > 0 && $condition->isDamaged() && ! $damagePath) {
                     throw ValidationException::withMessages([
                         'rows' => "Foto bukti kerusakan wajib diunggah untuk \"{$loanItem->item->name}\".",
@@ -825,7 +845,8 @@ class LoanService
                         $row['damage_photo'] ?? null,
                         $room,
                         isset($row['assignment_id']) ? (int) $row['assignment_id'] : null,
-                        isset($row['unit_id']) ? (int) $row['unit_id'] : null
+                        isset($row['unit_id']) ? (int) $row['unit_id'] : null,
+                        $returnNotes
                     );
                 }
             }
@@ -834,8 +855,15 @@ class LoanService
             $loanItems = $loan->loanItems()->get();
             $fullyReturned = $loanItems->every(fn ($li) => $li->missingQuantity() === 0);
             $hasShortage = $loanItems->contains(fn (LoanItem $li) => (int) $li->qty_lost > 0);
+            $hasUnitAssignments = $loan->loanItemUnitsWithReturned()->exists();
+            $openUnitAssignments = $hasUnitAssignments
+                ? $loan->loanItemUnitsWithReturned()->whereNull('returned_at')->count()
+                : 0;
 
-            if ($fullyReturned) {
+            // Transaksi berbasis unit tidak boleh berstatus Selesai hanya karena
+            // semua baris katalog terlihat penuh: penyelesaian wajib lewat
+            // tombol/aksi terpisah yang memeriksa ulang setiap unit.
+            if ($fullyReturned && ! $hasUnitAssignments) {
                 $loan->update([
                     'status' => LoanStatus::SELESAI,
                     'returned_at' => now(),
@@ -848,10 +876,15 @@ class LoanService
                 ->causedBy($returner)
                 ->log('Memproses pengembalian'.($hasShortage ? ' dengan selisih (flag Hilang)' : '').($hasDamage ? ' dengan kerusakan' : '').($misplaced ? ' ke ruangan berbeda' : ''));
 
+            $notificationMessage = match (true) {
+                $fullyReturned && ! $hasUnitAssignments => "Pengembalian \"{$loan->purpose}\" selesai. Terima kasih.",
+                $hasUnitAssignments && $openUnitAssignments === 0 => "Pengembalian \"{$loan->purpose}\" diproses. Seluruh unit sudah dikonfirmasi — selesaikan dari form pengembalian.",
+                $hasUnitAssignments => "Pengembalian \"{$loan->purpose}\" diproses; masih ada {$openUnitAssignments} unit yang belum dikonfirmasi.",
+                default => "Pengembalian \"{$loan->purpose}\" diproses, TERDAPAT SELISIH kuantitas — menunggu tindak lanjut admin.",
+            };
+
             NotifyApp::to($loan->borrower, NotificationType::PENGEMBALIAN,
-                $fullyReturned
-                    ? "Pengembalian \"{$loan->purpose}\" selesai. Terima kasih."
-                    : "Pengembalian \"{$loan->purpose}\" diproses, TERDAPAT SELISIH kuantitas — menunggu tindak lanjut admin.",
+                $notificationMessage,
                 route('loans.show', $loan));
 
             if ($hasShortage) {
@@ -871,6 +904,108 @@ class LoanService
                     "Barang dari peminjaman \"{$loan->purpose}\" dikembalikan ke ruangan berbeda — periksa mutasi lokasi.",
                     route('movements.index'));
             }
+
+            return $loan->refresh();
+        });
+    }
+
+    /**
+     * Selesaikan pengembalian setelah seluruh unit terkonfirmasi.
+     *
+     * Frontend hanya menonaktifkan tombol; keputusan akhir tetap dihitung
+     * ulang dari database di dalam transaksi dan baris pinjaman dikunci agar
+     * dua petugas tidak menyelesaikan transaksi yang sama secara bersamaan.
+     */
+    public function completeReturn(Loan $loan, User $officer): Loan
+    {
+        if (! $officer->canApproveLoans()) {
+            throw new \RuntimeException('Anda tidak berwenang menyelesaikan pengembalian.');
+        }
+
+        return DB::transaction(function () use ($loan, $officer) {
+            /** @var Loan $loan */
+            $loan = Loan::whereKey($loan->id)->lockForUpdate()->firstOrFail();
+
+            if (! $loan->isActive()) {
+                throw new \RuntimeException('Peminjaman tidak dalam status dapat diselesaikan.');
+            }
+
+            $items = $loan->loanItems()->with(['item', 'unitAssignments.unit'])->get();
+
+            $total = 0;
+            $confirmed = 0;
+            $pending = [];
+
+            foreach ($items as $loanItem) {
+                $borrowed = (int) $loanItem->qty_borrowed;
+                $assignments = $loanItem->unitAssignments;
+
+                if ($assignments->isNotEmpty()) {
+                    $total += max($borrowed, $assignments->count());
+
+                    foreach ($assignments as $assignment) {
+                        if ($assignment->isConfirmed()) {
+                            $confirmed++;
+
+                            continue;
+                        }
+
+                        $pending[] = $assignment->unit?->inventory_code
+                            ?? $loanItem->item?->name
+                            ?? 'Unit';
+                    }
+
+                    $unassigned = $borrowed - $assignments->count();
+                    for ($i = 0; $i < max(0, $unassigned); $i++) {
+                        $pending[] = ($loanItem->item?->name ?? 'Barang').' (belum ada unit)';
+                    }
+
+                    continue;
+                }
+
+                $returned = min($borrowed, (int) $loanItem->qty_returned);
+                $total += $borrowed;
+                $confirmed += $returned;
+
+                if ($borrowed > $returned) {
+                    $pending[] = $loanItem->item?->name ?? 'Baris peminjaman';
+                }
+            }
+
+            if ($pending !== []) {
+                $sample = implode(', ', array_slice($pending, 0, 5));
+                $more = count($pending) > 5 ? ' dan '.(count($pending) - 5).' lainnya' : '';
+
+                throw ValidationException::withMessages([
+                    'finish' => "Pengembalian belum dapat diselesaikan: {$confirmed} dari {$total} unit sudah dikonfirmasi. "
+                        ."Unit yang belum selesai: {$sample}{$more}.",
+                ]);
+            }
+
+            if ($total === 0) {
+                throw ValidationException::withMessages([
+                    'finish' => 'Tidak ada unit yang dapat diselesaikan pada peminjaman ini.',
+                ]);
+            }
+
+            $loan->update([
+                'status' => LoanStatus::SELESAI,
+                'returned_at' => now(),
+                'returned_by' => $officer->id,
+            ]);
+
+            activity('pengembalian')
+                ->performedOn($loan)
+                ->causedBy($officer)
+                ->withProperties([
+                    'total_units' => $total,
+                    'confirmed_units' => $confirmed,
+                ])
+                ->log('Menyelesaikan pengembalian setelah seluruh unit dikonfirmasi');
+
+            NotifyApp::to($loan->borrower, NotificationType::PENGEMBALIAN,
+                "Pengembalian \"{$loan->purpose}\" selesai. Terima kasih.",
+                route('loans.show', $loan));
 
             return $loan->refresh();
         });
@@ -993,7 +1128,8 @@ class LoanService
         ?UploadedFile $damagePhoto,
         ?Room $returnedRoom = null,
         ?int $assignmentId = null,
-        ?int $unitId = null
+        ?int $unitId = null,
+        ?string $returnNotes = null
     ): void {
         if ($qtyReturnedNow <= 0) {
             return;
@@ -1030,12 +1166,12 @@ class LoanService
 
         $closedAny = false;
 
-        $targets->each(function (LoanItemUnit $assignment) use ($conditionIn, $returner, $loanItem, $returnedRoom, &$closedAny) {
+        $targets->each(function (LoanItemUnit $assignment) use ($conditionIn, $returner, $loanItem, $returnedRoom, $returnNotes, &$closedAny) {
             if ($assignment->returned_at !== null) {
                 return;
             }
 
-            $assignment->markReturned($conditionIn, $returner);
+            $assignment->markReturned($conditionIn, $returner, $returnNotes);
             $closedAny = true;
 
             $unit = $assignment->unit;
@@ -1072,6 +1208,7 @@ class LoanService
                         'loan_item_id' => $loanItem->id,
                         'loan_item_unit_id' => $assignment->id,
                         'condition_in' => $conditionIn->value,
+                        'return_notes' => $returnNotes,
                         'inventory_code' => $assignment->unit?->inventory_code,
                     ])
                     ->log($conditionIn->isDamaged()

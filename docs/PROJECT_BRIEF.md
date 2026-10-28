@@ -447,7 +447,11 @@ Selama masa transisi, `/items` dan `/items/{item}` tetap melayani data legacy, l
 5. Antarmuka membatasi pilihan per baris: setelah jumlah wajib terpenuhi, unit tambahan otomatis disabled; pengguna tetap dapat menghapus centang sebelum menyimpan. Batas ini juga divalidasi ulang di backend.
 6. Unit yang dipilih dicatat pada `loan_item_units` (waktu serah terima, kondisi keluar, `opened_at`), status unit menjadi `DIPINJAM`, dan audit log menyimpan daftar kode unit yang diserahkan.
 7. Server menolak unit di luar transaksi, unit yang sudah dipinjam/diserahkan, unit ganda, jumlah berlebih, dan request serah terima berulang. Baris unit dikunci (`lockForUpdate`) selama proses.
-8. Saat pengembalian, penugasan ditutup (`returned_at`, `condition_in`, `closed_at`) dan unit kembali berstatus `AKTIF` dengan kondisi hasil pemeriksaan.
+8. Saat pengembalian, setiap unit fisik divalidasi terpisah. Penugasan ditutup (`returned_at`, `condition_in`, `return_status`, `return_notes`, `confirmed_by`, `confirmed_at`, `closed_at`) dan unit kembali berstatus `AKTIF` dengan kondisi hasil pemeriksaan.
+9. Memilih unit tidak mengonfirmasi pengembalian. Konfirmasi memerlukan aksi eksplisit dan validasi kondisi, ruangan, serta foto bukti bila kondisi rusak. Unit lain tidak berubah saat satu unit dikonfirmasi.
+10. Kelompok katalog sejenis dengan minimal 11 unit (termasuk yang sudah dikonfirmasi) dapat memakai validasi massal. Konfirmasi massal hanya memproses unit yang belum dikonfirmasi pada kelompok tersebut dan tidak mencampur katalog lain.
+11. Pinjaman berbasis unit baru berstatus `SELESAI` setelah seluruh unit dikonfirmasi dan petugas menekan aksi penyelesaian. Backend memeriksa ulang seluruh unit dengan row lock sebelum menyelesaikan, sehingga request langsung tidak dapat melewati unit yang belum selesai.
+12. Pinjaman warisan tanpa penugasan unit tetap memakai alur kuantitas akumulatif dan dapat selesai otomatis setelah seluruh jumlah katalog dikembalikan.
 
 ### 9.2.1 Katalog pada akun peminjam
 

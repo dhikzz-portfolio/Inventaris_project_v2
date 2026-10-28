@@ -41,9 +41,9 @@ class InventoryFlowTest extends TestCase
 
         $this->seed();
 
-        $this->guru = User::where('username', 'guru.budi')->firstOrFail();
-        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
+        $this->laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
 
         $this->item = Item::create([
             'internal_id' => 'TEST-001',
@@ -62,9 +62,9 @@ class InventoryFlowTest extends TestCase
         ]);
     }
 
-    public function test_login_memakai_username(): void
+    public function test_login_memakai_email_dan_password(): void
     {
-        $this->post('/login', ['username' => 'guru.budi', 'password' => 'guru123'])
+        $this->post('/login', ['email' => 'guru.budi@gmail.com', 'password' => 'guru123'])
             ->assertRedirect('/dashboard');
 
         $this->assertAuthenticatedAs($this->guru);
@@ -95,7 +95,7 @@ class InventoryFlowTest extends TestCase
         $this->expectException(AvailabilityException::class);
 
         $service->requestLoan(
-            User::where('username', 'guru.sari')->firstOrFail(),
+            User::where('email', 'guru.sari@gmail.com')->firstOrFail(),
             [['item_id' => $this->item->id, 'qty' => 1]],
             'Rapat lain',
             '2026-11-02',
@@ -109,7 +109,7 @@ class InventoryFlowTest extends TestCase
 
         $service->requestLoan($this->guru, [['item_id' => $this->item->id, 'qty' => 1]], 'Rapat A', '2026-11-01', '2026-11-03');
 
-        $lanjut = User::where('username', 'guru.sari')->firstOrFail();
+        $lanjut = User::where('email', 'guru.sari@gmail.com')->firstOrFail();
         $loan = $service->requestLoan($lanjut, [['item_id' => $this->item->id, 'qty' => 1]], 'Rapat B', '2026-11-05', '2026-11-07');
 
         $this->assertSame(LoanStatus::PENDING, $loan->status);
@@ -310,12 +310,12 @@ class InventoryFlowTest extends TestCase
         Storage::disk('local')->assertExists($loan->bast_path);
     }
 
-    public function test_wakasek_dapat_membuat_pengguna_dengan_username_bertitik(): void
+    public function test_wakasek_dapat_membuat_pengguna_baru(): void
     {
         $this->actingAs($this->wakasek)
             ->post(route('users.store'), [
                 'name' => 'Guru Baru',
-                'username' => 'guru.baru',
+                'email' => 'guru.baru@gmail.com',
                 'password' => 'rahasia123',
                 'password_confirmation' => 'rahasia123',
                 'role' => 'PEMINJAM',
@@ -324,7 +324,7 @@ class InventoryFlowTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('users', ['username' => 'guru.baru', 'role' => 'PEMINJAM']);
+        $this->assertDatabaseHas('users', ['email' => 'guru.baru@gmail.com', 'role' => 'PEMINJAM']);
     }
 
     public function test_generate_laporan_bulanan_tanpa_scope_id(): void

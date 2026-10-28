@@ -7,111 +7,149 @@ use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const REGISTRATION_TOKEN = 'uji-token-registrasi';
+
+    /**
+     * Sesi registrasi harus dibuat lewat POST /register/start (server-side
+     * token). Tes memakai sesi langsung agar tidak terkena rate limit.
+     */
+    private function withRegistrationSession(): static
+    {
+        return $this->withSession([
+            'registration_token' => self::REGISTRATION_TOKEN,
+            'registration_token_expires_at' => now()->addMinutes(10)->timestamp,
+        ]);
+    }
+
     /** @return array<string, mixed> */
     private function payload(array $overrides = []): array
     {
         return array_merge([
             'name' => 'Andhika Wicaksana',
-            'degree' => 'S.Kom',
+            'birth_date' => now()->subYears(30)->format('Y-m-d'),
             'email' => 'andhika@gmail.com',
-            'username' => 'andhika.w',
-            'borrower_type' => BorrowerType::GURU->value,
             'password' => 'rahasia-aman-123',
             'password_confirmation' => 'rahasia-aman-123',
+            'registration_token' => self::REGISTRATION_TOKEN,
         ], $overrides);
     }
 
     public function test_halaman_registrasi_dapat_dibuka(): void
     {
-        $this->get(route('register'))
+        $this->withRegistrationSession()
+            ->get(route('register', ['token' => self::REGISTRATION_TOKEN]))
             ->assertOk()
-            ->assertSee('Kategori pengguna')
+            ->assertSee('Nama lengkap')
             ->assertSee('gmail.com', false);
     }
 
-    public function test_registrasi_gmail_berhasil_dan_role_selalu_peminjam(): void
+    public function test_halaman_registrasi_tanpa_token_ditolak(): void
     {
-        $response = $this->post(route('register'), $this->payload([
+        $this->get(route('register'))->assertForbidden();
+    }
+
+    public function test_registrasi_tidak_membutuhkan_username_dan_role_selalu_peminjam(): void
+    {
+        $response = $this->withRegistrationSession()->post(route('register'), $this->payload([
             // Percobaan eskalasi hak istimewa dari browser harus diabaikan.
             'role' => Role::SUPER_ADMIN->value,
             'is_admin' => true,
+            'username' => 'hacker',
         ]));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('profile.complete'));
         $this->assertAuthenticated();
 
-        $user = User::where('username', 'andhika.w')->firstOrFail();
+        $user = User::where('email', 'andhika@gmail.com')->firstOrFail();
 
         $this->assertSame(Role::PEMINJAM->value, $user->role);
-        $this->assertSame('andhika@gmail.com', $user->email);
-        $this->assertSame('S.Kom', $user->degree);
         $this->assertSame(BorrowerType::GURU, $user->borrower_type);
         $this->assertTrue(Hash::check('rahasia-aman-123', $user->password));
         $this->assertNotSame('rahasia-aman-123', $user->password);
         $this->assertTrue($user->hasRole(Role::PEMINJAM->value));
         $this->assertFalse($user->hasRole(Role::SUPER_ADMIN->value));
-        $this->assertSame('Andhika Wicaksana, S.Kom', $user->displayName());
+        $this->assertFalse(Schema::hasColumn('users', 'username'));
+    }
+
+    public function test_kategori_pengguna_ditentukan_usia_bukan_input_browser(): void
+    {
+        // Usia di bawah 20 tahun otomatis menjadi Siswa.
+        $this->withRegistrationSession()->post(route('register'), $this->payload([
+            'email' => 'siswa.baru@gmail.com',
+            'birth_date' => now()->subYears(16)->format('Y-m-d'),
+            'borrower_type' => BorrowerType::GURU->value, // dipaksa dari browser, harus diabaikan
+        ]))->assertRedirect(route('profile.complete'));
+
+        $user = User::where('email', 'siswa.baru@gmail.com')->firstOrFail();
+        $this->assertSame(BorrowerType::SISWA, $user->borrower_type);
+
+        // Siswa wajib melengkapi kelas & jurusan saat pelengkapan profil.
+        $this->post(route('profile.complete.store'), ['name' => 'Siswa Baru'])
+            ->assertSessionHasErrors(['class_name', 'major_id']);
     }
 
     public function test_domain_gmail_diperiksa_tanpa_membedakan_huruf_besar_kecil(): void
     {
-        $this->post(route('register'), $this->payload([
+        $this->withRegistrationSession()->post(route('register'), $this->payload([
             'email' => 'Pengguna@GMAIL.com',
-            'username' => 'pengguna.kapital',
-        ]))->assertRedirect(route('dashboard'));
+        ]))->assertRedirect(route('profile.complete'));
 
         $this->assertDatabaseHas('users', [
-            'username' => 'pengguna.kapital',
             'email' => 'pengguna@gmail.com',
         ]);
     }
 
     public function test_email_selain_gmail_ditolak_backend(): void
     {
-        $this->post(route('register'), $this->payload([
+        $this->withRegistrationSession()->post(route('register'), $this->payload([
             'email' => 'pengguna@yahoo.com',
-            'username' => 'bukan.gmail',
         ]))->assertSessionHasErrors('email');
 
-        $this->assertDatabaseMissing('users', ['username' => 'bukan.gmail']);
+        $this->assertDatabaseMissing('users', ['email' => 'pengguna@yahoo.com']);
         $this->assertGuest();
     }
 
-    public function test_email_dan_username_duplikat_ditolak(): void
+    public function test_email_duplikat_ditolak(): void
     {
         User::create([
             'name' => 'Akun Lama',
             'email' => 'lama@gmail.com',
-            'username' => 'akun.lama',
             'password' => 'password-lama',
             'role' => Role::PEMINJAM->value,
+            'borrower_type' => BorrowerType::GURU->value,
         ]);
 
-        $this->post(route('register'), $this->payload([
+        $this->withRegistrationSession()->post(route('register'), $this->payload([
             'email' => 'lama@gmail.com',
-            'username' => 'akun.lama',
-        ]))->assertSessionHasErrors(['email', 'username']);
-    }
-
-    public function test_siswa_wajib_mengisi_kelas(): void
-    {
-        $this->post(route('register'), $this->payload([
-            'username' => 'siswa.baru',
-            'borrower_type' => BorrowerType::SISWA->value,
-            'degree' => null,
-            'class_name' => '',
-        ]))->assertSessionHasErrors('class_name');
+        ]))->assertSessionHasErrors('email');
     }
 
     public function test_sapaan_dashboard_memakai_nama_lengkap_dan_gelar(): void
     {
-        $this->post(route('register'), $this->payload());
+        $this->withRegistrationSession()->post(route('register'), $this->payload());
+        $this->assertAuthenticated();
+
+        $user = User::where('email', 'andhika@gmail.com')->firstOrFail();
+
+        // Lengkapi profil (wajib sebelum masuk dashboard).
+        $this->post(route('profile.complete.store'), ['name' => 'Andhika Wicaksana'])
+            ->assertSessionHasNoErrors();
+
+        // Tambahkan gelar lewat edit profil (field terpisah dari nama).
+        $this->patch(route('profile.update'), [
+            'name' => 'Andhika Wicaksana',
+            'degree' => 'S.Kom',
+            'email' => 'andhika@gmail.com',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('Andhika Wicaksana, S.Kom', $user->refresh()->displayName());
 
         $this->followingRedirects()
             ->get(route('dashboard'))
@@ -120,29 +158,17 @@ class RegistrationTest extends TestCase
             ->assertSee('Andhika Wicaksana, S.Kom', false);
     }
 
-    public function test_sapaan_dashboard_memakai_username_bila_nama_kosong(): void
-    {
-        $user = User::create([
-            'name' => '',
-            'username' => 'tanpa.nama',
-            'password' => 'password-uji',
-            'role' => Role::PEMINJAM->value,
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee('tanpa.nama', false);
-    }
-
     public function test_profil_tidak_dapat_mengubah_role(): void
     {
         $user = User::create([
             'name' => 'Pengguna Biasa',
-            'username' => 'pengguna.biasa',
             'email' => 'biasa@gmail.com',
             'password' => 'password-uji',
             'role' => Role::PEMINJAM->value,
+            'borrower_type' => BorrowerType::GURU->value,
+            'birth_date' => now()->subYears(30)->toDateString(),
+            'profile_completed' => true,
+            'profile_completed_at' => now(),
         ]);
 
         $this->actingAs($user)->patch(route('profile.update'), [
@@ -155,14 +181,45 @@ class RegistrationTest extends TestCase
         $this->assertFalse($user->hasRole(Role::SUPER_ADMIN->value));
     }
 
+    public function test_profil_tidak_dapat_mengubah_kategori_pengguna(): void
+    {
+        $major = \App\Models\Major::create(['name' => 'Rekayasa Perangkat Lunak', 'code' => 'RPL']);
+
+        $user = User::create([
+            'name' => 'Pengguna Siswa',
+            'email' => 'siswa.profil@gmail.com',
+            'password' => 'password-uji',
+            'role' => Role::PEMINJAM->value,
+            'borrower_type' => BorrowerType::SISWA->value,
+            'class_name' => 'X RPL 1',
+            'major_id' => $major->id,
+            'birth_date' => now()->subYears(16)->toDateString(),
+            'profile_completed' => true,
+            'profile_completed_at' => now(),
+        ]);
+
+        // Request manual dari browser harus ditolak backend.
+        $this->actingAs($user)->patch(route('profile.update'), [
+            'name' => 'Pengguna Siswa',
+            'email' => 'siswa.profil@gmail.com',
+            'class_name' => 'X RPL 1',
+            'borrower_type' => BorrowerType::GURU->value,
+        ])->assertSessionHasErrors('borrower_type');
+
+        $this->assertSame(BorrowerType::SISWA, $user->refresh()->borrower_type);
+    }
+
     public function test_profil_akun_lama_dapat_menyimpan_email_non_gmail_yang_tidak_diubah(): void
     {
         $user = User::create([
             'name' => 'Akun Lama',
-            'username' => 'akun.lama',
             'email' => 'guru@sekolah.id',
             'password' => 'password-uji',
             'role' => Role::PEMINJAM->value,
+            'borrower_type' => BorrowerType::GURU->value,
+            'birth_date' => now()->subYears(40)->toDateString(),
+            'profile_completed' => true,
+            'profile_completed_at' => now(),
         ]);
 
         $this->actingAs($user)->patch(route('profile.update'), [
@@ -178,10 +235,13 @@ class RegistrationTest extends TestCase
     {
         $user = User::create([
             'name' => 'Akun Lama',
-            'username' => 'akun.lama',
             'email' => 'guru@sekolah.id',
             'password' => 'password-uji',
             'role' => Role::PEMINJAM->value,
+            'borrower_type' => BorrowerType::GURU->value,
+            'birth_date' => now()->subYears(40)->toDateString(),
+            'profile_completed' => true,
+            'profile_completed_at' => now(),
         ]);
 
         $this->actingAs($user)->patch(route('profile.update'), [

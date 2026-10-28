@@ -43,8 +43,8 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 
 ## 6. Autentikasi Menggunakan Username (Bagian 3, 4)
 
-- **Keputusan**: Laravel Breeze disesuaikan agar login menggunakan `username` alih-alih `email`. Kolom `users.username` bersifat unik.
-- **Rasional**: Praktis untuk lingkungan sekolah (guru, staf, laboran memiliki NIP/username akun sekolah tanpa keharusan memiliki email unik publik).
+- **Keputusan**: Laravel Breeze disesuaikan agar login menggunakan `email` (bukan `username`). Kolom `users.username` telah dihapus.
+- **Rasional**: Pengguna sekolah (guru, staf, laboran) memiliki NIP sebagai identifier; sistem menggunakan email untuk autentikasi tanpa kolom username di tabel users.
 
 ## 7. Perlindungan Audit Log (R9)
 

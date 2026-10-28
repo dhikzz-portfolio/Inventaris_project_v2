@@ -26,7 +26,7 @@ class DatabaseSeederTest extends TestCase
             'users' => User::count(),
             'loans' => Loan::count(),
         ];
-        $passwordHash = User::where('username', 'wakasek')->value('password');
+        $passwordHash = User::where('email', 'wakasek@gmail.com')->value('password');
 
         $this->seed();
 
@@ -37,7 +37,7 @@ class DatabaseSeederTest extends TestCase
             'users' => User::count(),
             'loans' => Loan::count(),
         ]);
-        $this->assertSame($passwordHash, User::where('username', 'wakasek')->value('password'));
+        $this->assertSame($passwordHash, User::where('email', 'wakasek@gmail.com')->value('password'));
     }
 
     public function test_lima_jurusan_resmi_dan_role_final_tersedia(): void
@@ -66,8 +66,8 @@ class DatabaseSeederTest extends TestCase
             'laboran.tkp' => ['H2-03', 'H2-04'],
         ];
 
-        foreach ($scopes as $username => $expectedCodes) {
-            $user = User::where('username', $username)->firstOrFail();
+        foreach ($scopes as $handle => $expectedCodes) {
+            $user = User::where('email', $handle.'@gmail.com')->firstOrFail();
             $codes = $user->roomScopes()->join('rooms', 'rooms.id', '=', 'user_room_scopes.room_id')
                 ->orderBy('rooms.code')
                 ->pluck('rooms.code')

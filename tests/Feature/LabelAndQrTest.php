@@ -23,7 +23,7 @@ class LabelAndQrTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
+        $this->laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
         $this->item = Item::query()
             ->whereHas('units', fn ($query) => $query->visibleTo($this->laboran))
             ->firstOrFail();
@@ -169,15 +169,22 @@ class LabelAndQrTest extends TestCase
 
     public function test_scan_menampilkan_hasil_pada_halaman_yang_sama(): void
     {
-        $unit = AssetUnit::where('inventory_code', strtoupper($this->item->internal_id))->firstOrFail();
+        $unit = AssetUnit::where('item_catalog_id', $this->item->id)->firstOrFail();
 
+        // QR modern membawa kode inventaris + ID unit stabil (param u).
         $response = $this->actingAs($this->laboran)
-            ->get(route('scan.resolve', ['internalId' => $this->item->internal_id]));
+            ->get('/scan?code='.urlencode($unit->inventory_code).'&u='.$unit->id);
 
         // Tidak dialihkan ke katalog/detail: hasil tampil di halaman scan.
         $response->assertOk();
         $response->assertSee($unit->inventory_code);
         $response->assertSee($unit->catalog->name);
+
+        // Stiker lama berisi ID internal katalog tetap terbaca di halaman scan.
+        $this->actingAs($this->laboran)
+            ->get(route('scan.resolve', ['internalId' => $this->item->internal_id]))
+            ->assertOk()
+            ->assertSee($this->item->name, false);
     }
 
     public function test_scan_kode_tidak_dikenal_menampilkan_pesan_error(): void

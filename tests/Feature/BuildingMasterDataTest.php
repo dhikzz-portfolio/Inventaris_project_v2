@@ -36,8 +36,8 @@ class BuildingMasterDataTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
         $this->category = Category::firstOrFail();
     }
 
@@ -217,7 +217,8 @@ class BuildingMasterDataTest extends TestCase
 
         $codes = AssetUnit::where('room_id', $room->id)->orderBy('inventory_code')->pluck('inventory_code')->all();
 
-        $this->assertSame(['Z1-03-01', 'Z1-03-02'], $codes);
+        $type = AssetUnit::where('room_id', $room->id)->firstOrFail()->catalog->item_type_code;
+        $this->assertSame(["Z1-03-{$type}-01", "Z1-03-{$type}-02"], $codes);
     }
 
     public function test_kode_unit_inventaris_tetap_unik(): void
@@ -254,7 +255,8 @@ class BuildingMasterDataTest extends TestCase
             $codes[] = $service->create($catalog, $room, [], $this->wakasek)->inventory_code;
         }
 
-        $this->assertSame(['Z1-03-01', 'Z1-03-02', 'Z1-03-03'], $codes);
+        $type = $catalog->item_type_code;
+        $this->assertSame(["Z1-03-{$type}-01", "Z1-03-{$type}-02", "Z1-03-{$type}-03"], $codes);
         $this->assertCount(3, array_unique($codes));
 
         $this->assertSame(

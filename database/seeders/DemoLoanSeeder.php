@@ -16,12 +16,12 @@ class DemoLoanSeeder extends Seeder
 {
     public function run(): void
     {
-        $wakasek = User::where('username', 'wakasek')->first();
-        $ketua = User::where('username', 'ketua.laboran')->first();
-        $laboran = User::where('username', 'laboran.tp')->first();
-        $guruBudi = User::where('username', 'guru.budi')->first();
-        $guruSari = User::where('username', 'guru.sari')->first();
-        $siswa = User::where('username', 'siswa.raka')->first();
+        $wakasek = User::where('email', 'wakasek@gmail.com')->first();
+        $ketua = User::where('email', 'ketualaboran@gmail.com')->first();
+        $laboran = User::where('email', 'laboran.tp@gmail.com')->first();
+        $guruBudi = User::where('email', 'guru.budi@gmail.com')->first();
+        $guruSari = User::where('email', 'guru.sari@gmail.com')->first();
+        $siswa = User::where('email', 'siswa.raka@gmail.com')->first();
 
         if ($wakasek === null || $guruBudi === null || $guruSari === null) {
             return;

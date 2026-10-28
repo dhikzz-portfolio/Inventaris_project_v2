@@ -32,7 +32,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Cakupan laporan/ekspor untuk Ketua Laboran                   | **IMPLEMENTED & VERIFIED** — data, PDF, Excel, dan arsip dibatasi laboratorium             |
 | Audit sinkronisasi fitur vs PRD 2.1                          | **IMPLEMENTED & VERIFIED** — matriks di `feature-sync-audit.md`; label massal per unit, penghapusan mengarsip unit, laporan per unit |
 | Registrasi mandiri Gmail + role Peminjam otomatis             | **IMPLEMENTED & VERIFIED** — validasi backend + `pattern` frontend, email dinormalisasi, role tidak dapat dikirim dari browser |
-| Welcome screen nama lengkap/gelar                            | **IMPLEMENTED & VERIFIED** — `displayName()` + fallback username                                                          |
+| Welcome screen nama lengkap/gelar                            | **IMPLEMENTED & VERIFIED** — `displayName()` (username tidak digunakan)                                                          |
 | Scan universal + hasil langsung di halaman scan               | **IMPLEMENTED & VERIFIED** — kamera `html5-qrcode`, input manual, masking data internal, semua role login                   |
 | Master gedung A–G                                            | **IMPLEMENTED & VERIFIED** — seeder idempoten; H/I dipertahankan untuk data demo                                          |
 | Kode aset terpisah dihapus                                   | **IMPLEMENTED & VERIFIED** — migration `asset_code`, seluruh tampilan/label/QR/laporan memakai kode unit                     |
@@ -51,7 +51,7 @@ Pengujian terakhir (27 Oktober 2026): **249 passed, 0 skipped, 1190 assertions**
 
 | Modul                                   | Status      | Catatan                                                                                          |
 | --------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------ |
-| Autentikasi & sesi                      | VERIFIED    | Login username/password, rate limit 5 percobaan, logout POST, registrasi Gmail mandiri (role Peminjam), verifikasi email belum aktif |
+| Autentikasi & sesi                      | VERIFIED    | Login email/password, rate limit 5 percobaan, logout POST, registrasi Gmail mandiri (role Peminjam), verifikasi email belum aktif |
 | Role & permission                       | VERIFIED    | 4 role final (`SUPER_ADMIN`, `KETUA_LABORAN`, `LABORAN`, `PEMINJAM`) + middleware Spatie; kategori peminjam di `borrower_type` |
 | Dashboard                               | VERIFIED    | Data unit/katalog nyata, grafik Chart.js, cakupan per role (sekolah/lab/ruangan), personal vs operasional |
 | Katalog jenis barang                    | VERIFIED    | Tabel `item_catalogs`; jumlah unit dihitung dari unit; pencarian/filter/pagination                 |

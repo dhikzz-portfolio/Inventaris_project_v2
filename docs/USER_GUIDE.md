@@ -4,7 +4,7 @@
 
 ## 1. Masuk & navigasi
 
-1. Buka alamat aplikasi, masukkan **username** dan **password** (bukan email).
+1. Buka alamat aplikasi, masukkan **email** dan **password**.
 2. Menu desktop ada di sidebar kiri; di ponsel gunakan bottom navigation: **Beranda, Pinjam, Riwayat/Persetujuan, Lainnya**. Akun peminjam memilih katalog langsung di halaman **Peminjaman**; role pengelola tetap memiliki menu **Katalog**.
 3. Ikon bulan/matahari di kanan atas mengganti tema terang/gelap. Pilihan tersimpan di perangkat dan mengikuti preferensi sistem bila belum dipilih.
 
@@ -222,7 +222,7 @@ Status dokumen peminjaman **terpisah** dari status transaksi:
 ### Registrasi mandiri
 
 1. Buka **Daftar** dari halaman login.
-2. Pilih kategori **Siswa / Guru / Staf**, isi nama lengkap (guru dapat menambahkan gelar), email **@gmail.com**, username, dan password.
+2. Pilih kategori **Siswa / Guru / Staf**, isi nama lengkap (guru dapat menambahkan gelar), email **@gmail.com**, dan password.
 3. Siswa wajib mengisi kelas; jurusan opsional.
 4. Setelah mendaftar, akun langsung masuk dengan role **Peminjam** (hak minimum). Role khusus hanya diberikan administrator melalui menu Pengguna.
 

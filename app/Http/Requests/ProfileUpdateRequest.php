@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\BorrowerType;
 use App\Rules\GmailAddress;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -12,14 +13,21 @@ class ProfileUpdateRequest extends FormRequest
 {
     /**
      * Profil hanya boleh mengubah data identitas. Role, role Spatie, dan
-     * username sengaja tidak termasuk: perubahan hak istimewa hanya lewat
-     * halaman administrasi pengguna oleh Wakasek.
+     * kategori pengguna (borrower_type) sengaja tidak termasuk: perubahan
+     * hak istimewa dan kategori hanya lewat halaman administrasi pengguna
+     * oleh Super Admin / Wakasek.
+     *
+     * Validasi lapangan mengikuti kategori pengguna yang tersimpan di
+     * database, bukan kategori yang dikirim dari browser.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        return [
+        $user = $this->user();
+        $isSiswa = $user?->borrower_type === BorrowerType::SISWA;
+
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'degree' => ['nullable', 'string', 'max:100'],
             'email' => [
@@ -39,12 +47,46 @@ class ProfileUpdateRequest extends FormRequest
 
                     (new GmailAddress)->validate($attribute, $value, $fail);
                 },
-                Rule::unique('users', 'email')->ignore($this->user()->id),
+                Rule::unique('users', 'email')->ignore($this->user()?->id),
             ],
-            'class_name' => ['nullable', 'string', 'max:50'],
             'work_unit' => ['nullable', 'string', 'max:255'],
             'birth_date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'major_id' => ['nullable', 'exists:majors,id'],
+            'class_name' => ['nullable', 'string', 'max:50'],
+        ];
+
+        if ($isSiswa) {
+            // Siswa: kelas & jurusan wajib bila belum terisi; gelar tidak
+            // relevan dan ditolak bila dikirim paksa lewat request manual.
+            $rules['class_name'] = $user?->class_name === null
+                ? ['required', 'string', 'max:50']
+                : ['nullable', 'string', 'max:50'];
+            $rules['major_id'] = $user?->major_id === null
+                ? ['required', 'exists:majors,id']
+                : ['nullable', 'exists:majors,id'];
+            $rules['degree'] = ['prohibited'];
+        } else {
+            // Guru/Staf/kategori non-Siswa: kelas & jurusan tidak berlaku.
+            $rules['class_name'] = ['prohibited'];
+        }
+
+        // Kategori pengguna tidak pernah bisa diubah lewat edit profil.
+        $rules['borrower_type'] = ['prohibited'];
+
+        return $rules;
+    }
+
+    /**
+     * Pesan galat khusus untuk aturan kondisional.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'borrower_type.prohibited' => 'Kategori pengguna tidak dapat diubah melalui edit profil. Hubungi administrator sekolah.',
+            'degree.prohibited' => 'Gelar tidak berlaku untuk kategori Siswa.',
+            'class_name.prohibited' => 'Kelas hanya berlaku untuk kategori Siswa.',
         ];
     }
 }

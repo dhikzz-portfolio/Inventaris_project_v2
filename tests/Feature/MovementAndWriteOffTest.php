@@ -35,8 +35,8 @@ class MovementAndWriteOffTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
 
         $rooms = Room::all();
         $this->room1 = $rooms[0];

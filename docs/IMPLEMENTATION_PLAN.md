@@ -11,7 +11,7 @@ Legenda status: **NOT STARTED**, **IN PROGRESS**, **IMPLEMENTED**, **VERIFIED**,
 | 1    | Analisis sistem: requirement, use case, matriks akses, ERD/dictionary                   | VERIFIED    | `PROJECT_BRIEF.md`, `DATABASE.md`                                    |
 | 2    | Perencanaan teknis: stack, arsitektur, service layer, testing                           | VERIFIED    | `DECISIONS.md`, struktur `app/`                                      |
 | 3    | Setup Laravel 13, Livewire 4, Tailwind, Vite, MySQL                                     | VERIFIED    | `composer install`, `npm run build`, migrasi MySQL                   |
-| 4    | Database, model, seeder, autentikasi username, 4 role, audit log                        | VERIFIED    | migrasi + 6 akun demo + tes Auth/role                                |
+| 4    | Database, model, seeder, autentikasi email, 4 role, audit log                         | VERIFIED    | migrasi + 6 akun demo + tes Auth/role                                |
 | 5    | Design system: layout, sidebar, bottom nav, komponen, tema gelap                        | VERIFIED    | verifikasi browser 20 halaman, toggle tema                           |
 | 6    | Modul inventaris: katalog, master data, pengadaan, mutasi, penghapusan, riwayat         | VERIFIED    | tes katalog, mutasi, write-off, master                               |
 | 7    | Modul peminjaman: keranjang, kalender, approval, serah terima, pembatalan, pengembalian | VERIFIED    | 9 tes lifecycle + E2E browser                                        |

@@ -257,7 +257,7 @@
                     </h3>
                     <div class="text-sm">
                         <div class="font-medium text-gray-800">{{ $lastBorrower->name }}</div>
-                        <div class="text-xs text-gray-500">{{ $lastBorrower->username }} • {{ $lastBorrower->role }}</div>
+                        <div class="text-xs text-gray-500">{{ $lastBorrower->email }} • {{ $lastBorrower->role }}</div>
                         <div class="text-xs text-gray-400 mt-1">Dipinjam {{ $item->latestLoanItem()?->created_at?->diffForHumans() }}</div>
                     </div>
                 </div>

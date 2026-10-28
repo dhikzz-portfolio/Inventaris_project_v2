@@ -37,9 +37,9 @@ class InventoryCatalogTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->guru = User::where('username', 'guru.budi')->firstOrFail();
+        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
         $this->category = Category::firstOrFail();
         $this->room = Room::firstOrFail();
     }

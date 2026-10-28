@@ -42,9 +42,9 @@ class InventoryCoreTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->superAdmin = User::where('username', 'wakasek')->firstOrFail();
-        $this->ketuaLaboran = User::where('username', 'ketua.laboran')->firstOrFail();
-        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
+        $this->superAdmin = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->ketuaLaboran = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->laboranTkj = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
         $this->category = Category::firstOrFail();
     }
 
@@ -66,8 +66,9 @@ class InventoryCoreTest extends TestCase
         $this->assertSame(23, $catalog->units()->distinct()->count('inventory_code'));
 
         $codes = $catalog->units()->orderBy('unit_no')->pluck('inventory_code')->all();
-        $this->assertSame('Z9-09-01', $codes[0]);
-        $this->assertSame('Z9-09-23', $codes[22]);
+        $type = $catalog->item_type_code;
+        $this->assertSame("Z9-09-{$type}-01", $codes[0]);
+        $this->assertSame("Z9-09-{$type}-23", $codes[22]);
     }
 
     public function test_halaman_katalog_dapat_diakses_dan_menghormati_scope(): void
@@ -84,19 +85,21 @@ class InventoryCoreTest extends TestCase
         $service = app(InventoryCodeService::class);
         $room = $this->makeRoom('G', 1, 2, true, 'Lab Format', 'G1-92');
 
-        $this->assertSame('G1-02-12', $service->format($room, 12));
-        $this->assertTrue($service->isValidFormat('G1-02-12'));
-        $this->assertTrue($service->isValidFormat('F1-03-15'));
-        $this->assertFalse($service->isValidFormat('g1-02-12'));
+        $this->assertSame('G1-02-012-12', $service->format($room, 12, '012'));
+        $this->assertTrue($service->isValidFormat('G1-02-012-12'));
+        $this->assertTrue($service->isValidFormat('F1-03-015-01'));
+        $this->assertFalse($service->isValidFormat('g1-02-012-12'));
         $this->assertFalse($service->isValidFormat('G1/02/12'));
         $this->assertFalse($service->isValidFormat('G1-2-12'));
+        $this->assertFalse($service->isValidFormat('G1-02-12'));
 
         $catalog = $this->makeCatalog('Kursi Format', $room);
         $unit = app(AssetUnitService::class)->create($catalog, $room, [], $this->superAdmin);
 
-        $this->assertSame('G1-02-01', $unit->inventory_code);
-        $this->assertSame($unit->id, $service->resolve('g1-02-01')?->id);
-        $this->assertNull($service->resolve('G1-02-99'));
+        $expected = 'G1-02-'.$catalog->item_type_code.'-01';
+        $this->assertSame($expected, $unit->inventory_code);
+        $this->assertSame($unit->id, $service->resolve($expected)?->id);
+        $this->assertNull($service->resolve('G1-02-099-99'));
     }
 
     public function test_ac_04_dan_05_nomor_unik_dan_tidak_bentrok_lintas_jenis_barang(): void
@@ -111,16 +114,25 @@ class InventoryCoreTest extends TestCase
             $codes[] = $service->create($catalog, $room, [], $this->superAdmin)->inventory_code;
         }
 
+        // Nomor unit bersifat per-ruangan (urut lintas katalog), kode jenis
+        // barang membedakan identitas antar katalog.
         $this->assertSame(
-            ['Y8-08-01', 'Y8-08-02', 'Y8-08-03', 'Y8-08-04', 'Y8-08-05'],
+            [
+                'Y8-08-'.$chairs->item_type_code.'-01',
+                'Y8-08-'.$chairs->item_type_code.'-02',
+                'Y8-08-'.$tables->item_type_code.'-03',
+                'Y8-08-'.$tables->item_type_code.'-04',
+                'Y8-08-'.$chairs->item_type_code.'-05',
+            ],
             $codes
         );
         $this->assertCount(5, array_unique($codes));
 
+        // Kode yang sama persis dengan unit pertama harus ditolak unique index.
         $this->expectException(QueryException::class);
         AssetUnitCode::create([
             'asset_unit_id' => $chairs->units()->first()->id,
-            'inventory_code' => 'Y8-08-01',
+            'inventory_code' => 'Y8-08-'.$chairs->item_type_code.'-01',
             'room_id' => $room->id,
             'unit_no' => 6,
             'issued_at' => now(),
@@ -155,20 +167,22 @@ class InventoryCoreTest extends TestCase
             $service->create($catalog, $room, [], $this->superAdmin);
         }
 
+        $type = $catalog->item_type_code;
+
         Livewire::actingAs($this->superAdmin)
             ->test(CatalogUnits::class, ['catalogId' => $catalog->id])
-            ->set('search', 'F1-03-15')
-            ->assertSee('F1-03-15')
-            ->assertDontSee('F1-03-14');
+            ->set('search', "F1-03-{$type}-15")
+            ->assertSee("F1-03-{$type}-15")
+            ->assertDontSee("F1-03-{$type}-14");
 
         Livewire::actingAs($this->superAdmin)
             ->test(CatalogUnits::class, ['catalogId' => $catalog->id])
             ->set('search', 'F1-03')
-            ->assertSee('F1-03-01')
+            ->assertSee("F1-03-{$type}-01")
             ->set('building', 'F')
             ->set('floor', '1')
             ->set('room', (string) $room->id)
-            ->assertSee('F1-03-01');
+            ->assertSee("F1-03-{$type}-01");
 
         Livewire::actingAs($this->superAdmin)
             ->test(CatalogUnits::class, ['catalogId' => $catalog->id])
@@ -211,7 +225,8 @@ class InventoryCoreTest extends TestCase
 
         $moved = app(InventoryCodeService::class)->move($unit, $to, $this->superAdmin, 'Uji mutasi');
 
-        $this->assertSame('V5-05-01', $moved->inventory_code);
+        $expectedNew = 'V5-05-'.$catalog->item_type_code.'-01';
+        $this->assertSame($expectedNew, $moved->inventory_code);
         $this->assertNotSame($oldCode, $moved->inventory_code);
         $this->assertNull($moved->last_label_printed_at);
         $this->assertDatabaseHas('asset_unit_codes', ['inventory_code' => $oldCode, 'asset_unit_id' => $unit->id]);
@@ -219,7 +234,7 @@ class InventoryCoreTest extends TestCase
         $this->assertDatabaseHas('asset_unit_movements', [
             'asset_unit_id' => $unit->id,
             'old_code' => $oldCode,
-            'new_code' => 'V5-05-01',
+            'new_code' => $expectedNew,
         ]);
         $this->assertSame($unit->id, app(InventoryCodeService::class)->resolve($oldCode)?->id);
     }
@@ -248,14 +263,14 @@ class InventoryCoreTest extends TestCase
 
         $this->actingAs($this->superAdmin)->post(route('users.store'), [
             'name' => 'Laboran Baru',
-            'username' => 'laboran.baru',
+            'email' => 'laboran.baru@gmail.com',
             'password' => 'rahasia123',
             'password_confirmation' => 'rahasia123',
             'role' => 'LABORAN',
             'room_ids' => [$lab->id],
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $user = User::where('username', 'laboran.baru')->firstOrFail();
+        $user = User::where('email', 'laboran.baru@gmail.com')->firstOrFail();
         $this->assertDatabaseHas('user_room_scopes', ['user_id' => $user->id, 'room_id' => $lab->id]);
         $this->assertTrue(AssetUnit::visibleTo($user)->where('room_id', $lab->id)->exists());
         $this->assertFalse(AssetUnit::visibleTo($user)->where('room_id', '!=', $lab->id)->exists());
@@ -265,13 +280,13 @@ class InventoryCoreTest extends TestCase
 
         $this->actingAs($this->superAdmin)->put(route('users.update', $user), [
             'name' => 'Laboran Baru',
-            'username' => 'laboran.baru',
+            'email' => 'laboran.baru@gmail.com',
             'role' => 'LABORAN',
             'room_ids' => [$otherLab->id],
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $activity = Activity::query()
-            ->where('description', 'like', 'Mengubah pengguna laboran.baru%')
+            ->where('description', 'like', 'Mengubah pengguna Laboran Baru%')
             ->latest('id')
             ->firstOrFail();
 
@@ -304,7 +319,7 @@ class InventoryCoreTest extends TestCase
         $this->assertSame(1, $catalog->units()->where('condition', 'RUSAK_BERAT')->count());
         $this->assertSame(2, $catalog->units()->where('status', 'AKTIF')->where('condition', 'BAIK')->count());
         $this->assertSame(4, UnitCodeModel::where('room_id', $room->id)->count());
-        $this->assertSame('T3-03-01', $catalog->units()->orderBy('unit_no')->first()->inventory_code);
+        $this->assertSame('T3-03-'.$catalog->item_type_code.'-01', $catalog->units()->orderBy('unit_no')->first()->inventory_code);
     }
 
     public function test_kapasitas_99_dan_kode_tidak_dapat_dipakai_ulang(): void

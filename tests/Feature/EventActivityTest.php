@@ -26,10 +26,10 @@ class EventActivityTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->guru = User::where('username', 'guru.budi')->firstOrFail();
-        $this->staff = User::where('username', 'staf.tata')->firstOrFail();
-        $this->siswa = User::where('username', 'siswa.raka')->firstOrFail();
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
+        $this->staff = User::where('email', 'staf.tata@gmail.com')->firstOrFail();
+        $this->siswa = User::where('email', 'siswa.raka@gmail.com')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
     }
 
     public function test_guru_dapat_mencatat_kegiatan_dengan_status(): void
@@ -38,8 +38,8 @@ class EventActivityTest extends TestCase
             'name' => 'Rapat Evaluasi Pembelajaran',
             'pic_name' => $this->guru->name,
             'description' => 'Evaluasi tengah semester',
-            'start_date' => '2026-10-26',
-            'end_date' => '2026-10-26',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->toDateString(),
             'status' => EventStatus::SEDANG_BERJALAN->value,
         ])->assertRedirect();
 
@@ -107,7 +107,7 @@ class EventActivityTest extends TestCase
 
     public function test_guru_tidak_dapat_mengubah_kegiatan_guru_lain(): void
     {
-        $guruLain = User::where('username', 'guru.sari')->firstOrFail();
+        $guruLain = User::where('email', 'guru.sari@gmail.com')->firstOrFail();
 
         $event = Event::create([
             'name' => 'Kegiatan Guru Lain',
@@ -168,8 +168,8 @@ class EventActivityTest extends TestCase
         $this->actingAs($this->guru)->patch(route('events.update', $event), [
             'name' => $event->name,
             'pic_name' => $event->pic_name,
-            'start_date' => '2026-10-26',
-            'end_date' => '2026-10-26',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->toDateString(),
             'status' => EventStatus::SEDANG_BERJALAN->value,
         ])->assertRedirect();
 

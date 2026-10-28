@@ -61,7 +61,7 @@
 
     @foreach ($loans as $loan)
     <div class="loan-section">
-        <h3 class="bagian">Peminjaman #{{ $loan->id }} — {{ $loan->borrower?->name }} ({{ $loan->borrower?->username }})</h3>
+        <h3 class="bagian">Peminjaman #{{ $loan->id }} — {{ $loan->borrower?->displayName() }}</h3>
         <table class="data">
             <thead>
                 <tr>

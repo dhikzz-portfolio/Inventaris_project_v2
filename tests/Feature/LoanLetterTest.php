@@ -37,33 +37,40 @@ class LoanLetterTest extends TestCase
         $this->guru = User::create([
             'name' => 'Andhika Wicaksana',
             'degree' => 'S.Kom',
-            'username' => 'guru.andhika',
             'email' => 'andhika.guru@gmail.com',
             'password' => 'password-uji',
             'role' => Role::PEMINJAM->value,
             'borrower_type' => BorrowerType::GURU->value,
             'major_id' => $major->id,
+            'birth_date' => now()->subYears(30)->toDateString(),
+            'profile_completed' => true,
+            'profile_completed_at' => now(),
         ]);
 
         $this->siswa = User::create([
             'name' => 'Raka Pratama',
-            'username' => 'siswa.raka.uji',
             'email' => 'raka.siswa@gmail.com',
             'password' => 'password-uji',
             'role' => Role::PEMINJAM->value,
             'borrower_type' => BorrowerType::SISWA->value,
             'class_name' => 'X RPL 1',
             'major_id' => $major->id,
+            'birth_date' => now()->subYears(16)->toDateString(),
+            'profile_completed' => true,
+            'profile_completed_at' => now(),
         ]);
 
         $this->otherBorrower = User::create([
             'name' => 'Peminjam Lain',
-            'username' => 'peminjam.lain',
             'email' => 'lain@gmail.com',
             'password' => 'password-uji',
             'role' => Role::PEMINJAM->value,
             'borrower_type' => BorrowerType::SISWA->value,
             'class_name' => 'XI DKV 2',
+            'major_id' => $major->id,
+            'birth_date' => now()->subYears(17)->toDateString(),
+            'profile_completed' => true,
+            'profile_completed_at' => now(),
         ]);
 
         $this->unit = AssetUnit::query()->with('catalog')->firstOrFail();

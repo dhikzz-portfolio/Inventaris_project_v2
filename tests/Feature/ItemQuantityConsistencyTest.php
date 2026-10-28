@@ -37,8 +37,8 @@ class ItemQuantityConsistencyTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
+        $this->laboranTkj = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->guruBudi = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
         $this->roomTkj = Room::where('major_id', Major::where('code', 'TP')->value('id'))->firstOrFail();
         $this->category = Category::firstOrFail();
     }
@@ -123,7 +123,7 @@ class ItemQuantityConsistencyTest extends TestCase
         $this->assertSame(1, $item->availableQuantity());
 
         // Setelah selisih ditutup Wakasek, kehilangan menjadi permanen.
-        $wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
         $this->actingAs($wakasek)->post(route('loans.close-shortage', $loan))->assertRedirect();
 
         $item->refresh();

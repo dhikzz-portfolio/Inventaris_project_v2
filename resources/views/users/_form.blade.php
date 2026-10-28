@@ -19,7 +19,7 @@
 
     @if ($editing)
         <div class="mb-4 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
-            Mengubah: <strong>{{ $user->displayName() }}</strong> (<span class="font-mono">{{ $user->username }}</span>)
+            Mengubah: <strong>{{ $user->displayName() }}</strong> (<span class="font-mono">{{ $user->email }}</span>)
         </div>
     @endif
 
@@ -56,12 +56,6 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <x-input-label value="Username *" />
-                    <input type="text" name="username" value="{{ old('username', $user?->username) }}" required
-                           class="mt-1 block w-full rounded-lg border-gray-300 text-sm font-mono focus:ring-amber-500 focus:border-amber-500">
-                    @error('username') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                </div>
                 <div>
                     <x-input-label value="Jurusan" />
                     <select name="major_id" class="mt-1 block w-full rounded-lg border-gray-300 text-sm">
@@ -166,7 +160,7 @@
 
     @if ($editing && $user->id !== auth()->id())
         <form method="POST" action="{{ route('users.destroy', $user) }}" class="mt-3"
-              onsubmit="return confirm('Hapus pengguna {{ $user->username }}? Akun dengan riwayat peminjaman tidak dapat dihapus.')">
+              onsubmit="return confirm('Hapus pengguna {{ $user->name }}? Akun dengan riwayat peminjaman tidak dapat dihapus.')">
             @csrf
             @method('DELETE')
             <button class="w-full rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold py-2">Hapus Pengguna</button>

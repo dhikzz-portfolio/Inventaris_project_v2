@@ -51,7 +51,8 @@ class AdminPagesAccessibilityTest extends TestCase
         $paths = [
             ['path' => '/', 'expectAnyOf' => [200, 302]],
             ['path' => '/login', 'expectAnyOf' => [200, 302]],
-            ['path' => '/register', 'expectAnyOf' => [200, 302, 404]],
+            // 403: halaman registrasi dilindungi token sesi (register.start).
+            ['path' => '/register', 'expectAnyOf' => [200, 302, 403, 404]],
             ['path' => '/dashboard', 'expectAnyOf' => [200, 302, 403]],
             ['path' => '/items', 'expectAnyOf' => [200, 302, 403, 404]],
             ['path' => '/items/create', 'expectAnyOf' => [200, 302, 403, 404]],
@@ -126,7 +127,7 @@ class AdminPagesAccessibilityTest extends TestCase
         $this->seed();
 
         // Gunakan pengguna yang ada di seeder dengan role PEMINJAM saja.
-        $user = User::where('username', 'guru.budi')->first();
+        $user = User::where('email', 'guru.budi@gmail.com')->first();
         $this->assertNotNull($user, 'Pengguna guru.budi harus ada di DatabaseSeeder');
 
         $this->actingAs($user);
@@ -190,7 +191,7 @@ class AdminPagesAccessibilityTest extends TestCase
         $this->seed();
 
         // Gunakan Wakasek (berhak mengakses laporan, persetujuan, dll.)
-        $wakasek = User::where('username', 'wakasek')->first();
+        $wakasek = User::where('email', 'wakasek@gmail.com')->first();
         $this->assertNotNull($wakasek, 'Pengguna wakasek harus ada di DatabaseSeeder');
         $this->actingAs($wakasek);
 

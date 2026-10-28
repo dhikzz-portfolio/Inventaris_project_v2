@@ -19,32 +19,31 @@ class UserManagementUiTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
     }
 
     public function test_form_edit_pengguna_memakai_card_dan_radio_role(): void
     {
-        $user = User::where('username', 'guru.budi')->firstOrFail();
+        $user = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
 
         $response = $this->actingAs($this->wakasek)
             ->get(route('users.index', ['edit' => $user->id]));
 
         $response->assertOk();
         $response->assertSee('Ubah Pengguna');
-        $response->assertSee('value="'.$user->username.'"', false);
+        $response->assertSee('value="'.$user->email.'"', false);
         $response->assertSee('name="role"', false);
         $response->assertSee('type="radio" name="role"', false);
     }
 
     public function test_wakasek_dapat_memperbarui_profil_dan_role_pengguna(): void
     {
-        $user = User::where('username', 'staf.tata')->firstOrFail();
+        $user = User::where('email', 'staf.tata@gmail.com')->firstOrFail();
 
         $this->actingAs($this->wakasek)->put(route('users.update', $user), [
             'name' => 'Staf Tata Usaha Baru',
             'degree' => 'S.Pd',
             'email' => 'tata.baru@gmail.com',
-            'username' => 'staf.tata',
             'role' => Role::LABORAN->value,
             'borrower_type' => BorrowerType::STAF->value,
             'room_ids' => [],
@@ -64,7 +63,7 @@ class UserManagementUiTest extends TestCase
     {
         $this->actingAs($this->wakasek)->put(route('users.update', $this->wakasek), [
             'name' => $this->wakasek->name,
-            'username' => $this->wakasek->username,
+            'email' => $this->wakasek->email,
             'role' => Role::PEMINJAM->value,
         ])->assertSessionHasErrors('role');
 
@@ -73,7 +72,7 @@ class UserManagementUiTest extends TestCase
 
     public function test_role_istimewa_tidak_dapat_ditetapkan_melalui_registrasi_maupun_profil(): void
     {
-        $user = User::where('username', 'guru.budi')->firstOrFail();
+        $user = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
 
         $this->actingAs($user)->patch(route('profile.update'), [
             'name' => $user->name,

@@ -98,7 +98,7 @@ Berlaku untuk: aplikasi v2 + revisi 2.1 + revisi role/seeder/peminjaman 24 Oktob
 
 ### C.3 Revisi besar V2 26 Oktober 2026 — Status: SELESAI (implementasi + test otomatis)
 
-- **Registrasi mandiri** dengan Gmail, nama lengkap, gelar, username, kategori, kelas; role selalu `PEMINJAM` dan tidak dapat dikirim dari browser; welcome screen memakai nama lengkap/gelar.
+- **Registrasi mandiri** dengan Gmail, nama lengkap, gelar, username (dihapus), kelas; role selalu `PEMINJAM` dan tidak dapat dikirim dari browser; welcome screen memakai nama lengkap/gelar.
 - **Scan universal** untuk semua role login; kamera + input manual, hasil langsung di halaman scan, data internal dimasking untuk peminjam, unit di luar cakupan tidak dibocorkan, scan tidak menulis data.
 - **Master gedung A–G** ditambahkan idempoten; H/I dipertahankan untuk data demo; kode lokasi/unit tetap dari master gedung.
 - **`asset_code` dihapus** dari skema dan seluruh tampilan/label/QR/laporan; identitas tunggal adalah kode unit.

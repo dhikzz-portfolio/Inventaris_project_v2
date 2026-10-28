@@ -42,8 +42,8 @@ class ReturnFormLivewireTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->guru = User::where('username', 'guru.budi')->firstOrFail();
+        $this->laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
 
         $category = Category::firstOrFail();
         $rooms = Room::all();

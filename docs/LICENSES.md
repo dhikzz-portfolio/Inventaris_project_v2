@@ -10,7 +10,7 @@ Seluruh dependensi yang digunakan pada Sistem Manajemen Inventaris & Aset Sekola
 | -------------------------------- | ----- | ------------ | -------------------------------------------------- |
 | `php`                            | ^8.3  | PHP License  | Runtime bahasa pemrograman utama                   |
 | `laravel/framework`              | ^13.0 | MIT          | Kerangka kerja web MVC inti                        |
-| `laravel/breeze`                 | ^2.4  | MIT          | Scaffolding autentikasi (login username)           |
+| `laravel/breeze`                 | ^2.4  | MIT          | Scaffolding autentikasi (login email)           |
 | `livewire/livewire`              | ^4.4  | MIT          | Komponen UI reaktif tanpa SPA                      |
 | `spatie/laravel-permission`      | ^8.3  | MIT          | Manajemen role (4 role) & permission               |
 | `spatie/laravel-activitylog`     | ^4.12 | MIT          | Audit trail & log aktivitas sensitif               |

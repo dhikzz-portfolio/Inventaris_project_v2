@@ -28,7 +28,7 @@ class ReportTest extends TestCase
         // Periode laporan hanya memuat pinjaman yang dibuat oleh test ini.
         Loan::query()->delete();
 
-        $this->guru = User::where('username', 'guru.budi')->firstOrFail();
+        $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
     }
 
     private function makeLoan(array $attributes = []): Loan
@@ -89,8 +89,8 @@ class ReportTest extends TestCase
 
     public function test_ketua_laboran_hanya_mendapat_data_laporan_laboratorium(): void
     {
-        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
-        $wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
 
         $labItem = Item::where('name', 'Komputer PC')->firstOrFail();
         $nonLabItem = Item::where('name', 'Proyektor Epson')->firstOrFail();
@@ -136,7 +136,7 @@ class ReportTest extends TestCase
 
     public function test_ringkasan_laporan_menghitung_unit_fisik_bukan_baris_katalog(): void
     {
-        $wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
 
         $data = app(ReportService::class)->data(now()->format('Y-m'), 'SEMUA', null, $wakasek);
         $summary = $data['summary'];
@@ -171,8 +171,8 @@ class ReportTest extends TestCase
         Storage::disk('local')->put('reports/semua.pdf', '%PDF-1.4 test');
         Storage::disk('local')->put('reports/milik-admin.pdf', '%PDF-1.4 test');
 
-        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
-        $wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
 
         $systemReport = Report::create([
             'period' => now()->format('Y-m'),

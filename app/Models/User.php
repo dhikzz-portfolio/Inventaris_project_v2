@@ -20,7 +20,7 @@ class User extends Authenticatable
     use HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
-        'username', 'name', 'degree', 'email', 'email_verified_at', 'password',
+        'name', 'degree', 'email', 'email_verified_at', 'password',
         'role', 'borrower_type', 'major_id', 'class_name', 'last_login_at',
         'birth_date', 'profile_completed_at', 'profile_completed', 'work_unit',
     ];
@@ -51,7 +51,7 @@ class User extends Authenticatable
      */
     public function displayName(): string
     {
-        $name = trim((string) ($this->name ?: $this->username));
+        $name = trim((string) ($this->name ?: $this->email));
         $degree = trim((string) ($this->degree ?? ''));
 
         return $degree !== '' ? $name.', '.$degree : $name;
@@ -60,7 +60,7 @@ class User extends Authenticatable
     /** Nama tanpa gelar (dipakai bila gelar sudah menyatu pada nama lama). */
     public function greetingName(): string
     {
-        return $this->displayName() ?: (string) $this->username;
+        return $this->displayName() ?: 'User';
     }
 
     public function isGuru(): bool

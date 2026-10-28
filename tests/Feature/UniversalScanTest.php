@@ -26,10 +26,10 @@ class UniversalScanTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->ketua = User::where('username', 'ketua.laboran')->firstOrFail();
-        $this->laboran = User::where('username', 'laboran.rpl')->firstOrFail();
-        $this->siswa = User::where('username', 'siswa.raka')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->ketua = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->laboran = User::where('email', 'laboran.rpl@gmail.com')->firstOrFail();
+        $this->siswa = User::where('email', 'siswa.raka@gmail.com')->firstOrFail();
     }
 
     public function test_semua_role_yang_login_dapat_membuka_halaman_scan(): void

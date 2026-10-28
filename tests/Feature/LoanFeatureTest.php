@@ -37,10 +37,10 @@ class LoanFeatureTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
-        $this->guruSari = User::where('username', 'guru.sari')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->laboranTkj = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->guruBudi = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
+        $this->guruSari = User::where('email', 'guru.sari@gmail.com')->firstOrFail();
 
         $category = Category::firstOrFail();
         $room = Room::firstOrFail();

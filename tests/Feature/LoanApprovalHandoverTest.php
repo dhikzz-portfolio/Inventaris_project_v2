@@ -54,9 +54,9 @@ class LoanApprovalHandoverTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->laboranTkj = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->guruBudi = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
         $this->roomTkj = Room::where('major_id', Major::where('code', 'TP')->value('id'))->firstOrFail();
         $this->category = Category::firstOrFail();
     }
@@ -506,7 +506,7 @@ class LoanApprovalHandoverTest extends TestCase
 
     public function test_role_bukan_wakasek_tidak_dapat_membuka_halaman_khusus_wakasek(): void
     {
-        $adminSarpras = User::where('username', 'ketua.laboran')->firstOrFail();
+        $adminSarpras = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
 
         foreach (['users.index', 'settings.edit', 'write-offs.pending', 'items.acquisitions'] as $routeName) {
             $this->actingAs($adminSarpras)

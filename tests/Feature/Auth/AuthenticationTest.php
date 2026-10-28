@@ -22,7 +22,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->post('/login', [
-            'username' => $user->username,
+            'email' => $user->email,
             'password' => 'password',
         ]);
 
@@ -35,11 +35,30 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $this->post('/login', [
-            'username' => $user->username,
+            'email' => $user->email,
             'password' => 'wrong-password',
         ]);
 
         $this->assertGuest();
+    }
+
+    public function test_login_does_not_require_username(): void
+    {
+        $user = User::factory()->create();
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertAuthenticated();
+    }
+
+    public function test_users_table_has_no_username_column(): void
+    {
+        User::factory()->create();
+
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('users', 'username'));
     }
 
     public function test_users_can_logout(): void

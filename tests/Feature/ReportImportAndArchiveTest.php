@@ -25,7 +25,7 @@ class ReportImportAndArchiveTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
     }
 
     private function csv(array $rows): UploadedFile
@@ -129,7 +129,7 @@ class ReportImportAndArchiveTest extends TestCase
     {
         $room = Room::where('is_lab', true)->firstOrFail();
         $catalog = Item::approved()->firstOrFail();
-        $code = app(InventoryCodeService::class)->preview($room);
+        $code = app(InventoryCodeService::class)->preview($room, null, $catalog);
 
         $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
             'file' => $this->csv([[
@@ -204,7 +204,7 @@ class ReportImportAndArchiveTest extends TestCase
 
     public function test_ketua_laboran_tidak_dapat_menghapus_laporan_milik_pengguna_lain(): void
     {
-        $ketua = User::where('username', 'ketua.laboran')->firstOrFail();
+        $ketua = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
 
         $report = Report::create([
             'period' => '2026-09',

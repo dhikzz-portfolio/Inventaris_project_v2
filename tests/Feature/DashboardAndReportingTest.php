@@ -27,8 +27,8 @@ class DashboardAndReportingTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->guru = User::where('username', 'guru.budi')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
     }
 
     public function test_performa_dashboard_kurang_dari_satu_detik(): void
@@ -56,9 +56,9 @@ class DashboardAndReportingTest extends TestCase
 
     public function test_dashboard_pengelola_menghitung_unit_sesuai_cakupan_akses(): void
     {
-        $wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $admin = User::where('username', 'ketua.laboran')->firstOrFail();
-        $laboran = User::where('username', 'laboran.tp')->firstOrFail();
+        $wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
 
         $unitStat = function ($response): int {
             $stat = collect($response->viewData('stats'))->firstWhere('label', 'Jumlah Barang');
@@ -86,7 +86,7 @@ class DashboardAndReportingTest extends TestCase
 
     public function test_menu_laboran_tidak_menautkan_mutasi_yang_bukan_kewenangannya(): void
     {
-        $laboran = User::where('username', 'laboran.tp')->firstOrFail();
+        $laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
 
         $this->actingAs($laboran)->get(route('dashboard'))
             ->assertOk()

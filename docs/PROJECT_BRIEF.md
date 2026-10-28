@@ -70,7 +70,7 @@ Aturan yang mengikat:
 
 ### Termasuk
 
-- Autentikasi username/password, sesi, rate limit login, otorisasi role + cakupan laboratorium/ruangan.
+- Autentikasi email/password, sesi, rate limit login, otorisasi role + cakupan laboratorium/ruangan.
 - Dashboard berbeda untuk pengelola dan peminjam, memakai data aktual dan menghormati cakupan akses.
 - **Katalog jenis barang** dan **unit inventaris fisik** sebagai dua entitas terpisah (bagian 5).
 - **Kode inventaris `G1-02-12`** yang dibentuk otomatis, divalidasi, dan tidak pernah dipakai ganda (bagian 6).

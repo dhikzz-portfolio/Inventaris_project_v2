@@ -126,11 +126,22 @@ class LabelController extends Controller
         }
 
         if ($unit === null && $normalized !== '') {
-            if ($codes->isValidFormat($normalized)) {
+            // Format lama tiga segmen (mis. G1-02-12) masih diterima agar
+            // stiker lama tetap terbaca — bila unitnya tidak ada, pengguna
+            // mendapat pesan "tidak ditemukan", bukan "format tidak valid".
+            $looksLikeLegacyCode = preg_match('/^[A-Z][1-9]-[0-9]{2}-[0-9]{2}$/', $normalized) === 1;
+
+            if ($codes->isValidFormat($normalized) || $looksLikeLegacyCode) {
                 $unit = $codes->resolve($normalized);
-                $unit?->load(['catalog.category', 'room.major', 'room.building']);
-            } else {
-                // Dukungan stiker lama berisi ID internal katalog.
+
+                if ($unit !== null) {
+                    $unit->load(['catalog.category', 'room.major', 'room.building']);
+                }
+            }
+
+            // ID internal katalog (stiker lama) — bentuknya bisa menyerupai
+            // kode lama, jadi dicoba setelah resolusi unit gagal.
+            if ($unit === null) {
                 $legacy = Item::where('internal_id', $code)->first();
 
                 if ($legacy !== null) {
@@ -142,11 +153,13 @@ class LabelController extends Controller
                     ];
                 }
 
-                return [
-                    'status' => 'invalid',
-                    'code' => $code,
-                    'message' => 'Format kode tidak valid. Contoh yang benar: G1-02-12.',
-                ];
+                if (! $codes->isValidFormat($normalized) && ! $looksLikeLegacyCode) {
+                    return [
+                        'status' => 'invalid',
+                        'code' => $code,
+                        'message' => 'Format kode tidak valid. Contoh yang benar: G1-02-012-01.',
+                    ];
+                }
             }
         }
 

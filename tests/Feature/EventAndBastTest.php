@@ -33,8 +33,8 @@ class EventAndBastTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
-        $this->guru = User::where('username', 'guru.budi')->firstOrFail();
+        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
 
         $category = Category::firstOrFail();
         $room = Room::firstOrFail();

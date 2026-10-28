@@ -43,8 +43,8 @@ class LoanUnitFlowTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboranTkj = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->guruBudi = User::where('username', 'guru.budi')->firstOrFail();
+        $this->laboranTkj = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->guruBudi = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
         $this->roomTkj = Room::where('major_id', Major::where('code', 'TP')->value('id'))->firstOrFail();
         $this->category = Category::firstOrFail();
     }

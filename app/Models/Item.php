@@ -90,11 +90,40 @@ class Item extends Model
         return $this->hasMany(AssetUnit::class, 'item_catalog_id');
     }
 
+    /** Spesifikasi yang dimiliki oleh katalog ini. */
+    public function specification(): BelongsTo
+    {
+        return $this->belongsTo(Specification::class, 'item_catalog_id');
+    }
+
+    /** Unit inventaris yang hanya dapat diakses jika memiliki spesifikasi aktif. */
+    public function validUnits(): HasMany
+    {
+        return $this->hasMany(AssetUnit::class, 'item_catalog_id')->whereHas('specification', fn ($q) => $q->where('item_catalog_id', $this->id));
+    }
+
+    /** Unit inventaris yang tersedia untuk dipinjam (ada spesifikasi, aktif, kondisi baik). */
+    public function availableForLoanUnits(): HasMany
+    {
+        return $this->hasMany(AssetUnit::class, 'item_catalog_id')
+            ->whereHas('specification')
+            ->where('status', UnitStatus::AKTIF->value)
+            ->where('condition', Condition::BAIK->value);
+    }
+
+
     /** Alokasi lokasi pada pengadaan multi-lokasi. */
     public function allocations(): HasMany
     {
         return $this->hasMany(AcquisitionAllocation::class, 'item_catalog_id');
     }
+
+    /** Spesifikasi aktif untuk katalog ini. */
+    public function activeSpecification(): ?Specification
+    {
+        return $this->hasOne(Specification::class, 'item_catalog_id')->whereNull('archived_at');
+    }
+
 
     /** Total unit yang dialokasikan (0 bila pengadaan legacy tanpa alokasi). */
     public function allocatedQuantity(): int

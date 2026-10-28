@@ -94,7 +94,6 @@ php artisan tinker
 ```php
 $u = App\Models\User::create([
     'name' => 'Administrator Sekolah',
-    'username' => 'admin',
     'password' => Illuminate\Support\Facades\Hash::make('Ganti-Dengan-Password-Kuat'),
     'role' => 'SUPER_ADMIN',
 ]);

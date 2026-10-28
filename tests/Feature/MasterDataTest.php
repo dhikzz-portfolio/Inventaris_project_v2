@@ -28,10 +28,10 @@ class MasterDataTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->admin = User::where('username', 'ketua.laboran')->firstOrFail();
-        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->peminjam = User::where('username', 'guru.budi')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->peminjam = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
     }
 
     public function test_peminjam_dan_laboran_tidak_bisa_akses_master_data(): void
@@ -73,9 +73,10 @@ class MasterDataTest extends TestCase
         // Tambah Kategori
         $this->actingAs($this->admin)->post(route('masters.store-category'), [
             'name' => 'Perangkat Jaringan Nirkabel',
-            'code' => '01.01.11.05.01',
         ])->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('categories', ['name' => 'Perangkat Jaringan Nirkabel', 'code' => '01.01.11.05.01']);
+        $this->assertDatabaseHas('categories', ['name' => 'Perangkat Jaringan Nirkabel']);
+        // Kode klasifikasi aset lama sudah dihapus dari master kategori.
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('categories', 'code'));
     }
 
     public function test_hanya_wakasek_yang_dapat_mengubah_pengaturan_instansi(): void
@@ -115,20 +116,20 @@ class MasterDataTest extends TestCase
         // Buat user baru
         $this->actingAs($this->wakasek)->post(route('users.store'), [
             'name' => 'Laboran Baru',
-            'username' => 'laboran.baru',
+            'email' => 'laboran.baru@gmail.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => 'LABORAN',
             'major_id' => Major::first()->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $newUser = User::where('username', 'laboran.baru')->firstOrFail();
+        $newUser = User::where('email', 'laboran.baru@gmail.com')->firstOrFail();
         $this->assertTrue($newUser->hasRole('LABORAN'));
 
         // Update user
         $this->actingAs($this->wakasek)->put(route('users.update', $newUser), [
             'name' => 'Laboran Baru Updated',
-            'username' => 'laboran.baru',
+            'email' => 'laboran.baru@gmail.com',
             'role' => 'PEMINJAM',
             'major_id' => null,
         ])->assertRedirect()->assertSessionHasNoErrors();

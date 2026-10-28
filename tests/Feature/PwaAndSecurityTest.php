@@ -41,17 +41,17 @@ class PwaAndSecurityTest extends TestCase
         // 5 percobaan salah berturut-turut memicu rate limit
         for ($i = 0; $i < 5; $i++) {
             $this->post('/login', [
-                'username' => 'guru.budi',
+                'email' => 'guru.budi@gmail.com',
                 'password' => 'password-salah',
             ]);
         }
 
         // Percobaan ke-6 harus terblokir rate limiter (HTTP 429 atau pesan error throttling di session)
         $response = $this->post('/login', [
-            'username' => 'guru.budi',
+            'email' => 'guru.budi@gmail.com',
             'password' => 'password-salah',
         ]);
 
-        $response->assertSessionHasErrors('username');
+        $response->assertSessionHasErrors('email');
     }
 }

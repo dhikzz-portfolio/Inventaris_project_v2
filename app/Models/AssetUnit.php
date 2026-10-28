@@ -36,6 +36,12 @@ class AssetUnit extends Model
         return $this->belongsTo(Item::class, 'item_catalog_id');
     }
 
+    /** Spesifikasi aktif untuk unit ini. */
+    public function specification(): BelongsTo
+    {
+        return $this->belongsTo(Specification::class, 'specification_id');
+    }
+
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
@@ -124,4 +130,11 @@ class AssetUnit extends Model
             (int) ($room->room_no ?: 0)
         );
     }
+
+    /** Filter unit berdasarkan spesifikasi aktif. */
+    public function scopeBySpecification(Builder $query, int $specId): Builder
+    {
+        return $query->whereHas('specification', fn ($q) => $q->where('id', $specId));
+    }
+
 }

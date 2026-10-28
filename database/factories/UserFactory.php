@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\BorrowerType;
 use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,9 +27,15 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'username' => fake()->unique()->userName(),
             'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
             'role' => Role::PEMINJAM->value,
+            // Profil contoh sudah lengkap agar tes tidak dialihkan ke
+            // halaman pelengkapan profil.
+            'borrower_type' => BorrowerType::GURU->value,
+            'birth_date' => fake()->dateTimeBetween('-50 years', '-25 years')->format('Y-m-d'),
+            'profile_completed' => true,
+            'profile_completed_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];

@@ -31,10 +31,10 @@ class CatalogDeletionTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->ketuaLaboran = User::where('username', 'ketua.laboran')->firstOrFail();
-        $this->laboran = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->guru = User::where('username', 'guru.budi')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->ketuaLaboran = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
     }
 
     public function test_katalog_tanpa_unit_dan_transaksi_dapat_dihapus_permanen(): void

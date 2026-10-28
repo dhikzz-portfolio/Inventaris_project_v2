@@ -56,7 +56,7 @@
                             <tr class="{{ $editUser && $editUser->id === $user->id ? 'bg-blue-50 dark:bg-blue-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60' }}">
                                 <td class="px-4 py-3">
                                     <div class="font-medium text-slate-800 dark:text-slate-100">{{ $user->displayName() }}</div>
-                                    <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $user->username }}</div>
+                                    <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $user->email }}</div>
                                     @if ($user->email)
                                         <div class="text-[10px] text-gray-400">{{ $user->email }}</div>
                                     @endif

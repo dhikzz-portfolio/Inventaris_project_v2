@@ -333,7 +333,7 @@
                 </h3>
                 @unless (auth()->user()->isPeminjam())
                     <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Peminjam:</span> <strong>{{ $loan->borrower?->name }}</strong></div>
-                    <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Username:</span> {{ $loan->borrower?->username }}</div>
+                    <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Email:</span> {{ $loan->borrower?->email }}</div>
                     <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Jurusan:</span> {{ $loan->borrower?->major?->name ?: '-' }}</div>
                 @endunless
                 <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">{{ auth()->user()->isPeminjam() ? 'Mulai pinjam:' : 'Pinjam:' }}</span> <strong>{{ $loan->start_date->format('d M Y H:i') }}</strong></div>

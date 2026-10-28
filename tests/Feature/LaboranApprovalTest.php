@@ -33,8 +33,8 @@ class LaboranApprovalTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->laboranTp = User::where('username', 'laboran.tp')->firstOrFail();
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
+        $this->laboranTp = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
         $this->biasaDiLabSendiri = Item::where('name', 'Mesin Las Listrik')->firstOrFail();
         $this->nilaiTinggiDiLabSendiri = Item::where('name', 'Oscilloscope')->firstOrFail();
         $this->barangLabLain = Item::where('name', 'Komputer PC')->firstOrFail();

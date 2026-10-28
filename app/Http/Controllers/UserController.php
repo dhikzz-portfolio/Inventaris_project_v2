@@ -41,7 +41,6 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'degree' => ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'string', 'email', 'max:255', new GmailAddress, 'unique:users,email'],
-            'username' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', 'unique:users,username'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(Role::values())],
             'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
@@ -55,7 +54,6 @@ class UserController extends Controller
             'name' => $data['name'],
             'degree' => $data['degree'] ?? null,
             'email' => $data['email'] ?? null,
-            'username' => $data['username'],
             'password' => Hash::make($data['password']),
             'role' => $data['role'],
             'borrower_type' => $data['role'] === Role::PEMINJAM->value ? ($data['borrower_type'] ?? null) : null,
@@ -70,7 +68,7 @@ class UserController extends Controller
 
         activity('pengguna')->performedOn($user)->causedBy($request->user())
             ->withProperties(['akses_ruangan_sesudah' => $this->roomScopeIds($user)])
-            ->log("Membuat pengguna {$user->username} ({$user->role})");
+            ->log("Membuat pengguna {$user->name} ({$user->role})");
 
         return back()->with('success', "Pengguna \"{$user->name}\" berhasil dibuat.");
     }
@@ -83,7 +81,6 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'degree' => ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'string', 'email', 'max:255', new GmailAddress, Rule::unique('users', 'email')->ignore($user->id)],
-            'username' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('users', 'username')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(Role::values())],
             'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
@@ -103,14 +100,13 @@ class UserController extends Controller
         $user->name = $data['name'];
         $user->degree = $data['degree'] ?? null;
         $user->email = $data['email'] ?? null;
-        $user->username = $data['username'];
         $user->role = $data['role'];
         $user->borrower_type = $data['role'] === Role::PEMINJAM->value
             ? ($data['borrower_type'] ?? $user->borrower_type)
             : null;
         $user->class_name = $user->borrower_type === BorrowerType::SISWA
-            ? ($data['class_name'] ?? null)
-            : null;
+        ? ($data['class_name'] ?? null)
+        : null;
         $user->major_id = $data['major_id'] ?? null;
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
@@ -125,7 +121,7 @@ class UserController extends Controller
                 'akses_ruangan_sebelum' => $scopeBefore,
                 'akses_ruangan_sesudah' => $this->roomScopeIds($user),
             ])
-            ->log("Mengubah pengguna {$user->username}");
+            ->log("Mengubah pengguna {$user->name}");
 
         return back()->with('success', "Pengguna \"{$user->name}\" diperbarui.");
     }
@@ -166,7 +162,7 @@ class UserController extends Controller
         abort_if($user->id === $request->user()->id, 422, 'Tidak dapat menghapus akun sendiri.');
         abort_if($user->loans()->exists(), 422, 'Pengguna memiliki riwayat peminjaman — nonaktifkan role-nya saja.');
 
-        activity('pengguna')->performedOn($user)->causedBy($request->user())->log("Menghapus pengguna {$user->username}");
+        activity('pengguna')->performedOn($user)->causedBy($request->user())->log("Menghapus pengguna {$user->name}");
         $user->delete();
 
         return back()->with('success', 'Pengguna dihapus.');

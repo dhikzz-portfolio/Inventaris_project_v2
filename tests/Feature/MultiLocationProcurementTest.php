@@ -30,8 +30,8 @@ class MultiLocationProcurementTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('username', 'wakasek')->firstOrFail();
-        $this->ketua = User::where('username', 'ketua.laboran')->firstOrFail();
+        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->ketua = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
         $this->category = Category::firstOrFail();
         $this->rooms = Room::where('is_lab', true)->orderBy('code')->take(3)->get();
 

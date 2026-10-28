@@ -37,7 +37,7 @@ class DemoInventorySeeder extends Seeder
 
             $categoryModel = Category::find($category);
             $room = Room::find($roomId);
-            $register = IdGenerator::register($categoryModel->code);
+            $register = IdGenerator::register(null);
 
             /** @var Item $item */
             $item = Item::firstOrCreate(

@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryCodeService
 {
-    public const PATTERN = '/^[A-Z][1-9]-[0-9]{2}-[0-9]{2}$/';
+    public const PATTERN = '/^[A-Z][1-9]-[0-9]{2}-[0-9]{3}-[0-9]{2}$/'; // [KODE GEDUNG-LANTAI]-[KODE RUANGAN]-[KODE JENIS BARANG 3 DIGIT]-[NOMOR SERI]
 
     public const MAX_UNIT_NO = 99;
 
@@ -52,7 +52,7 @@ class InventoryCodeService
         return preg_match(self::PATTERN, $code) === 1;
     }
 
-    public function format(Room $room, int $unitNo): string
+    public function format(Room $room, int $unitNo, ?string $itemTypeCode = null): string
     {
         $resolved = $this->assertOrResolveRoomIdentity($room);
 
@@ -64,19 +64,12 @@ class InventoryCodeService
 
         $prefix = $resolved['prefix'];
         $roomNo = (int) $resolved['room_no'];
+        $typeCode = $itemTypeCode && preg_match('/^[0-9]{3}$/', $itemTypeCode) ? $itemTypeCode : '000';
 
-        return sprintf('%s-%02d-%02d', $prefix, $roomNo, $unitNo);
+        return sprintf('%s-%02d-%s-%02d', $prefix, $roomNo, $typeCode, $unitNo);
     }
 
     /**
-     * Serupa assertRoomIdentity, tetapi jika ruangan tidak memiliki identitas spasial
-     * yang lengkap secara lokal, coba kembalikan dari data kode katalog terbaru
-     * yang merujuk ke ruangan ini (mis. popup store tanpa properti gedung/loket
-     * lengkap). Jika tetap tidak dapat ditentukan, lempar exception seperti asli.
-     *
-     * Identitas gedung selalu diambil dari master gedung — bukan teks bebas
-     * yang diketik pada formulir ruangan.
-     *
      * @return array{prefix: string, room_no: int}
      */
     private function assertOrResolveRoomIdentity(Room $room): array
@@ -109,7 +102,14 @@ class InventoryCodeService
             ]);
         }
 
-        return ['prefix' => $activeCode->codePrefix(), 'room_no' => (int) $activeCode->room_no];
+        $prefix = $activeCode->codePrefix();
+        // Try to extract prefix
+        $parts = explode('-', $activeCode->inventory_code);
+        if (count($parts) >= 2) {
+            $prefix = $parts[0];
+        }
+
+        return ['prefix' => $prefix, 'room_no' => (int) $activeCode->room_no];
     }
 
     private function codePrefix(string $code): string
@@ -163,22 +163,23 @@ class InventoryCodeService
         return $next;
     }
 
-    public function preview(Room $room): string
+    public function preview(Room $room, ?string $itemTypeCode = null): string
     {
-        return $this->format($room, $this->nextUnitNo($room));
+        return $this->format($room, $this->nextUnitNo($room), $itemTypeCode);
     }
 
     /**
      * Terbitkan kode baru untuk unit yang sudah tersimpan. Harus dipanggil
      * di dalam transaksi pemanggil atau akan membungkusnya sendiri.
      */
-    public function issue(AssetUnit $unit, Room $room, string $reason = 'PENEMPATAN'): AssetUnitCode
+    public function issue(AssetUnit $unit, Room $room, string $reason = 'PENEMPATAN', ?string $itemTypeCode = null): AssetUnitCode
     {
-        return $this->withRetry(function () use ($unit, $room, $reason) {
-            return DB::transaction(function () use ($unit, $room, $reason) {
+        return $this->withRetry(function () use ($unit, $room, $reason, $itemTypeCode) {
+            return DB::transaction(function () use ($unit, $room, $reason, $itemTypeCode) {
                 $this->lockRoom($room);
                 $unitNo = $this->nextUnitNo($room);
-                $code = $this->format($room, $unitNo);
+                $itemTypeCode = $itemTypeCode ?? ($unit->catalog?->item_type_code ?? '000');
+                $code = $this->format($room, $unitNo, $itemTypeCode);
 
                 $unit->forceFill([
                     'room_id' => $room->id,
@@ -225,12 +226,14 @@ class InventoryCodeService
         return $this->withRetry(function () use ($unit, $toRoom, $actor, $note) {
             return DB::transaction(function () use ($unit, $toRoom, $actor, $note) {
                 $locked = AssetUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
+                $locked->loadMissing('catalog');
                 $fromRoom = $locked->room;
                 $oldCode = $locked->inventory_code;
 
                 $this->lockRoom($toRoom);
                 $unitNo = $this->nextUnitNo($toRoom);
-                $newCode = $this->format($toRoom, $unitNo);
+                $itemTypeCode = $locked->catalog?->item_type_code ?? '000';
+                $newCode = $this->format($toRoom, $unitNo, $itemTypeCode);
 
                 AssetUnitCode::query()
                     ->where('asset_unit_id', $locked->id)
@@ -283,7 +286,8 @@ class InventoryCodeService
     {
         $code = $this->normalize($code);
 
-        if (! $this->isValidFormat($code)) {
+        // Accept both old and new formats
+        if (! $this->isValidFormat($code) && ! preg_match('/^[A-Z][1-9]-[0-9]{2}-[0-9]{2}$/', $code)) {
             return null;
         }
 

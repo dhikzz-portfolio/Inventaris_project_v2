@@ -210,12 +210,31 @@ class ReturnForm extends Component
 
         $hasUnitAssignmentsInRows = collect($this->rows)->some(fn (array $row) => (! empty($row['assignment_id'])));
 
+        // Group rows by item catalog (barang sejenis)
+        $groupedRows = collect($this->rows)->groupBy('item_id')->map(function ($groupRows, $itemId) {
+            $first = $groupRows->first();
+            $totalBorrowed = $groupRows->sum('borrowed');
+            $alreadyReturned = $groupRows->sum('already_returned');
+            $totalRemaining = $groupRows->sum('remaining');
+            $totalQtyReturned = $groupRows->sum('qty_returned');
+            return [
+                'item_id' => $itemId,
+                'item_name' => $first['item_name'] ?? '-',
+                'total_borrowed' => $totalBorrowed,
+                'already_returned' => $alreadyReturned,
+                'remaining' => $totalRemaining,
+                'returned' => $totalQtyReturned,
+                'rows' => $groupRows,
+            ];
+        })->values();
+
         return view('livewire.loan.return-form', [
             'rooms' => $rooms,
             'conditions' => Condition::cases(),
             'mismatches' => $this->mismatchRows(),
             'totalShortfall' => collect($this->rows)->sum(fn ($r) => max(0, (int) $r['remaining'] - (int) $r['qty_returned'])),
             'hasUnitAssignmentsInRows' => $hasUnitAssignmentsInRows,
+            'groupedRows' => $groupedRows,
         ]);
     }
 }

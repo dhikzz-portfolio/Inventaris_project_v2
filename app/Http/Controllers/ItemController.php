@@ -134,7 +134,7 @@ class ItemController extends Controller
         $firstRoom = Room::findOrFail($allocations->first()['room_id']);
 
         DB::transaction(function () use ($data, $category, $firstRoom, $total, $allocations, $request) {
-            $register = IdGenerator::register($category->code);
+            $register = IdGenerator::register(null);
             $isWakasek = $request->user()->isApproverLevel2();
 
             $item = Item::create([

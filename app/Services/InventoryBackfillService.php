@@ -127,32 +127,37 @@ class InventoryBackfillService
             $lostQuota = min((int) $catalog->qty_lost, $quantity);
             $damagedQuota = min((int) $catalog->qty_damaged, max(0, $quantity - $lostQuota));
 
-            $nextUnitNo = (int) DB::table('asset_unit_codes')->where('room_id', $room->id)->max('unit_no');
+                $nextUnitNo = (int) DB::table('asset_unit_codes')->where('room_id', $room->id)->max('unit_no');
+                $itemTypeCode = $catalog->item_type_code ?? '000';
+                if (! preg_match('/^[0-9]{3}$/', $itemTypeCode)) {
+                    $itemTypeCode = '000';
+                }
 
-            for ($i = $existing; $i < $quantity; $i++) {
-                $condition = $baseCondition;
-                $status = $unitStatus;
+                for ($i = $existing; $i < $quantity; $i++) {
+                    $condition = $baseCondition;
+                    $status = $unitStatus;
 
-                if ($unitStatus === 'AKTIF') {
-                    if ($i < $lostQuota) {
-                        $status = 'HILANG';
-                    } elseif ($i < $lostQuota + $damagedQuota) {
-                        $condition = 'RUSAK_BERAT';
+                    if ($unitStatus === 'AKTIF') {
+                        if ($i < $lostQuota) {
+                            $status = 'HILANG';
+                        } elseif ($i < $lostQuota + $damagedQuota) {
+                            $condition = 'RUSAK_BERAT';
+                        }
                     }
-                }
 
-                $unitNo = ++$nextUnitNo;
-                if ($unitNo > InventoryCodeService::MAX_UNIT_NO) {
-                    break;
-                }
+                    $unitNo = ++$nextUnitNo;
+                    if ($unitNo > InventoryCodeService::MAX_UNIT_NO) {
+                        break;
+                    }
 
-                $code = sprintf(
-                    '%s%d-%02d-%02d',
-                    $room->building_letter,
-                    (int) $room->floor,
-                    (int) $room->room_no,
-                    $unitNo
-                );
+                    $code = sprintf(
+                        '%s%d-%02d-%s-%02d',
+                        $room->building_letter,
+                        (int) $room->floor,
+                        (int) $room->room_no,
+                        $itemTypeCode,
+                        $unitNo
+                    );
 
                 $unitId = DB::table('asset_units')->insertGetId([
                     'item_catalog_id' => $catalog->id,

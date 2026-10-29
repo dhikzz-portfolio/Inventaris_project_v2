@@ -110,18 +110,26 @@ Setelah disetujui, buka detail pinjaman → **Serahkan Barang**. Status berubah 
 
 Saat serah terima, pilih unit fisik yang sesungguhnya diserahkan. Jumlah yang wajib dipilih sama dengan jumlah yang dipinjam pada baris tersebut; setelah batas terpenuhi, unit tambahan otomatis dinonaktifkan. Hapus centang untuk mengganti pilihan sebelum menyimpan. Unit yang dipilih dicatat pada `loan_item_units` (kondisi keluar, `opened_at`), ditandai `DIPINJAM`, dan muncul di detail pinjaman. Server menolak unit di luar transaksi, unit ganda, jumlah berlebih, dan pengiriman ulang.
 
+- **Pilih Semua Unit yang Dapat Diserahkan** memilih unit yang memenuhi syarat untuk seluruh barang pada peminjaman, tetapi berhenti pada jumlah yang dipinjam per baris. **Batal Pilih Semua** mengosongkan pilihan. Jumlah terpilih dan sisa kapasitas tampil di atas daftar.
+- **Cari unit** berdasarkan nama katalog, spesifikasi/merek, kode inventaris, gedung, atau ruangan. Filter kategori, katalog, spesifikasi, gedung, dan ruangan dapat digabungkan. Pilihan yang sudah dibuat tidak hilang saat filter berubah.
+- **Scan QR Unit** memasukkan unit langsung ke daftar pilihan: petugas memindai stiker atau mengetik kode inventaris. Pesan akan menjelaskan bila unit sudah dipilih, sudah diserahkan, bukan bagian peminjaman ini, atau tidak memenuhi syarat. Scan tidak menyelesaikan serah terima; tombol simpan tetap harus ditekan. Jika kamera ditolak/tidak tersedia, gunakan input kode manual.
+
 > **Catatan:** bila katalog belum memiliki unit fisik (data lama yang belum dimigrasikan), serah terima tetap dapat dilakukan hanya dengan mengklik **Serahkan Barang**, tanpa memilih unit.
 
 ### Pengembalian
 
 1. Buka **Pengembalian** → pilih pinjaman → **Proses Pengembalian**.
-2. Pada pinjaman dengan **unit fisik**, setiap unit tampil terpisah beserta kode inventaris dan lokasinya. Centang unit yang sedang diperiksa, lalu isi kondisi akhir, catatan, dan ruangan tujuan untuk unit tersebut.
+2. Pada pinjaman dengan **unit fisik**, setiap unit tampil terpisah beserta kode inventaris dan lokasinya. Centang unit yang sedang diperiksa, lalu isi kondisi akhir, catatan, dan ruangan tujuan untuk unit tersebut. Gunakan **Cari unit**, filter status validasi/kondisi/status pengembalian/ruangan asal, atau **Scan QR untuk Menemukan Unit** untuk menyorot baris yang tepat. Scan hanya memilih unit; konfirmasi tetap lewat tombol **Konfirmasi unit ini** atau **Konfirmasi unit terpilih**.
 3. **Centang saja tidak mengonfirmasi pengembalian.** Tekan **Konfirmasi unit ini** untuk satu unit, atau **Konfirmasi unit terpilih** untuk beberapa unit sekaligus. Setiap unit dapat memiliki kondisi dan catatan yang berbeda.
 4. Jika kondisi **Rusak Ringan/Berat**, unggah **foto bukti** (wajib) pada unit tersebut.
 5. Untuk kelompok katalog sejenis dengan **minimal 11 unit**, tombol **Validasi Semua** tersedia. Sistem menampilkan konfirmasi berisi jumlah unit dan nama kelompok sebelum memproses; hanya unit yang belum dikonfirmasi pada kelompok itu yang diproses, unit dari katalog lain tidak ikut.
 6. Jika ruangan tujuan berbeda dari asal, konfirmasi peringatan — sistem akan mencatat mutasi unit dan menerbitkan kode baru (⚠ 2.1).
 7. Tombol **Selesaikan Pengembalian** baru aktif setelah seluruh unit dikonfirmasi. Status pinjaman berubah menjadi **Selesai** hanya setelah tombol ini ditekan; backend memeriksa ulang seluruh unit sebelum menyelesaikan.
 8. Untuk pinjaman **tanpa unit fisik (data lama)**, jumlah kembali, kondisi, dan ruangan diisi per baris katalog. Pengembalian dapat dilakukan bertahap dan jumlahnya akumulatif. Jika jumlah kembali kurang, selisih dicatat sebagai **Hilang sementara** dan pinjaman tetap aktif sampai barang ditemukan/dikembalikan atau ditutup oleh Wakasek.
+
+### Rincian barang pada detail peminjaman
+
+Bagian **Rincian Barang** menampilkan satu kartu per unit fisik: kode inventaris, katalog, spesifikasi/merek, lokasi, kondisi, tanggal pemeriksaan, status validasi, dan catatan. Kartu yang memiliki **foto bukti kerusakan** dapat diklik untuk membuka popup berisi foto, kode unit, nama/spesifikasi, tanggal, catatan, dan nama petugas. Kartu tanpa foto tidak menampilkan tombol foto. Gunakan pencarian dan filter (kategori, katalog, spesifikasi, gedung, ruangan, kondisi, status inventaris, status validasi, rentang tanggal pemeriksaan, ada/tidak foto) lalu **Terapkan filter**; **Reset filter** mengembalikan seluruh daftar. Foto hanya dapat dibuka petugas yang berwenang dan selalu terikat pada unit yang diperiksa.
 
 ### Scan QR
 

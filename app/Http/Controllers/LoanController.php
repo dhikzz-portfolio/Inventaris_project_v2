@@ -6,6 +6,7 @@ use App\Enums\Condition;
 use App\Enums\Decision;
 use App\Enums\DocumentStatus;
 use App\Enums\LoanStatus;
+use App\Enums\ReturnStatus;
 use App\Enums\UnitStatus;
 use App\Exceptions\AvailabilityException;
 use App\Models\AssetUnit;
@@ -14,8 +15,10 @@ use App\Models\Loan;
 use App\Models\LoanItem;
 use App\Models\LoanItemUnit;
 use App\Services\BastService;
+use App\Services\InventoryCodeService;
 use App\Services\LoanService;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -108,14 +111,21 @@ class LoanController extends Controller
         abort_unless($loan->canBeViewedBy($request->user()), 403);
 
         $loan->load([
-            'loanItems.item.room', 'borrower.major', 'event',
+            'loanItems.item.category', 'loanItems.item.room', 'loanItems.unitAssignments',
+            'borrower.major', 'event',
             'approvals.approver', 'returner', 'handoverOfficer', 'canceller',
         ]);
 
         $canManage = $this->canActOn($loan, $request);
         $nextLevel = $loan->nextApprovalLevelFor($request->user());
 
+        [$unitAssignments, $itemFilters, $filterOptions] = $this->loanItemDetailData($request, $loan);
+
         return view('loans.show', [
+            'unitAssignments' => $unitAssignments,
+            'itemFilters' => $itemFilters,
+            'filterOptions' => $filterOptions,
+            'canViewDamagePhotos' => $request->user()->canApproveLoans(),
             'loan' => $loan,
             'nextLevel' => $nextLevel,
             'canAct' => $loan->isPending() && $canManage && $nextLevel !== null,
@@ -126,6 +136,119 @@ class LoanController extends Controller
             'hasShortage' => $loan->loanItems->contains(fn ($li) => $li->hasShortage()),
             'canManageDocuments' => $request->user()->canManageLoanDocuments(),
         ]);
+    }
+
+    /**
+     * Data rincian barang per unit untuk halaman detail peminjaman.
+     *
+     * Filter hanya memakai kolom yang benar-benar tersimpan, dan seluruh
+     * query dibatasi pada unit milik transaksi ini.
+     *
+     * @return array{0: mixed, 1: array<string, string>, 2: array<string, mixed>}
+     */
+    private function loanItemDetailData(Request $request, Loan $loan): array
+    {
+        $filters = [
+            'search' => trim((string) $request->query('item_search', '')),
+            'category' => trim((string) $request->query('item_category', '')),
+            'catalog' => trim((string) $request->query('item_catalog', '')),
+            'specification' => trim((string) $request->query('item_spec', '')),
+            'building' => trim((string) $request->query('item_building', '')),
+            'room' => trim((string) $request->query('item_room', '')),
+            'condition' => trim((string) $request->query('item_condition', '')),
+            'status' => trim((string) $request->query('item_status', '')),
+            'validation' => trim((string) $request->query('item_validation', '')),
+            'photo' => trim((string) $request->query('item_photo', '')),
+            'from' => trim((string) $request->query('item_from', '')),
+            'to' => trim((string) $request->query('item_to', '')),
+        ];
+
+        $base = LoanItemUnit::query()
+            ->whereHas('loanItem', fn ($query) => $query->where('loan_id', $loan->id));
+
+        $options = (clone $base)
+            ->with(['unit.catalog.category', 'unit.room.building', 'unit.specification'])
+            ->get();
+
+        $assignments = $base
+            ->with([
+                'unit.catalog.category',
+                'unit.room.building',
+                'unit.specification',
+                'loanItem.item.category',
+                'confirmer',
+            ])
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $term = '%'.$filters['search'].'%';
+
+                $query->where(function ($query) use ($term) {
+                    $query->where('return_notes', 'like', $term)
+                        ->orWhereHas('loanItem.item', fn ($item) => $item
+                            ->where('name', 'like', $term)
+                            ->orWhere('internal_id', 'like', $term)
+                            ->orWhere('specification', 'like', $term))
+                        ->orWhereHas('unit', fn ($unit) => $unit
+                            ->where('inventory_code', 'like', $term)
+                            ->orWhereHas('catalog', fn ($catalog) => $catalog
+                                ->where('name', 'like', $term)
+                                ->orWhere('brand', 'like', $term)
+                                ->orWhere('model_type', 'like', $term))
+                            ->orWhereHas('specification', fn ($spec) => $spec
+                                ->where('brand', 'like', $term)
+                                ->orWhere('model_type', 'like', $term)
+                                ->orWhere('spec_code', 'like', $term))
+                            ->orWhereHas('room', fn ($room) => $room
+                                ->where('name', 'like', $term)
+                                ->orWhere('code', 'like', $term)));
+                });
+            })
+            ->when($filters['category'] !== '', fn ($query) => $query
+                ->whereHas('unit.catalog', fn ($catalog) => $catalog->where('category_id', $filters['category'])))
+            ->when($filters['catalog'] !== '', fn ($query) => $query
+                ->whereHas('unit', fn ($unit) => $unit->where('item_catalog_id', $filters['catalog'])))
+            ->when($filters['specification'] !== '', fn ($query) => $query
+                ->whereHas('unit', fn ($unit) => $unit->where('specification_id', $filters['specification'])))
+            ->when($filters['building'] !== '', fn ($query) => $query
+                ->whereHas('unit.room', fn ($room) => $room
+                    ->whereHas('building', fn ($building) => $building->where('code', $filters['building']))
+                    ->orWhere('building_letter', $filters['building'])))
+            ->when($filters['room'] !== '', fn ($query) => $query
+                ->whereHas('unit', fn ($unit) => $unit->where('room_id', $filters['room'])))
+            ->when($filters['condition'] !== '', fn ($query) => $query->where(function ($query) use ($filters) {
+                $query->where('condition_in', $filters['condition'])
+                    ->orWhere(fn ($inner) => $inner
+                        ->whereNull('condition_in')
+                        ->whereHas('unit', fn ($unit) => $unit->where('condition', $filters['condition'])));
+            }))
+            ->when($filters['status'] !== '', fn ($query) => $query
+                ->whereHas('unit', fn ($unit) => $unit->where('status', $filters['status'])))
+            ->when($filters['validation'] !== '', fn ($query) => $query
+                ->where('return_status', $filters['validation']))
+            ->when($filters['photo'] === 'ada', fn ($query) => $query->whereNotNull('damage_photo_path'))
+            ->when($filters['photo'] === 'tidak', fn ($query) => $query->whereNull('damage_photo_path'))
+            ->when($filters['from'] !== '', fn ($query) => $query->whereDate('confirmed_at', '>=', $filters['from']))
+            ->when($filters['to'] !== '', fn ($query) => $query->whereDate('confirmed_at', '<=', $filters['to']))
+            ->orderBy('id')
+            ->paginate(24)
+            ->withQueryString();
+
+        $unitRooms = $options->pluck('unit.room')->filter();
+
+        return [
+            $assignments,
+            $filters,
+            [
+                'categories' => $options->pluck('unit.catalog.category')->filter()->unique('id')->sortBy('name')->values(),
+                'catalogs' => $options->pluck('unit.catalog')->filter()->unique('id')->sortBy('name')->values(),
+                'specifications' => $options->pluck('unit.specification')->filter()->unique('id')
+                    ->sortBy(fn ($spec) => $spec->displayName())->values(),
+                'buildings' => $unitRooms->map(fn ($room) => $room->buildingCode())->filter()->unique()->sort()->values(),
+                'rooms' => $unitRooms->unique('id')->sortBy('code')->values(),
+                'conditions' => Condition::cases(),
+                'statuses' => UnitStatus::cases(),
+                'validations' => ReturnStatus::cases(),
+            ],
+        ];
     }
 
     // ================= PERSETUJUAN (Berjenjang + TTD Digital) =================
@@ -264,11 +387,157 @@ class LoanController extends Controller
                 ->withErrors(['handover' => $blocker.' Serah terima hanya dapat dilakukan setelah persetujuan yang diwajibkan terpenuhi.']);
         }
 
-        $loan->load(['loanItems.item.room.units', 'borrower']);
+        $loan->load([
+            'loanItems.item.category',
+            'loanItems.item.room.building',
+            'loanItems.item.room.units',
+            'borrower',
+        ]);
 
         return view('loans.handover_form', [
             'loan' => $loan,
             'availableUnits' => $this->availableUnitsForHandover($loan, $request),
+        ]);
+    }
+
+    /**
+     * Resolusi hasil scan QR pada halaman serah terima.
+     *
+     * Isi QR tidak pernah dipercaya mentah: identitas unit dicari ulang dari
+     * database, lalu diperiksa terhadap peminjaman yang sedang diproses,
+     * kelayakan unit, duplikasi pilihan, dan batas jumlah per baris.
+     */
+    public function scanHandoverUnit(Request $request, Loan $loan): JsonResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        $blocker = $loan->handoverBlocker();
+
+        if ($blocker !== null) {
+            return response()->json([
+                'status' => 'unavailable',
+                'message' => $blocker,
+            ], 409);
+        }
+
+        $code = trim((string) $request->query('code', ''));
+        $unitId = $request->query('unit_id');
+        $selected = array_values(array_unique(array_map('intval', (array) $request->query('selected', []))));
+
+        // QR unit berisi URL (mis. /scan?u=12&c=G1-02-12). Ambil petunjuknya,
+        // lalu tetap verifikasi ulang ke database.
+        if (preg_match('#^https?://#i', $code) === 1) {
+            $parts = parse_url($code) ?: [];
+            parse_str((string) ($parts['query'] ?? ''), $query);
+
+            if ($unitId === null && isset($query['u'])) {
+                $unitId = $query['u'];
+            }
+
+            $code = isset($query['c']) ? (string) $query['c'] : basename((string) ($parts['path'] ?? ''));
+        }
+
+        $unit = null;
+
+        if ($unitId !== null && ctype_digit((string) $unitId)) {
+            $unit = AssetUnit::query()->find((int) $unitId);
+        }
+
+        if ($unit === null && $code !== '') {
+            $unit = app(InventoryCodeService::class)->resolve($code);
+        }
+
+        if ($unit === null) {
+            return response()->json([
+                'status' => 'missing',
+                'message' => 'QR tidak dikenali. Periksa stiker atau masukkan kode inventaris secara manual.',
+            ], 404);
+        }
+
+        if (! AssetUnit::query()->visibleTo($request->user())->whereKey($unit->id)->exists()) {
+            return response()->json([
+                'status' => 'restricted',
+                'message' => 'Unit ini berada di luar cakupan akses Anda.',
+            ], 403);
+        }
+
+        $loanItems = $loan->loanItems()->with('item')->get();
+        $loanItem = $loanItems->firstWhere('item_id', (int) $unit->item_catalog_id);
+
+        if ($loanItem === null) {
+            return response()->json([
+                'status' => 'not_in_loan',
+                'message' => 'Unit tidak termasuk dalam peminjaman ini.',
+            ], 422);
+        }
+
+        $alreadyAssigned = LoanItemUnit::query()
+            ->where('asset_unit_id', $unit->id)
+            ->whereIn('loan_item_id', $loanItems->pluck('id'))
+            ->exists();
+
+        if ($alreadyAssigned) {
+            return response()->json([
+                'status' => 'already_handed_over',
+                'message' => 'Unit sudah diserahkan pada peminjaman ini.',
+            ], 409);
+        }
+
+        if (in_array((int) $unit->id, $selected, true)) {
+            return response()->json([
+                'status' => 'duplicate',
+                'message' => 'Unit sudah dipilih sebelumnya.',
+            ], 409);
+        }
+
+        $selectedForItem = AssetUnit::query()
+            ->whereIn('id', $selected)
+            ->where('item_catalog_id', $loanItem->item_id)
+            ->count();
+
+        if ($selectedForItem >= (int) $loanItem->qty_borrowed) {
+            return response()->json([
+                'status' => 'limit',
+                'message' => 'Jumlah unit untuk barang ini sudah mencapai batas penyerahan.',
+            ], 409);
+        }
+
+        $ineligible = match (true) {
+            $unit->status !== UnitStatus::AKTIF => 'Unit tidak aktif dan tidak memenuhi syarat penyerahan.',
+            $unit->condition !== Condition::BAIK => 'Unit tidak dalam kondisi baik dan tidak memenuhi syarat penyerahan.',
+            $unit->isCurrentlyOnLoan() => 'Unit sedang dipinjam dan tidak memenuhi syarat penyerahan.',
+            default => null,
+        };
+
+        if ($ineligible !== null) {
+            return response()->json([
+                'status' => 'ineligible',
+                'message' => $ineligible,
+            ], 422);
+        }
+
+        $unit->load(['specification', 'room.building']);
+        $room = $unit->room;
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Unit berhasil ditambahkan.',
+            'unit' => [
+                'id' => (int) $unit->id,
+                'loan_item_id' => (int) $loanItem->id,
+                'inventory_code' => $unit->inventory_code,
+                'item_name' => $loanItem->item?->name,
+                'specification' => $unit->specification?->displayName() ?: $loanItem->item?->specification,
+                'brand' => $loanItem->item?->brand,
+                'model_type' => $loanItem->item?->model_type,
+                'building' => $room?->buildingCode(),
+                'floor' => $room?->floor,
+                'room' => $room?->name,
+                'room_code' => $room?->code,
+                'condition' => $unit->condition->label(),
+                'status' => $unit->status->label(),
+                'remaining_slots' => max(0, (int) $loanItem->qty_borrowed - $selectedForItem - 1),
+            ],
         ]);
     }
 
@@ -291,6 +560,7 @@ class LoanController extends Controller
                 'room' => $li->item?->room,
                 'qty_borrowed' => (int) $li->qty_borrowed,
                 'units' => AssetUnit::visibleTo($user)
+                    ->with(['specification', 'room.building'])
                     ->where('item_catalog_id', $li->item_id)
                     ->where('status', UnitStatus::AKTIF->value)
                     ->where('condition', Condition::BAIK->value)

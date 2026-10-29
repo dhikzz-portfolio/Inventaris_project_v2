@@ -82,6 +82,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
         Route::post('/loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');
         Route::post('/loans/{loan}/handover', [LoanController::class, 'handover'])->name('loans.handover');
         Route::get('/loans/{loan}/serah-terima', [LoanController::class, 'handoverForm'])->name('loans.handover-form');
+        Route::get('/loans/{loan}/serah-terima/scan', [LoanController::class, 'scanHandoverUnit'])->name('loans.handover-scan');
         Route::post('/loans/{loan}/dokumen/dicetak', [LoanController::class, 'markDocumentPrinted'])->name('loans.document.printed');
         Route::post('/loans/{loan}/dokumen/tanda-tangan-fisik', [LoanController::class, 'markDocumentSignedPhysical'])->name('loans.document.signed-physical');
         Route::post('/loans/{loan}/dokumen/tanda-tangan-digital', [LoanController::class, 'markDocumentSignedDigital'])->name('loans.document.signed-digital');

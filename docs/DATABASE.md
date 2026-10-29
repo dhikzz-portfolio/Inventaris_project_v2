@@ -221,6 +221,7 @@ Cakupan efektif:
 | `condition_in`             | string nullable    | Kondisi saat kembali.                                 |
 | `return_status`            | string (30)        | Status pemeriksaan unit; default `BELUM_DIPERIKSA`.   |
 | `return_notes`             | text nullable      | Catatan pemeriksaan/kerusakan per unit (maks. 1000).  |
+| `damage_photo_path`        | string nullable    | Path privat foto bukti kerusakan unit ini.            |
 | `confirmed_by`             | FK `users` nullable| Petugas yang mengonfirmasi pengembalian unit.         |
 | `confirmed_at`             | timestamp nullable | Waktu konfirmasi pengembalian unit.                   |
 | `opened_at`                | timestamp nullable | Penugasan dibuka (barang keluar ke peminjam).         |
@@ -232,6 +233,8 @@ Index: `unique(loan_item_id, asset_unit_id)` — satu unit tidak boleh ditugaska
 > **Catatan dialek:** pada MySQL/MariaDB, `NULL` pada unique index diperlakukan sebagai berbeda, sehingga `unique(asset_unit_id, returned_at)` **tidak** dengan sendirinya mencegah dua penugasan terbuka pada unit yang sama. Aturan "satu unit = satu penugasan terbuka" ditegakkan di service (`LoanService::assignUnitsOnHandover()` memakai `LoanItemUnit::openForUnit()`) dan diuji pada kedua dialek.
 
 `return_status` memakai nilai `BELUM_DIPERIKSA`, `MENUNGGU_KONFIRMASI`, `SUDAH_DIKONFIRMASI`, dan `PERLU_TINDAK_LANJUT`. Migration `2026_10_28_200920_add_per_unit_return_validation_to_loan_item_units_table.php` menambahkan kolom konfirmasi dan mengisi baris lama yang sudah memiliki `returned_at` menjadi `SUDAH_DIKONFIRMASI` dengan `confirmed_at = returned_at`. Status pemeriksaan ini **terpisah** dari `condition_in`: unit dapat sudah dikonfirmasi dengan kondisi rusak.
+
+Migration `2026_10_29_000001_add_damage_photo_to_loan_item_units_table.php` menambahkan `damage_photo_path` (nullable) agar bukti kerusakan terikat pada **unit yang diperiksa**. Kolom lama `loan_items.damage_photo_path` tetap dipakai untuk baris katalog legacy. Tidak ada backfill: foto lama tidak boleh dianggap sebagai bukti unit tertentu tanpa kepastian. File tetap disimpan di disk privat (`damage/loan-{id}/`) dan diakses melalui rute `files.show` yang memeriksa peran serta keterkaitan dengan transaksi.
 
 Catatan: penugasan unit dibuat **saat serah terima**. Peminjaman lama yang belum memiliki penugasan unit tetap sah dan dihitung dari `qty_borrowed`; laporan menandainya `unit_assignment_status = LEGACY`.
 

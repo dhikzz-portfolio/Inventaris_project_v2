@@ -166,5 +166,43 @@ class DemoLoanSeeder extends Seeder
             'decision' => Decision::APPROVED->value,
             'decided_at' => now()->subDays(11),
         ]);
+
+        // 5) Peminjaman APPROVED dengan beberapa unit — siap diuji pada halaman
+        // serah terima (pilih semua, pencarian/filter, dan scan QR). Unit fisik
+        // belum ditugaskan karena penugasan baru dibuat saat serah terima.
+        $kursi = Item::where('name', 'Kursi Kelas')->first();
+        $meja = Item::where('name', 'Meja Kelas')->first();
+
+        if ($kursi !== null && $meja !== null) {
+            $ready = Loan::create([
+                'borrower_id' => $guruBudi->id,
+                'purpose' => 'Demo serah terima multi-unit (siap diserahkan)',
+                'start_date' => now()->addDays(14),
+                'due_date' => now()->addDays(18),
+                'status' => LoanStatus::APPROVED,
+            ]);
+
+            LoanItem::create([
+                'loan_id' => $ready->id,
+                'item_id' => $kursi->id,
+                'qty_borrowed' => 3,
+                'qty_returned' => null,
+                'condition_out' => Condition::BAIK->value,
+            ]);
+            LoanItem::create([
+                'loan_id' => $ready->id,
+                'item_id' => $meja->id,
+                'qty_borrowed' => 2,
+                'qty_returned' => null,
+                'condition_out' => Condition::BAIK->value,
+            ]);
+
+            $ready->approvals()->create([
+                'approver_id' => $ketua?->id ?? $wakasek->id,
+                'level' => 1,
+                'decision' => Decision::APPROVED->value,
+                'decided_at' => now()->subHours(2),
+            ]);
+        }
     }
 }

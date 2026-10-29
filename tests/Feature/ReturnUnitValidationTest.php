@@ -90,6 +90,10 @@ class ReturnUnitValidationTest extends TestCase
         $this->assertSame(Condition::RUSAK_RINGAN, $confirmed->condition_in);
         $this->assertSame('Baret pada rangka', $confirmed->return_notes);
         $this->assertSame($this->laboran->id, $confirmed->confirmed_by);
+        $this->assertNotNull($confirmed->damage_photo_path, 'Foto bukti harus tersimpan pada unit yang diperiksa.');
+        $this->assertStringStartsWith('damage/loan-'.$loan->id, $confirmed->damage_photo_path);
+        $this->assertSame(0, LoanItemUnit::whereIn('asset_unit_id', $units->skip(1)->pluck('id'))
+            ->whereNotNull('damage_photo_path')->count(), 'Foto tidak boleh menempel pada unit lain.');
 
         $this->assertSame(0, LoanItemUnit::whereIn('asset_unit_id', $units->skip(1)->pluck('id'))->whereNotNull('returned_at')->count());
         $this->assertSame(1, (int) $loanItem->refresh()->qty_returned);

@@ -4,10 +4,12 @@ namespace App\Livewire\Loan;
 
 use App\Enums\Condition;
 use App\Enums\ReturnStatus;
+use App\Models\AssetUnit;
 use App\Models\Loan;
 use App\Models\LoanItem;
 use App\Models\LoanItemUnit;
 use App\Models\Room;
+use App\Services\InventoryCodeService;
 use App\Services\LoanService;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -35,6 +37,26 @@ class ReturnForm extends Component
     public string $massGroupName = '';
 
     public int $massPendingCount = 0;
+
+    /** Pencarian & filter daftar unit validasi. */
+    public string $search = '';
+
+    public string $filterValidation = '';
+
+    public string $filterCondition = '';
+
+    public string $filterReturnState = '';
+
+    public string $filterRoom = '';
+
+    /** Unit yang disorot dari hasil scan QR (indeks baris). */
+    public ?int $focusedIndex = null;
+
+    public string $scanCode = '';
+
+    public string $scanMessage = '';
+
+    public string $scanError = '';
 
     public function mount(Loan $loan): void
     {
@@ -548,6 +570,165 @@ class ReturnForm extends Component
         if (str_starts_with($property, 'rows.') && $this->confirmMismatch && ! $this->hasMismatch()) {
             $this->confirmMismatch = false;
         }
+
+        if (in_array($property, ['search', 'filterValidation', 'filterCondition', 'filterReturnState', 'filterRoom'], true)) {
+            $this->focusedIndex = null;
+        }
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterValidation = '';
+        $this->filterCondition = '';
+        $this->filterReturnState = '';
+        $this->filterRoom = '';
+        $this->focusedIndex = null;
+        $this->resetErrorBag('scan');
+    }
+
+    /** Status tampilan satu baris: pilihan belum berarti konfirmasi. */
+    private function displayStatus(int $index): ReturnStatus
+    {
+        $row = $this->rows[$index] ?? null;
+
+        if ($row === null) {
+            return ReturnStatus::BELUM_DIPERIKSA;
+        }
+
+        if ($row['returned']) {
+            return ReturnStatus::SUDAH_DIKONFIRMASI;
+        }
+
+        return in_array($index, $this->normalizedSelection(), true)
+            ? ReturnStatus::MENUNGGU_KONFIRMASI
+            : ReturnStatus::BELUM_DIPERIKSA;
+    }
+
+    /** @param array<string, mixed> $row */
+    private function rowMatchesFilters(array $row): bool
+    {
+        $term = mb_strtolower(trim($this->search));
+
+        if ($term !== '') {
+            $haystack = mb_strtolower(implode(' ', array_filter([
+                $row['item_name'] ?? null,
+                $row['specification'] ?? null,
+                $row['internal_id'] ?? null,
+                $row['inventory_code'] ?? null,
+                $row['unit_location'] ?? null,
+                $row['room_code'] ?? null,
+                $row['return_notes'] ?? null,
+            ])));
+
+            if (! str_contains($haystack, $term)) {
+                return false;
+            }
+        }
+
+        if ($this->filterValidation !== '') {
+            $index = (int) ($row['row_index'] ?? -1);
+
+            if ($this->displayStatus($index)->value !== $this->filterValidation) {
+                return false;
+            }
+        }
+
+        if ($this->filterCondition !== '' && ($row['condition_in'] ?? '') !== $this->filterCondition) {
+            return false;
+        }
+
+        if ($this->filterReturnState === 'sudah' && ! $row['returned']) {
+            return false;
+        }
+
+        if ($this->filterReturnState === 'belum' && $row['returned']) {
+            return false;
+        }
+
+        if ($this->filterRoom !== '' && (int) ($row['unit_room_id'] ?? 0) !== (int) $this->filterRoom) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Temukan unit dari hasil scan dan pilih barisnya. Tidak pernah
+     * mengonfirmasi pengembalian — petugas tetap menekan aksi konfirmasi.
+     */
+    public function scanUnitCode(?string $code = null): void
+    {
+        $this->authorizeAction();
+        $this->scanError = '';
+        $this->scanMessage = '';
+
+        $raw = trim((string) ($code ?? $this->scanCode));
+
+        if ($raw === '') {
+            $this->scanError = 'Masukkan kode inventaris atau pindai QR unit terlebih dahulu.';
+
+            return;
+        }
+
+        $unitId = null;
+
+        if (preg_match('#^https?://#i', $raw) === 1) {
+            $parts = parse_url($raw) ?: [];
+            parse_str((string) ($parts['query'] ?? ''), $query);
+
+            if (isset($query['u']) && ctype_digit((string) $query['u'])) {
+                $unitId = (int) $query['u'];
+            }
+
+            $raw = isset($query['c']) ? (string) $query['c'] : basename((string) ($parts['path'] ?? ''));
+        }
+
+        $unit = $unitId !== null
+            ? AssetUnit::query()->find($unitId)
+            : app(InventoryCodeService::class)->resolve($raw);
+
+        if ($unit === null) {
+            $this->scanError = 'QR tidak dikenali. Periksa stiker atau masukkan kode inventaris secara manual.';
+
+            return;
+        }
+
+        $index = collect($this->rows)->search(
+            fn (array $row) => (int) ($row['unit_id'] ?? 0) === (int) $unit->id
+        );
+
+        if ($index === false) {
+            $this->scanError = 'Unit tidak termasuk dalam transaksi pengembalian yang sedang divalidasi.';
+
+            return;
+        }
+
+        $index = (int) $index;
+
+        if ($this->rows[$index]['returned']) {
+            $this->scanError = 'Unit ini sudah dikonfirmasi pengembaliannya.';
+
+            return;
+        }
+
+        // Tampilkan baris yang ditemukan meskipun filter aktif menyembunyikannya.
+        $this->search = '';
+        $this->filterValidation = '';
+        $this->filterCondition = '';
+        $this->filterReturnState = '';
+        $this->filterRoom = '';
+        $this->focusedIndex = $index;
+
+        $selected = $this->normalizedSelection();
+        if (! in_array($index, $selected, true)) {
+            $selected[] = $index;
+            $this->selected = array_values($selected);
+        }
+
+        $this->scanCode = '';
+        $this->scanMessage = 'Unit '.$unit->inventory_code.' ditemukan dan dipilih. Konfirmasi tetap memerlukan tindakan Anda.';
+        $this->dispatch('focus-unit', index: $index);
     }
 
     /** @return array{total: int, confirmed: int, pending: int, percent: int, complete: bool} */
@@ -589,14 +770,19 @@ class ReturnForm extends Component
             fn (array $row, int $index) => $row + ['row_index' => $index]
         );
 
-        $groupedRows = $indexedRows->groupBy('item_id')->map(function ($groupRows, $itemId) use ($selected) {
+        $filteredRows = $indexedRows
+            ->filter(fn (array $row) => $this->rowMatchesFilters($row))
+            ->values();
+
+        $groupedRows = $filteredRows->groupBy('item_id')->map(function ($groupRows, $itemId) use ($selected, $indexedRows) {
             $groupRows = $groupRows->values();
-            $assignedRows = $groupRows->where('has_assignment', true);
+            $allRows = $indexedRows->where('item_id', (int) $itemId)->values();
+            $assignedRows = $allRows->where('has_assignment', true);
             $assignedTotal = $assignedRows->count();
             $openAssigned = $assignedRows->filter(fn (array $row) => ! $row['returned'])->count();
 
-            $totalBorrowed = (int) $groupRows->sum('borrowed');
-            $confirmed = (int) $groupRows->sum(function (array $row) {
+            $totalBorrowed = (int) $allRows->sum('borrowed');
+            $confirmed = (int) $allRows->sum(function (array $row) {
                 if ($row['has_assignment']) {
                     return $row['returned'] ? 1 : 0;
                 }
@@ -605,8 +791,10 @@ class ReturnForm extends Component
             });
             $remaining = max(0, $totalBorrowed - $confirmed);
 
-            $groupIndexes = $assignedRows
-                ->filter(fn (array $row) => ! $row['returned'])
+            // Pilihan massal mengikuti baris yang sedang tampil (hasil filter),
+            // bukan unit tersembunyi yang tidak dilihat petugas.
+            $groupIndexes = $groupRows
+                ->filter(fn (array $row) => $row['has_assignment'] && ! $row['returned'])
                 ->pluck('row_index')
                 ->map(fn ($index) => (int) $index)
                 ->values()
@@ -625,6 +813,7 @@ class ReturnForm extends Component
                 'remaining' => $remaining,
                 'assigned_total' => $assignedTotal,
                 'open_assigned' => $openAssigned,
+                'visible_assignable' => count($groupIndexes),
                 'selected_in_group' => $selectedInGroup,
                 'all_selected' => $allSelected,
                 'status' => $confirmed >= $totalBorrowed ? 'Selesai' : ($confirmed > 0 ? 'Sebagian' : 'Belum dikembalikan'),
@@ -645,9 +834,23 @@ class ReturnForm extends Component
             ->take(8)
             ->values();
 
+        $filterRooms = $indexedRows
+            ->filter(fn (array $row) => $row['unit_room_id'] !== null)
+            ->map(fn (array $row) => [
+                'id' => (int) $row['unit_room_id'],
+                'label' => ($row['unit_location'] ?: $row['room_code']) ?? '-',
+            ])
+            ->unique('id')
+            ->sortBy('label')
+            ->values();
+
         return view('livewire.loan.return-form', [
             'rooms' => $rooms,
             'conditions' => Condition::cases(),
+            'returnStatuses' => ReturnStatus::cases(),
+            'filterRooms' => $filterRooms,
+            'visibleUnitCount' => $filteredRows->count(),
+            'totalUnitCount' => $indexedRows->count(),
             'mismatches' => $this->mismatchRows(),
             'groupedRows' => $groupedRows,
             'progress' => $progress,

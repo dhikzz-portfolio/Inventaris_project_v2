@@ -299,3 +299,17 @@ Batasan yang tidak diuji: kamera fisik pada perangkat nyata (diuji melalui jalur
 - Unit yang sudah dikonfirmasi tidak dapat diproses dua kali, baik dari komponen maupun service.
 
 Regresi yang dijalankan bersama: `ReturnFormLivewireTest`, `LoanUnitFlowTest`, `LoanLifecycleTest`, `InventoryFlowTest`, dan `CriticalBusinessRulesTest`.
+
+## 12. Pengujian revisi serah terima, validasi, dan rincian barang (29 Oktober 2026)
+
+Dijalankan dengan `php artisan test --compact` pada SQLite in-memory, locale `id`, timezone `Asia/Jakarta`.
+
+| Kelompok | Test | Bukti |
+| --- | --- | --- |
+| Serah terima: pilih semua, filter, scan | `HandoverScanTest` | Halaman menampilkan tombol pilih semua/batal, pencarian, filter, dan panel scan; QR valid mengembalikan unit tanpa mengubah status pinjaman; duplikat, unit di luar transaksi, unit rusak, batas kuota, payload URL, dan petugas di luar cakupan ditolak |
+| Validasi pengembalian: cari/filter/scan | `ReturnUnitScanFilterTest` | Pencarian + filter menyaring unit yang tampil; QR menyorot dan memilih baris tanpa mengonfirmasi; unit di luar transaksi dan unit yang sudah dikonfirmasi ditolak; payload URL memakai identitas unit dari database |
+| Rincian barang per unit | `LoanItemDetailTest` | Kartu menampilkan kode, kondisi, tanggal, status, dan catatan; hanya unit berfoto yang menampilkan tombol popup; filter foto/pencarian/kondisi/rentang tanggal/pagination akurat; empty state dan reset tersedia |
+| Foto per unit | `ReturnUnitValidationTest` | Foto bukti tersimpan pada `loan_item_units.damage_photo_path` milik unit yang diperiksa dan tidak menempel pada unit lain |
+| Regresi | seluruh suite | 282 tes lulus, 1384 assertions |
+
+Catatan batasan: kamera fisik pada perangkat nyata tidak diuji otomatis. Jalur kamera memakai `html5-qrcode` yang sudah menjadi dependensi; fallback input kode manual diuji melalui endpoint/Livewire. Data demo serah terima (`DemoLoanSeeder`, status `APPROVED`) hanya dibuat saat database belum memiliki transaksi sehingga seeder tetap aman dijalankan ulang dan tidak menimpa data operasional.

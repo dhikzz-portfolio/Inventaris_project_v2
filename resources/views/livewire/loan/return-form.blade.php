@@ -1,4 +1,39 @@
-<div class="space-y-5">
+<div class="space-y-5"
+    x-data="{
+        scanOpen: false,
+        running: false,
+        html5: null,
+        async toggleScan() {
+            this.scanOpen = !this.scanOpen;
+            if (!this.scanOpen) { await this.stopCamera(); }
+        },
+        async startCamera() {
+            if (!window.Html5Qrcode) { return; }
+            try {
+                this.html5 = this.html5 || new window.Html5Qrcode('return-qr-reader');
+                await this.html5.start(
+                    { facingMode: 'environment' },
+                    { fps: 10, qrbox: { width: 200, height: 200 } },
+                    (decoded) => this.handleScan(decoded),
+                    () => {}
+                );
+                this.running = true;
+            } catch (e) { this.running = false; }
+        },
+        async stopCamera() {
+            if (this.html5 && this.running) {
+                try { await this.html5.stop(); } catch (e) {}
+            }
+            this.running = false;
+        },
+        async handleScan(text) {
+            await this.stopCamera();
+            const value = (text || '').trim();
+            if (value === '') { return; }
+            await $wire.scanUnitCode(value);
+        },
+    }"
+    x-on:focus-unit.window="setTimeout(() => document.getElementById('return-unit-' + $event.detail.index)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)">
     @if ($loan->status === \App\Enums\LoanStatus::APPROVED)
         <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
             Peminjaman masih berstatus <strong>Disetujui (belum diambil/diproses)</strong> — pengembalian tetap dapat divalidasi di sini.
@@ -75,11 +110,118 @@
             <span class="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 {{ $progress['pending'] }} belum dikonfirmasi
             </span>
+            <span class="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                Menampilkan {{ $visibleUnitCount }} dari {{ $totalUnitCount }} unit
+            </span>
             @if ($selectedCount > 0)
                 <button type="button" wire:click="clearSelection"
                     class="rounded-full border border-slate-300 px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
                     Bersihkan pilihan
                 </button>
+            @endif
+        </div>
+
+        {{-- Pencarian, filter, dan scan untuk menemukan unit --}}
+        <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                <div class="lg:col-span-2">
+                    <label for="return-search" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Cari unit</label>
+                    <input id="return-search" type="search" wire:model.live.debounce.300ms="search"
+                        placeholder="Barang, spesifikasi, kode, ruangan, catatan…"
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                </div>
+                <div>
+                    <label for="return-filter-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status validasi</label>
+                    <select id="return-filter-validation" wire:model.live="filterValidation"
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua status</option>
+                        @foreach ($returnStatuses as $returnStatus)
+                            <option value="{{ $returnStatus->value }}">{{ $returnStatus->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="return-filter-condition" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kondisi unit</label>
+                    <select id="return-filter-condition" wire:model.live="filterCondition"
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua kondisi</option>
+                        @foreach ($conditions as $conditionOption)
+                            <option value="{{ $conditionOption->value }}">{{ $conditionOption->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="return-filter-state" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Pengembalian</label>
+                    <select id="return-filter-state" wire:model.live="filterReturnState"
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua unit</option>
+                        <option value="belum">Belum dikonfirmasi</option>
+                        <option value="sudah">Sudah dikonfirmasi</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="return-filter-room" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Ruangan asal</label>
+                    <select id="return-filter-room" wire:model.live="filterRoom"
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua ruangan</option>
+                        @foreach ($filterRooms as $roomOption)
+                            <option value="{{ $roomOption['id'] }}">{{ $roomOption['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+                <button type="button" wire:click="resetFilters"
+                    class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                    Reset filter
+                </button>
+                <button type="button" x-on:click="toggleScan()"
+                    class="inline-flex min-h-8 items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                    <span class="material-icons-round text-sm">qr_code_scanner</span> Scan QR untuk Menemukan Unit
+                </button>
+                <span class="text-[11px] text-slate-500 dark:text-slate-400">Scan hanya menemukan dan memilih unit — konfirmasi tetap lewat tombol.</span>
+            </div>
+
+            <div x-show="scanOpen" x-cloak class="mt-3 rounded-lg border border-sky-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                        <div id="return-qr-reader" class="flex min-h-[160px] items-center justify-center overflow-hidden rounded-lg bg-slate-900">
+                            <span x-show="!running" class="px-3 text-center text-xs text-slate-400">Kamera belum aktif</span>
+                        </div>
+                        <div class="mt-2 flex justify-center gap-2">
+                            <button type="button" x-show="!running" x-on:click="startCamera()"
+                                class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-blue-700">
+                                <span class="material-icons-round text-sm">photo_camera</span> Aktifkan Kamera
+                            </button>
+                            <button type="button" x-show="running" x-on:click="stopCamera()"
+                                class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-red-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-red-700">
+                                <span class="material-icons-round text-sm">photo_camera_back</span> Matikan Kamera
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="return-scan-code" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Input manual kode inventaris</label>
+                        <div class="flex gap-2">
+                            <input id="return-scan-code" type="text" wire:model="scanCode"
+                                wire:keydown.enter.prevent="scanUnitCode"
+                                placeholder="Contoh: G1-02-12" autocomplete="off"
+                                class="min-w-0 flex-1 rounded-lg border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <button type="button" wire:click="scanUnitCode"
+                                class="inline-flex min-h-9 items-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Cari</button>
+                        </div>
+                        <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                            Kamera tidak tersedia atau izin ditolak? Pencarian kode manual tetap dapat dipakai.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            @if ($scanMessage !== '')
+                <p role="status" class="mt-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">{{ $scanMessage }}</p>
+            @endif
+            @if ($scanError !== '')
+                <p role="alert" class="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $scanError }}</p>
             @endif
         </div>
 
@@ -90,6 +232,13 @@
             </div>
         @endif
     </div>
+
+    @if ($visibleUnitCount === 0)
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            Tidak ada unit yang cocok dengan pencarian/filter.
+            <button type="button" wire:click="resetFilters" class="font-semibold text-blue-700 underline dark:text-blue-300">Reset filter</button>
+        </div>
+    @endif
 
     <div class="space-y-4">
         @foreach ($groupedRows as $group)
@@ -112,12 +261,12 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        @if ($group['assigned_total'] > 0 && $group['open_assigned'] > 0)
+                        @if ($group['visible_assignable'] > 0)
                             <label class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200">
                                 <input type="checkbox" @checked($group['all_selected'])
                                     wire:click="toggleGroup({{ $group['item_id'] }})"
                                     class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950">
-                                Pilih semua ({{ $group['open_assigned'] }})
+                                Pilih semua ({{ $group['visible_assignable'] }})
                             </label>
                         @endif
 
@@ -160,11 +309,12 @@
                             : (in_array($index, $selected)
                                 ? \App\Enums\ReturnStatus::MENUNGGU_KONFIRMASI
                                 : \App\Enums\ReturnStatus::BELUM_DIPERIKSA))
-                        <div class="p-4 sm:p-5" wire:key="unit-row-{{ $row['assignment_id'] ?? 'legacy-'.$index }}">
+                        <div class="p-4 sm:p-5" id="return-unit-{{ $index }}" wire:key="unit-row-{{ $row['assignment_id'] ?? 'legacy-'.$index }}">
                             <div @class([
                                 'rounded-xl border p-3 sm:p-4',
                                 'border-orange-300 bg-orange-50/40 dark:border-orange-900 dark:bg-orange-950/20' => $isMismatch,
                                 'border-slate-200 dark:border-slate-700' => ! $isMismatch,
+                                'ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-slate-900' => $focusedIndex === $index,
                             ])>
                                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                     <div class="flex min-w-0 items-start gap-3">

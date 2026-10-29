@@ -1,7 +1,7 @@
 # Project Status
 
-Tanggal: **28 Oktober 2026**
-Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026** (role, seeder lima jurusan, persetujuan otomatis, katalog peminjam, arsip katalog, batas penyerahan), dan **revisi besar V2 26 Oktober 2026** (registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, UI pengguna), serta **revisi validasi pengembalian per unit 28 Oktober 2026**. Rincian: `REVISION_V2.md` dan `DECISIONS.md` butir 38.
+Tanggal: **29 Oktober 2026**
+Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026** (role, seeder lima jurusan, persetujuan otomatis, katalog peminjam, arsip katalog, batas penyerahan), **revisi besar V2 26 Oktober 2026** (registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, UI pengguna), **revisi validasi pengembalian per unit 28 Oktober 2026**, dan **revisi serah terima/validasi/rincian barang 29 Oktober 2026**. Rincian: `REVISION_V2.md`, `DECISIONS.md` butir 38–39, dan `TESTING.md` bagian 12.
 Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 
 ## 1. Ringkasan status
@@ -28,6 +28,10 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Katalog terintegrasi di halaman peminjam                     | **IMPLEMENTED & VERIFIED** — pencarian/filter + pencegahan duplikat                         |
 | Hapus/arsip katalog yang aman                                | **IMPLEMENTED & VERIFIED** — hapus permanen tanpa relasi, arsip bila ada unit/transaksi     |
 | Batas unit pada serah terima (UI + backend)                  | **IMPLEMENTED & VERIFIED** — unit berlebih disabled/ditolak, request berulang ditolak       |
+| Pilih semua + pencarian/filter serah terima                  | **IMPLEMENTED & VERIFIED** — pilih semua berhenti pada kuota per baris, filter tidak menghapus pilihan |
+| Scan QR kontekstual serah terima                             | **IMPLEMENTED & VERIFIED** — endpoint server memverifikasi unit/transaksi/kelayakan/duplikasi/kuota; scan tidak menyerahkan |
+| Pencarian, filter, dan scan QR validasi pengembalian         | **IMPLEMENTED & VERIFIED** — QR hanya menyorot & memilih unit, konfirmasi tetap aksi petugas |
+| Rincian barang per unit + popup foto bukti                   | **IMPLEMENTED & VERIFIED** — kartu per unit, filter lengkap, pagination 24, foto terikat unit dan diakses sesuai peran |
 | Penghapusan per unit                                         | **BELUM** — masih level baris katalog                                                     |
 | Cakupan laporan/ekspor untuk Ketua Laboran                   | **IMPLEMENTED & VERIFIED** — data, PDF, Excel, dan arsip dibatasi laboratorium             |
 | Audit sinkronisasi fitur vs PRD 2.1                          | **IMPLEMENTED & VERIFIED** — matriks di `feature-sync-audit.md`; label massal per unit, penghapusan mengarsip unit, laporan per unit |
@@ -45,7 +49,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Verifikasi email (SMTP)                                      | **BELUM** — kolom & event siap; SMTP/MustVerifyEmail belum dikonfigurasi                                                    |
 | Deployment produksi                                          | **BLOCKED** — tidak ada akses server/domain pada lingkungan ini                            |
 
-Pengujian terakhir (28 Oktober 2026): **265 passed, 0 skipped, 1299 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`, dijalankan dengan `memory_limit=1G`). `vendor/bin/pint --dirty` dijalankan. Verifikasi browser (Playwright/Chrome) pada rilis sebelumnya tetap berlaku untuk alur katalog/unit/navigasi; perubahan UI revisi V2 diverifikasi melalui render Blade, Livewire test, dan HTTP test (bukan screenshot baru).
+Pengujian terakhir (29 Oktober 2026): **282 passed, 0 skipped, 1384 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`, dijalankan dengan `memory_limit=1G`). `vendor/bin/pint --dirty` dijalankan. Verifikasi browser (Playwright/Chrome) pada rilis sebelumnya tetap berlaku untuk alur katalog/unit/navigasi; perubahan UI revisi V2 diverifikasi melalui render Blade, Livewire test, dan HTTP test (bukan screenshot baru).
 
 ## 2. Status per modul
 
@@ -66,12 +70,12 @@ Pengujian terakhir (28 Oktober 2026): **265 passed, 0 skipped, 1299 assertions**
 | Pengadaan                               | VERIFIED    | Unit baru diterbitkan saat pengadaan disetujui; pengajuan ditolak tidak memakai kode               |
 | Peminjaman multi-item                   | VERIFIED    | Multi-item; ketersediaan katalog dikurangi pinjaman aktif; status transaksi menutup rantai persetujuan (PENDING → APPROVED) |
 | Serah terima & pembatalan               | VERIFIED    | Timestamp petugas, pembebasan jadwal, penugasan unit fisik, penjagaan serah terima ganda           |
-| Pengembalian                            | VERIFIED    | Per unit: konfirmasi individual, validasi massal ≥11 unit per katalog, foto bukti, mutasi unit, penyelesaian eksplisit; legacy kuantitas akumulatif |
+| Pengembalian                            | VERIFIED    | Per unit: konfirmasi individual, validasi massal ≥11 unit per katalog, foto bukti per unit, pencarian/filter/QR fokus, mutasi unit, penyelesaian eksplisit; legacy kuantitas akumulatif |
 | Mutasi unit                             | VERIFIED    | Multi-select + pencarian/filter, kode baru diterbitkan, kode lama pensiun, riwayat, label perlu dicetak ulang || Penghapusan                                         | VERIFIED    | Level baris katalog; persetujuan kini **mengarsipkan unit fisik** dan menghitung ulang counter katalog; pemilihan unit per BA belum || QR & label                                          | VERIFIED    | Label unit (PDF), **massal per unit terpilih (filter + select-all lintas halaman)**, re-print, scan kode/ID lama |
 | BAST & surat                            | VERIFIED    | Per pinjaman & gabungan kegiatan, PDF privat                                                       || Laporan                                             | VERIFIED    | Impor CSV/XLSX (pratinjau + atomik), hapus arsip soft delete; PDF + Excel 5 sheet (sheet **Unit** per unit fisik; ringkasan kondisi dihitung per unit), filter 4 cakupan; Ketua Laboran hanya data laboratorium, arsip seluruh sekolah khusus Super Admin |
 | Notifikasi                              | VERIFIED    | In-app + 4 job terjadwal, deduplikasi                                                             |
 | Audit log                               | VERIFIED    | Immutable dari Eloquent; mutasi kode dan unit dicatat                                              |
-| Tema & mobile                          | VERIFIED    | Desain lama dipertahankan; bottom nav, dark mode, PWA; tanpa overflow horizontal di 390px           || Pengujian                                           | VERIFIED    | 265 passed, 1299 assertions (SQLite in-memory)                                                      |
+| Tema & mobile                          | VERIFIED    | Desain lama dipertahankan; bottom nav, dark mode, PWA; tanpa overflow horizontal di 390px           || Pengujian                                           | VERIFIED    | 282 passed, 1384 assertions (SQLite in-memory)                                                      |
 | Seeder                                  | VERIFIED    | Master data, akun demo, inventaris demo, dan transaksi demo dipisah; aman dijalankan ulang        |
 | Dokumentasi                             | VERIFIED    | README + 12 dokumen `docs/`; status implementasi diselaraskan                                      |
 | Deployment                              | BLOCKED     | Panduan + Docker siap; server tidak tersedia                                                       |

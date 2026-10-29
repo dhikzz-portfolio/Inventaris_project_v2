@@ -842,7 +842,7 @@ class LoanService
                         $qtyNow,
                         $condition,
                         $returner,
-                        $row['damage_photo'] ?? null,
+                        $condition->isDamaged() ? $damagePath : null,
                         $room,
                         isset($row['assignment_id']) ? (int) $row['assignment_id'] : null,
                         isset($row['unit_id']) ? (int) $row['unit_id'] : null,
@@ -1125,7 +1125,7 @@ class LoanService
         int $qtyReturnedNow,
         Condition $conditionIn,
         ?User $returner,
-        ?UploadedFile $damagePhoto,
+        ?string $damagePhotoPath,
         ?Room $returnedRoom = null,
         ?int $assignmentId = null,
         ?int $unitId = null,
@@ -1166,12 +1166,24 @@ class LoanService
 
         $closedAny = false;
 
-        $targets->each(function (LoanItemUnit $assignment) use ($conditionIn, $returner, $loanItem, $returnedRoom, $returnNotes, &$closedAny) {
+        // Foto hanya dapat diikat ke satu unit yang jelas. Bila satu permintaan
+        // menutup beberapa unit sekaligus, bukti kerusakan disimpan pada baris
+        // katalog saja (perilaku lama) agar tidak menempel ke unit yang salah.
+        $unitPhotoPath = $targets->count() === 1 ? $damagePhotoPath : null;
+
+        $targets->each(function (LoanItemUnit $assignment) use ($conditionIn, $returner, $loanItem, $returnedRoom, $returnNotes, $unitPhotoPath, &$closedAny) {
             if ($assignment->returned_at !== null) {
                 return;
             }
 
             $assignment->markReturned($conditionIn, $returner, $returnNotes);
+
+            // Bukti kerusakan disimpan pada unit yang diperiksa, bukan pada
+            // baris katalog, agar foto tidak tertukar antarunit.
+            if ($unitPhotoPath !== null) {
+                $assignment->forceFill(['damage_photo_path' => $unitPhotoPath])->save();
+            }
+
             $closedAny = true;
 
             $unit = $assignment->unit;

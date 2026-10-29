@@ -21,6 +21,7 @@ class LoanItemUnit extends Model
         'condition_in',
         'return_status',
         'return_notes',
+        'damage_photo_path',
         'confirmed_by',
         'confirmed_at',
         'opened_at',

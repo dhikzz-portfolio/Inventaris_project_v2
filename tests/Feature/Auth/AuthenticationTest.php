@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -58,7 +59,7 @@ class AuthenticationTest extends TestCase
     {
         User::factory()->create();
 
-        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('users', 'username'));
+        $this->assertFalse(Schema::hasColumn('users', 'username'));
     }
 
     public function test_users_can_logout(): void

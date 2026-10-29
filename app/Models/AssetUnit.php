@@ -136,5 +136,4 @@ class AssetUnit extends Model
     {
         return $query->whereHas('specification', fn ($q) => $q->where('id', $specId));
     }
-
 }

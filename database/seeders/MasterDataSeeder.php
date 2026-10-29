@@ -6,10 +6,10 @@ use App\Enums\Role;
 use App\Models\Building;
 use App\Models\Category;
 use App\Models\InstitutionSetting;
+use App\Models\Item;
 use App\Models\Major;
 use App\Models\Room;
 use App\Models\Specification;
-use App\Models\Item;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role as SpatieRole;
 

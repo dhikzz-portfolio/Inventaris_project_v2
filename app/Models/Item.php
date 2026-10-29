@@ -111,7 +111,6 @@ class Item extends Model
             ->where('condition', Condition::BAIK->value);
     }
 
-
     /** Alokasi lokasi pada pengadaan multi-lokasi. */
     public function allocations(): HasMany
     {
@@ -123,7 +122,6 @@ class Item extends Model
     {
         return $this->hasOne(Specification::class, 'item_catalog_id')->whereNull('archived_at');
     }
-
 
     /** Total unit yang dialokasikan (0 bila pengadaan legacy tanpa alokasi). */
     public function allocatedQuantity(): int

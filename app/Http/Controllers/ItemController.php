@@ -396,18 +396,17 @@ class ItemController extends Controller
         return back()->with('success', "Pengadaan \"{$item->name}\" ditolak.");
     }
 
-
     public function specificationOptions(Request $request)
     {
-        $categoryId = $request->query("category_id");
-        $specifications = Specification::when($categoryId, fn ($q) => $q->where("item_catalog_id", function ($query) use ($categoryId) {
-            $query->from("item_catalogs")
+        $categoryId = $request->query('category_id');
+        $specifications = Specification::when($categoryId, fn ($q) => $q->where('item_catalog_id', function ($query) use ($categoryId) {
+            $query->from('item_catalogs')
                 ->whereRaw("id IN (SELECT item_catalog_id FROM items WHERE category_id = $categoryId)")
                 ->limit(1);
         }))
-        ->when(!$categoryId, fn ($q) => $q->latest())
-        ->get(["id", "brand", "model_type", "spec_code", "description"]);
-        
+            ->when(! $categoryId, fn ($q) => $q->latest())
+            ->get(['id', 'brand', 'model_type', 'spec_code', 'description']);
+
         return response()->json($specifications);
     }
 

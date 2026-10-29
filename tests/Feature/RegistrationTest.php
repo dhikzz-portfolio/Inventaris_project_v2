@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\BorrowerType;
 use App\Enums\Role;
+use App\Models\Major;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -183,7 +184,7 @@ class RegistrationTest extends TestCase
 
     public function test_profil_tidak_dapat_mengubah_kategori_pengguna(): void
     {
-        $major = \App\Models\Major::create(['name' => 'Rekayasa Perangkat Lunak', 'code' => 'RPL']);
+        $major = Major::create(['name' => 'Rekayasa Perangkat Lunak', 'code' => 'RPL']);
 
         $user = User::create([
             'name' => 'Pengguna Siswa',

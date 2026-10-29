@@ -8,6 +8,7 @@ use App\Models\Major;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -76,7 +77,7 @@ class MasterDataTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('categories', ['name' => 'Perangkat Jaringan Nirkabel']);
         // Kode klasifikasi aset lama sudah dihapus dari master kategori.
-        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('categories', 'code'));
+        $this->assertFalse(Schema::hasColumn('categories', 'code'));
     }
 
     public function test_hanya_wakasek_yang_dapat_mengubah_pengaturan_instansi(): void

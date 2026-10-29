@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\ItemStatus;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,17 +40,17 @@ class Specification extends Model
         $parts = [];
 
         $brand = $this->brand;
-        if (!empty($brand)) {
+        if (! empty($brand)) {
             $parts[] = $brand;
         }
 
         $model = $this->model_type;
-        if (!empty($model)) {
+        if (! empty($model)) {
             $parts[] = $model;
         }
 
         $spec = $this->spec_code;
-        if (!empty($spec)) {
+        if (! empty($spec)) {
             $parts[] = $spec;
         }
 

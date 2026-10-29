@@ -59,6 +59,9 @@ npm run build
 
 # 7. Jalankan
 php artisan serve
+
+# 8. Preview Frontend
+npm run start
 ```
 
 Buka `http://127.0.0.1:8000`.

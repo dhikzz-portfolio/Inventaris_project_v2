@@ -127,7 +127,13 @@
 
     @if ($mode === 'operational')
         <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <x-dashboard.panel title="Barang paling sering dipinjam" description="Bulan {{ now()->translatedFormat('F Y') }} · berdasarkan jumlah barang" class="min-w-0">
+            <x-dashboard.panel title="Barang paling sering dipinjam" description="Jumlah unit yang dipinjam pada bulan ini." class="min-w-0">
+                <x-slot name="actions">
+                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        <span class="material-icons-round text-sm" aria-hidden="true">event</span>
+                        {{ now()->translatedFormat('F Y') }}
+                    </span>
+                </x-slot>
                 @if ($topBorrowed->isEmpty())
                     <div class="flex min-h-48 flex-col items-center justify-center sm:min-h-56 rounded-xl bg-slate-50 px-4 text-center dark:bg-slate-800/70">
                         <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">bar_chart</span>
@@ -139,7 +145,13 @@
                 @endif
             </x-dashboard.panel>
 
-            <x-dashboard.panel title="Barang yang sering rusak" description="Bulan {{ now()->translatedFormat('F Y') }} · barang yang dilaporkan rusak" class="min-w-0">
+            <x-dashboard.panel title="Barang yang sering rusak" description="Barang yang dilaporkan rusak bulan ini." class="min-w-0">
+                <x-slot name="actions">
+                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        <span class="material-icons-round text-sm" aria-hidden="true">event</span>
+                        {{ now()->translatedFormat('F Y') }}
+                    </span>
+                </x-slot>
                 @if ($topDamaged->isEmpty())
                     <div class="flex min-h-48 flex-col items-center justify-center sm:min-h-56 rounded-xl bg-green-50/70 px-4 text-center dark:bg-green-950/20">
                         <span class="material-icons-round text-3xl text-green-500" aria-hidden="true">task_alt</span>
@@ -151,7 +163,10 @@
                         @foreach ($topDamaged as $row)
                             <li class="flex items-center justify-between gap-3 py-3 text-sm first:pt-1">
                                 <span class="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">{{ $row->item?->name }}</span>
-                                <span class="shrink-0 rounded-lg bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 dark:bg-red-950/40 dark:text-red-300">{{ $row->total }}× rusak</span>
+                                <span class="inline-flex shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                                    <span class="material-icons-round text-sm" aria-hidden="true">build</span>
+                                    {{ $row->total }} rusak
+                                </span>
                             </li>
                         @endforeach
                     </ul>
@@ -180,7 +195,10 @@
                             <li class="py-3 first:pt-1">
                                 <a href="{{ route('loans.show', $loan) }}" class="text-sm font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $loan->borrower?->name }}</a>
                                 <span class="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($loan->purpose, 60) }}</span>
-                                <span class="mt-2 inline-flex rounded-lg bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">Jatuh tempo {{ $loan->due_date->format('d/m/Y') }} · terlambat {{ $loan->due_date->diffForHumans(now()) }}</span>
+                                <span class="mt-2 inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                                    <span class="material-icons-round text-sm" aria-hidden="true">event_busy</span>
+                                    Jatuh tempo {{ $loan->due_date->format('d/m/Y') }}, terlambat {{ $loan->due_date->diffForHumans(now()) }}
+                                </span>
                             </li>
                         @endforeach
                     </ul>
@@ -196,7 +214,16 @@
                             </span>
                             <div class="min-w-0 flex-1">
                                 <p class="text-xs leading-relaxed text-slate-700 dark:text-slate-200">{{ $activity->description }}</p>
-                                <p class="mt-1 text-[11px] text-slate-400 dark:text-slate-500">{{ $activity->causer?->name ?: 'Sistem' }} · {{ $activity->created_at->diffForHumans() }}</p>
+                                <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="material-icons-round text-[13px]" aria-hidden="true">person</span>
+                                        {{ $activity->causer?->name ?: 'Sistem' }}
+                                    </span>
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="material-icons-round text-[13px]" aria-hidden="true">schedule</span>
+                                        {{ $activity->created_at->diffForHumans() }}
+                                    </span>
+                                </p>
                             </div>
                         </li>
                     @empty
@@ -277,7 +304,7 @@
                                             </span>
                                             <span class="inline-flex items-center gap-1">
                                                 <span class="material-icons-round text-sm" aria-hidden="true">event</span>
-                                                {{ $loan->start_date->format('d/m/Y') }} – {{ $loan->due_date->format('d/m/Y') }}
+                                                {{ $loan->start_date->format('d/m/Y') }} hingga {{ $loan->due_date->format('d/m/Y') }}
                                             </span>
                                         </div>
                                         @if ($loan->event)

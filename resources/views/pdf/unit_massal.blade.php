@@ -28,7 +28,7 @@
         .codes .nama,
         .codes .kode-unit { white-space: nowrap; }
         .nama {
-            font-size: 13pt; font-weight: bold; text-transform: uppercase;
+            font-size: 11pt; font-weight: bold; text-transform: uppercase;
             color: #1c398e; line-height: 1.05; margin-bottom: 1pt;
             text-align: center;
         }

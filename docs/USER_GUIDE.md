@@ -10,24 +10,24 @@
 
 ## 2. Matriks akses
 
-| Fitur                                   | Super Admin | Ketua Laboran | Laboran/K3 | Peminjam  |
-| --------------------------------------- | :---------: | :-----------: | :--------: | :-------: |
-| Dashboard                               |   ✔ semua   |    ✔ semua    | ✔ jurusan  | ✔ pribadi |
-| Katalog & detail barang                 |      ✔      |       ✔       |     ✔      | ✔ terintegrasi di halaman peminjaman |
-| Ajukan peminjaman                       |      ✔      |       ✔       |     ✔      |     ✔     |
-| Setujui pinjaman level 1                |      ✔      | ✔ semua lab   | ✔ lab sendiri/otomatis | — |
-| Setujui pinjaman level 2 (nilai tinggi) |      ✔      |       —       |     —      |     —     |
-| Serah terima & pengembalian             |      ✔      |       ✔       | ✔ jurusan  |     —     |
-| Pengadaan (ajukan)                      |      ✔      |       ✔       |     —      |     —     |
-| Approval pengadaan                      |      ✔      |       —       |     —      |     —     |
-| Mutasi lokasi                           |      ✔      |       ✔       |     —      |     —     |
-| Penghapusan (ajukan)                    |      ✔      |       ✔       |     —      |     —     |
-| Approval penghapusan                    |      ✔      |       —       |     —      |     —     |
-| Cetak label                            |      ✔      |       ✔       |     ✔      |     —     |
-| Scan QR (hasil di halaman scan)        |      ✔      |       ✔       |     ✔      |     ✔     |
-| Laporan & ekspor                        |      ✔      |       ✔       |     —      |     —     |
-| Master data                             |      ✔      |       ✔       |     —      |     —     |
-| Pengguna & pengaturan instansi          |      ✔      |       —       |     —      |     —     |
+| Fitur                                   | Super Admin | Ketua Laboran |       Laboran/K3       |               Peminjam               |
+| --------------------------------------- | :---------: | :-----------: | :--------------------: | :----------------------------------: |
+| Dashboard                               |   ✔ semua   |    ✔ semua    |       ✔ jurusan        |              ✔ pribadi               |
+| Katalog & detail barang                 |      ✔      |       ✔       |           ✔            | ✔ terintegrasi di halaman peminjaman |
+| Ajukan peminjaman                       |      ✔      |       ✔       |           ✔            |                  ✔                   |
+| Setujui pinjaman level 1                |      ✔      |  ✔ semua lab  | ✔ lab sendiri/otomatis |                  —                   |
+| Setujui pinjaman level 2 (nilai tinggi) |      ✔      |       —       |           —            |                  —                   |
+| Serah terima & pengembalian             |      ✔      |       ✔       |       ✔ jurusan        |                  —                   |
+| Pengadaan (ajukan)                      |      ✔      |       ✔       |           —            |                  —                   |
+| Approval pengadaan                      |      ✔      |       —       |           —            |                  —                   |
+| Mutasi lokasi                           |      ✔      |       ✔       |           —            |                  —                   |
+| Penghapusan (ajukan)                    |      ✔      |       ✔       |           —            |                  —                   |
+| Approval penghapusan                    |      ✔      |       —       |           —            |                  —                   |
+| Cetak label                             |      ✔      |       ✔       |           ✔            |                  —                   |
+| Scan QR (hasil di halaman scan)         |      ✔      |       ✔       |           ✔            |                  ✔                   |
+| Laporan & ekspor                        |      ✔      |       ✔       |           —            |                  —                   |
+| Master data                             |      ✔      |       ✔       |           —            |                  —                   |
+| Pengguna & pengaturan instansi          |      ✔      |       —       |           —            |                  —                   |
 
 Pemetaan istilah: **Super Admin** = `SUPER_ADMIN` (Wakasek Sarpras), **Ketua Laboran** = `KETUA_LABORAN`, **Laboran/K3** = `LABORAN`, **Peminjam** = `PEMINJAM`. Kategori peminjam (siswa/guru/staf) disimpan di `users.borrower_type`, bukan sebagai role tambahan.
 
@@ -210,12 +210,14 @@ Aplikasi kini mendukung dua cara serah terima, tergantung kesiapan data:
 - **Serah terima tanpa unit fisik (data lama):** bila katalog belum memiliki unit fisik, serah terima tetap dapat dilakukan dengan langsung menekan **Serahkan Barang**. Penugasan unit tidak wajib; pembukuan masih memakai jumlah katalog.
 
 Aturan penugasan unit:
+
 - Saat menugaskan unit, jumlah unit yang dipilih per barang **harus sama** dengan jumlah yang dipinjam (kecuali katalog tanpa unit fisik).
 - Unit yang ditugaskan harus aktif, dalam kondisi baik, dan belum dipinjam orang lain.
 - Unit yang sudah pernah dikembalikan pada pinjaman yang sama tidak boleh ditugaskan ulang.
 - Jika penugasan tidak lengkap atau unit tidak valid, sistem menolak serah terima dengan pesan yang menjelaskan masalahnya.
 
 Status dokumen peminjaman **terpisah** dari status transaksi:
+
 - Dokumen dapat dicetak setelah persetujuan lengkap, tanpa mengubah status pinjaman.
 - Tanda tangan fisik/digital hanya mencatat status dokumen, bukan persetujuan transaksi.
 - Dokumen yang belum dibuat tidak memblokir serah terima.

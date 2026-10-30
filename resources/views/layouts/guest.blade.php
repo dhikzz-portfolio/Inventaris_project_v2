@@ -37,15 +37,26 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
 
+        {{-- Terapkan preferensi tema sebelum paint untuk mencegah flash. --}}
+        <script>
+            (function () {
+                try {
+                    var saved = localStorage.getItem('theme');
+                    var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    if (dark) document.documentElement.classList.add('dark');
+                } catch (e) {}
+            })();
+        </script>
+
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         <meta name="theme-color" content="#155dfc">
     </head>
 
-    <body class="min-h-dvh overflow-x-hidden bg-slate-50 font-sans text-slate-900 antialiased">
+    <body class="min-h-dvh overflow-x-hidden bg-slate-50 font-sans text-slate-900 antialiased dark:bg-slate-950">
 
-    <main class="safe-area-bottom min-h-dvh lg:grid lg:grid-cols-[minmax(24rem,0.9fr)_minmax(0,1.1fr)]">
+    <main class="safe-area-bottom flex min-h-dvh flex-col lg:grid lg:grid-cols-[minmax(24rem,0.9fr)_minmax(0,1.1fr)]">
 
         {{-- Mobile Branding Header (Hidden when the split layout fits) --}}
         <div class="safe-area-top border-b border-brand-700/60 bg-brand-600 lg:hidden">
@@ -134,10 +145,10 @@
         </aside>
 
         {{-- Login Form Column --}}
-        <section class="relative z-10 flex items-start justify-center px-4 pb-8 pt-5 sm:px-6 sm:pb-10 sm:pt-10 lg:min-h-dvh lg:items-center lg:px-8 lg:py-12">
+        <section class="relative z-10 flex flex-1 items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:min-h-dvh lg:px-8 lg:py-12">
             <div class="w-full max-w-md animate-slide-up">
                 <div class="mb-5 sm:mb-8 w-full flex flex-col items-center justify-center text-center">
-                    <h1 class="text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $heading }}</h1>
+                    <h1 class="text-balance text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">{{ $heading }}</h1>
                     @if (! empty($subheading))
                         <p class="mt-2 text-pretty text-sm leading-relaxed text-slate-500">{{ $subheading }}</p>
                     @endif

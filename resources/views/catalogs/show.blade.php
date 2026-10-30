@@ -3,7 +3,7 @@
         <div class="flex items-start justify-between gap-3 flex-wrap">
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <a href="{{ route('catalogs.index') }}" class="text-sm font-medium text-blue-700 hover:underline dark:text-blue-300">Katalog</a>
+                    <a href="{{ route('catalogs.index') }}" class="text-sm font-medium text-brand-700 hover:underline dark:text-brand-300">Katalog</a>
                     <span class="text-slate-300 dark:text-slate-600">/</span>
                     <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">{{ $catalog->name }}</h2>
                     <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $catalog->category?->name }}</span>
@@ -16,13 +16,13 @@
             <div class="flex items-center gap-2 flex-wrap">
                 @if (auth()->user()->canApproveLoans())
                     <a href="{{ route('labels.index', ['catalog' => $catalog->id]) }}"
-                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                         <span class="material-icons-round text-lg">print</span> Cetak Label Unit
                     </a>
                 @endif
                 @if (auth()->user()->managesInventory() && ! $catalog->isArchived())
                     <a href="{{ route('items.edit', $catalog) }}"
-                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                         <span class="material-icons-round text-lg">edit</span> Ubah Katalog
                     </a>
                 @endif

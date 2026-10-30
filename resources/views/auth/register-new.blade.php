@@ -6,7 +6,7 @@
     <x-auth-session-status class="mb-5" :status="session('status')" />
 
     @if ($errors->any())
-        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
             <ul class="list-disc space-y-1 ps-5">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>

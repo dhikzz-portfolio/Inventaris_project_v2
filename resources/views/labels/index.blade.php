@@ -103,7 +103,7 @@
                     <thead class="sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
                             <th class="px-4 py-2.5 w-10"></th>
-                            <th class="text-left px-4 py-2.5">Kode Inventaris</th>
+                            <th class="text-right px-4 py-2.5">Kode Inventaris</th>
                             <th class="text-left px-4 py-2.5">Nama Barang</th>
                             <th class="text-left px-4 py-2.5">Lokasi</th>
                             <th class="text-left px-4 py-2.5">Kondisi</th>
@@ -120,7 +120,7 @@
                                            onchange="updateLabelCount()"
                                            @checked(in_array($unit->id, old('unit_ids', [])))>
                                 </td>
-                                <td class="px-4 py-2 font-mono font-semibold text-gray-800">{{ $unit->inventory_code }}</td>
+                                <td class="px-4 py-2 text-right font-mono text-sm font-semibold text-gray-800 whitespace-nowrap">{{ $unit->inventory_code }}</td>
                                 <td class="px-4 py-2">
                                     <a href="{{ route('units.show', $unit) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $unit->catalog?->name }}</a>
                                     <div class="text-[11px] text-gray-400">{{ $unit->catalog?->category?->name }}</div>

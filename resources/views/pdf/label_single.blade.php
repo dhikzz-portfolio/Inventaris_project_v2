@@ -1,71 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8"><style>
+    <meta charset="utf-8">
+    <style>
         @page { margin: 0; }
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 2pt; font-family: Helvetica, Arial, sans-serif; }
-        /* width/height = content box; padding+border (14pt x 10pt) melengkapi 256x116pt */
+        body { margin: 0; padding: 1pt; font-family: Helvetica, Arial, sans-serif; }
+
         .label {
-            width: 242pt; height: 106pt;
-            border: 2pt solid #155dfc;
-            border-radius: 4pt;
-            padding: 3pt 5pt;
+            width: 240pt; height: 62pt;
+            border: 2pt solid #1c398e;
+            border-radius: 6pt;
+            padding: 3pt 7pt;
+            page-break-inside: avoid;
         }
-        .head { height: 86pt; }
-        table.inner { width: 100%; border-collapse: collapse; }
-        table.inner td { vertical-align: top; padding: 0; }
-        .logo-cell { width: 48pt; text-align: center; vertical-align: middle; }
-        .logo-cell img { max-width: 44pt; max-height: 44pt; }
-        .logo-fallback { font-size: 7pt; font-weight: bold; color: #333; }
-        .codes { padding-left: 4pt !important; }
-        .kode-lokasi {
-            font-family: 'Courier New', monospace;
-            font-size: 14pt; font-weight: bold; line-height: 1.1;
-            color: #1c398e;
+        .head { height: 38pt; position: relative; top: 1pt; }
+        table.inner { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        table.inner td { vertical-align: middle; padding: 0; }
+        .logo-cell { width: 44pt; text-align: left; vertical-align: middle; }
+        .logo-cell img { max-width: 40pt; max-height: 40pt; margin-left: 2pt; }
+        .logo-wrap { text-align: left; }
+        .logo-fallback { font-size: 7pt; font-weight: bold; color: #333; line-height: 1.2; }
+        .codes { padding-left: 6pt !important; padding-right: 6pt !important; text-align: center; word-break: normal; overflow-wrap: normal; white-space: nowrap; vertical-align: middle; }
+        .codes .nama,
+        .codes .kode-unit { white-space: nowrap; }
+        .nama {
+            font-size: 13pt; font-weight: bold; text-transform: uppercase;
+            color: #1c398e; line-height: 1.05; margin-bottom: 1pt;
+            text-align: center;
         }
-        .kode-barang {
-            font-family: 'Courier New', monospace;
-            font-size: 11pt; font-weight: bold; line-height: 1.1;
-            margin-top: 3pt;
-            color: #1c398e;
+        .kode-unit {
+            font-size: 13pt; font-weight: bold; line-height: 1.05;
+            text-align: center; white-space: nowrap;
+            letter-spacing: 0.4pt; color: #1c398e;
         }
-        .qr-cell { width: 46pt; text-align: right; }
-        .qr-cell img { width: 42pt; height: 42pt; }
+        .qr-cell { width: 36pt; text-align: right; padding-right: 0pt !important; vertical-align: top; position: relative; top: -1pt; }
+        .qr-cell img { width: 36pt; height: 36pt; }
         .footer {
-            margin-top: 5pt;
+            margin-top: 7pt;
             border-top: 1pt solid #8ec5ff;
-            padding-top: 2pt;
-            font-size: 7.5pt; font-weight: bold; text-align: center;
-            text-transform: uppercase;
-            color: #1c398e;
-        }</style>
+            padding-top: 4pt;
+            font-size: 8pt; font-weight: bold;
+            text-align: center; text-transform: uppercase;
+            letter-spacing: 0.4pt; color: #1c398e;
+        }
+    </style>
 </head>
 <body>
     <div class="label">
         <div class="head">
             <table class="inner">
                 <tr>
-                    <td width="48" class="logo-cell">
-                        @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
-                        @else
-                            <div class="logo-fallback">LOGO<br>SEKOLAH</div>
-                        @endif
+                    <td width="44" class="logo-cell">
+                        <div class="logo-wrap">
+                            @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
+                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
+                            @else
+                                <div class="logo-fallback">LOGO<br>SEKOLAH</div>
+                            @endif
+                        </div>
                     </td>
                     <td class="codes">
-                        {{-- Kanan Atas: deret angka Kode Lokasi/Instansi (maks. 2 baris) --}}
-                        <div class="kode-lokasi">{!! implode('<br>', array_map('e', $locationLines)) !!}</div>
-                        {{-- Nama barang menjadi header pembeda kode inventaris --}}
-                        <div class="kode-barang">{{ strtoupper($item->name) }}</div>
+                        {{-- Nama barang menjadi judul utama label --}}
+                        <div class="nama">{{ $item->name }}</div>
+                        {{-- Deret kode lokasi/instansi di bawah nama --}}
+                        <div class="kode-unit">{!! implode('<br>', array_map('e', $locationLines)) !!}</div>
                     </td>
-                    <td width="46" class="qr-cell">
+                    <td width="50" class="qr-cell">
                         <img src="{{ $qr }}" alt="QR">
                     </td>
                 </tr>
             </table>
         </div>
-        {{-- Footer: nama instansi, mengalir normal agar tidak menabrak border --}}
         <div class="footer">{{ $setting->institution_name }}</div>
     </div>
 </body>

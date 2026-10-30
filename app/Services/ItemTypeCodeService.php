@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Item;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -53,7 +54,30 @@ class ItemTypeCodeService
     public function ensureCode(Item $catalog): void
     {
         if (blank($catalog->item_type_code)) {
-            $catalog->forceFill(['item_type_code' => $this->generate($catalog->name)])->save();
+            $code = $this->generate($catalog->name);
+
+            if ($catalog->exists) {
+                $updated = DB::table($catalog->getTable())
+                    ->where($catalog->getKeyName(), $catalog->getKey())
+                    ->whereNull('item_type_code')
+                    ->update([
+                        'item_type_code' => $code,
+                        'updated_at' => now(),
+                    ]);
+
+                if ($updated === 0) {
+                    $catalog->refresh();
+
+                    return;
+                }
+
+                $catalog->setAttribute('item_type_code', $code);
+                $catalog->syncOriginalAttribute('item_type_code');
+
+                return;
+            }
+
+            $catalog->forceFill(['item_type_code' => $code])->save();
         }
     }
 }

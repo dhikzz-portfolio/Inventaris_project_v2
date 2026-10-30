@@ -16,7 +16,7 @@
                     @endif
                 </p>
             </div>
-            <a href="{{ route('loans.returns') }}" class="inline-flex min-h-10 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">Pengembalian <span aria-hidden="true">→</span></a>
+            <a href="{{ route('loans.returns') }}" class="inline-flex min-h-10 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">Pengembalian <span aria-hidden="true">→</span></a>
         </div>
     </x-slot>
 
@@ -50,7 +50,7 @@
                                 <span class="text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower?->major?->name ?: $loan->borrower?->role }}</span>
                                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                                 @if ($loan->needs_high_value_approval)
-                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">NILAI TINGGI — PERSETUJUAN WAKASEK</span>
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300">NILAI TINGGI — PERSETUJUAN WAKASEK</span>
                                 @endif
                             </div>
                             <div class="mt-1 text-sm text-slate-700 dark:text-slate-200">{{ $loan->purpose }}</div>
@@ -75,7 +75,7 @@
 
                         <div class="shrink-0">
                             <a href="{{ route('loans.show', $loan) }}"
-                               class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800 lg:w-auto lg:py-2 dark:focus:ring-offset-slate-900">
+                               class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800 lg:w-auto lg:py-2 dark:focus:ring-offset-slate-900">
                                 <span class="material-icons-round text-lg">gavel</span> Proses Persetujuan
                             </a>
                         </div>

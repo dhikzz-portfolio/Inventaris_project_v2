@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd D:/vin-project/Inventaris_project_v2 && grep -c \"RefreshDatabase\" tests/Feature/*.php | grep -v \":0\" | wc -l && echo \"---files WITHOUT RefreshDatabase---\" && grep -L \"RefreshDatabase\" tests/Feature/*.php tests/Unit/*.php && echo \"---Livewire::test usage count---\" && grep -l \"Livewire::\" tests/Feature/*.php | wc -l && echo \"---seed\\(\\) in setUp count---\" && grep -l 'this->seed\\(\\)' tests/Feature/*.php | wc -l && echo \"---wc -l tests---\" && wc -l tests/Feature/*.php tests/Unit/*.php tests/TestCase.php | tail -1)"
+    ]
+  }
+}

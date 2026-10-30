@@ -8,7 +8,7 @@
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Pinjaman #{{ $loan->id }} — {{ $loan->purpose }}</p>
             </div>
-            <a href="{{ route('loans.returns') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Daftar pengembalian</a>
+            <a href="{{ route('loans.returns') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">← Daftar pengembalian</a>
         </div>
     </x-slot>
 

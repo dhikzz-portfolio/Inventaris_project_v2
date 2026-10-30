@@ -5,7 +5,7 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengembalian Barang</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Periksa jumlah dan kondisi barang sebelum menyelesaikan pengembalian.</p>
             </div>
-            <a href="{{ route('loans.pending') }}" class="inline-flex min-h-10 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Persetujuan</a>
+            <a href="{{ route('loans.pending') }}" class="inline-flex min-h-10 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">← Persetujuan</a>
         </div>
     </x-slot>
 
@@ -31,7 +31,7 @@
                             <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $loan->borrower?->name }}</span>
                             <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                             @if ($loan->event)
-                                <span class="text-xs text-blue-700 dark:text-blue-300">🎯 {{ $loan->event->name }}</span>
+                                <span class="text-xs text-brand-700 dark:text-brand-300">🎯 {{ $loan->event->name }}</span>
                             @endif
                         </div>
                         <div class="truncate text-sm text-slate-700 dark:text-slate-200">{{ $loan->purpose }}</div>
@@ -51,7 +51,7 @@
                         </div>
                     </div>
                     <a href="{{ route('loans.return-form', $loan) }}"
-                       class="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800 md:w-auto md:py-2.5 dark:focus:ring-offset-slate-900">
+                       class="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800 md:w-auto md:py-2.5 dark:focus:ring-offset-slate-900">
                         <span class="material-icons-round text-lg">fact_check</span> Validasi Pengembalian
                     </a>
                 </article>

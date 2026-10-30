@@ -21,7 +21,7 @@
             label="Email"
             type="email"
             :value="old('email')"
-            placeholder="Masukkan email Gmail"
+            placeholder="Masukkan email"
             autocomplete="email"
             autofocus
             icon="mail"
@@ -38,12 +38,12 @@
             icon="lock"
         />
 
-        <label for="remember_me" class="inline-flex items-center gap-2.5 text-sm text-slate-600 sm:gap-3 sm:text-base">
+        <label for="remember_me" class="inline-flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-300 sm:gap-3 sm:text-base">
             <input
                 id="remember_me"
                 name="remember"
                 type="checkbox"
-                class="h-5 w-5 rounded border-slate-300 text-brand-600 shadow-sm focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+                class="h-5 w-5 rounded border-slate-300 text-brand-600 shadow-sm focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-slate-600 dark:focus:ring-offset-slate-900"
             >
             <span class="select-none">Ingat saya</span>
         </label>
@@ -54,13 +54,13 @@
     <div class="mt-5">
         <form method="POST" action="{{ route('register.start') }}">
             @csrf
-            <button type="submit" class="w-full inline-flex items-center justify-center rounded-xl border border-brand-600 px-4 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2">
+            <button type="submit" class="w-full inline-flex items-center justify-center rounded-xl border border-brand-600 px-4 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-brand-500 dark:text-brand-300 dark:hover:bg-brand-900/40 dark:focus:ring-offset-slate-900">
                 Daftar Akun
             </button>
         </form>
     </div>
 
-    <p class="mt-5 text-center text-xs leading-relaxed text-slate-400">
+    <p class="mt-5 text-center text-xs leading-relaxed text-slate-400 dark:text-slate-500">
         Gunakan akun sekolah Anda. Hubungi administrator jika mengalami kendala masuk.
     </p>
 </x-guest-layout>

@@ -1,47 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8"><style>
+    <meta charset="utf-8">
+    <style>
         @page { margin: 8mm; }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: Helvetica, Arial, sans-serif; }
+        body { margin: 0; padding: 1pt; font-family: Helvetica, Arial, sans-serif; }
         table.grid { width: 100%; border-collapse: collapse; }
-        table.grid td { width: 50%; padding: 4pt; vertical-align: top; }
+        table.grid td { width: 50%; padding: 5pt; vertical-align: top; }
         table.grid tr { page-break-inside: avoid; }
 
-        /* width/height = content box; padding+border (14pt x 10pt) muat di sel 50% A4 */
         .label {
-            width: 252pt; height: 90pt;
-            border: 2pt solid #155dfc;
-            border-radius: 4pt;
-            padding: 3pt 5pt;
+            width: 240pt; height: 62pt;
+            border: 2pt solid #1c398e;
+            border-radius: 6pt;
+            padding: 3pt 7pt;
             page-break-inside: avoid;
         }
-        .head { height: 70pt; }
-        table.inner { width: 100%; border-collapse: collapse; }
-        table.inner td { vertical-align: top; padding: 0; }
-        .logo-cell { width: 44pt; text-align: center; vertical-align: middle; }
-        .logo-cell img { max-width: 40pt; max-height: 40pt; }
-        .logo-fallback { font-size: 6pt; font-weight: bold; color: #333; }
-        .codes { padding-left: 4pt !important; }
-        .kode-unit {
-            font-family: 'Courier New', monospace;
-            font-size: 15pt; font-weight: bold; line-height: 1.05;
-            color: #1c398e;
-        }
-        .nama { font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-bottom: 1pt; line-height: 1.1; }
-        .qr-cell { width: 46pt; text-align: right; }
-        .qr-cell img { width: 40pt; height: 40pt; }
-        .footer {
-            margin-top: 4pt;
-            border-top: 1pt solid #8ec5ff;
-            padding-top: 2pt;
-            font-size: 7pt;
-            font-weight: bold;
+        .head { height: 38pt; position: relative; top: 1pt; }
+        table.inner { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        table.inner td { vertical-align: middle; padding: 0; }
+        .logo-cell { width: 44pt; text-align: left; vertical-align: middle; }
+        .logo-cell img { max-width: 40pt; max-height: 40pt; margin-left: 2pt; }
+        .logo-wrap { text-align: left; }
+        .logo-fallback { font-size: 7pt; font-weight: bold; color: #333; line-height: 1.2; }
+        .codes { padding-left: 6pt !important; padding-right: 6pt !important; text-align: center; word-break: normal; overflow-wrap: normal; white-space: nowrap; vertical-align: middle; }
+        .codes .nama,
+        .codes .kode-unit { white-space: nowrap; }
+        .nama {
+            font-size: 13pt; font-weight: bold; text-transform: uppercase;
+            color: #1c398e; line-height: 1.05; margin-bottom: 1pt;
             text-align: center;
-            text-transform: uppercase;
-            color: #1c398e;
-        }</style>
+        }
+        .kode-unit {
+            font-size: 13pt; font-weight: bold; line-height: 1.05;
+            text-align: center; white-space: nowrap;
+            letter-spacing: 0.4pt; color: #1c398e;
+        }
+        .qr-cell { width: 36pt; text-align: right; padding-right: 0pt !important; vertical-align: top; position: relative; top: -1pt; }
+        .qr-cell img { width: 36pt; height: 36pt; }
+        .footer {
+            margin-top: 7pt;
+            border-top: 1pt solid #8ec5ff;
+            padding-top: 4pt;
+            font-size: 8pt; font-weight: bold;
+            text-align: center; text-transform: uppercase;
+            letter-spacing: 0.4pt; color: #1c398e;
+        }
+    </style>
 </head>
 <body>
     <table class="grid">
@@ -54,19 +60,19 @@
                                 <table class="inner">
                                     <tr>
                                         <td width="44" class="logo-cell">
-                                            @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
-                                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
-                                            @else
-                                                <div class="logo-fallback">LOGO<br>SEKOLAH</div>
-                                            @endif
+                                            <div class="logo-wrap">
+                                                @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
+                                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
+                                                @else
+                                                    <div class="logo-fallback">LOGO<br>SEKOLAH</div>
+                                                @endif
+                                            </div>
                                         </td>
                                         <td class="codes">
-                                            {{-- Nama barang sebagai header, kode inventaris unik per stiker --}}
                                             <div class="nama">{{ $unit->catalog?->name }}</div>
                                             <div class="kode-unit">{{ $unit->inventory_code }}</div>
                                         </td>
-                                        <td width="46" class="qr-cell">
-                                            {{-- QR menunjuk ke detail unit berbasis ID stabil --}}
+                                        <td width="50" class="qr-cell">
                                             <img src="{{ $qrMap[$unit->id] }}" alt="QR">
                                         </td>
                                     </tr>

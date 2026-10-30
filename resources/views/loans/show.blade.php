@@ -6,10 +6,10 @@
                     <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Peminjaman #{{ $loan->id }}</h2>
                     <span class="text-[11px] font-bold px-2 py-1 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                     @if ($loan->needs_high_value_approval)
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-800">NILAI TINGGI</span>
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300">NILAI TINGGI</span>
                     @endif
                     @if ($loan->isOverdue())
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700">⚠ TERLAMBAT</span>
+                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300">⚠ TERLAMBAT</span>
                     @endif
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">{{ $loan->purpose }}</p>
@@ -21,12 +21,12 @@
                 </a>
                 @if ($loan->bast_path)
                     <a href="{{ route('loans.bast', $loan) }}"
-                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                         <span class="material-icons-round text-lg">description</span> Unduh BAST / Surat
                     </a>
                 @endif
                 @if ($loan->borrower_id === auth()->id())
-                    <a href="{{ route('loans.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Kembali</a>
+                    <a href="{{ route('loans.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">← Kembali</a>
                 @endif
             </div>
         </div>
@@ -53,7 +53,7 @@
             <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                 <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                        <span class="material-icons-round text-blue-600">format_list_bulleted</span> Rincian Barang
+                        <span class="material-icons-round text-brand-600">format_list_bulleted</span> Rincian Barang
                     </h3>
                     <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                         {{ $unitAssignments->total() }} unit fisik
@@ -66,11 +66,11 @@
                             <label for="item-search" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Cari unit / catatan kondisi</label>
                             <input id="item-search" type="search" name="item_search" value="{{ $itemFilters['search'] }}"
                                    placeholder="Nama barang, spesifikasi, merek, kode inventaris, ruangan…"
-                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         </div>
                         <div>
                             <label for="item-category" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kategori</label>
-                            <select id="item-category" name="item_category" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-category" name="item_category" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua kategori</option>
                                 @foreach ($filterOptions['categories'] as $category)
                                     <option value="{{ $category->id }}" @selected($itemFilters['category'] === (string) $category->id)>{{ $category->name }}</option>
@@ -79,7 +79,7 @@
                         </div>
                         <div>
                             <label for="item-catalog" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Katalog</label>
-                            <select id="item-catalog" name="item_catalog" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-catalog" name="item_catalog" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua katalog</option>
                                 @foreach ($filterOptions['catalogs'] as $catalog)
                                     <option value="{{ $catalog->id }}" @selected($itemFilters['catalog'] === (string) $catalog->id)>{{ $catalog->name }}</option>
@@ -88,7 +88,7 @@
                         </div>
                         <div>
                             <label for="item-spec" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Spesifikasi</label>
-                            <select id="item-spec" name="item_spec" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-spec" name="item_spec" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua spesifikasi</option>
                                 @foreach ($filterOptions['specifications'] as $specification)
                                     <option value="{{ $specification->id }}" @selected($itemFilters['specification'] === (string) $specification->id)>{{ $specification->displayName() }}</option>
@@ -97,7 +97,7 @@
                         </div>
                         <div>
                             <label for="item-building" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Gedung</label>
-                            <select id="item-building" name="item_building" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-building" name="item_building" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua gedung</option>
                                 @foreach ($filterOptions['buildings'] as $building)
                                     <option value="{{ $building }}" @selected($itemFilters['building'] === (string) $building)>Gedung {{ $building }}</option>
@@ -106,7 +106,7 @@
                         </div>
                         <div>
                             <label for="item-room" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Ruangan</label>
-                            <select id="item-room" name="item_room" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-room" name="item_room" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua ruangan</option>
                                 @foreach ($filterOptions['rooms'] as $room)
                                     <option value="{{ $room->id }}" @selected($itemFilters['room'] === (string) $room->id)>{{ $room->code }} — {{ $room->name }}</option>
@@ -115,7 +115,7 @@
                         </div>
                         <div>
                             <label for="item-condition" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kondisi unit</label>
-                            <select id="item-condition" name="item_condition" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-condition" name="item_condition" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua kondisi</option>
                                 @foreach ($filterOptions['conditions'] as $condition)
                                     <option value="{{ $condition->value }}" @selected($itemFilters['condition'] === $condition->value)>{{ $condition->label() }}</option>
@@ -124,7 +124,7 @@
                         </div>
                         <div>
                             <label for="item-status" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status inventaris</label>
-                            <select id="item-status" name="item_status" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-status" name="item_status" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua status</option>
                                 @foreach ($filterOptions['statuses'] as $status)
                                     <option value="{{ $status->value }}" @selected($itemFilters['status'] === $status->value)>{{ $status->label() }}</option>
@@ -133,7 +133,7 @@
                         </div>
                         <div>
                             <label for="item-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status validasi</label>
-                            <select id="item-validation" name="item_validation" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-validation" name="item_validation" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua status</option>
                                 @foreach ($filterOptions['validations'] as $validation)
                                     <option value="{{ $validation->value }}" @selected($itemFilters['validation'] === $validation->value)>{{ $validation->label() }}</option>
@@ -142,7 +142,7 @@
                         </div>
                         <div>
                             <label for="item-photo" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Foto bukti kerusakan</label>
-                            <select id="item-photo" name="item_photo" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            <select id="item-photo" name="item_photo" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua unit</option>
                                 <option value="ada" @selected($itemFilters['photo'] === 'ada')>Ada foto</option>
                                 <option value="tidak" @selected($itemFilters['photo'] === 'tidak')>Tanpa foto</option>
@@ -151,16 +151,16 @@
                         <div>
                             <label for="item-from" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Diperiksa dari</label>
                             <input id="item-from" type="date" name="item_from" value="{{ $itemFilters['from'] }}"
-                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         </div>
                         <div>
                             <label for="item-to" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Sampai</label>
                             <input id="item-to" type="date" name="item_to" value="{{ $itemFilters['to'] }}"
-                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         </div>
                     </div>
                     <div class="mt-2 flex flex-wrap items-center gap-2">
-                        <button type="submit" class="inline-flex min-h-8 items-center rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-blue-700">Terapkan filter</button>
+                        <button type="submit" class="inline-flex min-h-8 items-center rounded-lg bg-brand-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-brand-700">Terapkan filter</button>
                         <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Reset filter</a>
                         @if ($filtersActive)
                             <span class="text-[11px] text-slate-500 dark:text-slate-400">
@@ -242,7 +242,7 @@
                         @empty
                             <div class="col-span-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                                 Tidak ada unit fisik yang cocok dengan pencarian/filter.
-                                <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-blue-700 underline dark:text-blue-300">Reset filter</a>
+                                <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-brand-700 underline dark:text-brand-300">Reset filter</a>
                             </div>
                         @endforelse
                     </div>
@@ -307,30 +307,30 @@
                                     @foreach ($legacyItems as $li)
                                         <tr>
                                             <td class="py-2">
-                                                <a href="{{ route('items.show', $li->item) }}" class="font-medium text-gray-800 hover:text-blue-700 dark:text-slate-100">{{ $li->item?->name }}</a>
+                                                <a href="{{ route('items.show', $li->item) }}" class="font-medium text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $li->item?->name }}</a>
                                                 <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $li->item?->internal_id }}</div>
                                             </td>
                                             <td class="py-2 text-xs text-slate-600 dark:text-slate-300">{{ $li->item?->room?->code }}</td>
                                             <td class="py-2 text-center text-xs font-semibold">{{ $li->qty_borrowed }}</td>
                                             <td class="py-2 text-center text-xs">
                                                 @if ($li->qty_returned === null)
-                                                    <span class="text-gray-300">—</span>
+                                                    <span class="text-slate-300 dark:text-slate-600">—</span>
                                                 @else
-                                                    <span class="{{ $li->hasShortage() ? 'text-red-600 font-bold' : 'text-gray-700' }}">{{ $li->qty_returned }}</span>
+                                                    <span class="{{ $li->hasShortage() ? 'text-red-600 font-bold' : 'text-slate-700' }}">{{ $li->qty_returned }}</span>
                                                     @if ($li->hasShortage())
                                                         <span class="block text-[10px] font-bold text-red-600">HILANG {{ $li->missingQuantity() }}</span>
                                                     @endif
                                                 @endif
                                             </td>
-                                            <td class="py-2 text-center text-xs text-gray-500">{{ $li->condition_out->label() }}</td>
+                                            <td class="py-2 text-center text-xs text-slate-500">{{ $li->condition_out->label() }}</td>
                                             <td class="py-2 text-center text-xs">
                                                 @if ($li->condition_in)
-                                                    <span class="{{ $li->condition_in->isDamaged() ? 'text-red-600 font-bold' : 'text-green-700' }}">{{ $li->condition_in->label() }}</span>
+                                                    <span class="{{ $li->condition_in->isDamaged() ? 'text-red-600 font-bold dark:text-red-400' : 'text-green-700 dark:text-green-300' }}">{{ $li->condition_in->label() }}</span>
                                                     @if ($li->damage_photo_path && $canViewDamagePhotos)
-                                                        <a href="{{ route('files.show', ['path' => $li->damage_photo_path]) }}" target="_blank" rel="noopener" class="block text-[10px] text-blue-700 underline dark:text-blue-300">foto bukti</a>
+                                                        <a href="{{ route('files.show', ['path' => $li->damage_photo_path]) }}" target="_blank" rel="noopener" class="block text-[10px] text-brand-700 underline dark:text-brand-300">foto bukti</a>
                                                     @endif
                                                 @else
-                                                    <span class="text-gray-300">—</span>
+                                                    <span class="text-slate-300 dark:text-slate-600">—</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -362,16 +362,16 @@
                 @endif
 
                 @if ($loan->status === \App\Enums\LoanStatus::APPROVED && $canManage)
-                    <div class="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
+                    <div class="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900 dark:border-brand-900/60 dark:bg-brand-900/30 dark:text-brand-100">
                         <div class="flex items-center justify-between gap-3 flex-wrap">
                             <span>Disetujui. Serahkan barang kepada peminjam untuk memulai masa pinjam.</span>
                             <a href="{{ route('loans.handover-form', $loan) }}"
-                               class="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700">
+                               class="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-brand-700">
                                 <span class="material-icons-round text-sm">inventory</span> Serah Terima + Pilih Unit
                             </a>
                         </div>
                         @if ($loan->loanItems->isNotEmpty())
-                            <div class="mt-3 text-xs leading-relaxed text-blue-800 dark:text-blue-200">
+                            <div class="mt-3 text-xs leading-relaxed text-brand-800 dark:text-brand-200">
                                 Pilih unit fisik yang diserahkan pada halaman serah terima. Unit yang dipinjam orang lain, tidak aktif, atau rusak tidak dapat dipilih.
                             </div>
                         @endif
@@ -381,7 +381,7 @@
                 @if ($loan->status === \App\Enums\LoanStatus::DIPINJAM && $canManage)
                     <div class="mt-4 flex justify-end">
                         <a href="{{ route('loans.return-form', $loan) }}"
-                           class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                             <span class="material-icons-round text-lg">assignment_return</span> Proses Pengembalian
                         </a>
                     </div>
@@ -391,11 +391,11 @@
             {{-- Approval --}}
             <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                 <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-blue-600">verified_user</span> Jejak Persetujuan (Berjenjang)
+                    <span class="material-icons-round text-brand-600">verified_user</span> Jejak Persetujuan (Berjenjang)
                 </h3>
 
                 @if ($loan->approvals->isEmpty())
-                    <p class="text-sm text-gray-400">Belum ada persetujuan.</p>
+                    <p class="text-sm text-slate-400">Belum ada persetujuan.</p>
                 @else
                     <ul class="space-y-4">
                         @foreach ($loan->approvals->sortBy('level') as $approval)
@@ -406,14 +406,14 @@
                             @endphp
                             <li class="flex items-start gap-3 border-b border-dashed border-slate-200 pb-4 last:border-0 last:pb-0 dark:border-slate-700">
                                 <span class="inline-flex items-center justify-center h-9 w-9 rounded-full
-                                    {{ $approval->decision->value === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                    {{ $approval->decision->value === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' }}">
                                     <span class="material-icons-round text-xl">{{ $approval->decision->value === 'APPROVED' ? 'check_circle' : 'cancel' }}</span>
                                 </span>
                                 <div class="flex-1">
                                     <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">
                                         Level {{ $approval->level }} — {{ $approverRole }}:
                                         {{ $approval->approver?->name }}
-                                        <span class="text-[11px] font-bold {{ $approval->decision->value === 'APPROVED' ? 'text-green-600' : 'text-red-600' }}">
+                                        <span class="text-[11px] font-bold {{ $approval->decision->value === 'APPROVED' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
                                             {{ $approval->decision->label() }}
                                         </span>
                                     </div>
@@ -424,8 +424,8 @@
                                 </div>
                                 @if ($approval->signature_path)
                                     <div class="text-center shrink-0">
-                                        <img src="{{ route('files.show', ['path' => $approval->signature_path]) }}" alt="TTD" class="h-12 object-contain border border-gray-200 rounded bg-white px-1">
-                                        <div class="text-[9px] text-gray-400">TTD Digital</div>
+                                        <img src="{{ route('files.show', ['path' => $approval->signature_path]) }}" alt="TTD" class="h-12 object-contain border border-slate-200 rounded bg-white px-1 dark:border-slate-600">
+                                        <div class="text-[9px] text-slate-400">TTD Digital</div>
                                     </div>
                                 @endif
                             </li>
@@ -437,8 +437,8 @@
                 @if ($canAct && $nextLevel !== null)
                     @php $actorRole = \App\Enums\Role::from(auth()->user()->role)->shortLabel(); @endphp
                     <div class="mt-5 border-t border-slate-200 pt-5 dark:border-slate-700">
-                        <div class="flex items-center gap-2 mb-3 text-sm text-gray-700">
-                            <span class="material-icons-round text-blue-600">gesture</span>
+                        <div class="flex items-center gap-2 mb-3 text-sm text-slate-700">
+                            <span class="material-icons-round text-brand-600">gesture</span>
                             Keputusan Anda: <strong>Persetujuan Level {{ $nextLevel }} ({{ $actorRole }})</strong>
                         </div>
 
@@ -447,21 +447,21 @@
                             <input type="hidden" name="signature" id="signature-input">
                             <div>
                                 <x-input-label value="Catatan (opsional)" />
-                                <textarea name="note" rows="2" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+                                <textarea name="note" rows="2" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
                                           placeholder="Syarat/catatan persetujuan..."></textarea>
                             </div>
 
                             <div x-data="signaturePad()" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-800">
                                 <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-semibold text-gray-600">
+                                    <span class="text-xs font-semibold text-slate-600">
                                         Tanda Tangan Digital
-                                        <span class="text-gray-400 font-normal">(opsional)</span>
+                                        <span class="text-slate-400 font-normal">(opsional)</span>
                                     </span>
-                                    <button type="button" @click="clear()" class="text-xs text-gray-500 hover:text-gray-800 underline">Hapus</button>
+                                    <button type="button" @click="clear()" class="text-xs text-slate-500 underline hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100">Hapus</button>
                                 </div>
                                 <canvas id="signature-pad" width="420" height="140"
-                                        class="w-full touch-none rounded-lg border border-slate-200 bg-white dark:border-slate-600"></canvas>
-                                <p class="text-[10px] text-gray-400 mt-1">
+                                        class="w-full touch-none rounded-lg border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-100"></canvas>
+                                <p class="text-[10px] text-slate-400 mt-1">
                                     Tanda tangan digital bersifat opsional. Dokumen resmi dapat dipratinjau, dicetak, dan ditandatangani secara fisik/manual.
                                 </p>
                             </div>
@@ -478,7 +478,7 @@
                             <div>
                                 <x-input-label value="Alasan Penolakan *" />
                                 <input type="text" name="note" required
-                                       class="mt-1 block w-full rounded-lg border-gray-300 focus:ring-red-500 focus:border-red-500 text-sm"
+                                       class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-red-500 focus:ring-red-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
                                        placeholder="Barang dipakai kegiatan lain, dsb.">
                                 <x-input-error :messages="$errors->get('note')" class="mt-1" />
                             </div>
@@ -503,7 +503,7 @@
         <div class="space-y-5">
             <div class="space-y-3 rounded-2xl border border-sky-100 bg-white p-5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-blue-600">info</span> Ringkasan
+                    <span class="material-icons-round text-brand-600">info</span> Ringkasan
                 </h3>
                 @unless (auth()->user()->isPeminjam())
                     <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Peminjam:</span> <strong>{{ $loan->borrower?->name }}</strong></div>
@@ -518,7 +518,7 @@
                         <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $loan->event->name }}</div>
                         <div class="text-xs text-slate-600 dark:text-slate-300">PJ: {{ $loan->event->pic_name }}</div>
                         <div class="text-xs text-slate-600 dark:text-slate-300">{{ $loan->event->start_date->format('d/m/Y') }} — {{ $loan->event->end_date->format('d/m/Y') }}</div>
-                        <a href="{{ route('events.show', $loan->event) }}" class="inline-flex min-h-8 items-center text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">Lihat rekap kegiatan →</a>
+                        <a href="{{ route('events.show', $loan->event) }}" class="inline-flex min-h-8 items-center text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">Lihat rekap kegiatan →</a>
                     </div>
                 @endif
                 @if ($loan->status === \App\Enums\LoanStatus::DITOLAK && $loan->reject_reason)
@@ -566,7 +566,7 @@
             @if (in_array($loan->status, [\App\Enums\LoanStatus::PENDING, \App\Enums\LoanStatus::APPROVED, \App\Enums\LoanStatus::DIPINJAM, \App\Enums\LoanStatus::SELESAI], true))
                 <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                        <span class="material-icons-round text-blue-600">description</span> Dokumen Resmi
+                        <span class="material-icons-round text-brand-600">description</span> Dokumen Resmi
                     </h3>
 
                     <div class="mb-3 flex items-center justify-between gap-2 text-xs">
@@ -577,7 +577,7 @@
                     </div>
 
                     <a href="{{ route('loans.bast', $loan) }}" target="_blank"
-                       class="mb-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="mb-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                         {{ $loan->event ? 'Surat Peminjaman / BAST (PDF)' : 'Buat Surat Peminjaman (PDF)' }}
                     </a>
                     <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">

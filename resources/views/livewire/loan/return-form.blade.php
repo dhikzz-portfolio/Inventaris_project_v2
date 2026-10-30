@@ -35,7 +35,7 @@
     }"
     x-on:focus-unit.window="setTimeout(() => document.getElementById('return-unit-' + $event.detail.index)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)">
     @if ($loan->status === \App\Enums\LoanStatus::APPROVED)
-        <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+        <div class="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:border-brand-900 dark:bg-brand-900/40 dark:text-brand-200">
             Peminjaman masih berstatus <strong>Disetujui (belum diambil/diproses)</strong> — pengembalian tetap dapat divalidasi di sini.
         </div>
     @endif
@@ -79,7 +79,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-blue-600">fact_check</span>
+                    <span class="material-icons-round text-brand-600">fact_check</span>
                     Validasi Pengembalian per Unit
                 </h3>
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -99,12 +99,12 @@
 
         <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar"
             aria-valuenow="{{ $progress['percent'] }}" aria-valuemin="0" aria-valuemax="100">
-            <div class="h-full rounded-full transition-all {{ $progress['complete'] ? 'bg-green-500' : 'bg-blue-600' }}"
+            <div class="h-full rounded-full transition-all {{ $progress['complete'] ? 'bg-green-500' : 'bg-brand-600' }}"
                 style="width: {{ $progress['percent'] }}%"></div>
         </div>
 
         <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <span class="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-200">
+            <span class="rounded-full bg-brand-50 px-2.5 py-1 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
                 {{ $selectedCount }} unit dipilih
             </span>
             <span class="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -128,12 +128,12 @@
                     <label for="return-search" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Cari unit</label>
                     <input id="return-search" type="search" wire:model.live.debounce.300ms="search"
                         placeholder="Barang, spesifikasi, kode, ruangan, catatan…"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 </div>
                 <div>
                     <label for="return-filter-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status validasi</label>
                     <select id="return-filter-validation" wire:model.live="filterValidation"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua status</option>
                         @foreach ($returnStatuses as $returnStatus)
                             <option value="{{ $returnStatus->value }}">{{ $returnStatus->label() }}</option>
@@ -143,7 +143,7 @@
                 <div>
                     <label for="return-filter-condition" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kondisi unit</label>
                     <select id="return-filter-condition" wire:model.live="filterCondition"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua kondisi</option>
                         @foreach ($conditions as $conditionOption)
                             <option value="{{ $conditionOption->value }}">{{ $conditionOption->label() }}</option>
@@ -153,7 +153,7 @@
                 <div>
                     <label for="return-filter-state" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Pengembalian</label>
                     <select id="return-filter-state" wire:model.live="filterReturnState"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua unit</option>
                         <option value="belum">Belum dikonfirmasi</option>
                         <option value="sudah">Sudah dikonfirmasi</option>
@@ -162,7 +162,7 @@
                 <div>
                     <label for="return-filter-room" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Ruangan asal</label>
                     <select id="return-filter-room" wire:model.live="filterRoom"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua ruangan</option>
                         @foreach ($filterRooms as $roomOption)
                             <option value="{{ $roomOption['id'] }}">{{ $roomOption['label'] }}</option>
@@ -191,7 +191,7 @@
                         </div>
                         <div class="mt-2 flex justify-center gap-2">
                             <button type="button" x-show="!running" x-on:click="startCamera()"
-                                class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-blue-700">
+                                class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-brand-700">
                                 <span class="material-icons-round text-sm">photo_camera</span> Aktifkan Kamera
                             </button>
                             <button type="button" x-show="running" x-on:click="stopCamera()"
@@ -206,9 +206,9 @@
                             <input id="return-scan-code" type="text" wire:model="scanCode"
                                 wire:keydown.enter.prevent="scanUnitCode"
                                 placeholder="Contoh: G1-02-12" autocomplete="off"
-                                class="min-w-0 flex-1 rounded-lg border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                class="min-w-0 flex-1 rounded-lg border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             <button type="button" wire:click="scanUnitCode"
-                                class="inline-flex min-h-9 items-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Cari</button>
+                                class="inline-flex min-h-9 items-center rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700">Cari</button>
                         </div>
                         <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                             Kamera tidak tersedia atau izin ditolak? Pencarian kode manual tetap dapat dipakai.
@@ -236,7 +236,7 @@
     @if ($visibleUnitCount === 0)
         <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             Tidak ada unit yang cocok dengan pencarian/filter.
-            <button type="button" wire:click="resetFilters" class="font-semibold text-blue-700 underline dark:text-blue-300">Reset filter</button>
+            <button type="button" wire:click="resetFilters" class="font-semibold text-brand-700 underline dark:text-brand-300">Reset filter</button>
         </div>
     @endif
 
@@ -265,7 +265,7 @@
                             <label class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200">
                                 <input type="checkbox" @checked($group['all_selected'])
                                     wire:click="toggleGroup({{ $group['item_id'] }})"
-                                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950">
+                                    class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950">
                                 Pilih semua ({{ $group['visible_assignable'] }})
                             </label>
                         @endif
@@ -321,7 +321,7 @@
                                         @if ($row['has_assignment'] && ! $row['returned'])
                                             <input type="checkbox" value="{{ $index }}" wire:model.live="selected"
                                                 aria-label="Pilih unit {{ $row['inventory_code'] ?? $row['item_name'] }}"
-                                                class="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950">
+                                                class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950">
                                         @endif
 
                                         <div class="min-w-0">
@@ -363,7 +363,7 @@
 
                                     @if (! $row['returned'])
                                         <button type="button" wire:click="confirmOne({{ $index }})" wire:loading.attr="disabled"
-                                            class="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50">
+                                            class="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700 disabled:opacity-50">
                                             <span class="material-icons-round text-base">task_alt</span>
                                             Konfirmasi unit ini
                                         </button>
@@ -382,14 +382,14 @@
                                             <input type="number" min="0" max="{{ $row['remaining'] }}"
                                                 wire:model.live="rows.{{ $index }}.qty_returned"
                                                 @disabled($row['returned'])
-                                                class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                         @endif
                                     </div>
 
                                     <div>
                                         <x-input-label value="Kondisi Akhir *" />
                                         <select wire:model.live="rows.{{ $index }}.condition_in" @disabled($row['returned'])
-                                            class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                            class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                             @foreach ($conditions as $condition)
                                                 <option value="{{ $condition->value }}">{{ $condition->label() }}</option>
                                             @endforeach
@@ -400,7 +400,7 @@
                                                 <x-input-label value="Foto bukti kerusakan *" />
                                                 <input type="file" wire:model.live="rows.{{ $index }}.damage_photo"
                                                     accept="image/*"
-                                                    class="mt-1 block w-full text-xs text-slate-600 file:me-2 file:rounded file:border-0 file:bg-red-50 file:px-2 file:py-1.5 file:text-red-700 dark:text-slate-300">
+                                                    class="mt-1 block w-full text-xs text-slate-600 file:me-2 file:rounded file:border-0 file:bg-red-50 file:px-2 file:py-1.5 file:text-red-700 dark:text-slate-300 dark:file:bg-red-950/50 dark:file:text-red-300">
                                                 <div wire:loading wire:target="rows.{{ $index }}.damage_photo" class="mt-1 text-[11px] text-slate-500">
                                                     Mengunggah...
                                                 </div>
@@ -411,7 +411,7 @@
                                     <div>
                                         <x-input-label value="Dikembalikan ke Ruangan *" />
                                         <select wire:model.live="rows.{{ $index }}.returned_room_id" @disabled($row['returned'])
-                                            class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 @if ($isMismatch) border-orange-400 dark:border-orange-500 @endif">
+                                            class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 @if ($isMismatch) border-orange-400 dark:border-orange-500 @endif">
                                             @foreach ($rooms as $room)
                                                 <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
                                             @endforeach
@@ -423,7 +423,7 @@
                                     <x-input-label value="Catatan kondisi / kerusakan (opsional)" />
                                     <textarea rows="2" wire:model.live="rows.{{ $index }}.return_notes" @disabled($row['returned'])
                                         placeholder="Contoh: retak pada rangka, kabel terkelupas, atau catatan pemeriksaan lain"
-                                        class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"></textarea>
+                                        class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -458,7 +458,7 @@
                 <div class="flex flex-col gap-2 sm:flex-row">
                     <button type="button" wire:click="confirmSelected" wire:loading.attr="disabled"
                         @disabled($selectedCount === 0)
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3 text-sm font-bold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
                         <span class="material-icons-round text-lg">playlist_add_check</span>
                         Konfirmasi {{ $selectedCount > 0 ? $selectedCount.' unit terpilih' : 'unit terpilih' }}
                     </button>
@@ -480,7 +480,7 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="text-sm">
                     @if ($progress['pending'] > 0)
-                        <span class="font-semibold text-blue-700 dark:text-blue-300">
+                        <span class="font-semibold text-brand-700 dark:text-brand-300">
                             {{ $progress['confirmed'] }} dari {{ $progress['total'] }} unit sudah dikembalikan;
                             {{ $progress['pending'] }} unit masih belum diselesaikan.
                         </span>
@@ -493,7 +493,7 @@
 
                 <div class="flex flex-col gap-3 sm:flex-row">
                     <button type="button" wire:click="submit" wire:loading.attr="disabled"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">
+                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-3 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-50">
                         <span wire:loading.remove wire:target="submit" class="material-icons-round text-lg">task_alt</span>
                         <span wire:loading wire:target="submit" class="material-icons-round animate-spin text-lg">progress_activity</span>
                         Proses Pengembalian

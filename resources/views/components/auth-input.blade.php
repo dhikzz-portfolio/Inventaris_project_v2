@@ -8,6 +8,7 @@
     'autocomplete' => null,
     'autofocus' => false,
     'readonly' => false,
+    'required' => true,
     'pattern' => null,
     'toggleable' => false,
     'icon' => null,
@@ -41,7 +42,7 @@
             @if ($pattern) pattern="{{ $pattern }}" @endif
             @if ($autofocus) autofocus @endif
             @readonly($readonly)
-            required
+            @required($required)
             @class([
                 'block w-full rounded-xl border bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 sm:py-4',
                 'pl-12' => $icon,
@@ -66,7 +67,7 @@
     </div>
 
     @if ($hasError)
-        <p id="{{ $id }}-error" class="mt-2 flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+        <p id="{{ $id }}-error" class="mt-2 flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300" role="alert">
             <span class="material-icons-round text-base leading-5" aria-hidden="true">error_outline</span>
             <span>{{ $errorMessage }}</span>
         </p>

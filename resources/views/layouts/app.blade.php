@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 @php($institution = \App\Models\InstitutionSetting::current())
-<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
@@ -33,7 +32,7 @@
         @livewireStyles
         @stack('styles')
     </head>
-    <body class="bg-blue-50/30 font-sans antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
+    <body class="bg-brand-50/30 font-sans antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
         <div class="min-h-screen flex" x-data="{ menuOpen: false }">
             <aside id="main-menu"
                    class="fixed inset-y-0 left-0 z-40 flex w-64 max-w-[85vw] -translate-x-full flex-col border-r border-slate-200 bg-white text-slate-700 shadow-xl transition-transform duration-200 ease-in-out dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:static sm:w-44 sm:shrink-0 sm:translate-x-0 sm:shadow-none lg:w-64"
@@ -45,7 +44,7 @@
                             @if ($institution->logo_path)
                                 <img src="{{ asset('storage/'.$institution->logo_path) }}" alt="Logo {{ $institution->institution_name }}" class="h-full w-full object-contain p-0.5">
                             @else
-                                <span class="material-icons-round text-lg text-blue-600" aria-hidden="true">school</span>
+                                <span class="material-icons-round text-lg text-brand-600" aria-hidden="true">school</span>
                             @endif
                         </div>
                         <div class="min-w-0 leading-tight">
@@ -53,7 +52,7 @@
                             <div class="mt-0.5 truncate text-[9px] text-slate-500 dark:text-slate-400">Inventaris Sekolah</div>
                         </div>
                     </div>
-                    <button type="button" @click="menuOpen = false" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden dark:hover:bg-slate-800" aria-label="Tutup menu">
+                    <button type="button" @click="menuOpen = false" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 sm:hidden dark:hover:bg-slate-800" aria-label="Tutup menu">
                         <span class="material-icons-round" aria-hidden="true">close</span>
                     </button>
                 </div>
@@ -81,7 +80,7 @@
                     </header>
                 @endisset
 
-                <main class="flex-1 bg-blue-50/30 p-4 pb-24 sm:p-5 sm:pb-24 md:p-6 dark:bg-slate-950">
+                <main class="flex-1 bg-brand-50/30 p-4 pb-24 sm:p-5 sm:pb-24 md:p-6 dark:bg-slate-950">
                     {{ $slot }}
                 </main>
             </div>
@@ -89,7 +88,7 @@
             @if (auth()->check() && auth()->user()->canApproveLoans())
                 <!-- Tombol kamera mengambang untuk Laboran / pengelola (Bagian 5.9) -->
                 <a href="{{ route('scan') }}"
-                   class="fixed right-4 bottom-20 z-30 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-900/20 transition hover:scale-105 hover:bg-blue-700 active:scale-95 sm:h-14 sm:w-14 md:bottom-6"
+                   class="fixed right-4 bottom-20 z-30 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-900/20 transition hover:scale-105 hover:bg-brand-700 active:scale-95 md:hidden"
                    title="Scan QR Inventaris" aria-label="Scan QR Inventaris">
                     <span class="material-icons-round text-2xl">qr_code_scanner</span>
                 </a>

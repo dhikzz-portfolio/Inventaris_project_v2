@@ -1,20 +1,22 @@
 <x-app-layout>
+    @php($isSelfServiceBorrower = auth()->user()->isPeminjam() && ! auth()->user()->canApproveLoans())
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
-                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Peminjaman</h2>
+                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">{{ $isSelfServiceBorrower ? 'Riwayat peminjaman' : 'Peminjaman' }}</h2>
                 <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    @if (auth()->user()->isPeminjam() && ! auth()->user()->canApproveLoans())
-                        Lihat status dan riwayat pinjaman Anda.
+                    @if ($isSelfServiceBorrower)
+                        Pantau status dan jadwal pengajuan peminjaman Anda.
                     @else
                         Lihat permintaan pinjam dan barang yang sedang dipinjam.
                     @endif
                 </p>
             </div>
             <a href="{{ route('loans.create') }}"
-               class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+               class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                 <span class="material-icons-round text-lg" aria-hidden="true">add_shopping_cart</span>
-                Pinjam Barang
+                {{ $isSelfServiceBorrower ? 'Ajukan peminjaman' : 'Pinjam barang' }}
             </a>
         </div>
     </x-slot>
@@ -28,7 +30,7 @@
 
     @php($tabs = [
         '' => ['Semua', $counts['all']],
-        'PENDING' => ['Menunggu', $counts['PENDING']],
+        'PENDING' => ['Menunggu persetujuan', $counts['PENDING']],
         'APPROVED' => ['Disetujui', $counts['APPROVED']],
         'DIPINJAM' => ['Sedang dipinjam', $counts['DIPINJAM']],
         'SELESAI' => ['Selesai', $counts['SELESAI']],
@@ -42,8 +44,8 @@
                    @if (($status ?? '') === $key) aria-current="page" @endif
                    @class([
                        'inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm',
-                       'border-blue-600 bg-blue-600 text-white shadow-sm' => ($status ?? '') === $key,
-                       'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800' => ($status ?? '') !== $key,
+                       'border-brand-600 bg-brand-600 text-white shadow-sm' => ($status ?? '') === $key,
+                       'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800' => ($status ?? '') !== $key,
                    ])>
                     {{ $label }}
                     <span @class([
@@ -62,13 +64,19 @@
 
     <div class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 md:block">
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[900px] text-sm">
+            <table @class([
+                'w-full text-sm',
+                'min-w-[760px]' => $isSelfServiceBorrower,
+                'min-w-[900px]' => ! $isSelfServiceBorrower,
+            ])>
                 <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
                     <tr>
-                        <th scope="col" class="px-5 py-3 text-left">Peminjam</th>
-                        <th scope="col" class="px-5 py-3 text-left">Tujuan</th>
+                        @unless ($isSelfServiceBorrower)
+                            <th scope="col" class="px-5 py-3 text-left">Peminjam</th>
+                        @endunless
+                        <th scope="col" class="px-5 py-3 text-left">Tujuan peminjaman</th>
                         <th scope="col" class="px-5 py-3 text-left">Jadwal</th>
-                        <th scope="col" class="px-5 py-3 text-center">Barang</th>
+                        <th scope="col" class="px-5 py-3 text-center">Jenis barang</th>
                         <th scope="col" class="px-5 py-3 text-center">Status</th>
                         <th scope="col" class="px-5 py-3 text-right">Rincian</th>
                     </tr>
@@ -76,14 +84,16 @@
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     @forelse ($loans as $loan)
                         <tr class="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
-                            <td class="px-5 py-4">
-                                <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $loan->borrower?->name ?? 'Peminjam' }}</div>
-                                <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower?->major?->name ?: 'Peminjam' }}</div>
-                            </td>
+                            @unless ($isSelfServiceBorrower)
+                                <td class="px-5 py-4">
+                                    <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $loan->borrower?->name ?? 'Peminjam' }}</div>
+                                    <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower?->major?->name ?: 'Peminjam' }}</div>
+                                </td>
+                            @endunless
                             <td class="max-w-[260px] px-5 py-4">
                                 <p class="line-clamp-2 text-slate-700 dark:text-slate-200">{{ $loan->purpose }}</p>
                                 @if ($loan->event)
-                                    <span class="mt-1 inline-flex items-center gap-1 text-xs text-blue-700 dark:text-blue-300">
+                                    <span class="mt-1 inline-flex items-center gap-1 text-xs text-brand-700 dark:text-brand-300">
                                         <span class="material-icons-round text-sm" aria-hidden="true">event</span>
                                         {{ $loan->event->name }}
                                     </span>
@@ -101,7 +111,7 @@
                             </td>
                             <td class="px-5 py-4 text-center">
                                 <span class="font-semibold text-slate-700 dark:text-slate-200">{{ $loan->loanItems->count() }}</span>
-                                <span class="text-xs text-slate-500 dark:text-slate-400"> jenis</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400"> jenis barang</span>
                                 @if ($loan->needs_high_value_approval)
                                     <span class="mt-1 block text-[10px] font-semibold text-purple-700 dark:text-purple-300">Perlu persetujuan khusus</span>
                                 @endif
@@ -109,12 +119,12 @@
                             <td class="px-5 py-4 text-center">
                                 <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                                 @if ($loan->status === \App\Enums\LoanStatus::APPROVED)
-                                    <span class="mt-1 block text-[10px] text-slate-400 dark:text-slate-500">Menunggu barang diserahkan</span>
+                                    <span class="mt-1 block text-[10px] text-slate-400 dark:text-slate-500">Menunggu serah terima barang</span>
                                 @endif
                             </td>
                             <td class="px-5 py-4 text-right">
                                 <a href="{{ route('loans.show', $loan) }}"
-                                   class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">
+                                   class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">
                                     Lihat detail
                                     <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
                                 </a>
@@ -122,10 +132,10 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-5 py-14 text-center">
+                            <td colspan="{{ $isSelfServiceBorrower ? 5 : 6 }}" class="px-5 py-14 text-center">
                                 <span class="material-icons-round text-4xl text-slate-300 dark:text-slate-600" aria-hidden="true">inventory_2</span>
-                                <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Belum ada peminjaman</p>
-                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Peminjaman yang sesuai akan muncul di sini.</p>
+                                <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ $isSelfServiceBorrower ? 'Belum ada pengajuan peminjaman' : 'Belum ada data peminjaman' }}</p>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $isSelfServiceBorrower ? 'Pengajuan Anda akan ditampilkan di sini.' : 'Data peminjaman akan ditampilkan di sini.' }}</p>
                             </td>
                         </tr>
                     @endforelse
@@ -139,7 +149,7 @@
             <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        @unless (auth()->user()->isPeminjam() && ! auth()->user()->canApproveLoans())
+                        @unless ($isSelfServiceBorrower)
                             <p class="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{{ $loan->borrower?->name ?? 'Peminjam' }}</p>
                         @endunless
                         <h3 class="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-slate-900 dark:text-white">{{ $loan->purpose }}</h3>
@@ -148,7 +158,7 @@
                 </div>
 
                 @if ($loan->event)
-                    <p class="mt-2 inline-flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-300">
+                    <p class="mt-2 inline-flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300">
                         <span class="material-icons-round text-sm" aria-hidden="true">event</span>
                         {{ $loan->event->name }}
                     </p>
@@ -160,7 +170,7 @@
                         <p class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">{{ $loan->start_date->format('d/m/Y, H:i') }}</p>
                     </div>
                     <div class="min-w-0">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Batas kembali</p>
+                        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Batas pengembalian</p>
                         <p class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">{{ $loan->due_date->format('d/m/Y, H:i') }}</p>
                     </div>
                 </div>
@@ -181,11 +191,11 @@
                         Terlambat {{ $loan->due_date->diffForHumans(now()) }}
                     </p>
                 @elseif ($loan->status === \App\Enums\LoanStatus::APPROVED)
-                    <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Menunggu barang diserahkan.</p>
+                    <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Menunggu serah terima barang.</p>
                 @endif
 
                 <a href="{{ route('loans.show', $loan) }}"
-                   class="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-slate-700 dark:text-blue-300 dark:hover:bg-slate-800">
+                   class="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-brand-200 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-slate-700 dark:text-brand-300 dark:hover:bg-slate-800">
                     Lihat detail
                     <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
                 </a>
@@ -193,8 +203,8 @@
         @empty
             <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center dark:border-slate-700 dark:bg-slate-900">
                 <span class="material-icons-round text-4xl text-slate-300 dark:text-slate-600" aria-hidden="true">inventory_2</span>
-                <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Belum ada peminjaman</p>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Peminjaman yang sesuai akan muncul di sini.</p>
+                <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ $isSelfServiceBorrower ? 'Belum ada pengajuan peminjaman' : 'Belum ada data peminjaman' }}</p>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $isSelfServiceBorrower ? 'Pengajuan Anda akan ditampilkan di sini.' : 'Data peminjaman akan ditampilkan di sini.' }}</p>
             </div>
         @endforelse
     </div>

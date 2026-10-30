@@ -6,7 +6,7 @@
     <x-auth-session-status class="mb-5" :status="session('status')" />
 
     @if ($errors->any())
-        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
             <ul class="list-disc space-y-1 ps-5">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -26,7 +26,7 @@
                    class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-base shadow-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10">
         </div>
 
-        <div class="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+        <div class="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:border-brand-900 dark:bg-brand-900/40 dark:text-brand-200">
             Kategori awal akun: <strong>{{ $user->borrower_type?->label() ?? 'Belum ditentukan' }}</strong>. Kategori tidak dapat diubah melalui formulir ini.
         </div>
 

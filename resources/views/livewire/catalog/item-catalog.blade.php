@@ -3,24 +3,24 @@
     <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div class="relative col-span-full">
-                <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                 <input type="text" wire:model.live.debounce.400ms="search"
                        placeholder="Cari nama, ID internal, kode unit, register..."
-                       class="w-full rounded-xl border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                       class="w-full rounded-xl border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
-            <select wire:model.live="status" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select wire:model.live="status" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua Status</option>
                 @foreach ($statuses as $s)
                     <option value="{{ $s->value }}">{{ $s->label() }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="category" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select wire:model.live="category" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua Kategori</option>
                 @foreach ($categories as $c)
                     <option value="{{ $c->id }}">{{ $c->name }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="room" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select wire:model.live="room" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua Ruangan</option>
                 @foreach ($rooms as $r)
                     <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
@@ -39,7 +39,7 @@
                 @endif
             </div>
             @if (\Illuminate\Support\Facades\Auth::user()->managesInventory())
-                <a href="{{ route('items.create') }}" class="inline-flex items-center gap-1 font-semibold text-blue-700 hover:underline dark:text-blue-300">
+                <a href="{{ route('items.create') }}" class="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline dark:text-brand-300">
                     <span class="material-icons-round text-base">add_box</span> Tambah Barang (Pengadaan)
                 </a>
             @endif
@@ -61,7 +61,7 @@
                 </div>
                 <div class="p-3 flex-1 flex flex-col">
                     <div class="flex items-start justify-between gap-2">
-                        <h3 class="text-sm font-semibold leading-snug text-slate-800 group-hover:text-blue-700 dark:text-slate-100 dark:group-hover:text-blue-300">{{ $item->name }}</h3>
+                        <h3 class="text-sm font-semibold leading-snug text-slate-800 group-hover:text-brand-700 dark:text-slate-100 dark:group-hover:text-brand-300">{{ $item->name }}</h3>
                         <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $effective->badgeClass() }}">{{ $effective->label() }}</span>
                     </div>
                     <div class="mt-1 space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
@@ -80,18 +80,18 @@
                     </div>
                     <div class="mt-auto pt-2 flex items-center justify-between text-[11px]">
                         @if ($item->is_high_value)
-                            <span class="inline-flex items-center gap-1 text-purple-700 bg-purple-50 rounded px-1.5 py-0.5 font-medium">
+                            <span class="inline-flex items-center gap-1 text-purple-700 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-300 rounded px-1.5 py-0.5 font-medium">
                                 <span class="material-icons-round text-xs">workspace_premium</span> Nilai Tinggi
                             </span>
                         @else
-                            <span class="text-gray-400">Reg. {{ $item->register_no }}</span>
+                            <span class="text-slate-400">Reg. {{ $item->register_no }}</span>
                         @endif
-                        <span class="text-gray-400 group-hover:text-blue-600">Detail →</span>
+                        <span class="text-slate-400 group-hover:text-brand-600">Detail →</span>
                     </div>
                 </div>
             </a>
         @empty
-            <div class="col-span-full py-16 text-center text-gray-400">
+            <div class="col-span-full py-16 text-center text-slate-400">
                 <span class="material-icons-round text-6xl">search_off</span>
                 <p class="mt-2 text-sm">Tidak ada barang yang cocok dengan pencarian/filter.</p>
             </div>

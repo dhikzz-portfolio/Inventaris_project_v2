@@ -8,7 +8,7 @@
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Pinjaman #{{ $loan->id }} — {{ $loan->purpose }}</p>
             </div>
-            <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Kembali ke detail</a>
+            <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">← Kembali ke detail</a>
         </div>
     </x-slot>
 
@@ -65,9 +65,9 @@
             scanUrl: '{{ route('loans.handover-scan', $loan) }}',
             totalCapacity: {{ $totalCapacity }},
         })" x-init="init()">
-        <p class="mb-4 rounded-xl border border-blue-100 bg-blue-50/70 p-4 text-sm leading-relaxed text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
+        <p class="mb-4 rounded-xl border border-brand-100 bg-brand-50/70 p-4 text-sm leading-relaxed text-brand-900 dark:border-brand-900/60 dark:bg-brand-900/30 dark:text-brand-100">
             Serah terima barang ke peminjam dan pilih unit inventaris fisik yang diserahkan.
-            Setiap unit yang dipilih akan tercatat kode inventaris, kondisi saat keluar, dan status akan berubah menjadi <strong class="text-blue-700">Sedang Dipinjam</strong>.
+            Setiap unit yang dipilih akan tercatat kode inventaris, kondisi saat keluar, dan status akan berubah menjadi <strong class="text-brand-700">Sedang Dipinjam</strong>.
         </p>
 
         {{-- Pencarian & filter unit --}}
@@ -77,12 +77,12 @@
                     <label for="handover-search" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Cari unit</label>
                     <input id="handover-search" type="search" x-model="search" @input.debounce.200ms="applyFilters()"
                            placeholder="Nama, spesifikasi, kode, gedung, ruangan…"
-                           class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                           class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 </div>
                 <div>
                     <label for="handover-filter-category" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Kategori</label>
                     <select id="handover-filter-category" x-model="filters.category" @change="applyFilters()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua kategori</option>
                         @foreach ($categories as $category)
                             <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -92,7 +92,7 @@
                 <div>
                     <label for="handover-filter-catalog" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Katalog</label>
                     <select id="handover-filter-catalog" x-model="filters.catalog" @change="applyFilters()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua katalog</option>
                         @foreach ($catalogs as $catalog)
                             <option value="{{ $catalog->id }}">{{ $catalog->name }}</option>
@@ -102,7 +102,7 @@
                 <div>
                     <label for="handover-filter-spec" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Spesifikasi</label>
                     <select id="handover-filter-spec" x-model="filters.spec" @change="applyFilters()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua spesifikasi</option>
                         @foreach ($specifications as $specification)
                             <option value="{{ $specification->id }}">{{ $specification->displayName() }}</option>
@@ -112,7 +112,7 @@
                 <div>
                     <label for="handover-filter-building" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Gedung</label>
                     <select id="handover-filter-building" x-model="filters.building" @change="applyFilters()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua gedung</option>
                         @foreach ($buildings as $building)
                             <option value="{{ $building }}">Gedung {{ $building }}</option>
@@ -122,7 +122,7 @@
                 <div>
                     <label for="handover-filter-room" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Ruangan</label>
                     <select id="handover-filter-room" x-model="filters.room" @change="applyFilters()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua ruangan</option>
                         @foreach ($rooms as $room)
                             <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
@@ -133,7 +133,7 @@
 
             <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 dark:border-slate-700">
                 <div class="flex flex-wrap items-center gap-2 text-xs">
-                    <span class="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-200">
+                    <span class="rounded-full bg-brand-50 px-2.5 py-1 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
                         <span x-text="selected.length"></span> unit terpilih
                     </span>
                     <span class="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -145,7 +145,7 @@
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button type="button" @click="selectAll()" :disabled="selected.length >= totalCapacity"
-                            class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                            class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
                         <span class="material-icons-round text-base">done_all</span> Pilih Semua Unit yang Dapat Diserahkan
                     </button>
                     <button type="button" @click="clearAll()" x-show="selected.length > 0"
@@ -184,7 +184,7 @@
                     </div>
                     <div class="mt-2 flex justify-center gap-2">
                         <button type="button" x-show="!cameraRunning" @click="startCamera()"
-                                class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700">
+                                class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700">
                             <span class="material-icons-round text-base">photo_camera</span> Aktifkan Kamera
                         </button>
                         <button type="button" x-show="cameraRunning" @click="stopCamera()"
@@ -198,9 +198,9 @@
                     <div class="flex gap-2">
                         <input id="handover-scan-code" type="text" x-model="scanCode" @keydown.enter.prevent="submitScan()"
                                placeholder="Contoh: G1-02-12" autocomplete="off"
-                               class="min-w-0 flex-1 rounded-xl border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                               class="min-w-0 flex-1 rounded-xl border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <button type="button" @click="submitScan()"
-                                class="inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Cari</button>
+                                class="inline-flex min-h-10 items-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Cari</button>
                     </div>
                     <p class="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
                         Kamera tidak tersedia atau izin ditolak? Masukkan kode inventaris secara manual — fallback ini selalu aktif.
@@ -215,7 +215,7 @@
 
         <div x-show="totalVisible === 0" x-cloak class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             Tidak ada unit yang cocok dengan pencarian/filter.
-            <button type="button" @click="resetFilters()" class="font-semibold text-blue-700 underline dark:text-blue-300">Reset filter</button>
+            <button type="button" @click="resetFilters()" class="font-semibold text-brand-700 underline dark:text-brand-300">Reset filter</button>
         </div>
 
         <form method="POST" action="{{ route('loans.handover', $loan) }}" id="handover-form">
@@ -236,7 +236,7 @@
                                 <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $item->name }}</span>
                                 <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $item->internal_id }}</span>
                                 @if ($item->is_high_value)
-                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">NILAI TINGGI</span>
+                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">NILAI TINGGI</span>
                                 @endif
                                 <div class="text-[11px] text-slate-500 dark:text-slate-400">
                                     {{ $item->category?->name ?: 'Tanpa kategori' }}
@@ -294,7 +294,7 @@
                                                value="{{ $unit->id }}"
                                                x-model="selected"
                                                :disabled="isDisabled({{ $unit->id }})"
-                                               class="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed dark:border-slate-600 dark:bg-slate-950">
+                                               class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed dark:border-slate-600 dark:bg-slate-950">
                                         <div class="flex-1 min-w-0">
                                             <div class="flex flex-wrap items-center gap-2">
                                                 <span class="font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</span>
@@ -335,13 +335,13 @@
                 <div>
                     <x-input-label value="Catatan serah terima (opsional)" />
                     <textarea name="note" rows="2"
-                              class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+                              class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
                               placeholder="Kondisi saat serah terima, catatan khusus..."></textarea>
                 </div>
 
                 <div class="flex gap-3">
                     <button type="submit"
-                            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
+                            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
                         <span class="material-icons-round text-lg">inventory</span>
                         Serahkan Barang + Tandai Unit Dipinjam
                     </button>

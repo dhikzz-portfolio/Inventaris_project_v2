@@ -179,8 +179,9 @@
 
             <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <div id="handover-qr-reader" class="flex min-h-[180px] items-center justify-center overflow-hidden rounded-lg bg-slate-900">
-                        <span x-show="!cameraRunning" class="px-4 text-center text-sm text-slate-400">Kamera belum aktif</span>
+                    <div class="relative flex min-h-[180px] items-center justify-center overflow-hidden rounded-lg bg-slate-900">
+                        <div id="handover-qr-reader" class="w-full h-full min-h-[180px]"></div>
+                        <span x-show="!cameraRunning" class="absolute px-4 text-center text-sm text-slate-400 pointer-events-none">Kamera belum aktif</span>
                     </div>
                     <div class="mt-2 flex justify-center gap-2">
                         <button type="button" x-show="!cameraRunning" @click="startCamera()"
@@ -484,32 +485,67 @@
 
                     async startCamera() {
                         this.scanError = '';
-
-                        if (!window.Html5Qrcode) {
-                            this.scanError = 'Kamera tidak tersedia — gunakan input kode manual.';
-
-                            return;
-                        }
+                        this.scanMessage = 'Menghubungkan ke kamera...';
 
                         try {
-                            this.html5 = this.html5 || new window.Html5Qrcode('handover-qr-reader');
-                            await this.html5.start(
-                                { facingMode: 'environment' },
-                                { fps: 10, qrbox: { width: 220, height: 220 } },
-                                (decoded) => this.onDecoded(decoded),
-                                () => {}
-                            );
+                            if (window.AppScanner) {
+                                this.html5 = await window.AppScanner.start('handover-qr-reader', {
+                                    onScan: (decoded) => this.onDecoded(decoded),
+                                });
+                            } else if (window.Html5Qrcode) {
+                                const instance = new window.Html5Qrcode('handover-qr-reader');
+                                let cameras = [];
+                                try { cameras = await window.Html5Qrcode.getCameras(); } catch (e) {}
+                                const config = {
+                                    fps: 10,
+                                    qrbox: (w, h) => {
+                                        const edge = Math.floor(Math.min(w, h) * 0.75);
+                                        return { width: Math.max(edge, 160), height: Math.max(edge, 160) };
+                                    }
+                                };
+                                if (cameras && cameras.length > 0) {
+                                    let selectedId = cameras[0].id;
+                                    for (const c of cameras) {
+                                        const lbl = (c.label || '').toLowerCase();
+                                        if (lbl.includes('back') || lbl.includes('rear') || lbl.includes('belakang') || lbl.includes('environment')) {
+                                            selectedId = c.id;
+                                            break;
+                                        }
+                                    }
+                                    await instance.start(selectedId, config, (decoded) => this.onDecoded(decoded), () => {});
+                                } else {
+                                    try {
+                                        await instance.start({ facingMode: 'environment' }, config, (decoded) => this.onDecoded(decoded), () => {});
+                                    } catch (e2) {
+                                        await instance.start({ facingMode: 'user' }, config, (decoded) => this.onDecoded(decoded), () => {});
+                                    }
+                                }
+                                this.html5 = instance;
+                            } else {
+                                throw new Error('Modul kamera belum siap dimuat.');
+                            }
                             this.cameraRunning = true;
+                            this.scanMessage = 'Kamera aktif — arahkan ke QR unit.';
                         } catch (e) {
-                            this.scanError = 'Kamera tidak tersedia atau izin ditolak. Gunakan input kode manual.';
+                            this.cameraRunning = false;
+                            this.scanError = (e && e.message) ? e.message : 'Kamera tidak tersedia atau izin ditolak. Gunakan input kode manual.';
+                            this.scanMessage = '';
                         }
                     },
 
                     async stopCamera() {
-                        if (this.html5 && this.cameraRunning) {
-                            try {
-                                await this.html5.stop();
-                            } catch (e) {}
+                        if (this.html5) {
+                            if (window.AppScanner) {
+                                await window.AppScanner.stop(this.html5);
+                            } else {
+                                try {
+                                    if (this.html5.isScanning) {
+                                        await this.html5.stop();
+                                    }
+                                    await this.html5.clear();
+                                } catch (e) {}
+                            }
+                            this.html5 = null;
                         }
 
                         this.cameraRunning = false;

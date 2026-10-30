@@ -1,0 +1,123 @@
+x-app-environment: &app-environment
+  APP_ENV: ${APP_ENV:-production}
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_KEY: ${APP_KEY}
+  APP_URL: ${APP_URL:-https://${ORIGIN:-localhost}}
+  APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+  APP_LOCALE: ${APP_LOCALE:-id}
+  DB_CONNECTION: ${DB_CONNECTION:-mysql}
+  DB_HOST: ${DB_HOST:-db}
+  DB_PORT: ${DB_PORT:-3306}
+  DB_DATABASE: ${DB_DATABASE:-inventaris_sekolah}
+  DB_USERNAME: ${DB_USERNAME:-inventaris_user}
+  DB_PASSWORD: ${DB_PASSWORD:-secret123}
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+  QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+  CACHE_STORE: ${CACHE_STORE:-redis}
+  SESSION_DRIVER: ${SESSION_DRIVER:-redis}
+  FILESYSTEM_DISK: ${FILESYSTEM_DISK:-public}
+  LOG_CHANNEL: ${LOG_CHANNEL:-stack}
+  LOG_LEVEL: ${LOG_LEVEL:-error}
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Aplikasi Utama (PHP 8.3-FPM + Nginx)
+  # ---------------------------------------------------------------------------
+  app:
+    image: ${DOCKER_IMAGE:-rizzzdev/smi-bn:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventaris_app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:80"
+    environment: *app-environment
+    volumes:
+      - ./storage:/var/www/html/storage
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    networks:
+      - backend
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/up || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.${TRAEFIK_NAME}.rule=Host(`${ORIGIN}`)"
+      - "traefik.http.routers.${TRAEFIK_NAME}.entrypoints=websecure"
+      - "traefik.http.routers.${TRAEFIK_NAME}.tls.certresolver=myresolver"
+      - "traefik.http.routers.${TRAEFIK_NAME}.priority=1"
+      - "traefik.http.services.${TRAEFIK_NAME}.loadbalancer.server.port=${PORT}"
+
+  # ---------------------------------------------------------------------------
+  # 2. Database Migration & Seeder (Jalan otomatis saat startup)
+  # ---------------------------------------------------------------------------
+  migration:
+    image: ${DOCKER_IMAGE:-rizzzdev/smi-bn:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventaris_migration
+    restart: "no"
+    command: ["php", "artisan", "migrate", "--force", "--seed"]
+    environment: *app-environment
+    volumes:
+      - ./storage:/var/www/html/storage
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # 3. Background Queue Worker (Notifikasi, PDF BAST, Laporan)
+  # ---------------------------------------------------------------------------
+  queue:
+    image: ${DOCKER_IMAGE:-rizzzdev/smi-bn:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventaris_queue
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120"]
+    environment: *app-environment
+    volumes:
+      - ./storage:/var/www/html/storage
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # 4. Task Scheduler (Pengecekan Keterlambatan, Tenggat, Laporan Bulanan)
+  # ---------------------------------------------------------------------------
+  scheduler:
+    image: ${DOCKER_IMAGE:-rizzzdev/smi-bn:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventaris_scheduler
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+    environment: *app-environment
+    volumes:
+      - ./storage:/var/www/html/storage
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    networks:
+      - backend
+
+networks:
+  backend:
+    external: true
+  proxy:
+    external: true

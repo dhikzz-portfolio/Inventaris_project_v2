@@ -17,10 +17,11 @@
             x-init="init()">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                    <div id="qr-reader"
-                        class="rounded-lg overflow-hidden bg-slate-900 min-h-[220px] flex items-center justify-center">
-                        <span class="text-slate-500 text-sm px-4 text-center" x-show="!running">Kamera belum
-                            aktif</span>
+                    <div class="relative rounded-lg overflow-hidden bg-slate-900 min-h-[220px] flex items-center justify-center">
+                        <div id="qr-reader" class="w-full h-full min-h-[220px]"></div>
+                        <span class="absolute text-slate-500 text-sm px-4 text-center pointer-events-none" x-show="!running">
+                            Kamera belum aktif
+                        </span>
                     </div>
 
                     <div class="mt-3 flex items-center justify-center gap-2">
@@ -174,47 +175,78 @@
         <script>
             function scanner() {
                 return {
-                    html5: null,
+                    scannerInstance: null,
                     running: false,
                     message: '',
                     error: '',
                     async init() {
-                        if (!window.Html5Qrcode) {
-                            this.error = 'Modul kamera belum dimuat — gunakan input manual.';
-                            return;
-                        }
-                        this.html5 = new window.Html5Qrcode('qr-reader');
+                        this.error = '';
+                        this.message = '';
                     },
                     async start() {
                         this.error = '';
-                        this.message = '';
+                        this.message = 'Menghubungkan ke kamera...';
                         try {
-                            await this.html5.start({
-                                    facingMode: 'environment'
-                                }, {
+                            if (window.AppScanner) {
+                                this.scannerInstance = await window.AppScanner.start('qr-reader', {
+                                    onScan: (decoded) => this.onScan(decoded),
+                                });
+                            } else if (window.Html5Qrcode) {
+                                const instance = new window.Html5Qrcode('qr-reader');
+                                let cameras = [];
+                                try { cameras = await window.Html5Qrcode.getCameras(); } catch (e) {}
+                                const config = {
                                     fps: 10,
-                                    qrbox: {
-                                        width: 220,
-                                        height: 220
+                                    qrbox: (w, h) => {
+                                        const edge = Math.floor(Math.min(w, h) * 0.75);
+                                        return { width: Math.max(edge, 160), height: Math.max(edge, 160) };
                                     }
-                                },
-                                (decoded) => this.onScan(decoded),
-                                () => {}
-                            );
+                                };
+                                if (cameras && cameras.length > 0) {
+                                    let selectedId = cameras[0].id;
+                                    for (const c of cameras) {
+                                        const lbl = (c.label || '').toLowerCase();
+                                        if (lbl.includes('back') || lbl.includes('rear') || lbl.includes('belakang') || lbl.includes('environment')) {
+                                            selectedId = c.id;
+                                            break;
+                                        }
+                                    }
+                                    await instance.start(selectedId, config, (decoded) => this.onScan(decoded), () => {});
+                                } else {
+                                    try {
+                                        await instance.start({ facingMode: 'environment' }, config, (decoded) => this.onScan(decoded), () => {});
+                                    } catch (e2) {
+                                        await instance.start({ facingMode: 'user' }, config, (decoded) => this.onScan(decoded), () => {});
+                                    }
+                                }
+                                this.scannerInstance = instance;
+                            } else {
+                                throw new Error('Modul kamera belum selesai dimuat. Silakan tunggu sebentar atau gunakan input manual.');
+                            }
                             this.running = true;
-                            this.message = 'Kamera aktif — arahkan ke QR.';
+                            this.message = 'Kamera aktif — arahkan ke QR Code.';
                         } catch (e) {
-                            this.error = 'Kamera tidak tersedia/ditolak. Gunakan input manual di samping.';
+                            this.running = false;
+                            this.error = (e && e.message) ? e.message : 'Kamera tidak tersedia/ditolak. Gunakan input manual di samping.';
+                            this.message = '';
                         }
                     },
                     async stop() {
-                        if (this.html5 && this.running) {
-                            try {
-                                await this.html5.stop();
-                            } catch (e) {}
-                            this.running = false;
-                            this.message = 'Kamera dimatikan.';
+                        if (this.scannerInstance) {
+                            if (window.AppScanner) {
+                                await window.AppScanner.stop(this.scannerInstance);
+                            } else {
+                                try {
+                                    if (this.scannerInstance.isScanning) {
+                                        await this.scannerInstance.stop();
+                                    }
+                                    await this.scannerInstance.clear();
+                                } catch (e) {}
+                            }
+                            this.scannerInstance = null;
                         }
+                        this.running = false;
+                        this.message = 'Kamera dimatikan.';
                     },
                     async onScan(text) {
                         await this.stop();

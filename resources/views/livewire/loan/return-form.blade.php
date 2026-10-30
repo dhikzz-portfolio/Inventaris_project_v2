@@ -8,21 +8,61 @@
             if (!this.scanOpen) { await this.stopCamera(); }
         },
         async startCamera() {
-            if (!window.Html5Qrcode) { return; }
             try {
-                this.html5 = this.html5 || new window.Html5Qrcode('return-qr-reader');
-                await this.html5.start(
-                    { facingMode: 'environment' },
-                    { fps: 10, qrbox: { width: 200, height: 200 } },
-                    (decoded) => this.handleScan(decoded),
-                    () => {}
-                );
+                if (window.AppScanner) {
+                    this.html5 = await window.AppScanner.start('return-qr-reader', {
+                        onScan: (decoded) => this.handleScan(decoded),
+                    });
+                } else if (window.Html5Qrcode) {
+                    const instance = new window.Html5Qrcode('return-qr-reader');
+                    let cameras = [];
+                    try { cameras = await window.Html5Qrcode.getCameras(); } catch (e) {}
+                    const config = {
+                        fps: 10,
+                        qrbox: (w, h) => {
+                            const edge = Math.floor(Math.min(w, h) * 0.75);
+                            return { width: Math.max(edge, 160), height: Math.max(edge, 160) };
+                        }
+                    };
+                    if (cameras && cameras.length > 0) {
+                        let selectedId = cameras[0].id;
+                        for (const c of cameras) {
+                            const lbl = (c.label || '').toLowerCase();
+                            if (lbl.includes('back') || lbl.includes('rear') || lbl.includes('belakang') || lbl.includes('environment')) {
+                                selectedId = c.id;
+                                break;
+                            }
+                        }
+                        await instance.start(selectedId, config, (decoded) => this.handleScan(decoded), () => {});
+                    } else {
+                        try {
+                            await instance.start({ facingMode: 'environment' }, config, (decoded) => this.handleScan(decoded), () => {});
+                        } catch (e2) {
+                            await instance.start({ facingMode: 'user' }, config, (decoded) => this.handleScan(decoded), () => {});
+                        }
+                    }
+                    this.html5 = instance;
+                } else {
+                    return;
+                }
                 this.running = true;
-            } catch (e) { this.running = false; }
+            } catch (e) {
+                this.running = false;
+            }
         },
         async stopCamera() {
-            if (this.html5 && this.running) {
-                try { await this.html5.stop(); } catch (e) {}
+            if (this.html5) {
+                if (window.AppScanner) {
+                    await window.AppScanner.stop(this.html5);
+                } else {
+                    try {
+                        if (this.html5.isScanning) {
+                            await this.html5.stop();
+                        }
+                        await this.html5.clear();
+                    } catch (e) {}
+                }
+                this.html5 = null;
             }
             this.running = false;
         },
@@ -186,8 +226,9 @@
             <div x-show="scanOpen" x-cloak class="mt-3 rounded-lg border border-sky-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                        <div id="return-qr-reader" class="flex min-h-[160px] items-center justify-center overflow-hidden rounded-lg bg-slate-900">
-                            <span x-show="!running" class="px-3 text-center text-xs text-slate-400">Kamera belum aktif</span>
+                        <div class="relative flex min-h-[160px] items-center justify-center overflow-hidden rounded-lg bg-slate-900">
+                            <div id="return-qr-reader" class="w-full h-full min-h-[160px]"></div>
+                            <span x-show="!running" class="absolute px-3 text-center text-xs text-slate-400 pointer-events-none">Kamera belum aktif</span>
                         </div>
                         <div class="mt-2 flex justify-center gap-2">
                             <button type="button" x-show="!running" x-on:click="startCamera()"

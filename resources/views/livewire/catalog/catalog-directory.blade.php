@@ -58,7 +58,7 @@
         </div>
     </div>
 
-    <div wire:loading.class="opacity-60" class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+    <div wire:loading.class="opacity-60" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
         @forelse ($catalogs as $catalog)
             <a href="{{ route('catalogs.show', $catalog) }}"
                class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 border-l-4 border-l-brand-500 bg-white transition hover:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:border-l-brand-400 dark:bg-slate-900 dark:hover:border-brand-700">

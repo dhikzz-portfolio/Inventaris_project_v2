@@ -31,7 +31,7 @@
                             <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $loan->borrower?->name }}</span>
                             <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                             @if ($loan->event)
-                                <span class="text-xs text-brand-700 dark:text-brand-300">🎯 {{ $loan->event->name }}</span>
+                                <span class="inline-flex items-center gap-1 text-xs text-brand-700 dark:text-brand-300"><span class="material-icons-round text-sm" aria-hidden="true">event</span> {{ $loan->event->name }}</span>
                             @endif
                         </div>
                         <div class="truncate text-sm text-slate-700 dark:text-slate-200">{{ $loan->purpose }}</div>
@@ -39,7 +39,7 @@
                             {{ $loan->loanItems->count() }} barang •
                             Kembali {{ $loan->due_date->format('d M Y H:i') }}
                             @if ($loan->isOverdue())
-                                <span class="font-bold text-red-600">⚠ TERLAMBAT {{ now()->diffForHumans($loan->due_date) }}</span>
+                                <span class="inline-flex items-center gap-0.5 font-bold text-red-600"><span class="material-icons-round text-sm" aria-hidden="true">warning</span> TERLAMBAT {{ now()->diffForHumans($loan->due_date) }}</span>
                             @endif
                         </div>
                         <div class="mt-1.5 flex flex-wrap gap-1">

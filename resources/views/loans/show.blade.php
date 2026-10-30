@@ -9,7 +9,7 @@
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300">NILAI TINGGI</span>
                     @endif
                     @if ($loan->isOverdue())
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300">⚠ TERLAMBAT</span>
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300"><span class="material-icons-round text-sm" aria-hidden="true">warning</span> TERLAMBAT</span>
                     @endif
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">{{ $loan->purpose }}</p>

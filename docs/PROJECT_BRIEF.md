@@ -343,7 +343,7 @@ Jika salah satu langkah gagal, seluruh transaksi dibatalkan. Tidak boleh ada kon
 - Pencarian teks mencocokkan nama katalog, spesifikasi, merek, dan kode unit yang berada dalam cakupan pengguna.
 - Filter: kategori, gedung, lantai, ruangan, dan ketersediaan ("ada unit tersedia"/"tidak ada").
 - Sorting default nama A–Z; opsi jumlah unit terbanyak.
-- Pagination 12 katalog per halaman; kata kunci dan filter dipertahankan di URL dan saat berpindah halaman.
+- Pagination 15 katalog per halaman; kata kunci dan filter dipertahankan di URL dan saat berpindah halaman.
 - Katalog tanpa unit dalam cakupan pengguna tidak ditampilkan. Katalog tanpa unit aktif hanya terlihat oleh Super Admin sebagai arsip (jumlah 0) melalui filter khusus.
 
 ### 8.2 Detail katalog

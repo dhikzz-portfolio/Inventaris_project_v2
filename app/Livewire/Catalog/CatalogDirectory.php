@@ -26,7 +26,7 @@ class CatalogDirectory extends Component
 
     public string $availability = '';
 
-    public int $perPage = 12;
+    public int $perPage = 15;
 
     protected $queryString = [
         'search' => ['except' => ''],

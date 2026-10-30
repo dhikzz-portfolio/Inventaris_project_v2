@@ -321,7 +321,7 @@
                                         Dipilih <strong x-text="countFor({{ $loanItemId }})"></strong> dari {{ $qtyBorrowed }} unit yang wajib diserahkan.
                                         Unit tambahan otomatis dinonaktifkan setelah batas terpenuhi.
                                     </span>
-                                    <span x-show="countFor({{ $loanItemId }}) === {{ $qtyBorrowed }}" class="text-green-700 font-semibold whitespace-nowrap">✓ lengkap</span>
+                                    <span x-show="countFor({{ $loanItemId }}) === {{ $qtyBorrowed }}" class="inline-flex items-center gap-1 text-green-700 font-semibold whitespace-nowrap"><span class="material-icons-round text-sm" aria-hidden="true">check_circle</span> lengkap</span>
                                 </div>
                             </div>
                             <p class="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">

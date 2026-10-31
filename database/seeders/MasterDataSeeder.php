@@ -6,10 +6,8 @@ use App\Enums\Role;
 use App\Models\Building;
 use App\Models\Category;
 use App\Models\InstitutionSetting;
-use App\Models\Item;
 use App\Models\Major;
 use App\Models\Room;
-use App\Models\Specification;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role as SpatieRole;
 
@@ -119,57 +117,7 @@ class MasterDataSeeder extends Seeder
             Category::updateOrCreate(['name' => $category['name']], $category);
         }
 
-        // Spesifikasi contoh untuk setiap kategori:
-        // Setiap kategori memiliki spesifikasi yang berbeda-beda.
-        // Spesifikasi dibuat setelah kategori dan item_catalog terbuat.
-        $specifications = [
-            // Furnitur
-            ['category_name' => 'Furnitur', 'brand' => 'Rangka besi', 'model_type' => 'Kelas', 'spec_code' => 'SPK-FUR-001', 'description' => 'Rangka besi tanpa lipat'],
-            ['category_name' => 'Furnitur', 'brand' => 'Kayu', 'model_type' => 'Guru', 'spec_code' => 'SPK-FUR-002', 'description' => 'Meja dan kursi kayu'],
-            // Elektronik & Komputer
-            ['category_name' => 'Elektronik & Komputer', 'brand' => 'Acer', 'model_type' => 'Nitro', 'spec_code' => 'SPK-ELE-001', 'description' => 'Laptop gaming Acer Nitro'],
-            ['category_name' => 'Elektronik & Komputer', 'brand' => 'Epson', 'model_type' => 'Proyektor', 'spec_code' => 'SPK-ELE-002', 'description' => 'Proyektor 3500 lumen'],
-            // Alat Laboratorium
-            ['category_name' => 'Alat Laboratorium', 'brand' => 'Canon', 'model_type' => 'EOS 90D', 'spec_code' => 'SPK-LAB-001', 'description' => 'Kamera DSLR Canon EOS 90D'],
-            ['category_name' => 'Alat Laboratorium', 'brand' => 'Mikrotik', 'model_type' => 'RB951G', 'spec_code' => 'SPK-LAB-002', 'description' => 'Router Mikrotik RB951G'],
-            // Alat Peraga / Kamera
-            ['category_name' => 'Alat Peraga / Kamera', 'brand' => 'Sony', 'model_type' => 'Alpha', 'spec_code' => 'SPK-PER-001', 'description' => 'Kamera mirrorless Sony Alpha'],
-            ['category_name' => 'Alat Peraga / Kamera', 'brand' => 'Manfrotto', 'model_type' => 'Tripod', 'spec_code' => 'SPK-PER-002', 'description' => 'Tripod aluminium 160cm'],
-            // Peralatan Kantor
-            ['category_name' => 'Peralatan Kantor', 'brand' => 'HP', 'model_type' => 'LaserJet', 'spec_code' => 'SPK-KAN-001', 'description' => 'Printer laser HP LaserJet'],
-            ['category_name' => 'Peralatan Kantor', 'brand' => 'Epson', 'model_type' => 'Workforce', 'spec_code' => 'SPK-KAN-002', 'description' => 'Printer inkjet Epson Workforce'],
-        ];
-
-        // Buat spesifikasi setelah kategori terbuat
-        foreach ($specifications as $spec) {
-            $category = Category::where('name', $spec['category_name'])->first();
-            if ($category) {
-                // Cari item_catalog yang matching kategori ini
-                $itemCatalog = Item::where('category_id', $category->id)->first();
-                if ($itemCatalog) {
-                    Specification::updateOrCreate(
-                        ['item_catalog_id' => $itemCatalog->id, 'spec_code' => $spec['spec_code']],
-                        [
-                            'brand' => $spec['brand'],
-                            'model_type' => $spec['model_type'],
-                            'description' => $spec['description'],
-                        ]
-                    );
-                } else {
-                    // Fallback: gunakan category_id langsung jika item belum terbuat
-                    $itemCatalog = Item::where('category_id', $category->id)->orderBy('id')->first();
-                    if ($itemCatalog) {
-                        Specification::updateOrCreate(
-                            ['item_catalog_id' => $itemCatalog->id, 'spec_code' => $spec['spec_code']],
-                            [
-                                'brand' => $spec['brand'],
-                                'model_type' => $spec['model_type'],
-                                'description' => $spec['description'],
-                            ]
-                        );
-                    }
-                }
-            }
-        }
+        // Spesifikasi (merek + tipe/model) dibuat oleh DemoInventorySeeder
+        // bersama unitnya, sehingga tidak ada spesifikasi yatim tanpa unit.
     }
 }

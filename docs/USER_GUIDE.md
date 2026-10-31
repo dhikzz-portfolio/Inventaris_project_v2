@@ -33,21 +33,30 @@ Pemetaan istilah: **Super Admin** = `SUPER_ADMIN` (Wakasek Sarpras), **Ketua Lab
 
 **⚠ 2.1 — cakupan katalog:** Super Admin melihat semua unit (termasuk ruang umum). Ketua Laboran hanya melihat unit di ruangan laboratorium pada semua jurusan. Laboran/K3 hanya melihat unit pada laboratorium yang ditetapkan untuk akunnya. Batas ini berlaku juga untuk pencarian kode, filter, URL langsung, dan ekspor.
 
-## 3. Katalog & detail unit (⚠ 2.1)
+## 3. Katalog & detail unit (⚠ revisi 31 Oktober 2026)
 
-### Melihat katalog
+Katalog kini bertingkat tiga: **katalog (jenis barang) → spesifikasi (merek + tipe/model) → unit inventaris**.
+
+### Tingkat 1 — daftar katalog
 
 1. Buka menu **Katalog**.
-2. Setiap baris mewakili **jenis barang** (mis. Kursi), bukan satu barang fisik.
-3. Angka **Jumlah Unit** adalah jumlah unit aktif yang dihitung sistem dan dibatasi cakupan akses Anda.
-4. Gunakan pencarian, filter (kategori/gedung/lantai/ruangan/ketersediaan), dan pagination. Filter tetap aktif saat berpindah halaman.
+2. Setiap kartu mewakili **jenis barang** (mis. Kursi Umum), bukan satu barang fisik maupun satu merek.
+3. Angka jumlah unit adalah agregasi seluruh spesifikasi dan unit dalam cakupan akses Anda.
+4. Gunakan pencarian, filter (kategori/gedung/lantai/ruangan/ketersediaan), dan pagination.
 
-### Membuka detail unit
+### Tingkat 2 — daftar spesifikasi
 
-1. Klik nama katalog, mis. **Kursi**.
-2. Halaman detail menampilkan **hanya unit kursi** (barang fisik), lengkap dengan kode inventaris, lokasi, kondisi, dan status.
-3. Klik salah satu baris untuk melihat detail unit: kode aktif, kode lama, perolehan, foto, catatan, riwayat pemeliharaan, dan riwayat perpindahan (sesuai hak akses).
-4. Gunakan tombol **Cetak Label** pada detail unit untuk stiker satuan, atau tombol **Cetak Label Unit** di halaman katalog untuk memilih/mencetak massal unit katalog tersebut (termasuk "pilih semua sesuai filter").
+1. Klik nama katalog, mis. **Kursi Umum**.
+2. Halaman ini menampilkan seluruh **merek + tipe/model** pada katalog tersebut beserta jumlah unit, unit tersedia, dan unit rusak.
+3. Gunakan pencarian (merek/tipe model) serta filter merek, tipe/model, kondisi, status, gedung, dan ruangan secara bersamaan. Filter semua/Reset menghapus seluruh pilihan.
+4. Klik **Lihat unit** pada satu spesifikasi untuk masuk ke tingkat 3.
+
+### Tingkat 3 — daftar unit inventaris
+
+1. Halaman ini menampilkan **setiap barang fisik** pada satu spesifikasi, lengkap dengan kode inventaris, gedung, lantai, ruangan, kondisi, status, dan tahun pengadaan.
+2. Search mencakup kode inventaris dan nama barang; filter kondisi, status, gedung, lantai, ruangan, dan tahun pengadaan dapat digabung; data besar dipaginasi.
+3. Klik **Detail** untuk membuka rincian unit: kode aktif, kode lama, perolehan, foto, catatan, riwayat pemeliharaan, dan riwayat perpindahan (sesuai hak akses).
+4. Gunakan tombol **Cetak Label** pada detail unit untuk stiker satuan, atau tombol **Cetak Label Unit** di halaman katalog untuk mencetak massal unit katalog tersebut (termasuk "pilih semua sesuai filter").
 
 ### Mencari dengan kode inventaris
 
@@ -246,11 +255,21 @@ Status dokumen peminjaman **terpisah** dari status transaksi:
 3. Hasil muncul di halaman yang sama: nama, spesifikasi, kode, gedung/lantai/ruangan, nomor unit, kondisi, dan status.
 4. Bila unit di luar cakupan akses, aplikasi hanya menampilkan pesan terbatas — bukan detail internal.
 
-### Pengadaan banyak lokasi
+### Pengadaan banyak lokasi dengan merek & tipe/model
 
-1. Buka **Pengadaan**, isi data barang dan jumlah (mis. 40 kursi).
-2. Di bagian alokasi, tambahkan baris lokasi (gedung → lantai → ruangan) dan jumlahnya (mis. 20 + 15 + 5).
-3. Sisa unit terlihat langsung; tombol simpan aktif hanya saat sisa 0. Kode unit dibuat otomatis setelah pengadaan disetujui.
+1. Buka **Pengadaan**. Pilih **katalog yang sudah ada** bila hanya menambah stok, atau isi nama katalog baru + kategori.
+2. Isi **merek/brand** dan **tipe/model**. Kosongkan bila memang tidak ada; sistem menyimpan `Tanpa Merek` / `Tidak Ditentukan` agar data tidak kosong.
+3. Isi jumlah (mis. 40 kursi) lalu tambahkan baris lokasi (gedung → lantai → ruangan) dan jumlahnya (mis. 20 + 15 + 5).
+4. Sisa unit terlihat langsung; tombol simpan aktif hanya saat sisa 0. Kode unit dibuat otomatis setelah pengadaan disetujui.
+5. Merek/tipe yang berbeda pada katalog yang sama **tidak** membuat katalog baru — keduanya menjadi spesifikasi terpisah.
+
+### Distribusi berdasarkan merek & tipe/model
+
+1. Buka **Distribusi** (Ketua Laboran dan Wakasek/Super Admin).
+2. Pilih **katalog → spesifikasi (merek + tipe/model) → jumlah → lokasi tujuan**; panel kanan menampilkan stok setiap spesifikasi secara terpisah.
+3. Ringkasan sebelum simpan menampilkan stok spesifikasi, jumlah distribusi, tujuan, dan sisa stok.
+4. Distribusi melebihi stok spesifikasi ditolak. Unit yang sudah didistribusikan atau sedang dipinjam tidak dapat dipakai lagi; stok merek lain tidak ikut terpakai.
+5. Setiap unit mendapat kode baru dan riwayat distribusi terhubung hingga kode inventarisnya (lihat riwayat pada halaman distribusi atau detail unit).
 
 ### Mutasi banyak unit
 

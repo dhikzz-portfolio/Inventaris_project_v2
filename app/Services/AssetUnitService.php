@@ -8,6 +8,7 @@ use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
 use App\Models\Item;
 use App\Models\Room;
+use App\Models\Specification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -31,8 +32,14 @@ class AssetUnitService
             $unitNo = $this->codes->nextUnitNo($room);
             $code = $this->codes->format($room, $unitNo, $catalog->item_type_code);
 
+            // Setiap unit wajib memiliki spesifikasi. Bila pemanggil tidak
+            // menyebutkannya, gunakan spesifikasi bawaan katalog.
+            $specificationId = $data['specification_id']
+                ?? Specification::resolveFor($catalog, $catalog->brand, $catalog->model_type)->id;
+
             $unit = AssetUnit::create([
                 'item_catalog_id' => $catalog->id,
+                'specification_id' => $specificationId,
                 'inventory_code' => $code,
                 'room_id' => $room->id,
                 'unit_no' => $unitNo,

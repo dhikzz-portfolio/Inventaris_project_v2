@@ -6,17 +6,17 @@ use App\Enums\Condition;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
 use App\Models\Building;
-use App\Models\Item;
 use App\Models\Room;
+use App\Models\Specification;
 use App\Services\InventoryCodeService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class CatalogUnits extends Component
+class SpecificationUnits extends Component
 {
     use WithPagination;
 
-    public int $catalogId;
+    public int $specificationId;
 
     public string $search = '';
 
@@ -46,10 +46,16 @@ class CatalogUnits extends Component
         'year' => ['except' => ''],
     ];
 
-    public function mount(int $catalogId): void
+    public function mount(int $specificationId): void
     {
-        abort_unless(Item::query()->approved()->visibleTo(auth()->user())->whereKey($catalogId)->exists(), 404);
-        $this->catalogId = $catalogId;
+        $user = auth()->user();
+
+        abort_unless(
+            Specification::query()->visibleTo($user)->whereKey($specificationId)->exists(),
+            404
+        );
+
+        $this->specificationId = $specificationId;
     }
 
     public function updating($property, $value): void
@@ -69,32 +75,43 @@ class CatalogUnits extends Component
     public function render()
     {
         $user = auth()->user();
-        $catalog = Item::query()
-            ->approved()
+
+        $specification = Specification::query()
             ->visibleTo($user)
-            ->with('category')
-            ->findOrFail($this->catalogId);
+            ->with('itemCatalog.category')
+            ->findOrFail($this->specificationId);
+
+        $catalog = $specification->itemCatalog;
 
         $query = AssetUnit::query()
             ->visibleTo($user)
-            ->where('item_catalog_id', $catalog->id)
+            ->where('specification_id', $specification->id)
             ->with('room');
 
         $term = trim($this->search);
         if ($term !== '') {
             $code = app(InventoryCodeService::class)->normalize($term);
+            $looksLikeCode = preg_match('/^[A-Z0-9-]{1,18}$/', $code) === 1;
+            $isFullCode = app(InventoryCodeService::class)->isValidFormat($code);
 
-            if (! $this->isCodeLike($code)) {
-                $this->codeError = 'Format kode tidak valid. Gunakan kode inventaris, contoh G1-02-12.';
-                $query->whereRaw('1 = 0');
-            } elseif (strlen($code) === 8 && app(InventoryCodeService::class)->isValidFormat($code)) {
-                $resolved = app(InventoryCodeService::class)->resolve($code);
-                $resolved !== null
-                    ? $query->whereKey($resolved->id)
-                    : $query->whereRaw('1 = 0');
-            } else {
-                $query->where('inventory_code', 'like', $code.'%');
-            }
+            $query->where(function ($where) use ($term, $code, $looksLikeCode, $isFullCode) {
+                $like = '%'.$term.'%';
+
+                $where->where('inventory_code', 'like', $like)
+                    ->orWhereHas('catalog', fn ($catalog) => $catalog
+                        ->where('name', 'like', $like)
+                        ->orWhere('brand', 'like', $like)
+                        ->orWhere('model_type', 'like', $like));
+
+                if ($isFullCode) {
+                    $resolved = app(InventoryCodeService::class)->resolve($code);
+                    $resolved !== null
+                        ? $where->orWhereKey($resolved->id)
+                        : $where->whereRaw('1 = 0');
+                } elseif ($looksLikeCode && preg_match('/^[A-Z][0-9]/', $code) === 1) {
+                    $where->orWhere('inventory_code', 'like', $code.'%');
+                }
+            });
         }
 
         if ($this->room !== '') {
@@ -114,16 +131,22 @@ class CatalogUnits extends Component
 
         $allUnits = AssetUnit::query()
             ->visibleTo($user)
-            ->where('item_catalog_id', $catalog->id);
+            ->where('specification_id', $specification->id);
 
-        return view('livewire.catalog.catalog-units', [
+        return view('livewire.catalog.specification-units', [
             'catalog' => $catalog,
+            'specification' => $specification,
             'units' => $query->orderBy('inventory_code')->paginate($this->perPage),
             'totalUnits' => (clone $allUnits)->where('status', '!=', UnitStatus::DIHAPUS->value)->count(),
-            'availableUnits' => max(0,
-                (clone $allUnits)->where('status', UnitStatus::AKTIF->value)->where('condition', Condition::BAIK->value)->count()
-                - $catalog->activeLoanRemainingQuantity()
-            ),
+            'availableUnits' => (clone $allUnits)
+                ->where('status', UnitStatus::AKTIF->value)
+                ->where('condition', Condition::BAIK->value)
+                ->whereDoesntHave('openLoanItemUnit')
+                ->count(),
+            'damagedUnits' => (clone $allUnits)
+                ->where('status', UnitStatus::AKTIF->value)
+                ->whereIn('condition', [Condition::RUSAK_RINGAN->value, Condition::RUSAK_BERAT->value])
+                ->count(),
             'rooms' => Room::query()
                 ->when($this->building !== '', fn ($q) => $q->where('building_letter', $this->building))
                 ->when($this->floor !== '', fn ($q) => $q->where('floor', $this->floor))
@@ -138,14 +161,5 @@ class CatalogUnits extends Component
             'activeFilters' => collect(['search', 'building', 'floor', 'room', 'condition', 'status', 'year'])
                 ->filter(fn ($field) => $this->$field !== '')->count(),
         ]);
-    }
-
-    /**
-     * Potongan kode yang sah: G, G1, G1-0, G1-02, G1-02-1, G1-02-12.
-     */
-    private function isCodeLike(string $code): bool
-    {
-        return preg_match('/^[A-Z](?:[1-9](?:-(?:[0-9]{1,2}(?:-[0-9]{1,2})?)?)?)?$/', $code) === 1
-            || app(InventoryCodeService::class)->isValidFormat($code);
     }
 }

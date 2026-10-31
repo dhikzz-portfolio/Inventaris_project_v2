@@ -27,14 +27,20 @@ class CatalogController extends Controller
             abort(404);
         }
 
-        $catalog->load(['category', 'units' => fn ($query) => $query->visibleTo(auth()->user())]);
+        $catalog->load('category');
 
-        $unitCount = $catalog->units()->count();
+        $scopedUnits = fn ($query) => $query->visibleTo(auth()->user())->where('status', '!=', 'DIHAPUS');
+
+        $unitCount = $catalog->units()->where($scopedUnits)->count();
+        $specificationCount = $catalog->specifications()
+            ->whereHas('units', $scopedUnits)
+            ->count();
         $loanItemCount = $catalog->loanItems()->count();
 
         return view('catalogs.show', [
             'catalog' => $catalog,
             'unitCount' => $unitCount,
+            'specificationCount' => $specificationCount,
             'loanItemCount' => $loanItemCount,
             'canDeletePermanently' => $catalog->canBeDeletedPermanently(),
             'canDelete' => auth()->user()->managesInventory()

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DistributionController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LabelController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\PwaController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SecureFileController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SpecificationController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WriteOffController;
@@ -36,6 +38,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
     // ================= KATALOG & UNIT (semua role melihat, dibatasi scope) =================
     Route::get('/catalogs', [CatalogController::class, 'index'])->name('catalogs.index');
     Route::get('/catalogs/{catalog}', [CatalogController::class, 'show'])->name('catalogs.show');
+    Route::get('/spesifikasi/{specification}', [SpecificationController::class, 'show'])->name('specifications.show');
     Route::get('/units/{unit}', [UnitController::class, 'show'])->name('units.show');
     Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:SUPER_ADMIN|KETUA_LABORAN|LABORAN')->name('units.label');
 
@@ -117,6 +120,9 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
         Route::post('/pengadaan', [ItemController::class, 'store'])->name('items.store');
         Route::get('/items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
         Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');
+
+        // Distribusi barang per merek/tipe/model
+        Route::get('/distribusi', [DistributionController::class, 'index'])->name('distributions.index');
 
         // Mutasi lokasi
         Route::get('/mutasi', [MovementController::class, 'index'])->name('movements.index');

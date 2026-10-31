@@ -7,6 +7,10 @@
                     <span class="text-slate-300">/</span>
                     <a href="{{ route('catalogs.show', $unit->catalog) }}" class="text-sm font-medium text-slate-500 hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300">{{ $unit->catalog?->name }}</a>
                     <span class="text-slate-300 dark:text-slate-600">/</span>
+                    @if ($unit->specification)
+                        <a href="{{ route('specifications.show', $unit->specification) }}" class="text-sm font-medium text-slate-500 hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300">{{ $unit->specification->displayName() }}</a>
+                        <span class="text-slate-300 dark:text-slate-600">/</span>
+                    @endif
                     <h2 class="font-mono text-base font-semibold leading-none text-right text-slate-900 dark:text-white whitespace-nowrap">{{ $unit->inventory_code }}</h2>
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">{{ $unit->locationLabel() }}</p>

@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\Condition;
 use App\Enums\UnitStatus;
-use App\Livewire\Catalog\CatalogUnits;
+use App\Livewire\Catalog\SpecificationUnits;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
 use App\Models\AssetUnitCode as UnitCodeModel;
@@ -170,8 +170,17 @@ class InventoryCoreTest extends TestCase
         $chairCode = $service->create($chairs, $room, [], $this->superAdmin)->inventory_code;
         $tableCode = $service->create($tables, $room, [], $this->superAdmin)->inventory_code;
 
+        // Tingkat 2 menampilkan spesifikasi, tingkat 3 menampilkan unit fisik.
+        $chairSpecification = $chairs->specifications()->firstOrFail();
+
         $this->actingAs($this->superAdmin)
             ->get(route('catalogs.show', $chairs))
+            ->assertOk()
+            ->assertSee($chairSpecification->brand)
+            ->assertSee($chairSpecification->model_type);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('specifications.show', $chairSpecification))
             ->assertOk()
             ->assertSee($chairCode)
             ->assertDontSee($tableCode);
@@ -188,15 +197,16 @@ class InventoryCoreTest extends TestCase
         }
 
         $type = $catalog->item_type_code;
+        $specification = $catalog->specifications()->firstOrFail();
 
         Livewire::actingAs($this->superAdmin)
-            ->test(CatalogUnits::class, ['catalogId' => $catalog->id])
+            ->test(SpecificationUnits::class, ['specificationId' => $specification->id])
             ->set('search', "F1-03-{$type}-15")
             ->assertSee("F1-03-{$type}-15")
             ->assertDontSee("F1-03-{$type}-14");
 
         Livewire::actingAs($this->superAdmin)
-            ->test(CatalogUnits::class, ['catalogId' => $catalog->id])
+            ->test(SpecificationUnits::class, ['specificationId' => $specification->id])
             ->set('search', 'F1-03')
             ->assertSee("F1-03-{$type}-01")
             ->set('building', 'F')
@@ -204,10 +214,11 @@ class InventoryCoreTest extends TestCase
             ->set('room', (string) $room->id)
             ->assertSee("F1-03-{$type}-01");
 
+        // Pencarian nama barang bekerja pada halaman unit spesifikasi.
         Livewire::actingAs($this->superAdmin)
-            ->test(CatalogUnits::class, ['catalogId' => $catalog->id])
+            ->test(SpecificationUnits::class, ['specificationId' => $specification->id])
             ->set('search', 'kursi')
-            ->assertSee('Format kode tidak valid');
+            ->assertSee("F1-03-{$type}-01");
     }
 
     public function test_ac_10_scope_katalog_pencarian_dan_url_langsung(): void

@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\Room;
+use App\Models\Specification;
 use App\Models\User;
 use App\Services\AssetUnitService;
 use App\Services\IdGenerator;
@@ -97,6 +98,13 @@ class ItemController extends Controller
 
         return view('items.create', [
             'categories' => Category::orderBy('name')->get(),
+            'catalogs' => Item::query()
+                ->whereNull('archived_at')
+                ->where('acquisition_status', 'APPROVED')
+                ->orderBy('name')
+                ->get(['id', 'name', 'category_id']),
+            'brands' => Specification::query()
+                ->select('brand')->distinct()->orderBy('brand')->pluck('brand'),
             'rooms' => $rooms,
             'roomOptions' => $roomOptions,
             'buildings' => Building::query()->whereIn('id', $rooms->pluck('building_id')->filter()->unique())
@@ -107,8 +115,11 @@ class ItemController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'category_id' => ['required', 'exists:categories,id'],
+            'name' => ['nullable', 'required_without:catalog_id', 'string', 'max:255'],
+            'catalog_id' => ['nullable', 'integer', 'exists:item_catalogs,id'],
+            'category_id' => ['nullable', 'required_without:catalog_id', 'exists:categories,id'],
+            'brand' => ['nullable', 'string', 'max:100'],
+            'model_type' => ['nullable', 'string', 'max:100'],
             'specification' => ['nullable', 'string'],
             'acquisition_year' => ['required', 'integer', 'min:1990', 'max:'.(now()->year + 1)],
             'funding_source' => ['required', 'string', 'max:100'],
@@ -126,24 +137,31 @@ class ItemController extends Controller
             'allocations.*.quantity.min' => 'Jumlah alokasi setiap lokasi minimal 1 unit.',
         ]);
 
-        $category = Category::findOrFail($data['category_id']);
         $total = (int) $data['quantity'];
         $allocations = $this->normalizeAllocations($request, $data, $total);
         $this->assertAllocationsValid($allocations, $total);
 
         $firstRoom = Room::findOrFail($allocations->first()['room_id']);
+        $existingCatalog = filled($data['catalog_id'] ?? null)
+            ? Item::query()->whereKey($data['catalog_id'])->first()
+            : Item::query()->where('category_id', $data['category_id'])->where('name', $data['name'])->first();
+        $category = $existingCatalog?->category ?? Category::findOrFail($data['category_id']);
 
-        DB::transaction(function () use ($data, $category, $firstRoom, $total, $allocations, $request) {
-            $register = IdGenerator::register(null);
+        $createdAllocations = collect();
+
+        DB::transaction(function () use ($data, $category, $firstRoom, $total, $allocations, $request, $existingCatalog, &$createdAllocations) {
             $isWakasek = $request->user()->isApproverLevel2();
+            $isNewCatalog = $existingCatalog === null;
 
-            $item = Item::create([
+            $item = $existingCatalog ?? Item::create([
                 'internal_id' => IdGenerator::internalId($firstRoom),
                 'location_code' => InstitutionSetting::current()->location_code,
-                'register_no' => $register['register_no'],
+                'register_no' => IdGenerator::register(null)['register_no'],
                 'name' => $data['name'],
                 'category_id' => $category->id,
                 'room_id' => $firstRoom->id,
+                'brand' => Specification::normalizeBrand($data['brand'] ?? null) === Specification::BRAND_UNSPECIFIED ? '' : trim((string) $data['brand']),
+                'model_type' => Specification::normalizeModel($data['model_type'] ?? null) === Specification::MODEL_UNSPECIFIED ? '' : trim((string) $data['model_type']),
                 'specification' => $data['specification'] ?? null,
                 'acquisition_year' => $data['acquisition_year'],
                 'funding_source' => $data['funding_source'],
@@ -158,27 +176,47 @@ class ItemController extends Controller
                 'acquisition_decided_at' => $isWakasek ? now() : null,
             ]);
 
+            // Merek + tipe/model menjadi spesifikasi katalog, bukan sekadar
+            // teks pada transaksi pengadaan.
+            $specification = Specification::resolveFor(
+                $item,
+                $data['brand'] ?? null,
+                $data['model_type'] ?? null,
+                $data['specification'] ?? null,
+            );
+
             foreach ($allocations as $allocation) {
-                AcquisitionAllocation::create([
+                $createdAllocations->push(AcquisitionAllocation::create([
                     'item_catalog_id' => $item->id,
+                    'specification_id' => $specification->id,
                     'room_id' => $allocation['room_id'],
                     'quantity' => $allocation['quantity'],
-                ]);
+                ]));
             }
 
             activity('pengadaan')
                 ->performedOn($item)
                 ->causedBy($request->user())
-                ->withProperties(['alokasi' => $allocations->all()])
-                ->log($isWakasek
-                    ? 'Menambah barang via pengadaan multi-lokasi (disetujui langsung oleh Wakasek)'
-                    : 'Mengajukan pengadaan barang baru (menunggu approval Wakasek)');
+                ->withProperties([
+                    'alokasi' => $allocations->all(),
+                    'merek' => $specification->brand,
+                    'tipe_model' => $specification->model_type,
+                ])
+                ->log($isNewCatalog
+                    ? ($isWakasek
+                        ? 'Menambah barang via pengadaan multi-lokasi (disetujui langsung oleh Wakasek)'
+                        : 'Mengajukan pengadaan barang baru (menunggu approval Wakasek)')
+                    : 'Menambah stok spesifikasi pada katalog yang sudah ada');
 
-            if ($isWakasek) {
-                $this->provisionUnits($item, $request->user());
-            } else {
+            if ($item->acquisition_status === 'APPROVED' && $isWakasek) {
+                $this->provisionAllocations($item->fresh(), $createdAllocations, $request->user());
+            } elseif ($isNewCatalog) {
                 NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
                     "Pengadaan baru: \"{$item->name}\" ({$total} {$item->unit}) menunggu persetujuan.",
+                    route('items.acquisitions'));
+            } else {
+                NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
+                    "Penambahan stok \"{$item->name}\" ({$specification->displayName()}) menunggu persetujuan.",
                     route('items.acquisitions'));
             }
         });
@@ -396,20 +434,6 @@ class ItemController extends Controller
         return back()->with('success', "Pengadaan \"{$item->name}\" ditolak.");
     }
 
-    public function specificationOptions(Request $request)
-    {
-        $categoryId = $request->query('category_id');
-        $specifications = Specification::when($categoryId, fn ($q) => $q->where('item_catalog_id', function ($query) use ($categoryId) {
-            $query->from('item_catalogs')
-                ->whereRaw("id IN (SELECT item_catalog_id FROM items WHERE category_id = $categoryId)")
-                ->limit(1);
-        }))
-            ->when(! $categoryId, fn ($q) => $q->latest())
-            ->get(['id', 'brand', 'model_type', 'spec_code', 'description']);
-
-        return response()->json($specifications);
-    }
-
     /** Ruangan yang boleh dipilih: Super Admin semua, Ketua Laboran hanya lab. */
     private function availableRooms(?User $user)
     {
@@ -442,14 +466,14 @@ class ItemController extends Controller
      */
     private function provisionUnits(Item $item, ?User $actor = null): void
     {
-        if ($item->units()->exists()) {
-            return;
-        }
-
-        $allocations = $item->allocations()->with('room')->get();
+        $allocations = $item->allocations()->whereNull('provisioned_at')->with(['room', 'specification'])->get();
 
         // Katalog legacy tanpa alokasi tetap memakai ruangan katalognya.
-        if ($allocations->isEmpty()) {
+        if ($item->allocations()->count() === 0) {
+            if ($item->units()->exists()) {
+                return;
+            }
+
             $allocations = collect([
                 new AcquisitionAllocation([
                     'room_id' => $item->room_id,
@@ -458,7 +482,19 @@ class ItemController extends Controller
             ]);
         }
 
+        $this->provisionAllocations($item, $allocations, $actor);
+    }
+
+    /**
+     * Terbitkan unit untuk alokasi yang belum diproses. Setiap unit mewarisi
+     * spesifikasi alokasinya sehingga stok per merek/tipe tetap terpisah.
+     *
+     * @param  Collection<int, AcquisitionAllocation>  $allocations
+     */
+    private function provisionAllocations(Item $item, Collection $allocations, ?User $actor = null): void
+    {
         $service = app(AssetUnitService::class);
+        $defaultSpecificationId = Specification::resolveFor($item, $item->brand, $item->model_type)->id;
 
         foreach ($allocations as $allocation) {
             $room = $allocation->room ?: Room::find($allocation->room_id);
@@ -468,7 +504,13 @@ class ItemController extends Controller
             }
 
             for ($i = 0; $i < (int) $allocation->quantity; $i++) {
-                $service->create($item, $room, [], $actor);
+                $service->create($item, $room, [
+                    'specification_id' => $allocation->specification_id ?: $defaultSpecificationId,
+                ], $actor);
+            }
+
+            if ($allocation->exists) {
+                $allocation->forceFill(['provisioned_at' => now()])->save();
             }
         }
 

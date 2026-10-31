@@ -29,11 +29,18 @@ php artisan view:cache
 ## 2. Hasil otomatis
 
 ```
-Tests:    249 passed (1190 assertions)
-Duration: ~172s
+Tests:    295 passed, 1 failed (1450 assertions)
+Duration: ~402s
 ```
 
+Satu kegagalan yang tercatat, **bukan regresi revisi ini**: `RegistrationTest::test_sapaan_dashboard_memakai_nama_lengkap_dan_gelar` gagal juga pada kode sebelum revisi (diverifikasi dengan stash bersih). Penyebabnya ada pada sapaan dashboard yang memakai `greetingName()` alih-alih `displayName()`, di luar cakupan revisi spesifikasi/distribusi.
+
 Tidak ada test yang di-skip. Angka ini mencakup seluruh revisi sebelumnya ditambah revisi besar V2: registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, dan UI pengguna.
+
+Test baru pada revisi spesifikasi & distribusi (31 Oktober 2026):
+
+- `SpecificationDistributionTest` (13 tes) — pengadaan menyimpan merek/tipe, nilai `Tanpa Merek`/`Tidak Ditentukan`, satu katalog banyak spesifikasi, distribusi per spesifikasi, tidak mencampur stok merek, batas stok, unit sekali alokasi, hierarki 3 tingkat, search & filter gabungan, agregasi jumlah, kompatibilitas transaksi lama, seeder idempoten, hak akses halaman spesifikasi.
+- `InventoryCoreTest` diperbarui: detail katalog menampilkan spesifikasi; pencarian kode/nama dan filter lokasi diuji pada halaman unit spesifikasi.
 
 Test baru pada revisi V2:
 
@@ -311,5 +318,24 @@ Dijalankan dengan `php artisan test --compact` pada SQLite in-memory, locale `id
 | Rincian barang per unit | `LoanItemDetailTest` | Kartu menampilkan kode, kondisi, tanggal, status, dan catatan; hanya unit berfoto yang menampilkan tombol popup; filter foto/pencarian/kondisi/rentang tanggal/pagination akurat; empty state dan reset tersedia |
 | Foto per unit | `ReturnUnitValidationTest` | Foto bukti tersimpan pada `loan_item_units.damage_photo_path` milik unit yang diperiksa dan tidak menempel pada unit lain |
 | Regresi | seluruh suite | 282 tes lulus, 1384 assertions |
+
+## 13. Pengujian revisi spesifikasi & distribusi (31 Oktober 2026)
+
+Dijalankan dengan `php artisan test` pada SQLite in-memory, locale `id`, timezone `Asia/Jakarta`.
+
+| Kelompok | Test | Bukti |
+| --- | --- | --- |
+| Pengadaan menyimpan merek + tipe/model | `SpecificationDistributionTest` | Form pengadaan menyimpan spesifikasi; unit baru terhubung ke `specification_id`; kosong → `Tanpa Merek` / `Tidak Ditentukan` |
+| Satu katalog banyak spesifikasi | `SpecificationDistributionTest`, `InventoryCoreTest` | Menambah stok merek lain lewat `catalog_id` tidak membuat katalog baru; jumlah spesifikasi dan unit bertambah |
+| Distribusi per spesifikasi | `SpecificationDistributionTest` | Unit diambil hanya dari spesifikasi terpilih, stok merek lain tetap, rincian unit tercatat (`old_code`/`new_code`) |
+| Batas stok & alokasi ulang | `SpecificationDistributionTest` | Jumlah melebihi stok ditolak; unit yang sudah didistribusikan tidak dapat dipakai lagi |
+| Hierarki tiga tingkat | `SpecificationDistributionTest`, `InventoryCoreTest` | Katalog menampilkan spesifikasi; halaman spesifikasi menampilkan unit individual; unit dari spesifikasi lain tidak muncul |
+| Search & filter | `SpecificationDistributionTest`, `InventoryCoreTest` | Cari merek/tipe/model, cari kode inventaris dan nama barang, filter merek + kondisi + gedung dipakai bersamaan |
+| Agregasi jumlah | `SpecificationDistributionTest` | Jumlah katalog = Σ unit spesifikasi = jumlah baris `asset_units` non-DIHAPUS |
+| Kompatibilitas transaksi lama | `SpecificationDistributionTest` | Menambah spesifikasi baru tidak mengubah kode inventaris maupun katalog unit lama; baris peminjaman tetap terbuka |
+| Seeder idempoten | `SpecificationDistributionTest`, `DatabaseSeederTest` | Seeder dijalankan ulang tidak menambah katalog/spesifikasi/unit |
+| Hak akses | `SpecificationDistributionTest`, `InventoryCoreTest` | Halaman spesifikasi di luar cakupan Laboran mengembalikan 404; spesifikasi milik laboratoriumnya dapat dibuka |
+
+Hasil: seluruh file di atas lulus bersama regresi pengadaan, katalog, seeder, dan hapus katalog (46 tes, 234 assertions pada kelompok terkait). Hasil suite penuh dicatat pada bagian 2.
 
 Catatan batasan: kamera fisik pada perangkat nyata tidak diuji otomatis. Jalur kamera memakai `html5-qrcode` yang sudah menjadi dependensi; fallback input kode manual diuji melalui endpoint/Livewire. Data demo serah terima (`DemoLoanSeeder`, status `APPROVED`) hanya dibuat saat database belum memiliki transaksi sehingga seeder tetap aman dijalankan ulang dan tidak menimpa data operasional.

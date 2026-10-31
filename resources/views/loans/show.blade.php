@@ -442,27 +442,42 @@
                             Keputusan Anda: <strong>Persetujuan Level {{ $nextLevel }} ({{ $actorRole }})</strong>
                         </div>
 
-                        <form method="POST" action="{{ route('loans.approve', $loan) }}" id="approve-form" class="space-y-4">
+                        <form method="POST" action="{{ route('loans.approve', $loan) }}" id="approve-form" class="space-y-4" x-data="signaturePad()">
                             @csrf
-                            <input type="hidden" name="signature" id="signature-input">
+                            <input type="hidden" name="signature" x-ref="signatureInput">
                             <div>
-                                <x-input-label value="Catatan (opsional)" />
-                                <textarea name="note" rows="2" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+                                <x-input-label for="approval-note" value="Catatan (opsional)" />
+                                <textarea id="approval-note" name="note" rows="2" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
                                           placeholder="Syarat/catatan persetujuan..."></textarea>
                             </div>
 
-                            <div x-data="signaturePad()" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-800">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-semibold text-slate-600">
-                                        Tanda Tangan Digital
-                                        <span class="text-slate-400 font-normal">(opsional)</span>
-                                    </span>
-                                    <button type="button" @click="clear()" class="text-xs text-slate-500 underline hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100">Hapus</button>
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                        <span class="material-icons-round text-base text-brand-600" aria-hidden="true">gesture</span>
+                                        <span class="font-semibold">Tanda Tangan Digital <span class="font-normal text-slate-400 dark:text-slate-500">(opsional)</span></span>
+                                        <span x-show="signature" x-cloak x-transition.opacity class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-800 dark:bg-green-950/50 dark:text-green-300">
+                                            <span class="material-icons-round text-[12px]" aria-hidden="true">check_circle</span> Tersemat
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <button type="button" x-on:click="openPad()"
+                                                class="inline-flex min-h-9 items-center gap-1 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-slate-800">
+                                            <span class="material-icons-round text-sm" aria-hidden="true">edit</span>
+                                            <span x-text="signature ? 'Ubah tanda tangan' : 'Tambah tanda tangan'">Tambah tanda tangan</span>
+                                        </button>
+                                        <button type="button" x-show="signature" x-cloak x-on:click="removeSignature()"
+                                                class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700">
+                                            <span class="material-icons-round text-sm" aria-hidden="true">delete</span> Hapus
+                                        </button>
+                                    </div>
                                 </div>
-                                <canvas id="signature-pad" width="420" height="140"
-                                        class="w-full touch-none rounded-lg border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-100"></canvas>
-                                <p class="text-[10px] text-slate-400 mt-1">
-                                    Tanda tangan digital bersifat opsional. Dokumen resmi dapat dipratinjau, dicetak, dan ditandatangani secara fisik/manual.
+                                <div x-show="signature" x-cloak class="mt-2 flex items-center gap-2">
+                                    <img :src="signature" alt="Pratinjau tanda tangan digital" class="h-14 rounded-lg border border-slate-200 bg-white px-1 dark:border-slate-600">
+                                    <span class="text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">Tanda tangan ini dilampirkan saat persetujuan dikirim.</span>
+                                </div>
+                                <p class="mt-2 text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">
+                                    Opsional. Dokumen resmi tetap dapat dipratinjau, dicetak, dan ditandatangani secara fisik.
                                 </p>
                             </div>
 
@@ -470,6 +485,45 @@
                                 <button type="submit" class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-bold">
                                     <span class="material-icons-round text-lg">check_circle</span> Setujui
                                 </button>
+                            </div>
+
+                            {{-- Modal tanda tangan digital --}}
+                            <div x-show="padOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="signature-pad-title" x-on:keydown.escape.window="closePad()">
+                                <div class="absolute inset-0 bg-slate-900/70" x-on:click="closePad()"></div>
+                                <div class="relative z-10 w-full max-w-lg rounded-2xl bg-white p-4 shadow-xl dark:bg-slate-900">
+                                    <div class="mb-2 flex items-start justify-between gap-3">
+                                        <div>
+                                            <h4 id="signature-pad-title" class="text-base font-bold text-slate-900 dark:text-slate-100">Tanda Tangan Digital</h4>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">Gambar tanda tangan menggunakan mouse, jari, atau stylus.</p>
+                                        </div>
+                                        <button type="button" x-on:click="closePad()" aria-label="Tutup panel tanda tangan"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                            <span class="material-icons-round">close</span>
+                                        </button>
+                                    </div>
+
+                                    <canvas x-ref="pad" class="h-40 w-full touch-none cursor-crosshair rounded-xl border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-100"></canvas>
+
+                                    <p x-show="padError" x-cloak class="mt-2 flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                                        <span class="material-icons-round text-sm" aria-hidden="true">error_outline</span>
+                                        <span x-text="padError"></span>
+                                    </p>
+
+                                    <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                        <button type="button" x-on:click="clearCanvas()"
+                                                class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+                                            <span class="material-icons-round text-sm" aria-hidden="true">refresh</span> Ulangi
+                                        </button>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" x-on:click="closePad()"
+                                                    class="inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Batal</button>
+                                            <button type="button" x-on:click="saveSignature()"
+                                                    class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-brand-700">
+                                                <span class="material-icons-round text-sm" aria-hidden="true">check</span> Gunakan Tanda Tangan
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </form>
 
@@ -628,51 +682,98 @@
     <script>
         function signaturePad() {
             return {
-                pad: null,
-                clear() {
-                    if (this.pad) this.pad.clear();
-                    document.getElementById('signature-input').value = '';
-                },
+                padOpen: false,
+                signature: '',
+                padError: '',
+                hasInk: false,
+                drawing: false,
                 init() {
-                    const canvas = document.getElementById('signature-pad');
+                    this.$watch('padOpen', (open) => {
+                        if (open) {
+                            this.$nextTick(() => this.preparePad());
+                        }
+                    });
+
+                    const canvas = this.$refs.pad;
+                    if (!canvas) return;
+
+                    const point = (event) => {
+                        const rect = canvas.getBoundingClientRect();
+                        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+                    };
+
+                    canvas.onpointerdown = (event) => {
+                        event.preventDefault();
+                        this.drawing = true;
+                        this.hasInk = true;
+                        this.padError = '';
+                        canvas.setPointerCapture(event.pointerId);
+                        const ctx = canvas.getContext('2d');
+                        const p = point(event);
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p.x + 0.1, p.y);
+                        ctx.stroke();
+                    };
+                    canvas.onpointermove = (event) => {
+                        if (!this.drawing) return;
+                        event.preventDefault();
+                        const ctx = canvas.getContext('2d');
+                        const p = point(event);
+                        ctx.lineTo(p.x, p.y);
+                        ctx.stroke();
+                    };
+                    canvas.onpointerup = () => { this.drawing = false; };
+                    canvas.onpointercancel = () => { this.drawing = false; };
+                },
+                openPad() {
+                    this.padError = '';
+                    this.padOpen = true;
+                },
+                closePad() {
+                    this.drawing = false;
+                    this.padOpen = false;
+                },
+                preparePad() {
+                    const canvas = this.$refs.pad;
+                    if (!canvas) return;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const dpr = window.devicePixelRatio || 1;
+                    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+                    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+
                     const ctx = canvas.getContext('2d');
-                    let drawing = false;
-                    const pos = (e) => {
-                        const r = canvas.getBoundingClientRect();
-                        const p = e.touches ? e.touches[0] : e;
-                        return { x: (p.clientX - r.left) * (canvas.width / r.width), y: (p.clientY - r.top) * (canvas.height / r.height) };
-                    };
-                    const start = (e) => { drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
-                    const move = (e) => {
-                        if (!drawing) return;
-                        const p = pos(e);
-                        ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e293b';
-                        ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault();
-                    };
-                    const end = () => {
-                        if (!drawing) return;
-                        drawing = false;
-                        document.getElementById('signature-input').value = canvas.toDataURL('image/png');
-                    };
-                    canvas.addEventListener('mousedown', start);
-                    canvas.addEventListener('mousemove', move);
-                    window.addEventListener('mouseup', end);
-                    canvas.addEventListener('touchstart', start, { passive: false });
-                    canvas.addEventListener('touchmove', move, { passive: false });
-                    canvas.addEventListener('touchend', end);
-                }
+                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    ctx.lineWidth = 2.2;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.strokeStyle = '#1e293b';
+
+                    this.hasInk = false;
+                    this.padError = '';
+                },
+                clearCanvas() {
+                    this.preparePad();
+                },
+                saveSignature() {
+                    if (!this.hasInk) {
+                        this.padError = 'Tanda tangan masih kosong. Gambar tanda tangan terlebih dahulu.';
+                        return;
+                    }
+                    const data = this.$refs.pad.toDataURL('image/png');
+                    this.signature = data;
+                    this.$refs.signatureInput.value = data;
+                    this.padOpen = false;
+                },
+                removeSignature() {
+                    this.signature = '';
+                    if (this.$refs.signatureInput) {
+                        this.$refs.signatureInput.value = '';
+                    }
+                },
             };
         }
-        document.addEventListener('DOMContentLoaded', () => {
-            const el = document.getElementById('signature-pad');
-            if (el) {
-                // init Alpine component scope manually
-                const parent = el.closest('[x-data]');
-                if (parent && parent._x_dataStack) {
-                    // Alpine auto-inits; nothing extra needed
-                }
-            }
-        });
     </script>
     @endpush
 </x-app-layout>

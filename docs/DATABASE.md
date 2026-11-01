@@ -73,8 +73,7 @@ Index:
 | -------------------------- | ----------------------------- | ------------------------------------------------------------- |
 | `id`                       | bigint PK                     | Stabil; dipakai URL QR agar tidak berubah saat mutasi.        |
 | `item_catalog_id`          | FK `item_catalogs`            | Katalog induk.                                                |
-| `specification_id`         | FK `specifications` nullable  | Spesifikasi (merek + tipe/model). Diisi otomatis bila kosong. |
-| `inventory_code`           | varchar(8) unique             | Kode aktif, mis. `G1-02-12`. Kanonik huruf kapital.           |
+| `specification_id`         | FK `specifications` nullable  | Spesifikasi (merek + tipe/model). Diisi otomatis bila kosong. || `inventory_code`           | varchar(12) unique           | Kode aktif, mis. `G1-02-R12-01` (`[gedung+lantai]-[ruangan]-[kode jenis 3 digit]-[nomor unit]`). Kanonik huruf kapital. |
 | `room_id`                  | FK `rooms`                    | Lokasi aktif.                                                 |
 | `unit_no`                  | unsignedTinyInteger           | 1–99; bagian ketiga kode.                                     |
 | `condition`                | string default `BAIK`         | `BAIK`, `RUSAK_RINGAN`, `RUSAK_BERAT` (`Condition`).          |
@@ -109,7 +108,7 @@ Mencatat **setiap** kode yang pernah diterbitkan, termasuk yang sudah pensiun. T
 | -------------------------- | ------------------- | ----------------------------------------------------------------------- |
 | `id`                       | bigint PK           |                                                                         |
 | `asset_unit_id`            | FK `asset_units`    | Unit pemilik kode.                                                      |
-| `inventory_code`           | varchar(8) unique   | Kode yang diterbitkan; unik seumur hidup.                               |
+| `inventory_code`           | varchar(12) unique           | Kode yang diterbitkan; unik seumur hidup.                               |
 | `room_id`                  | FK `rooms`          | Ruangan saat kode diterbitkan.                                          |
 | `unit_no`                  | unsignedTinyInteger | Nomor unit saat kode diterbitkan.                                       |
 | `issued_at`                | timestamp           | Waktu terbit.                                                           |
@@ -133,8 +132,8 @@ Konsekuensi yang disengaja: kapasitas satu ruangan adalah 99 nomor **seumur hidu
 | `asset_unit_id`            | FK `asset_units` |                                     |
 | `from_room_id`             | FK `rooms`       | Ruangan asal.                       |
 | `to_room_id`               | FK `rooms`       | Ruangan tujuan.                     |
-| `old_code`                 | varchar(8)       | Kode sebelum mutasi (kode pensiun). |
-| `new_code`                 | varchar(8)       | Kode setelah mutasi.                |
+| `old_code`                 | varchar(12)      | Kode sebelum mutasi (kode pensiun). |
+| `new_code`                 | varchar(12)      | Kode setelah mutasi.                |
 | `moved_by`                 | FK `users`       | Petugas.                            |
 | `moved_at`                 | timestamp        | Waktu perpindahan.                  |
 | `reason`                   | string nullable  | Alasan mutasi.                      |
@@ -351,7 +350,7 @@ Aturan stok distribusi (`DistributionService` + `Specification::distributableQue
 
 ### 2.18 `item_catalogs.asset_code` dihapus
 
-Kolom `asset_code` dan unique index `(asset_code, register_no)` dihapus melalui migration `2026_10_26_202332_drop_asset_code_from_item_catalogs.php` setelah seluruh tampilan, label, QR, laporan, ekspor, dan seeder berhenti memakainya. `register_no` tetap ada sebagai nomor register administratif opsional, bukan kode identitas kedua. Identitas unit adalah `asset_units.inventory_code` (mis. `G1-01-01`) yang juga tercatat di `asset_unit_codes`. Migration memeriksa keberadaan kolom/index sehingga aman dijalankan pada database yang sudah bersih.
+Kolom `asset_code` dan unique index `(asset_code, register_no)` dihapus melalui migration `2026_10_26_202332_drop_asset_code_from_item_catalogs.php` setelah seluruh tampilan, label, QR, laporan, ekspor, dan seeder berhenti memakainya. `register_no` tetap ada sebagai nomor register administratif opsional, bukan kode identitas kedua. Identitas unit adalah `asset_units.inventory_code` (mis. `G1-01-R12-01`) yang juga tercatat di `asset_unit_codes`. Migration memeriksa keberadaan kolom/index sehingga aman dijalankan pada database yang sudah bersih.
 
 ## 3. ERD
 
@@ -400,7 +399,7 @@ Aturan relasi:
 
 ## 4. Aturan kode inventaris di database
 
-1. Format kanonik: `^[A-Z][1-9]-[0-9]{2}-[0-9]{2}$`.
+1. Format kanonik: `^[A-Z][1-9]-[0-9]{2}-[0-9]{3}-[0-9]{2}$` — `[gedung+lantai]`-`[ruangan 2 digit]`-`[kode jenis barang 3 digit]`-`[nomor unit 2 digit]` (contoh `G1-02-R12-01`).
 2. `asset_units.inventory_code` unik; `asset_unit_codes.inventory_code` unik lintas aktif/pensiun.
 3. `asset_unit_codes(room_id, unit_no)` unik **selamanya** — mencegah nomor dipakai ulang setelah pindah/penghapusan.
 4. `rooms(building_letter, floor, room_no)` unik — mencegah dua ruangan berbagi prefix/segmen kode yang sama.
@@ -418,8 +417,9 @@ WHERE room_id = :room_id;
 ```
 segmen1 = rooms.building_letter || rooms.floor      # huruf dari master gedung
 segmen2 = lpad(rooms.room_no, 2, '0')
-segmen3 = lpad(unit_no, 2, '0')
-kode    = segmen1 || '-' || segmen2 || '-' || segmen3
+segmen3 = kode jenis barang 3 digit (item_type_code pada item_catalogs)
+segmen4 = lpad(unit_no, 2, '0')
+kode    = segmen1 || '-' || segmen2 || '-' || segmen3 || '-' || segmen4
 ```
 
 > `rooms.building_letter` selalu berasal dari `buildings.code` (master gedung). Identitas gedung tidak boleh diketik bebas pada formulir ruangan.

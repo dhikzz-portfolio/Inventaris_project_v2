@@ -10,7 +10,7 @@ Riwayat revisi:
 | ----- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
 | 2.3   | 2026-10-26 | Revisi besar V2: registrasi mandiri Gmail + role Peminjam, welcome screen, scan universal di halaman scan, validasi master data wajib + gedung A–G, penghapusan `asset_code`, pengadaan multi-lokasi, label/QR per unit, mutasi multi-unit, impor & hapus arsip laporan, status kegiatan, surat peminjaman + pratinjau cetak, UI pengguna berbasis kartu (`REVISION_V2.md`) |
 | 2.2   | 2026-10-22 | Master gedung sebagai sumber kebenaran kode lokasi; tanda tangan digital opsional; status dokumen terpisah dari status transaksi; penugasan unit fisik saat serah terima; kewenangan persetujuan Wakasek |
-| 2.1   | 2026-10-21 | Katalog dipisahkan dari unit fisik; format kode `G1-02-12`; kebijakan mutasi; pencarian/filter sadar cakupan akses |
+| 2.1   | 2026-10-21 | Katalog dipisahkan dari unit fisik; format kode `[gedung+lantai]-[ruangan]-[kode jenis 3 digit]-[nomor unit 2 digit]` (mis. `G1-02-R12-01`); kebijakan mutasi; pencarian/filter sadar cakupan akses |
 | 2.0   | 2026-10-20 | Baseline implementasi v2 (model batch per baris barang)                                                            |
 
 ---
@@ -32,7 +32,7 @@ Konsekuensi penting dari kebutuhan audit dan label fisik: **satu unit barang har
 ## 2. Tujuan
 
 1. Menyediakan **katalog jenis barang** tunggal yang menjadi daftar resmi barang yang dimiliki sekolah, dengan jumlah unit yang dihitung dari data unit fisik.
-2. Memberi **setiap unit fisik** identitas inventaris yang unik, terbaca dari lokasi, dan dapat dicetak pada label/QR: `G1-02-12`.
+2. Memberi **setiap unit fisik** identitas inventaris yang unik, terbaca dari lokasi, dan dapat dicetak pada label/QR: `G1-02-R12-01`.
 3. Mencatat siklus hidup aset: pengadaan, penempatan, mutasi, peminjaman, pengembalian, kerusakan/kehilangan, dan penghapusan.
 4. Mencegah double-booking melalui validasi server dan transaksi database.
 5. Menyediakan persetujuan berjenjang dan audit trail yang tidak dapat diubah dari aplikasi.
@@ -114,7 +114,7 @@ Contoh katalog:
 | Lemari      | Furnitur   |           4 |
 | Proyektor   | Elektronik |           2 |
 
-Dua puluh tiga kursi identik tampil sebagai **satu entri katalog dengan jumlah 23**, bukan 23 entri katalog. Namun 23 kursi tersebut tetap memiliki **23 baris unit** dengan kode `G1-02-01` sampai `G1-02-23` (bila berada di ruangan yang sama dan belum ada nomor terpakai).
+Dua puluh tiga kursi identik tampil sebagai **satu entri katalog dengan jumlah 23**, bukan 23 entri katalog. Namun 23 kursi tersebut tetap memiliki **23 baris unit** dengan kode `G1-02-R12-01` sampai `G1-02-R12-23` (bila berada di ruangan yang sama dan belum ada nomor terpakai).
 
 ### 5.2 Atribut katalog
 
@@ -140,7 +140,7 @@ Dua puluh tiga kursi identik tampil sebagai **satu entri katalog dengan jumlah 2
 | ----------------------- | :---: | ---------------------------------------------------------------------------- |
 | `id`                    |   ✔   | Kunci utama; dipakai QR agar URL tetap stabil meskipun kode berubah.         |
 | `item_catalog_id`       |   ✔   | Katalog induk.                                                               |
-| `inventory_code`        |   ✔   | Kode inventaris aktif, unik, format `G1-02-12`.                              |
+| `inventory_code`        |   ✔   | Kode inventaris aktif, unik, format `[gedung+lantai]-[ruangan]-[kode jenis 3 digit]-[nomor unit]` (mis. `G1-02-R12-01`).                              |
 | `room_id`               |   ✔   | Lokasi aktif (gedung, lantai, dan nomor ruangan diturunkan dari `rooms`).    |
 | `unit_no`               |   ✔   | Nomor unit 01–99 dalam ruangan; bagian ketiga kode.                          |
 | `condition`             |   ✔   | `BAIK`, `RUSAK_RINGAN`, `RUSAK_BERAT` (`App\Enums\Condition`).               |

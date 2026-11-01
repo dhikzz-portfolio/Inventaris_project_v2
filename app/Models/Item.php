@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use App\Enums\UnitStatus;
 use App\Services\ItemTypeCodeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

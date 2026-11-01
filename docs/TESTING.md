@@ -104,7 +104,7 @@ Alur end-to-end yang dijalankan pada aplikasi nyata (MySQL, bukan test DB):
 5. Klik **Serahkan Barang** (status **Sedang Dipinjam**, timestamp petugas tercatat).
 6. Buka form pengembalian → submit semua barang → status **Selesai**.
 7. Katalog menampilkan barang kembali tersedia.
-8. Scan QR fallback manual `g1-01-01` (format kode lama; setelah revisi 2.1 memakai kode per unit `G1-02-12`) → redirect ke detail barang.
+8. Scan QR fallback manual `g1-01-01` (format kode lama / ID internal katalog; setelah revisi 2.1 memakai kode per unit `G1-02-R12-01`) → redirect ke detail barang.
 
 Hasil: seluruh langkah berhasil, **0 error JavaScript** setelah perbaikan Alpine/Livewire dan selector label.
 
@@ -217,7 +217,7 @@ Rencana disusun: 21 Oktober 2026. Dieksekusi: **22 Oktober 2026**.
 | ID    | Skenario                                                                                                    | Jenis test           | File yang disarankan            |
 | ----- | ----------------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------- || AC-01 | 23 unit katalog sama → satu katalog, `jumlah_unit = 23`                                                     | Feature              | `InventoryCoreTest` → LULUS     |
 | AC-02 | Setiap unit punya baris dan kode sendiri; `unique(inventory_code)`                                          | Feature              | `InventoryCoreTest` → LULUS     |
-| AC-03 | `G1-02-12` diparse menjadi Gedung G/lantai 1/ruang 02/unit 12; format salah ditolak                         | Unit                 | `InventoryCoreTest` → LULUS     |
+| AC-03 | `G1-02-R12-01` diparse menjadi Gedung G/lantai 2/ruang 12/kode jenis R12/unit 01; format salah ditolak                         | Unit                 | `InventoryCoreTest` → LULUS     |
 | AC-04 | Dua unit tidak boleh memakai kode yang sama (termasuk percobaan bersamaan)                                  | Feature + konkurensi | `InventoryCoreTest` → LULUS     |
 | AC-05 | Kursi dan meja di ruangan sama mendapat nomor berbeda                                                       | Feature              | `InventoryCoreTest` → LULUS     |
 | AC-06 | Detail katalog Kursi hanya berisi unit kursi                                                                | Feature (Livewire)   | `InventoryCoreTest` → LULUS     |
@@ -230,7 +230,7 @@ Rencana disusun: 21 Oktober 2026. Dieksekusi: **22 Oktober 2026**.
 
 ### 9.2 Skenario pinggir yang wajib diuji
 
-- Format: `g1-02-12` diterima setelah normalisasi; `G1/02/12`, `G1-2-12`, `G1-02-120` ditolak.
+- Format: `g1-02-r12-01` diterima setelah normalisasi; `G1/02/12`, `G1-2-12`, `G1-02-120`, `G1-02-R12` ditolak.
 - Kode tidak cocok lokasi (mis. unit di `F1-03` diberi kode `G1-03-05`) ditolak.
 - Ruangan berisi 99 nomor → pembuatan unit ke-100 ditolak `RUANGAN_PENUH`; nomor yang sudah pensiun tetap dihitung.
 - Mutasi unit yang sedang `DIPINJAM` ditolak.

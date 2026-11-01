@@ -1,6 +1,6 @@
 # Panduan Pengguna
 
-> **Catatan versi (26 Oktober 2026 — revisi V2).** Aplikasi memakai model katalog + unit fisik dan kode `G1-02-12`. Role resmi: **Wakasek Sarpras**, **Ketua Laboran**, **Laboran/K3**, dan **Peminjam**. Role lama `ADMIN_SARPRAS` sudah dimigrasikan menjadi `KETUA_LABORAN`.
+> **Catatan versi (26 Oktober 2026 — revisi V2).** Aplikasi memakai model katalog + unit fisik dan kode `[gedung+lantai]-[ruangan 2 digit]-[kode jenis 3 digit]-[nomor unit 2 digit]` (`G1-02-R12-01`). Role resmi: **Wakasek Sarpras**, **Ketua Laboran**, **Laboran/K3**, dan **Peminjam**. Role lama `ADMIN_SARPRAS` sudah dimigrasikan menjadi `KETUA_LABORAN`.
 
 ## 1. Masuk & navigasi
 
@@ -60,15 +60,15 @@ Katalog kini bertingkat tiga: **katalog (jenis barang) → spesifikasi (merek + 
 
 ### Mencari dengan kode inventaris
 
-Format kode: `G1-02-12` = Gedung G, lantai 1, Ruang 02, unit nomor 12.
+Format kode: `G1-02-R12-01` = Gedung G, lantai 2, Ruang 12, jenis barang R12 (Kursi), unit nomor 01. Pola umum: `[gedung+lantai]-[ruangan 2 digit]-[kode jenis 3 digit]-[nomor unit 2 digit]`.
 
 | Yang diketik | Hasil                                                          |
 | ------------ | -------------------------------------------------------------- |
-| `G1-02-12`   | Unit tersebut (harus persis).                                  |
+| `G1-02-R12-01`   | Unit tersebut (harus persis).                                  |
 | `G1-02`      | Semua unit di Ruang 02, Gedung G lantai 1, pada katalog aktif. |
 | `G1`         | Semua unit di Gedung G lantai 1 pada katalog aktif.            |
 | `G1-02-1`    | Unit 10–19 di ruangan tersebut (prefix).                       |
-| `g1-02-12`   | Sama dengan `G1-02-12` (huruf kecil otomatis dikapitalkan).    |
+| `g1-02-r12-01`   | Sama dengan `G1-02-R12-01` (huruf kecil otomatis dikapitalkan).    |
 | `G1/02/12`   | Ditolak dengan pesan format.                                   |
 
 - Pencarian kode di halaman detail katalog **tidak** menampilkan unit dari jenis barang lain.
@@ -251,7 +251,7 @@ Status dokumen peminjaman **terpisah** dari status transaksi:
 ### Scan inventaris
 
 1. Buka menu **Scan** (tersedia untuk semua pengguna yang sudah login).
-2. Aktifkan kamera lalu arahkan ke QR, **atau** ketik kode unit (mis. `G1-02-12`) dan tekan Enter/Cari.
+2. Aktifkan kamera lalu arahkan ke QR, **atau** ketik kode unit (mis. `G1-02-R12-01`) dan tekan Enter/Cari.
 3. Hasil muncul di halaman yang sama: nama, spesifikasi, kode, gedung/lantai/ruangan, nomor unit, kondisi, dan status.
 4. Bila unit di luar cakupan akses, aplikasi hanya menampilkan pesan terbatas — bukan detail internal.
 

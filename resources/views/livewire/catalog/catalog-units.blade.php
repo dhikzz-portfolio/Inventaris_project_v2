@@ -78,7 +78,7 @@
             <span>{{ $units->total() }} unit ditemukan</span>
             @if ($activeFilters > 0)
                 <button wire:click="resetFilters" class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
-                    <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
+                    <span class="material-icons-round text-sm">filter_alt_off</span> Hapus filter
                 </button>
             @endif
         </div>

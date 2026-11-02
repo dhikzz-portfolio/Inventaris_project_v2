@@ -44,7 +44,7 @@
             @if ($activeFilters > 0)
                 <div class="mt-2 text-right">
                     <button wire:click="resetFilters" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:bg-brand-50 hover:text-brand-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-brand-300">
-                        <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
+                        <span class="material-icons-round text-sm">filter_alt_off</span> Hapus filter
                     </button>
                 </div>
             @endif

@@ -189,7 +189,7 @@ class LoanItemDetailTest extends TestCase
             ->get(route('loans.show', [$loan, 'item_search' => 'barang-yang-tidak-ada']))
             ->assertOk()
             ->assertSee('Tidak ada unit fisik yang cocok')
-            ->assertSee('Reset filter');
+            ->assertSee('Hapus filter');
     }
 
     public function test_rentang_tanggal_pemeriksaan_dan_pagination_tetap_akurat(): void

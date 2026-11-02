@@ -216,7 +216,7 @@
 
         <div x-show="totalVisible === 0" x-cloak class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             Tidak ada unit yang cocok dengan pencarian/filter.
-            <button type="button" @click="resetFilters()" class="font-semibold text-brand-700 underline dark:text-brand-300">Reset filter</button>
+            <button type="button" @click="resetFilters()" class="font-semibold text-brand-700 underline dark:text-brand-300">Hapus filter</button>
         </div>
 
         <form method="POST" action="{{ route('loans.handover', $loan) }}" id="handover-form">

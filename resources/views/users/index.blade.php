@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengguna &amp; Hak Akses</h2>
+            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Akun Pengguna</h2>
             <p class="text-sm text-slate-500 dark:text-slate-400">Empat role: Wakasek Sarpras, Ketua Laboran, Laboran/K3, Peminjam</p>
         </div>
     </x-slot>

@@ -214,7 +214,7 @@
             <div class="mt-2 flex flex-wrap items-center gap-2">
                 <button type="button" wire:click="resetFilters"
                     class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
-                    Reset filter
+                    Hapus filter
                 </button>
                 <button type="button" x-on:click="toggleScan()"
                     class="inline-flex min-h-8 items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
@@ -277,7 +277,7 @@
     @if ($visibleUnitCount === 0)
         <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             Tidak ada unit yang cocok dengan pencarian/filter.
-            <button type="button" wire:click="resetFilters" class="font-semibold text-brand-700 underline dark:text-brand-300">Reset filter</button>
+            <button type="button" wire:click="resetFilters" class="font-semibold text-brand-700 underline dark:text-brand-300">Hapus filter</button>
         </div>
     @endif
 

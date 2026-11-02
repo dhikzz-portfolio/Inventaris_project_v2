@@ -30,44 +30,50 @@
     @endif
 
     {{-- Filter --}}
-    <div class="mb-3 rounded-2xl border border-sky-100 bg-white px-3 py-2.5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="mb-2 rounded-2xl border border-sky-100 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <form method="GET" action="{{ route('labels.index') }}" class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari kode unit (G1-02-12)"
-                   class="min-h-9 rounded-lg border-slate-300 bg-white py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-            <select name="catalog" class="min-h-9 rounded-lg border-slate-300 bg-white py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                   class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select name="catalog" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua katalog</option>
                 @foreach ($catalogs as $catalogId => $catalogName)
                     <option value="{{ $catalogId }}" @selected(request('catalog') == $catalogId)>{{ $catalogName }}</option>
                 @endforeach
             </select>
-            <select name="room" class="min-h-9 rounded-lg border-slate-300 bg-white py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select name="room" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua ruangan</option>
                 @foreach ($rooms as $room)
                     <option value="{{ $room->id }}" @selected(request('room') == $room->id)>{{ $room->code }} — {{ $room->name }}</option>
                 @endforeach
             </select>
-            <select name="category" class="min-h-9 rounded-lg border-slate-300 bg-white py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select name="category" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua kategori</option>
                 @foreach ($categories as $category)
                     <option value="{{ $category->id }}" @selected(request('category') == $category->id)>{{ $category->name }}</option>
                 @endforeach
             </select>
-            <select name="condition" class="min-h-9 rounded-lg border-slate-300 bg-white py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select name="condition" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua kondisi</option>
                 @foreach ($conditions as $conditionOption)
                     <option value="{{ $conditionOption->value }}" @selected(request('condition') == $conditionOption->value)>{{ $conditionOption->label() }}</option>
                 @endforeach
             </select>
-            <div class="flex items-center gap-2 xl:col-span-2">
-                <select name="status" class="min-h-9 grow rounded-lg border-slate-300 bg-white py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <div class="flex flex-wrap items-center gap-2 xl:col-span-2">
+                <select name="status" class="min-h-8 grow rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     <option value="">Semua status</option>
                     @foreach ($statuses as $statusOption)
                         <option value="{{ $statusOption->value }}" @selected(request('status') == $statusOption->value)>{{ $statusOption->label() }}</option>
                     @endforeach
                 </select>
-                <button class="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <button class="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                     <span class="material-icons-round text-base" aria-hidden="true">filter_alt</span> Terapkan
                 </button>
+                @if (! empty(array_filter($filters)))
+                    <a href="{{ route('labels.index') }}" title="Hapus filter" aria-label="Hapus filter"
+                       class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <span class="material-icons-round text-base" aria-hidden="true">restart_alt</span>
+                    </a>
+                @endif
             </div>
         </form>
     </div>
@@ -81,8 +87,8 @@
         @endforeach
 
         <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2 dark:border-slate-800 sm:px-5">
+                <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
                     <input type="checkbox" id="select-all-labels" onclick="toggleAllLabels(this)"
                            class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950">
                     Pilih semua di halaman ini
@@ -90,11 +96,13 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <label class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                         <input type="checkbox" name="select_all" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950"
+                               onchange="updateLabelCount()"
                                title="Cetak semua unit yang sesuai filter, termasuk halaman lain">
                         Cetak semua yang sesuai filter ({{ $units->total() }} unit)
                     </label>
                     <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300" id="label-count">0 unit dipilih</span>
-                    <button class="inline-flex min-h-10 grow items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 sm:grow-0">
+                    <button id="label-print-btn" disabled
+                            class="inline-flex min-h-9 grow items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-brand-600 sm:grow-0">
                         <span class="material-icons-round text-lg">print</span> Cetak Massal (PDF)
                     </button>
                 </div>
@@ -104,43 +112,43 @@
                 <table class="w-full text-sm">
                     <thead class="sticky top-0 z-10 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
-                            <th class="px-4 py-2.5 w-10"></th>
-                            <th class="text-right px-4 py-2.5">Kode Inventaris</th>
-                            <th class="text-left px-4 py-2.5">Nama Barang</th>
-                            <th class="text-left px-4 py-2.5">Lokasi</th>
-                            <th class="text-left px-4 py-2.5">Kondisi</th>
-                            <th class="text-left px-4 py-2.5">Status</th>
-                            <th class="text-center px-4 py-2.5">Cetak Terakhir</th>
-                            <th class="text-center px-4 py-2.5">Satuan</th>
+                            <th class="px-4 py-2 w-10"></th>
+                            <th class="text-right px-4 py-2">Kode Inventaris</th>
+                            <th class="text-left px-4 py-2">Nama Barang</th>
+                            <th class="text-left px-4 py-2">Lokasi</th>
+                            <th class="text-left px-4 py-2">Kondisi</th>
+                            <th class="text-left px-4 py-2">Status</th>
+                            <th class="text-center px-4 py-2">Cetak Terakhir</th>
+                            <th class="text-center px-4 py-2">Satuan</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         @forelse ($units as $unit)
                             <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                <td class="px-4 py-2 text-center">
-                                    <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950"
+                                <td class="px-4 py-1.5 text-center">
+                                    <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" aria-label="Pilih unit {{ $unit->inventory_code }}" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950"
                                            onchange="updateLabelCount()"
                                            @checked(in_array($unit->id, old('unit_ids', [])))>
                                 </td>
-                                <td class="whitespace-nowrap px-4 py-2 text-right font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
-                                <td class="px-4 py-2">
+                                <td class="whitespace-nowrap px-4 py-1.5 text-right font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
+                                <td class="px-4 py-1.5">
                                     <a href="{{ route('units.show', $unit) }}" class="font-medium text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $unit->catalog?->name }}</a>
                                     <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ $unit->catalog?->category?->name }}</div>
                                 </td>
-                                <td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">
+                                <td class="px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400">
                                     Gedung {{ $unit->room?->building_letter }}, Lantai {{ $unit->room?->floor }}, Ruang {{ str_pad((string) $unit->room?->room_no, 2, '0', STR_PAD_LEFT) }}
                                     <div class="text-slate-400 dark:text-slate-500">{{ $unit->room?->name }}</div>
                                 </td>
-                                <td class="px-4 py-2">
+                                <td class="px-4 py-1.5">
                                     <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : ($unit->condition === \App\Enums\Condition::RUSAK_RINGAN ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' : 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300') }}">
                                         {{ $unit->condition->label() }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-2">
+                                <td class="px-4 py-1.5">
                                     <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
                                 </td>
                                 <td class="px-4 py-2 text-center text-xs text-slate-400 dark:text-slate-500">{{ $unit->last_label_printed_at?->format('d/m/Y') ?: '—' }}</td>
-                                <td class="px-4 py-2 text-center">
+                                <td class="px-4 py-1.5 text-center">
                                     <a href="{{ route('units.label', $unit) }}" target="_blank" title="Cetak label satuan / re-print"
                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-brand-50 hover:text-brand-700 dark:text-slate-400 dark:hover:bg-brand-900/40 dark:hover:text-brand-300">
                                         <span class="material-icons-round text-lg">print</span>
@@ -167,9 +175,17 @@
     @push('scripts')
     <script>
         function updateLabelCount() {
+            const checkboxes = document.querySelectorAll('input[name="unit_ids[]"]');
             const checked = document.querySelectorAll('input[name="unit_ids[]"]:checked').length;
             const el = document.getElementById('label-count');
             if (el) el.textContent = checked + ' unit dipilih';
+
+            const selectAllPage = document.getElementById('select-all-labels');
+            if (selectAllPage) selectAllPage.indeterminate = checked > 0 && checked < checkboxes.length;
+
+            const selectAllFiltered = document.querySelector('input[name="select_all"]');
+            const printButton = document.getElementById('label-print-btn');
+            if (printButton) printButton.disabled = checked === 0 && !(selectAllFiltered && selectAllFiltered.checked);
         }
 
         function toggleAllLabels(source) {

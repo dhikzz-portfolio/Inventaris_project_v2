@@ -51,7 +51,7 @@
                 <span>{{ $catalogs->total() }} jenis barang ditemukan</span>
                 @if ($activeFilters > 0)
                     <button wire:click="resetFilters" class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-brand-700 transition hover:bg-brand-100 dark:bg-brand-900/50 dark:text-brand-300 dark:hover:bg-brand-900">
-                        <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
+                        <span class="material-icons-round text-sm">filter_alt_off</span> Hapus filter
                     </button>
                 @endif
             </div>

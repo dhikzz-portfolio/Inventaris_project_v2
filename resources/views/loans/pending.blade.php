@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Persetujuan Peminjaman</h2>
+                    <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Permintaan Pinjam</h2>
                     <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">{{ $loans->count() }} MENUNGGU</span>
                 </div>
                 <p class="text-sm leading-relaxed text-slate-500 dark:text-slate-400">

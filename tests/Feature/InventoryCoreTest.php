@@ -122,6 +122,24 @@ class InventoryCoreTest extends TestCase
         $this->assertFalse($catalog->isDirty('item_type_code'));
     }
 
+    public function test_kode_jenis_katalog_lama_dapat_dilengkapi_tanpa_memicu_guard_immutability(): void
+    {
+        $room = $this->makeRoom('X', 7, 8, false, 'Ruang Backfill Kode');
+        $catalog = $this->makeCatalog('Radio Backfill Kode', $room);
+        DB::table('item_catalogs')->where('id', $catalog->id)->update(['item_type_code' => null]);
+        $catalog->refresh();
+
+        app(ItemTypeCodeService::class)->ensureCode($catalog);
+
+        $code = $catalog->item_type_code;
+        $this->assertMatchesRegularExpression('/^\d{3}$/', $code);
+        $this->assertDatabaseHas('item_catalogs', [
+            'id' => $catalog->id,
+            'item_type_code' => $code,
+        ]);
+        $this->assertFalse($catalog->isDirty('item_type_code'));
+    }
+
     public function test_ac_04_dan_05_nomor_unik_dan_tidak_bentrok_lintas_jenis_barang(): void
     {
         $room = $this->makeRoom('Y', 8, 8, false, 'Ruang Campur');

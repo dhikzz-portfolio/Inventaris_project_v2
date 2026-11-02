@@ -37,8 +37,10 @@
         x-data="procurement({
             rooms: {{ \Illuminate\Support\Js::from($roomOptions) }},
             catalogs: {{ \Illuminate\Support\Js::from($catalogMap) }},
+            catalogOptions: {{ \Illuminate\Support\Js::from($catalogs->map(fn ($catalogOption) => ['id' => $catalogOption->id, 'name' => $catalogOption->name, 'category_name' => $catalogOption->category?->name])->values()) }},
             allBrands: {{ \Illuminate\Support\Js::from($brands) }},
             initialCatalog: {{ \Illuminate\Support\Js::from((string) old('catalog_id', '')) }},
+            initialCatalogName: {{ \Illuminate\Support\Js::from((string) ($catalogs->firstWhere('id', old('catalog_id'))?->name ?? '')) }},
             initialName: {{ \Illuminate\Support\Js::from((string) old('name', '')) }},
             initialCategory: {{ \Illuminate\Support\Js::from((string) old('category_id', '')) }},
             initialBrand: {{ \Illuminate\Support\Js::from((string) old('brand', '')) }},
@@ -57,18 +59,53 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div class="md:col-span-2">
-                <x-input-label for="catalog_id" value="Katalog barang yang sudah ada (opsional)" />
-                <select id="catalog_id" name="catalog_id" x-model.number="catalogId" @change="applyCatalog()"
-                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">— buat katalog baru —</option>
-                    @foreach ($catalogs as $catalogOption)
-                        <option value="{{ $catalogOption->id }}" @selected(old('catalog_id') == $catalogOption->id)>
-                            {{ $catalogOption->name }}</option>
-                    @endforeach
-                </select>
+                <x-input-label for="catalog_search" value="Katalog barang yang sudah ada (opsional)" />
+                <div class="relative mt-1" @click.outside="catalogOpen = false">
+                    <input id="catalog_search" type="text" x-model="catalogQuery"
+                        @focus="catalogQuery = ''; catalogOpen = true"
+                        @click="catalogOpen = true; catalogHighlight = 0"
+                        @input="catalogOpen = true; catalogHighlight = 0"
+                        @keydown.arrow-down.prevent="highlightNext()"
+                        @keydown.arrow-up.prevent="highlightPrev()"
+                        @keydown.enter.prevent="chooseHighlighted()"
+                        @keydown.escape="catalogOpen = false"
+                        @blur="restoreCatalogQuery()"
+                        :placeholder="selectedCatalog ? selectedCatalog.name : 'Ketik nama atau kategori katalog…'"
+                        autocomplete="off" role="combobox" aria-autocomplete="list"
+                        aria-controls="catalog-options" :aria-expanded="catalogOpen.toString()"
+                        class="block w-full rounded-xl border-slate-300 bg-white pr-16 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <button type="button" x-show="catalogId" x-cloak @mousedown.prevent="clearCatalog()"
+                        aria-label="Hapus pilihan katalog"
+                        class="absolute right-8 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <span class="material-icons-round text-base">close</span>
+                    </button>
+                    <span x-show="!catalogId" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 material-icons-round text-base text-slate-400" aria-hidden="true">expand_more</span>
+                    <span x-show="catalogId" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 material-icons-round text-base text-slate-400" aria-hidden="true">search</span>
+
+                    <ul x-show="catalogOpen" x-cloak id="catalog-options" role="listbox"
+                        class="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                        <li role="option" @mousedown.prevent="clearCatalog()" :aria-selected="!catalogId"
+                            class="cursor-pointer px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                            — buat katalog baru —
+                        </li>
+                        <template x-for="(option, index) in filteredCatalogs" :key="option.id">
+                            <li role="option" @mousedown.prevent="selectCatalog(option.id)"
+                                @mouseenter="catalogHighlight = index" :aria-selected="catalogId === option.id"
+                                :class="catalogHighlight === index ? 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' : 'text-slate-700 dark:text-slate-200'"
+                                class="cursor-pointer px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-950/40">
+                                <span class="block font-medium" x-text="option.name"></span>
+                                <span x-show="option.category_name" class="block text-[11px] text-slate-500 dark:text-slate-400" x-text="option.category_name"></span>
+                            </li>
+                        </template>
+                        <li x-show="filteredCatalogs.length === 0" class="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                            Tidak ada katalog yang cocok.
+                        </li>
+                    </ul>
+                </div>
+                <input type="hidden" name="catalog_id" :value="catalogId || ''">
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Pilih katalog bila hanya menambah stok merek/tipe baru. Jangan buat katalog baru hanya karena merek
-                    atau tipe/model berbeda.
+                    Ketik untuk mencari katalog, atau biarkan kosong untuk membuat katalog baru. Jangan buat katalog baru
+                    hanya karena merek atau tipe/model berbeda.
                 </p>
                 <div x-show="catalogId" x-cloak
                     class="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
@@ -216,7 +253,7 @@
                                     class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                     <option value="">— pilih ruangan —</option>
                                     <template x-for="room in roomsFor(row)" :key="room.id">
-                                        <option :value="room.id" x-text="room.label"></option>
+                                        <option :value="room.id" x-text="(room.code ? room.code + ' — ' : '') + (room.name || '')"></option>
                                     </template>
                                 </select>
                             </div>
@@ -291,6 +328,10 @@
                     catalogMap: config.catalogs || {},
                     allBrands: config.allBrands || [],
                     catalogId: Number(config.initialCatalog) || '',
+                    catalogQuery: config.initialCatalogName || '',
+                    catalogOpen: false,
+                    catalogHighlight: 0,
+                    catalogOptions: config.catalogOptions || [],
                     name: config.initialName || '',
                     categoryId: Number(config.initialCategory) || '',
                     brand: config.initialBrand || '',
@@ -317,6 +358,49 @@
 
                     get selectedCatalog() {
                         return this.catalogMap[this.catalogId] || null;
+                    },
+
+                    get filteredCatalogs() {
+                        const term = (this.catalogQuery || '').trim().toLowerCase();
+                        if (term === '') return this.catalogOptions;
+                        return this.catalogOptions.filter((option) =>
+                            option.name.toLowerCase().includes(term) ||
+                            (option.category_name || '').toLowerCase().includes(term)
+                        );
+                    },
+
+                    selectCatalog(id) {
+                        this.catalogId = Number(id) || '';
+                        this.applyCatalog();
+                        this.catalogQuery = this.selectedCatalog?.name || '';
+                        this.catalogOpen = false;
+                    },
+
+                    clearCatalog() {
+                        this.catalogId = '';
+                        this.catalogQuery = '';
+                        this.catalogOpen = false;
+                        this.applyCatalog();
+                    },
+
+                    restoreCatalogQuery() {
+                        this.catalogQuery = this.catalogId ? (this.selectedCatalog?.name || '') : '';
+                    },
+
+                    chooseHighlighted() {
+                        const option = this.filteredCatalogs[this.catalogHighlight];
+                        if (option) this.selectCatalog(option.id);
+                    },
+
+                    highlightNext() {
+                        this.catalogOpen = true;
+                        this.catalogHighlight = (this.catalogHighlight + 1) % Math.max(1, this.filteredCatalogs.length);
+                    },
+
+                    highlightPrev() {
+                        this.catalogOpen = true;
+                        const total = Math.max(1, this.filteredCatalogs.length);
+                        this.catalogHighlight = (this.catalogHighlight - 1 + total) % total;
                     },
 
                     get brandOptions() {

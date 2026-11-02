@@ -16,7 +16,7 @@
                         Ringkasan sekolah
                     @endif
                 </p>
-                <h2 class="mt-1 text-xl font-bold leading-tight text-slate-900 dark:text-white">Beranda</h2>
+                <h2 class="mt-1 text-xl font-bold leading-tight text-slate-900 dark:text-white">Ringkasan</h2>
                 <p class="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                 @if ($mode === 'operational')
                     Ringkasan barang dan peminjaman untuk {{ $scopeLabel }}.
@@ -32,19 +32,27 @@
         </div>
     </x-slot>
 
-    {{-- Sapaan digabung ke hero di bawah supaya halaman lebih ringkas. --}}
+    {{-- Sapaan setelah login: nama lengkap + gelar, fallback username. --}}
+    <div class="mb-4 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex items-center gap-3">
+            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <span class="material-icons-round text-xl" aria-hidden="true">waving_hand</span>
+            </span>
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Selamat datang</p>
+                <p class="truncate text-base font-bold text-slate-900 dark:text-white">{{ $dashboardUser->greetingName() }}!</p>
+            </div>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ $dashboardUser->isPeminjam() ? 'Ajukan peminjaman dan pantau statusnya di sini.' : 'Pantau inventaris sesuai kewenangan Anda.' }}
+        </p>
+    </div>
 
     <div @class([
         'min-h-full',
         '-m-4 bg-sky-50/80 p-4 sm:-m-5 sm:p-5 md:-m-6 md:p-6 dark:bg-slate-950/30' => $isOperational,
     ])>
     @if ($mode === 'operational')
-        <div class="mb-4 grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 xl:gap-4 xl:grid-cols-6">
-            @foreach ($stats as $stat)
-                <x-dashboard.stat-card :stat="$stat" :operational="$isOperational" />
-            @endforeach
-        </div>
-
         <section @class([
             'relative isolate mb-4 overflow-hidden rounded-2xl p-5 shadow-lg sm:p-6',
             'bg-gradient-to-r from-sky-200 via-sky-100 to-cyan-100 text-slate-800 shadow-sky-900/5 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700 dark:text-white' => $isOperational,
@@ -126,14 +134,8 @@
     @endif
 
     @if ($mode === 'operational')
-        <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <x-dashboard.panel title="Barang paling sering dipinjam" description="Jumlah unit yang dipinjam pada bulan ini." class="min-w-0">
-                <x-slot name="actions">
-                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        <span class="material-icons-round text-sm" aria-hidden="true">event</span>
-                        {{ now()->translatedFormat('F Y') }}
-                    </span>
-                </x-slot>
+        <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr] sm:gap-3">
+            <x-dashboard.panel title="Barang paling sering dipinjam" description="Bulan {{ now()->translatedFormat('F Y') }} · berdasarkan jumlah barang">
                 @if ($topBorrowed->isEmpty())
                     <div class="flex min-h-48 flex-col items-center justify-center sm:min-h-56 rounded-xl bg-slate-50 px-4 text-center dark:bg-slate-800/70">
                         <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">bar_chart</span>
@@ -141,17 +143,11 @@
                         <p class="mt-1 text-xs text-slate-400">Data bulan ini akan muncul di sini.</p>
                     </div>
                 @else
-                    <div class="relative h-48 w-full sm:h-56"><canvas id="chartTopBorrowed" aria-label="Grafik barang paling sering dipinjam bulan ini"></canvas></div>
+                    <div class="h-44"><canvas id="chartTopBorrowed" aria-label="Grafik barang paling sering dipinjam bulan ini"></canvas></div>
                 @endif
             </x-dashboard.panel>
 
-            <x-dashboard.panel title="Barang yang sering rusak" description="Barang yang dilaporkan rusak bulan ini." class="min-w-0">
-                <x-slot name="actions">
-                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        <span class="material-icons-round text-sm" aria-hidden="true">event</span>
-                        {{ now()->translatedFormat('F Y') }}
-                    </span>
-                </x-slot>
+            <x-dashboard.panel title="Barang yang sering rusak" description="Bulan {{ now()->translatedFormat('F Y') }} · barang yang dilaporkan rusak">
                 @if ($topDamaged->isEmpty())
                     <div class="flex min-h-48 flex-col items-center justify-center sm:min-h-56 rounded-xl bg-green-50/70 px-4 text-center dark:bg-green-950/20">
                         <span class="material-icons-round text-3xl text-green-500" aria-hidden="true">task_alt</span>
@@ -174,10 +170,12 @@
             </x-dashboard.panel>
         </div>
 
-        <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <x-dashboard.panel title="Kondisi barang" description="Kondisi barang yang berada di {{ $scopeLabel }}." class="min-w-0">                        <div class="relative h-48 w-full sm:h-56"><canvas id="chartStatus" aria-label="Grafik kondisi barang"></canvas></div>
+        <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1.4fr] sm:gap-3">
+            <x-dashboard.panel title="Kondisi barang" description="Kondisi barang yang berada di {{ $scopeLabel }}.">
+                <div class="h-56 sm:h-64"><canvas id="chartStatus" aria-label="Grafik kondisi barang"></canvas></div>
             </x-dashboard.panel>
-            <x-dashboard.panel title="Peminjaman enam bulan terakhir" description="Jumlah peminjaman setiap bulan." class="min-w-0">                        <div class="relative h-48 w-full sm:h-56"><canvas id="chartTrend" aria-label="Grafik tren peminjaman enam bulan terakhir"></canvas></div>
+            <x-dashboard.panel title="Peminjaman enam bulan terakhir" description="Jumlah peminjaman setiap bulan.">
+                <div class="h-56 sm:h-64"><canvas id="chartTrend" aria-label="Grafik tren peminjaman enam bulan terakhir"></canvas></div>
             </x-dashboard.panel>
         </div>
 
@@ -241,11 +239,11 @@
         <section class="mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-700 to-brand-800 p-5 text-white shadow-lg shadow-brand-900/10 sm:p-6">
             <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-brand-100">Selamat datang</p>
-                    <h3 class="mt-1 truncate text-xl font-bold tracking-tight sm:text-2xl">{{ $dashboardUser->greetingName() }}</h3>
-                    <p class="mt-2 text-xs leading-relaxed text-brand-100/90 sm:text-sm">
-                    Ajukan peminjaman dan pantau statusnya di sini.
-                    <span class="sm:hidden">{{ now()->translatedFormat('l, d F Y') }}</span>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-blue-100">Selamat datang kembali</p>
+                    <h3 class="mt-1 truncate text-xl font-bold tracking-tight sm:text-2xl">{{ auth()->user()->name }}</h3>
+                    <p class="mt-2 text-xs leading-relaxed text-blue-100/90 sm:text-sm">
+                    Pantau pengajuan dan pinjaman barang sekolah Anda.
+                    <span class="hidden sm:inline">{{ now()->translatedFormat('l, d F Y') }}</span>
                     </p>
                 </div>
                 <div class="grid grid-cols-1 gap-2 sm:flex sm:shrink-0">
@@ -261,6 +259,12 @@
             </div>
         </section>
 
+        <div class="mb-4 grid auto-rows-fr grid-cols-2 gap-3 md:mb-5 md:grid-cols-3 xl:grid-cols-4">
+            @foreach ($stats as $stat)
+                <x-dashboard.stat-card :stat="$stat" />
+            @endforeach
+        </div>
+
         <div class="mb-4 grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 xl:gap-4 xl:grid-cols-4">
             @foreach ($stats as $stat)
                 <x-dashboard.stat-card :stat="$stat" />
@@ -269,9 +273,9 @@
 
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <x-dashboard.panel
-                title="Pengajuan dan peminjaman saya"
-                description="Pantau status, jadwal, dan barang yang Anda pinjam."
-                class="lg:col-span-2"
+                title="Permintaan dan pinjaman saya"
+                description="Lihat status dan jadwal barang yang Anda pinjam."
+                class="xl:col-span-2"
             >
                 <x-slot name="actions">
                     <a href="{{ route('loans.index') }}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800">
@@ -325,19 +329,11 @@
                 @endif
             </x-dashboard.panel>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                <x-dashboard.panel title="Pengajuan peminjaman" description="Jumlah pengajuan Anda selama enam bulan terakhir.">
-                    @if (collect($loansPerMonth)->sum('count') > 0)
-                        <div class="h-56">
-                            <canvas id="chartTrend" aria-label="Grafik jumlah permintaan pinjam enam bulan terakhir"></canvas>
-                        </div>
-                    @else
-                        <div class="flex h-56 flex-col items-center justify-center rounded-xl bg-slate-50 px-4 text-center dark:bg-slate-800/70">
-                            <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">bar_chart</span>
-                            <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Belum ada pengajuan</p>
-                            <p class="mt-1 text-xs text-slate-400">Aktivitas peminjaman Anda akan ditampilkan di sini.</p>
-                        </div>
-                    @endif
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                <x-dashboard.panel title="Jumlah permintaan pinjam" description="Jumlah permintaan setiap bulan selama enam bulan terakhir.">
+                    <div class="h-56">
+                        <canvas id="chartTrend" aria-label="Grafik jumlah permintaan pinjam enam bulan terakhir"></canvas>
+                    </div>
                 </x-dashboard.panel>
 
                 <x-dashboard.panel title="Katalog barang" description="Temukan barang yang dapat Anda pinjam.">

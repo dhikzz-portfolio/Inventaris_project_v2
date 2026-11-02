@@ -32,8 +32,8 @@
         @livewireStyles
         @stack('styles')
     </head>
-    <body class="bg-brand-50/30 font-sans antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
-        <div class="min-h-screen" x-data="{ menuOpen: false }">
+    <body class="bg-blue-50/30 font-sans antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
+        <div class="min-h-screen flex" x-data="{ menuOpen: false }">
             <aside id="main-menu"
                    class="fixed inset-y-0 left-0 z-40 flex w-64 max-w-[85vw] -translate-x-full flex-col border-r border-slate-200 bg-white text-slate-700 shadow-xl transition-transform duration-200 ease-in-out dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:w-44 sm:translate-x-0 sm:shadow-none lg:w-64"
                    :class="menuOpen ? 'translate-x-0' : '-translate-x-full'"

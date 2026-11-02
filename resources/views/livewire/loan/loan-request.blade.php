@@ -43,8 +43,8 @@
             </div>
             @if ($activeFilters > 0)
                 <div class="mt-2 text-right">
-                    <button wire:click="resetFilters" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:bg-brand-50 hover:text-brand-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-brand-300">
-                        <span class="material-icons-round text-sm">filter_alt_off</span> Hapus filter
+                    <button wire:click="resetFilters" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-300">
+                        <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
                     </button>
                 </div>
             @endif
@@ -204,8 +204,8 @@
         </div>
 
         {{-- Kalender ketersediaan --}}
-        <div class="order-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
-            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="mb-3 flex items-center justify-between gap-2">
                 <h3 class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600" aria-hidden="true">calendar_month</span> Ketersediaan
                 </h3>
@@ -254,9 +254,9 @@
         </div>
     </div>
 
-    {{-- Form pengajuan --}}
-    <div id="loan-request-form" class="order-3 scroll-mt-24 lg:col-span-2 lg:order-none">
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain">
+    {{-- Kanan: form pengajuan --}}
+    <div class="lg:col-span-2">
+        <div class="sticky top-20 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">edit_note</span> 3. Detail pengajuan
             </h3>
@@ -296,6 +296,7 @@
                             <option value="{{ $event->id }}">{{ $event->name }} ({{ $event->start_date->format('d/m') }}–{{ $event->end_date->format('d/m/Y') }})</option>
                         @endforeach
                     </select>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Peminjaman massal terikat satu kegiatan → satu paket BAST.</p>
                 </div>
 
                 <button wire:click="submit" wire:loading.attr="disabled"
@@ -304,6 +305,14 @@
                     <span wire:loading wire:target="submit" class="material-icons-round text-lg animate-spin">progress_activity</span>
                     Kirim pengajuan
                 </button>
+
+                <p class="text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                    @if (auth()->user()->isPeminjam())
+                        Permintaan akan ditinjau oleh petugas. Barang bernilai tinggi memerlukan persetujuan berjenjang dari Laboran lalu Wakasek. Dokumen dapat dicetak untuk ditandatangani secara fisik.
+                    @else
+                        Barang bernilai tinggi melewati persetujuan Laboran lalu Wakasek. Tanda tangan digital opsional — dokumen dapat ditandatangani secara fisik.
+                    @endif
+                </p>
             </div>
         </div>
 

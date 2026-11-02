@@ -112,14 +112,14 @@
                 <table class="w-full min-w-[820px] text-sm">
                     <thead class="sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
-                            <th class="px-4 py-2 w-10"></th>
-                            <th class="text-right px-4 py-2">Kode Inventaris</th>
-                            <th class="text-left px-4 py-2">Nama Barang</th>
-                            <th class="text-left px-4 py-2">Lokasi</th>
-                            <th class="text-left px-4 py-2">Kondisi</th>
-                            <th class="text-left px-4 py-2">Status</th>
-                            <th class="text-center px-4 py-2">Cetak Terakhir</th>
-                            <th class="text-center px-4 py-2">Satuan</th>
+                            <th class="px-4 py-2.5 w-10"></th>
+                            <th class="text-left px-4 py-2.5">Kode Inventaris</th>
+                            <th class="text-left px-4 py-2.5">Nama Barang</th>
+                            <th class="text-left px-4 py-2.5">Lokasi</th>
+                            <th class="text-left px-4 py-2.5">Kondisi</th>
+                            <th class="text-left px-4 py-2.5">Status</th>
+                            <th class="text-center px-4 py-2.5">Cetak Terakhir</th>
+                            <th class="text-center px-4 py-2.5">Satuan</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -130,10 +130,10 @@
                                            onchange="updateLabelCount()"
                                            @checked(in_array($unit->id, old('unit_ids', [])))>
                                 </td>
-                                <td class="whitespace-nowrap px-4 py-1.5 text-right font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
-                                <td class="px-4 py-1.5">
-                                    <a href="{{ route('units.show', $unit) }}" class="font-medium text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $unit->catalog?->name }}</a>
-                                    <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ $unit->catalog?->category?->name }}</div>
+                                <td class="px-4 py-2 font-mono font-semibold text-gray-800">{{ $unit->inventory_code }}</td>
+                                <td class="px-4 py-2">
+                                    <a href="{{ route('units.show', $unit) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $unit->catalog?->name }}</a>
+                                    <div class="text-[11px] text-gray-400">{{ $unit->catalog?->category?->name }}</div>
                                 </td>
                                 <td class="px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400">
                                     Gedung {{ $unit->room?->building_letter }}, Lantai {{ $unit->room?->floor }}, Ruang {{ str_pad((string) $unit->room?->room_no, 2, '0', STR_PAD_LEFT) }}

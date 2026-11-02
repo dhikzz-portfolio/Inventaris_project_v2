@@ -50,8 +50,8 @@
             <div class="flex items-center gap-2">
                 <span>{{ $catalogs->total() }} jenis barang ditemukan</span>
                 @if ($activeFilters > 0)
-                    <button wire:click="resetFilters" class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-brand-700 transition hover:bg-brand-100 dark:bg-brand-900/50 dark:text-brand-300 dark:hover:bg-brand-900">
-                        <span class="material-icons-round text-sm">filter_alt_off</span> Hapus filter
+                    <button wire:click="resetFilters" class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-950">
+                        <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
                     </button>
                 @endif
             </div>

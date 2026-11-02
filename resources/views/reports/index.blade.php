@@ -6,7 +6,7 @@
                 <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per kategori, ruangan, atau jurusan</p>
             </div>
             <a href="{{ route('reports.import.form') }}"
-               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">
+               class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500">
                 <span class="material-icons-round text-lg">upload_file</span> Impor Laporan
             </a>
         </div>
@@ -24,13 +24,13 @@
             <span class="material-icons-round text-blue-600">tune</span> Parameter Laporan
         </h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <x-input-label for="report-period" value="Periode (Bulan)" />
                 <input type="month" x-model="period" min="2020-01" value="{{ $currentPeriod }}"
                        id="report-period" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
-            <div>
+            <div :class="scope === 'SEMUA' ? 'md:col-span-2' : ''">
                 <x-input-label for="report-scope" value="Cakupan" />
                 <select id="report-scope" x-model="scope" x-on:change="scopeId = ''" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     <option value="SEMUA">{{ auth()->user()->isSuperAdmin() ? 'Seluruh sekolah' : 'Seluruh laboratorium' }}</option>
@@ -66,17 +66,26 @@
                     </template>
                 </select>
             </div>
-            <div class="flex items-end gap-2 flex-wrap">
+        </div>
+
+        <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                    <span class="material-icons-round text-base text-blue-600">download</span> Pratinjau &amp; Ekspor
+                </p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Hasil mengikuti periode dan cakupan yang dipilih.</p>
+            </div>
+            <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <a :href="exportUrl('pdf')" target="_blank"
-                   class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                   class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
                     <span class="material-icons-round text-lg">picture_as_pdf</span> Pratinjau PDF
                 </a>
                 <button type="button" @click="window.open(exportUrl('pdf'), '_blank').print()"
-                   class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <span class="material-icons-round text-lg">print</span> Cetak
                 </button>
                 <a :href="exportUrl('excel')" target="_blank"
-                   class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                   class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
                     <span class="material-icons-round text-lg">table_view</span> Excel
                 </a>
             </div>
@@ -88,7 +97,7 @@
             <input type="hidden" name="scope" :value="scope">
             <input type="hidden" name="scope_id" :value="scope === 'SEMUA' ? '' : scopeId">
             <p class="flex-1 text-xs text-slate-500 dark:text-slate-400">Simpan snapshot laporan (PDF + Excel) ke arsip — laporan bulanan juga dibuat otomatis oleh scheduler setiap tanggal 1.</p>
-            <button class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto sm:py-2.5">Simpan ke Arsip</button>
+            <button class="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto">Simpan ke Arsip</button>
         </form>
 
         <p class="mt-3 text-[11px] text-slate-500 dark:text-slate-400">

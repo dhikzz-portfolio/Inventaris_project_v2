@@ -69,7 +69,7 @@
         </div>
         <div class="actions">
             <button type="button" class="btn btn-primary" onclick="window.print()">Cetak Sekarang</button>
-            <a class="btn btn-secondary" href="{{ route('loans.bast', $loan) }}">Unduh PDF</a>
+            <a class="btn btn-secondary" href="{{ route('loans.bast', $loan) }}">Unduh Berita Acara</a>
             <a class="btn btn-secondary" href="{{ route('loans.show', $loan) }}">Kembali</a>
         </div>
     </div>

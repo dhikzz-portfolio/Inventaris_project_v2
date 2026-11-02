@@ -1,0 +1,40 @@
+Implementasi revisi selesai dan sudah diverifikasi pada database lokal (MySQL) serta test suite.
+
+Yang diimplementasikan
+
+Hierarki baru: Kategori → Katalog → Spesifikasi → Unit
+-  specifications  menjadi sumber kebenaran merek + tipe/model. Satu katalog banyak spesifikasi, satu spesifikasi banyak unit.
+- Nilai kosong dinormalisasi otomatis menjadi  Tanpa Merek  /  Tidak Ditentukan  (konstanta di model  Specification ).
+-  AssetUnitService  selalu mengisi  specification_id ; penambahan merek baru tidak membuat katalog baru (reuse lewat  catalog_id  atau nama+kategori).
+- Katalog 3 tingkat:  catalogs.index  (jenis barang) →  catalogs.show  (daftar spesifikasi + search merek/tipe & filter kondisi/status/gedung/ruangan) →  specifications.show  (unit individual + search kode/nama & filter kondisi/status/gedung/lantai/ruangan/tahun + pagination).
+- Semua query tetap memakai  visibleTo() ; URL langsung di luar cakupan menghasilkan 404.
+
+Distribusi berbasis merek/tipe
+- Tabel  distributions  +  distribution_units ;  DistributionService  memvalidasi stok per spesifikasi (unit aktif, tidak dipinjam, belum pernah didistribusikan), menolak jumlah melebihi stok, dan mencatat kode lama/baru tiap unit. Setiap unit dapat didistribusikan sekali; pemindahan berikutnya lewat Mutasi.
+- Halaman  /distribusi  (Ketua Laboran/Wakasek) dengan pilihan katalog → spesifikasi → jumlah → tujuan, ringkasan stok sebelum simpan, dan riwayat distribusi.
+
+Database (migration  2026_10_31_000001_revise_specifications_and_distributions.php , sudah dijalankan)
+-  asset_units.specification_id  diindeks;  acquisition_allocations  mendapat  specification_id  +  provisioned_at .
+- Unique lama  (item_catalog_id, room_id)  diganti index biasa agar beberapa merek bisa masuk ruangan yang sama; duplikasi dalam satu form tetap dicegah validasi  distinct .
+- Unique  (item_catalog_id, brand, model_type)  pada spesifikasi; backfill menghubungkan semua unit/alokasi lama tanpa mengubah kode inventaris. Verifikasi DB: 41 spesifikasi, 0 unit tanpa spesifikasi, 0 alokasi tanpa spesifikasi.
+
+Form pengadaan kini punya katalog existing/baru, kategori, merek (datalist merek terdaftar), tipe/model, jumlah, dan distribusi lokasi. Merek/tipe tersimpan sebagai spesifikasi dan diwarisi ke setiap unit.
+
+Seeder ( DemoInventorySeeder ) membuat spesifikasi per merek: Kursi Umum — Futura 20 unit (dua ruangan), Chitose 15 unit (2 rusak), Tanpa Merek/Tidak Ditentukan 5 unit, plus unit kondisi/lokasi berbeda. Seeder idempoten (katalog berisi unit dilewati) dan  MasterDataSeeder  tidak lagi membuat spesifikasi yatim. Factory  Building / User  tidak terdampak (tidak ada perubahan skema pada keduanya).
+
+Pengujian
+
+-  SpecificationDistributionTest : 13 tes lulus;  InventoryCoreTest  diperbarui untuk hierarki baru.
+- Kelompok regresi terkait (pengadaan, katalog, hapus katalog, seeder): 46 tes lulus.
+- Suite penuh: 295 lulus, 1 gagal, 1450 assertions. Kegagalan  RegistrationTest::test_sapaan_dashboard_memakai_nama_lengkap_dan_gelar  terbukti juga gagal pada kode sebelum revisi (diverifikasi via stash), jadi bukan regresi pekerjaan ini.
+-  vendor/bin/pint --dirty  lulus.
+
+Dokumentasi diperbarui
+
+ docs/DATABASE.md  (tabel/relasi/ERD/aturan stok/migration/seeder),  docs/TESTING.md  (bagian 13 + hasil suite),  docs/USER_GUIDE.md  (tiga tingkat katalog, pengadaan merek/tipe, distribusi),  docs/PROJECT_STATUS.md .
+
+Perlu perhatian
+
+- Satu-satunya kegagalan suite adalah bug lama sapaan dashboard ( greetingName()  vs  displayName() ), di luar cakupan revisi ini.
+- Penambahan stok ke katalog yang sudah  APPROVED  oleh Wakasek langsung menerbitkan unit; pengajuan oleh Ketua Laboran atas katalog baru tetap menunggu approval. Aturan ini didokumentasikan, tetapi belum ada entitas "pengajuan stok" terpisah bila kelak dibutuhkan.
+- Alokasi pengadaan kini boleh berulang untuk katalog+ruangan yang sama (batch pembelian); tidak ada unique pengaman di level DB, hanya validasi form.

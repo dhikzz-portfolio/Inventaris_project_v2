@@ -6,7 +6,7 @@ Testing: SQLite `:memory:` (lihat `phpunit.xml`).
 
 Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan mengubah tabel manual di produksi.
 
-> **Status dokumen (26 Oktober 2026).** Dokumen ini memuat skema katalog/unit yang **sudah berjalan** di aplikasi, termasuk revisi besar V2: profil registrasi (`users.degree`, `class_name`, `email_verified_at`), alokasi pengadaan (`acquisition_allocations`), status kegiatan (`events.status`), soft delete arsip laporan (`reports.deleted_at`), dan penghapusan kolom `item_catalogs.asset_code`. Yang masih tersisa hanyalah **pembukuan kuantitas warisan** pada tabel `items` (lihat `KNOWN_ISSUES.md` butir 1 & 3); rencana migrasi warisan ada di bagian 6. Rincian revisi: `REVISION_V2.md`.
+> **Status dokumen (31 Oktober 2026).** Dokumen ini memuat skema katalog/unit yang **sudah berjalan** di aplikasi, termasuk revisi hierarki **Kategori → Katalog → Spesifikasi → Unit** (tabel `specifications`, `asset_units.specification_id`, `acquisition_allocations.specification_id`, `distributions`, `distribution_units`) serta revisi besar V2: profil registrasi (`users.degree`, `class_name`, `email_verified_at`), alokasi pengadaan (`acquisition_allocations`), status kegiatan (`events.status`), soft delete arsip laporan (`reports.deleted_at`), dan penghapusan kolom `item_catalogs.asset_code`. Yang masih tersisa hanyalah **pembukuan kuantitas warisan** pada tabel `items` (lihat `KNOWN_ISSUES.md` butir 1 & 3); rencana migrasi warisan ada di bagian 6. Rincian revisi: `REVISION_V2.md`.
 
 ## 1. Daftar tabel
 
@@ -18,14 +18,17 @@ Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan m
 | `rooms`                                                                                           | Ruangan: gedung (relasi), lantai, nomor ruangan, jurusan, penanda laboratorium.                              | Berubah        |
 | `categories`                                                                                      | Kategori/klasifikasi barang dan kode aset.                                                                   | Ada            |
 | `item_catalogs`                                                                                   | **Katalog jenis barang** (definisi, tanpa lokasi dan tanpa jumlah manual).                                   | Baru           |
-| `asset_units`                                                                                     | **Unit inventaris fisik**; satu baris = satu barang, termasuk kode aktif.                                    | Baru           |
+| `asset_units`                                                                                     | **Unit inventaris fisik**; satu baris = satu barang, termasuk kode aktif dan spesifikasinya.                  | Baru           |
+| `specifications`                                                                                  | **Spesifikasi barang**: pasangan merek + tipe/model milik satu katalog.                                       | Baru           |
+| `distributions`                                                                                   | **Distribusi barang** per spesifikasi ke ruangan tujuan (kepala distribusi).                                  | Baru           |
+| `distribution_units`                                                                              | Unit fisik yang dialokasikan pada satu distribusi; satu unit hanya sekali.                                    | Baru           |
 | `asset_unit_codes`                                                                                | Buku besar seluruh kode yang pernah diterbitkan (aktif + pensiun).                                           | Baru           |
 | `asset_unit_movements`                                                                            | Riwayat perpindahan unit (asal, tujuan, kode lama, kode baru, petugas).                                      | Baru           |
 | `maintenance_records`                                                                             | Riwayat pemeliharaan perbaikan per unit.                                                                     | Baru           |
 | `user_room_scopes`                                                                                | Penetapan cakupan laboratorium/ruangan untuk Laboran/K3.                                                     | Baru           |
 | `loan_item_units`                                                                                 | Penugasan unit fisik pada baris peminjaman (saat serah terima).                                              | Baru           |
 | `events`                                                                                          | Kegiatan untuk mengikat peminjaman dan BAST gabungan + status pelaksanaan tersimpan.                         | Berubah        |
-| `acquisition_allocations`                                                                         | **Alokasi pengadaan multi-lokasi**: jumlah unit per ruangan untuk satu katalog pengadaan.                    | Baru           |
+| `acquisition_allocations`                                                                         | **Alokasi pengadaan multi-lokasi**: jumlah unit per ruangan untuk satu spesifikasi pengadaan.                | Berubah        |
 | `loans`                                                                                           | Header peminjaman (peminjam, periode, status transaksi, status dokumen).                                     | Berubah        |
 | `loan_items`                                                                                      | Baris barang dalam peminjaman + kuantitas kembali/rusak/hilang.                                              | Berubah        |
 | `loan_approvals`                                                                                  | Jejak approval berjenjang + tanda tangan gambar.                                                             | Ada            |
@@ -70,7 +73,7 @@ Index:
 | -------------------------- | ----------------------------- | ------------------------------------------------------------- |
 | `id`                       | bigint PK                     | Stabil; dipakai URL QR agar tidak berubah saat mutasi.        |
 | `item_catalog_id`          | FK `item_catalogs`            | Katalog induk.                                                |
-| `inventory_code`           | varchar(8) unique             | Kode aktif, mis. `G1-02-12`. Kanonik huruf kapital.           |
+| `specification_id`         | FK `specifications` nullable  | Spesifikasi (merek + tipe/model). Diisi otomatis bila kosong. || `inventory_code`           | varchar(12) unique           | Kode aktif, mis. `G1-02-R12-01` (`[gedung+lantai]-[ruangan]-[kode jenis 3 digit]-[nomor unit]`). Kanonik huruf kapital. |
 | `room_id`                  | FK `rooms`                    | Lokasi aktif.                                                 |
 | `unit_no`                  | unsignedTinyInteger           | 1–99; bagian ketiga kode.                                     |
 | `condition`                | string default `BAIK`         | `BAIK`, `RUSAK_RINGAN`, `RUSAK_BERAT` (`Condition`).          |
@@ -92,7 +95,7 @@ Index:
 - `unique(inventory_code)`.
 - `unique(room_id, unit_no)` — menegakkan nomor unik per ruangan untuk unit aktif.
 - `unique(item_catalog_id, register_no)` — nomor register unik dalam katalog; `NULL` berulang diizinkan sesuai dialek.
-- `index(item_catalog_id)`, `index(room_id, status)`, `index(status, condition)`, `index(acquisition_date)`.
+- `index(item_catalog_id)`, `index(specification_id)`, `index(room_id, status)`, `index(status, condition)`, `index(acquisition_date)`.
 - Pencarian kode memakai prefix index pada `inventory_code`; pencarian katalog memakai `index(name)` pada `item_catalogs`.
 
 Catatan: `inventory_code` sengaja **diredundansi** dari `asset_unit_codes` yang aktif untuk mempercepat pencarian dan unique constraint. Konsistensi dijaga transaksi; perintah `inventory:verify-codes` mencocokkan keduanya secara berkala.
@@ -105,7 +108,7 @@ Mencatat **setiap** kode yang pernah diterbitkan, termasuk yang sudah pensiun. T
 | -------------------------- | ------------------- | ----------------------------------------------------------------------- |
 | `id`                       | bigint PK           |                                                                         |
 | `asset_unit_id`            | FK `asset_units`    | Unit pemilik kode.                                                      |
-| `inventory_code`           | varchar(8) unique   | Kode yang diterbitkan; unik seumur hidup.                               |
+| `inventory_code`           | varchar(12) unique           | Kode yang diterbitkan; unik seumur hidup.                               |
 | `room_id`                  | FK `rooms`          | Ruangan saat kode diterbitkan.                                          |
 | `unit_no`                  | unsignedTinyInteger | Nomor unit saat kode diterbitkan.                                       |
 | `issued_at`                | timestamp           | Waktu terbit.                                                           |
@@ -129,8 +132,8 @@ Konsekuensi yang disengaja: kapasitas satu ruangan adalah 99 nomor **seumur hidu
 | `asset_unit_id`            | FK `asset_units` |                                     |
 | `from_room_id`             | FK `rooms`       | Ruangan asal.                       |
 | `to_room_id`               | FK `rooms`       | Ruangan tujuan.                     |
-| `old_code`                 | varchar(8)       | Kode sebelum mutasi (kode pensiun). |
-| `new_code`                 | varchar(8)       | Kode setelah mutasi.                |
+| `old_code`                 | varchar(12)      | Kode sebelum mutasi (kode pensiun). |
+| `new_code`                 | varchar(12)      | Kode setelah mutasi.                |
 | `moved_by`                 | FK `users`       | Petugas.                            |
 | `moved_at`                 | timestamp        | Waktu perpindahan.                  |
 | `reason`                   | string nullable  | Alasan mutasi.                      |
@@ -276,13 +279,15 @@ Role **tidak** ditentukan oleh kolom input registrasi. `users.role` dan role Spa
 | ----------------- | --------------------- | ------------------------------------------------------------- |
 | `id`              | bigint PK             |                                                               |
 | `item_catalog_id` | FK `item_catalogs`    | Katalog pengadaan; cascade saat katalog dihapus permanen.     |
+| `specification_id`| FK `specifications` nullable | Spesifikasi (merek + tipe/model) yang dialokasikan.    |
 | `room_id`         | FK `rooms`            | Lokasi tujuan alokasi.                                        |
 | `quantity`        | unsignedInteger       | Jumlah unit di lokasi tersebut; total seluruh baris = jumlah pengadaan. |
+| `provisioned_at`  | timestamp nullable    | Diisi saat unit fisik untuk baris ini sudah diterbitkan.       |
 | `created_at`, `updated_at` | timestamp    |                                                               |
 
-Index `unique(item_catalog_id, room_id)` — satu ruangan hanya boleh muncul sekali per pengadaan; jumlah tambahan diubah pada baris yang sama. Unit fisik dibuat dari baris alokasi ini saat pengadaan disetujui; kode unit tetap diterbitkan `InventoryCodeService` dan tidak disimpan di tabel alokasi.
+Index `index(item_catalog_id, room_id)` — unique lama `(item_catalog_id, room_id)` **dihapus** karena satu ruangan kini boleh menerima beberapa spesifikasi (merek/tipe) dari katalog yang sama. Duplikasi dalam satu form tetap dicegah validasi `distinct` pada `room_id`. Unit fisik dibuat dari baris alokasi yang `provisioned_at` masih `NULL`; kode unit tetap diterbitkan `InventoryCodeService` dan tidak disimpan di tabel alokasi.
 
-### 2.14 `events` — status pelaksanaan
+### 2.16 `events` — status pelaksanaan
 
 | Kolom        | Tipe                       | Keterangan                                                                                     |
 | ------------ | -------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -291,7 +296,7 @@ Index `unique(item_catalog_id, room_id)` — satu ruangan hanya boleh muncul sek
 
 Status kegiatan **tidak** mengubah status persetujuan peminjaman terkait. Relasi `loans.event_id` tetap opsional; peminjaman biasa tidak wajib memiliki kegiatan.
 
-### 2.15 `reports` — penghapusan arsip
+### 2.17 `reports` — penghapusan arsip
 
 | Kolom        | Tipe                | Keterangan                                                                 |
 | ------------ | ------------------- | -------------------------------------------------------------------------- |
@@ -299,9 +304,53 @@ Status kegiatan **tidak** mengubah status persetujuan peminjaman terkait. Relasi
 
 Penghapusan arsip **tidak** menyentuh `asset_units`, `loans`, `write_offs`, atau data inventaris sumber. Hanya Super Admin (seluruh arsip) dan pembuat laporan (arsip sendiri) yang dapat menghapus; tidak ada persetujuan admin kedua.
 
-### 2.16 `item_catalogs.asset_code` dihapus
+### 2.14 `specifications` (merek + tipe/model)
 
-Kolom `asset_code` dan unique index `(asset_code, register_no)` dihapus melalui migration `2026_10_26_202332_drop_asset_code_from_item_catalogs.php` setelah seluruh tampilan, label, QR, laporan, ekspor, dan seeder berhenti memakainya. `register_no` tetap ada sebagai nomor register administratif opsional, bukan kode identitas kedua. Identitas unit adalah `asset_units.inventory_code` (mis. `G1-01-01`) yang juga tercatat di `asset_unit_codes`. Migration memeriksa keberadaan kolom/index sehingga aman dijalankan pada database yang sudah bersih.
+| Kolom                      | Tipe                        | Keterangan                                                              |
+| -------------------------- | --------------------------- | ----------------------------------------------------------------------- |
+| `id`                       | bigint PK                   |                                                                         |
+| `item_catalog_id`          | FK `item_catalogs`          | Katalog induk; cascade saat katalog dihapus permanen.                   |
+| `brand`                    | varchar(100) default `''`   | Merek. Nilai kosong selalu dinormalisasi menjadi `Tanpa Merek`.          |
+| `model_type`               | varchar(100) default `''`   | Tipe/model. Nilai kosong dinormalisasi menjadi `Tidak Ditentukan`.       |
+| `description`              | text nullable               | Catatan teknis spesifikasi.                                              |
+| `spec_code`                | varchar(50) unique          | Kode internal, dibuat sistem (`SPK-C{catalog}-{urut}`).                  |
+| `created_at`, `updated_at` | timestamp                   |                                                                         |
+
+Index: `unique(item_catalog_id, brand, model_type)` (identity), `unique(spec_code)`, `index(item_catalog_id, brand, model_type)`.
+
+Aturan:
+
+- Satu katalog memiliki **banyak** spesifikasi; jangan membuat katalog baru hanya karena merek/tipe berbeda.
+- Satu spesifikasi memiliki banyak unit inventaris (`asset_units.specification_id`).
+- `Specification::resolveFor(Item $catalog, ?string $brand, ?string $modelType)` adalah satu-satunya jalur pencarian/pembuatan spesifikasi; nilai kosong dinormalisasi ke konstanta `Tanpa Merek` / `Tidak Ditentukan`.
+- Migration `2026_10_31_000001_revise_specifications_and_distributions.php` menggabungkan spesifikasi duplikat dan menghubungkan seluruh unit/alokasi lama ke spesifikasi katalognya tanpa mengubah kode inventaris.
+
+### 2.15 `distributions` dan `distribution_units`
+
+`distributions` (kepala distribusi):
+
+| Kolom              | Tipe               | Keterangan                                             |
+| ------------------ | ------------------ | ------------------------------------------------------ |
+| `id`               | bigint PK          |                                                        |
+| `item_catalog_id`  | FK `item_catalogs` | Katalog yang didistribusikan.                          |
+| `specification_id` | FK `specifications`| Spesifikasi (merek + tipe/model) sumber unit.          |
+| `to_room_id`       | FK `rooms`         | Ruangan tujuan.                                        |
+| `quantity`         | unsignedInteger    | Jumlah unit yang benar-benar dipindahkan.              |
+| `distributed_by`   | FK `users` nullable| Petugas pelaksana.                                     |
+| `distributed_at`   | timestamp          | Waktu distribusi.                                      |
+| `note`             | text nullable      | Catatan.                                               |
+
+`distribution_units` (rincian per unit): `id`, `distribution_id` (FK cascade), `asset_unit_id` (FK, **unique** — satu unit hanya boleh didistribusikan sekali), `from_room_id`, `to_room_id`, `old_code`, `new_code`, timestamps.
+
+Aturan stok distribusi (`DistributionService` + `Specification::distributableQuery()`):
+
+- Stok dihitung dari unit **spesifikasi tersebut** yang `status = AKTIF`, tidak memiliki penugasan pinjaman terbuka, dan belum tercatat di `distribution_units`.
+- Merek/tipe lain tidak pernah ikut dihitung; jumlah melebihi stok ditolak dengan `ValidationException`.
+- Setiap unit dipindahkan lewat `InventoryCodeService::move()` sehingga kode baru, kode pensiun, dan riwayat mutasi tetap tercatat; `distribution_units.old_code`/`new_code` menyimpan jejaknya.
+
+### 2.18 `item_catalogs.asset_code` dihapus
+
+Kolom `asset_code` dan unique index `(asset_code, register_no)` dihapus melalui migration `2026_10_26_202332_drop_asset_code_from_item_catalogs.php` setelah seluruh tampilan, label, QR, laporan, ekspor, dan seeder berhenti memakainya. `register_no` tetap ada sebagai nomor register administratif opsional, bukan kode identitas kedua. Identitas unit adalah `asset_units.inventory_code` (mis. `G1-01-R12-01`) yang juga tercatat di `asset_unit_codes`. Migration memeriksa keberadaan kolom/index sehingga aman dijalankan pada database yang sudah bersih.
 
 ## 3. ERD
 
@@ -319,7 +368,11 @@ majors 1─n rooms n─1 buildings
 loans 1─n loan_items n─1 item_catalogs
 loans 1─n loan_approvals n─1 users
 loan_items 1─n loan_item_units n─1 asset_units
+categories 1─n item_catalogs 1─n specifications 1─n asset_units
 item_catalogs 1─n acquisition_allocations n─1 rooms
+item_catalogs 1─n distributions n─1 specifications
+specifications 1─n distributions n─1 rooms (tujuan)
+distributions 1─n distribution_units n─1 asset_units
 users 1─n reports (generated_by)
 users 1─n loans
 events 1─n loans
@@ -336,6 +389,8 @@ items 1─n write_offs (legacy_item_id)
 Aturan relasi:
 
 - Satu katalog memiliki banyak unit; setiap unit memiliki tepat satu katalog.
+- Satu katalog memiliki banyak spesifikasi; setiap unit memiliki tepat satu spesifikasi (dijaga `AssetUnitService`).
+- Setiap distribusi terikat pada satu spesifikasi dan satu ruangan tujuan; rincian unit tidak boleh memuat unit milik spesifikasi lain.
 - Setiap ruangan terikat ke **tepat satu master gedung** (`rooms.building_id`); `rooms.building_letter` adalah salinan yang dijaga sinkron dan tidak boleh dipakai sebagai sumber kebenaran.
 - Setiap unit memiliki tepat satu lokasi aktif yang valid (`room_id` wajib, `rooms` wajib punya `building_letter`, `floor`, `room_no`).
 - Setiap unit memiliki tepat satu kode aktif (`asset_unit_codes.revoked_at IS NULL`), dan kode tersebut sama dengan `asset_units.inventory_code`.
@@ -344,7 +399,7 @@ Aturan relasi:
 
 ## 4. Aturan kode inventaris di database
 
-1. Format kanonik: `^[A-Z][1-9]-[0-9]{2}-[0-9]{2}$`.
+1. Format kanonik: `^[A-Z][1-9]-[0-9]{2}-[0-9]{3}-[0-9]{2}$` — `[gedung+lantai]`-`[ruangan 2 digit]`-`[kode jenis barang 3 digit]`-`[nomor unit 2 digit]` (contoh `G1-02-R12-01`).
 2. `asset_units.inventory_code` unik; `asset_unit_codes.inventory_code` unik lintas aktif/pensiun.
 3. `asset_unit_codes(room_id, unit_no)` unik **selamanya** — mencegah nomor dipakai ulang setelah pindah/penghapusan.
 4. `rooms(building_letter, floor, room_no)` unik — mencegah dua ruangan berbagi prefix/segmen kode yang sama.
@@ -362,8 +417,9 @@ WHERE room_id = :room_id;
 ```
 segmen1 = rooms.building_letter || rooms.floor      # huruf dari master gedung
 segmen2 = lpad(rooms.room_no, 2, '0')
-segmen3 = lpad(unit_no, 2, '0')
-kode    = segmen1 || '-' || segmen2 || '-' || segmen3
+segmen3 = kode jenis barang 3 digit (item_type_code pada item_catalogs)
+segmen4 = lpad(unit_no, 2, '0')
+kode    = segmen1 || '-' || segmen2 || '-' || segmen3 || '-' || segmen4
 ```
 
 > `rooms.building_letter` selalu berasal dari `buildings.code` (master gedung). Identitas gedung tidak boleh diketik bebas pada formulir ruangan.
@@ -373,6 +429,9 @@ kode    = segmen1 || '-' || segmen2 || '-' || segmen3
 ## 5. Model kuantitas & ketersediaan
 
 - **Jumlah unit katalog** = `COUNT(asset_units)` dengan `status != 'DIHAPUS'` dan sesuai cakupan akses.
+- **Jumlah unit spesifikasi** = unit dengan `specification_id` tersebut dan `status != 'DIHAPUS'`. Jumlah katalog adalah jumlah seluruh unit spesifikasinya; tidak ada kolom agregasi terpisah yang bisa bertentangan.
+- **Stok distribusi** = unit spesifikasi berstatus `AKTIF`, tanpa penugasan pinjaman terbuka, dan belum ada di `distribution_units`.
+- **Tersedia per spesifikasi** = unit `AKTIF` + kondisi `BAIK` + tanpa penugasan terbuka pada spesifikasi tersebut.
 - **Tersedia** = unit `status = 'AKTIF'` dan `condition = 'BAIK'` yang tidak memiliki penugasan terbuka (`loan_item_units.returned_at IS NULL`) dan tidak dibooking pada rentang tanggal yang diminta.
 - **Booking tanggal** tetap dihitung dari irisan `loans.start_date`–`loans.due_date` berstatus `PENDING`/`APPROVED`/`DIPINJAM`, dikonversi ke jumlah unit per katalog.
 - **Dipinjam** = unit dengan penugasan terbuka pada loan `APPROVED`/`DIPINJAM`, atau `status = 'DIPINJAM'` untuk data legacy.
@@ -432,6 +491,10 @@ Karena itu backfill tidak boleh menebak. Sekolah harus menetapkan pemetaan huruf
 2026_10_24_000001_rename_admin_sarpras_role_to_ketua_laboran.php
 2026_10_24_000002_add_borrower_type_to_users_table.php
 2026_10_24_000003_add_archive_columns_to_item_catalogs.php
+2026_10_26_202330_create_acquisition_allocations_table.php
+2026_10_28_200000_create_specifications_table.php
+2026_10_28_210000_add_specification_id_to_asset_units.php
+2026_10_31_000001_revise_specifications_and_distributions.php
 ```
 
 Migration terakhir (`normalize_room_codes_and_internal_ids_to_building_master`) memetakan gedung lama → master gedung, menulis ulang `rooms.code` & `rooms.building_letter`, memperbarui `internal_id` katalog, dan **tidak menyentuh kode unit yang sudah terbit** (`asset_unit_codes`).
@@ -447,7 +510,16 @@ Migration terakhir (`normalize_room_codes_and_internal_ids_to_building_master`) 
 
 ## 7. Seeder & akun demo
 
-Seeder dipisah: `MasterDataSeeder` (role, instansi, 5 jurusan, **9 gedung**, 18 ruangan, 5 kategori), `DemoAccountSeeder`, `DemoInventorySeeder`, dan `DemoLoanSeeder`. `DatabaseSeeder` memanggil keempatnya. Semua memakai `firstOrCreate`/`updateOrCreate` dan **tidak mereset password akun yang sudah ada** atau menghapus transaksi. Master gedung resmi **A–G** ditambahkan idempoten; **H dan I** dipertahankan karena seluruh ruangan/unit demo historis masih terelasi ke sana. Jangan menonaktifkan H/I sebelum data dipindahkan (lihat `REVISION_V2.md`).
+Seeder dipisah: `MasterDataSeeder` (role, instansi, 5 jurusan, **9 gedung**, 18 ruangan, 5 kategori), `DemoAccountSeeder`, `DemoInventorySeeder`, dan `DemoLoanSeeder`.
+
+`DemoInventorySeeder` kini membuat **spesifikasi per merek + tipe/model** sebelum unit, termasuk demo:
+
+- satu katalog dengan beberapa merek: **Kursi Umum** — Futura / Kursi Plastik Tipe A (20 unit, dua ruangan), Chitose / Kursi Susun (15 unit, 2 rusak), Tanpa Merek / Tidak Ditentukan (5 unit);
+- satu spesifikasi tersebar ke beberapa ruangan;
+- unit dengan kondisi/status berbeda;
+- barang tanpa merek dan tanpa tipe/model.
+
+Seeder berhenti menambah unit bila katalog sudah memiliki unit, sehingga aman dijalankan berulang tanpa menggandakan katalog, spesifikasi, unit, atau transaksi operasional. `DatabaseSeeder` memanggil keempatnya. Semua memakai `firstOrCreate`/`updateOrCreate` dan **tidak mereset password akun yang sudah ada** atau menghapus transaksi. Master gedung resmi **A–G** ditambahkan idempoten; **H dan I** dipertahankan karena seluruh ruangan/unit demo historis masih terelasi ke sana. Jangan menonaktifkan H/I sebelum data dipindahkan (lihat `REVISION_V2.md`).
 
 | Username        | Password     | Role            | Kategori  | Cakupan                              |
 | --------------- | ------------ | --------------- | --------- | ------------------------------------ |

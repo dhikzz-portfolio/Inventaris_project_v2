@@ -140,6 +140,6 @@
 </table>
 
 <div class="footer">
-    Dokumen digenerate otomatis oleh Sistem Manajemen Inventaris &amp; Aset Sekolah — {{ $setting->institution_name }}<br>
+    Dokumen dibuat otomatis oleh Sistem Manajemen Inventaris &amp; Aset Sekolah — {{ $setting->institution_name }}<br>
     Diterbitkan oleh: {{ $loan->handoverOfficer?->name ?? $loan->approvals->last()?->approver?->name ?? 'Sistem' }} • {{ now()->format('d M Y H:i') }} • Ref: {{ $documentNumber }}
 </div>

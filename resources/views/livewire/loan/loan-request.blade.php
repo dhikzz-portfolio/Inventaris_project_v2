@@ -256,7 +256,7 @@
 
     {{-- Form pengajuan --}}
     <div id="loan-request-form" class="order-3 scroll-mt-24 lg:col-span-2 lg:order-none">
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-20">
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain">
             <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">edit_note</span> 3. Detail pengajuan
             </h3>
@@ -296,7 +296,6 @@
                             <option value="{{ $event->id }}">{{ $event->name }} ({{ $event->start_date->format('d/m') }}–{{ $event->end_date->format('d/m/Y') }})</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Peminjaman dalam satu kegiatan tercatat dalam satu dokumen BAST (Berita Acara Serah Terima).</p>
                 </div>
 
                 <button wire:click="submit" wire:loading.attr="disabled"
@@ -305,14 +304,6 @@
                     <span wire:loading wire:target="submit" class="material-icons-round text-lg animate-spin">progress_activity</span>
                     Kirim pengajuan
                 </button>
-
-                <p class="text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                    @if (auth()->user()->isPeminjam())
-                        Pengajuan akan ditinjau oleh petugas. Barang bernilai tinggi memerlukan persetujuan berjenjang dari Laboran dan Wakasek. Dokumen dapat dicetak untuk ditandatangani secara fisik.
-                    @else
-                        Barang bernilai tinggi memerlukan persetujuan berjenjang dari Laboran dan Wakasek. Tanda tangan digital bersifat opsional; dokumen juga dapat ditandatangani secara fisik.
-                    @endif
-                </p>
             </div>
         </div>
 

@@ -14,7 +14,7 @@
                 @if (auth()->user()->managesInventory())
                     <a href="{{ route('events.bast', $event) }}" target="_blank"
                        class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span class="material-icons-round text-lg">description</span> BAST Gabungan (PDF)
+                        <span class="material-icons-round text-lg">description</span> Berita Acara Gabungan (PDF)
                     </a>
                 @endif
                 <a href="{{ route('events.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Semua kegiatan</a>
@@ -67,7 +67,7 @@
                             </ul>
                             @if ($loan->bast_path)
                                 <a href="{{ route('loans.bast', $loan) }}" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 font-semibold hover:underline">
-                                    <span class="material-icons-round text-sm">description</span> BAST/Surat pinjaman ini
+                                    <span class="material-icons-round text-sm">description</span> Berita Acara pinjaman ini
                                 </a>
                             @endif
                         </div>
@@ -149,7 +149,7 @@
                 <ol class="list-decimal ms-4 space-y-1.5 text-gray-600 text-xs">
                     <li>Peminjam mengajukan peminjaman <strong>dengan memilih kegiatan ini</strong>.</li>
                     <li>Laboran menyetujui (Wakasek untuk barang bernilai tinggi).</li>
-                    <li>BAST/Surat Peminjaman Resmi digenerate otomatis (PDF siap tanda tangan).</li>
+                    <li>Berita Acara resmi dibuat otomatis (PDF siap tanda tangan).</li>
                     <li>Seluruh barang dikembalikan & dilaporkan sebagai <strong>satu paket</strong>.</li>
                 </ol>
             </div>

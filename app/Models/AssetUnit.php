@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AssetUnit extends Model
 {
     protected $fillable = [
-        'item_catalog_id', 'inventory_code', 'room_id', 'unit_no',
+        'item_catalog_id', 'specification_id', 'inventory_code', 'room_id', 'unit_no',
         'condition', 'status', 'acquisition_date', 'acquisition_year',
         'acquisition_value', 'funding_source', 'acquisition_source',
         'register_no', 'photo_path', 'notes', 'last_label_printed_at', 'archived_at',
@@ -60,6 +61,12 @@ class AssetUnit extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(AssetUnitMovement::class);
+    }
+
+    /** Catatan distribusi bila unit ini dialokasikan lewat menu distribusi. */
+    public function distributionUnit(): HasOne
+    {
+        return $this->hasOne(DistributionUnit::class);
     }
 
     public function maintenanceRecords(): HasMany

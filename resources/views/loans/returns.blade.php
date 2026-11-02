@@ -52,7 +52,7 @@
                     </div>
                     <a href="{{ route('loans.return-form', $loan) }}"
                        class="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800 md:w-auto md:py-2.5 dark:focus:ring-offset-slate-900">
-                        <span class="material-icons-round text-lg">fact_check</span> Validasi Pengembalian
+                        <span class="material-icons-round text-lg">fact_check</span> Periksa Pengembalian
                     </a>
                 </article>
             @endforeach

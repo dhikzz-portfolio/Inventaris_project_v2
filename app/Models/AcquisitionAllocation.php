@@ -7,11 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AcquisitionAllocation extends Model
 {
-    protected $fillable = ['item_catalog_id', 'room_id', 'quantity'];
+    protected $fillable = ['item_catalog_id', 'specification_id', 'room_id', 'quantity', 'provisioned_at'];
 
     protected function casts(): array
     {
-        return ['quantity' => 'integer'];
+        return [
+            'quantity' => 'integer',
+            'provisioned_at' => 'datetime',
+        ];
     }
 
     public function catalog(): BelongsTo
@@ -22,5 +25,11 @@ class AcquisitionAllocation extends Model
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
+    }
+
+    /** Spesifikasi (merek + tipe/model) yang dialokasikan. */
+    public function specification(): BelongsTo
+    {
+        return $this->belongsTo(Specification::class);
     }
 }

@@ -1,6 +1,6 @@
 # Panduan Pengguna
 
-> **Catatan versi (26 Oktober 2026 — revisi V2).** Aplikasi memakai model katalog + unit fisik dan kode `G1-02-12`. Role resmi: **Wakasek Sarpras**, **Ketua Laboran**, **Laboran/K3**, dan **Peminjam**. Role lama `ADMIN_SARPRAS` sudah dimigrasikan menjadi `KETUA_LABORAN`.
+> **Catatan versi (26 Oktober 2026 — revisi V2).** Aplikasi memakai model katalog + unit fisik dan kode `[gedung+lantai]-[ruangan 2 digit]-[kode jenis 3 digit]-[nomor unit 2 digit]` (`G1-02-R12-01`). Role resmi: **Wakasek Sarpras**, **Ketua Laboran**, **Laboran/K3**, dan **Peminjam**. Role lama `ADMIN_SARPRAS` sudah dimigrasikan menjadi `KETUA_LABORAN`.
 
 ## 1. Masuk & navigasi
 
@@ -10,56 +10,65 @@
 
 ## 2. Matriks akses
 
-| Fitur                                   | Super Admin | Ketua Laboran | Laboran/K3 | Peminjam  |
-| --------------------------------------- | :---------: | :-----------: | :--------: | :-------: |
-| Dashboard                               |   ✔ semua   |    ✔ semua    | ✔ jurusan  | ✔ pribadi |
-| Katalog & detail barang                 |      ✔      |       ✔       |     ✔      | ✔ terintegrasi di halaman peminjaman |
-| Ajukan peminjaman                       |      ✔      |       ✔       |     ✔      |     ✔     |
-| Setujui pinjaman level 1                |      ✔      | ✔ semua lab   | ✔ lab sendiri/otomatis | — |
-| Setujui pinjaman level 2 (nilai tinggi) |      ✔      |       —       |     —      |     —     |
-| Serah terima & pengembalian             |      ✔      |       ✔       | ✔ jurusan  |     —     |
-| Pengadaan (ajukan)                      |      ✔      |       ✔       |     —      |     —     |
-| Approval pengadaan                      |      ✔      |       —       |     —      |     —     |
-| Mutasi lokasi                           |      ✔      |       ✔       |     —      |     —     |
-| Penghapusan (ajukan)                    |      ✔      |       ✔       |     —      |     —     |
-| Approval penghapusan                    |      ✔      |       —       |     —      |     —     |
-| Cetak label                            |      ✔      |       ✔       |     ✔      |     —     |
-| Scan QR (hasil di halaman scan)        |      ✔      |       ✔       |     ✔      |     ✔     |
-| Laporan & ekspor                        |      ✔      |       ✔       |     —      |     —     |
-| Master data                             |      ✔      |       ✔       |     —      |     —     |
-| Pengguna & pengaturan instansi          |      ✔      |       —       |     —      |     —     |
+| Fitur                                   | Super Admin | Ketua Laboran |       Laboran/K3       |               Peminjam               |
+| --------------------------------------- | :---------: | :-----------: | :--------------------: | :----------------------------------: |
+| Dashboard                               |   ✔ semua   |    ✔ semua    |       ✔ jurusan        |              ✔ pribadi               |
+| Katalog & detail barang                 |      ✔      |       ✔       |           ✔            | ✔ terintegrasi di halaman peminjaman |
+| Ajukan peminjaman                       |      ✔      |       ✔       |           ✔            |                  ✔                   |
+| Setujui pinjaman level 1                |      ✔      |  ✔ semua lab  | ✔ lab sendiri/otomatis |                  —                   |
+| Setujui pinjaman level 2 (nilai tinggi) |      ✔      |       —       |           —            |                  —                   |
+| Serah terima & pengembalian             |      ✔      |       ✔       |       ✔ jurusan        |                  —                   |
+| Pengadaan (ajukan)                      |      ✔      |       ✔       |           —            |                  —                   |
+| Approval pengadaan                      |      ✔      |       —       |           —            |                  —                   |
+| Mutasi lokasi                           |      ✔      |       ✔       |           —            |                  —                   |
+| Penghapusan (ajukan)                    |      ✔      |       ✔       |           —            |                  —                   |
+| Approval penghapusan                    |      ✔      |       —       |           —            |                  —                   |
+| Cetak label                             |      ✔      |       ✔       |           ✔            |                  —                   |
+| Scan QR (hasil di halaman scan)         |      ✔      |       ✔       |           ✔            |                  ✔                   |
+| Laporan & ekspor                        |      ✔      |       ✔       |           —            |                  —                   |
+| Master data                             |      ✔      |       ✔       |           —            |                  —                   |
+| Pengguna & pengaturan instansi          |      ✔      |       —       |           —            |                  —                   |
 
 Pemetaan istilah: **Super Admin** = `SUPER_ADMIN` (Wakasek Sarpras), **Ketua Laboran** = `KETUA_LABORAN`, **Laboran/K3** = `LABORAN`, **Peminjam** = `PEMINJAM`. Kategori peminjam (siswa/guru/staf) disimpan di `users.borrower_type`, bukan sebagai role tambahan.
 
 **⚠ 2.1 — cakupan katalog:** Super Admin melihat semua unit (termasuk ruang umum). Ketua Laboran hanya melihat unit di ruangan laboratorium pada semua jurusan. Laboran/K3 hanya melihat unit pada laboratorium yang ditetapkan untuk akunnya. Batas ini berlaku juga untuk pencarian kode, filter, URL langsung, dan ekspor.
 
-## 3. Katalog & detail unit (⚠ 2.1)
+## 3. Katalog & detail unit (⚠ revisi 31 Oktober 2026)
 
-### Melihat katalog
+Katalog kini bertingkat tiga: **katalog (jenis barang) → spesifikasi (merek + tipe/model) → unit inventaris**.
+
+### Tingkat 1 — daftar katalog
 
 1. Buka menu **Katalog**.
-2. Setiap baris mewakili **jenis barang** (mis. Kursi), bukan satu barang fisik.
-3. Angka **Jumlah Unit** adalah jumlah unit aktif yang dihitung sistem dan dibatasi cakupan akses Anda.
-4. Gunakan pencarian, filter (kategori/gedung/lantai/ruangan/ketersediaan), dan pagination. Filter tetap aktif saat berpindah halaman.
+2. Setiap kartu mewakili **jenis barang** (mis. Kursi Umum), bukan satu barang fisik maupun satu merek.
+3. Angka jumlah unit adalah agregasi seluruh spesifikasi dan unit dalam cakupan akses Anda.
+4. Gunakan pencarian, filter (kategori/gedung/lantai/ruangan/ketersediaan), dan pagination.
 
-### Membuka detail unit
+### Tingkat 2 — daftar spesifikasi
 
-1. Klik nama katalog, mis. **Kursi**.
-2. Halaman detail menampilkan **hanya unit kursi** (barang fisik), lengkap dengan kode inventaris, lokasi, kondisi, dan status.
-3. Klik salah satu baris untuk melihat detail unit: kode aktif, kode lama, perolehan, foto, catatan, riwayat pemeliharaan, dan riwayat perpindahan (sesuai hak akses).
-4. Gunakan tombol **Cetak Label** pada detail unit untuk stiker satuan, atau tombol **Cetak Label Unit** di halaman katalog untuk memilih/mencetak massal unit katalog tersebut (termasuk "pilih semua sesuai filter").
+1. Klik nama katalog, mis. **Kursi Umum**.
+2. Halaman ini menampilkan seluruh **merek + tipe/model** pada katalog tersebut beserta jumlah unit, unit tersedia, dan unit rusak.
+3. Gunakan pencarian (merek/tipe model) serta filter merek, tipe/model, kondisi, status, gedung, dan ruangan secara bersamaan. Filter semua/Reset menghapus seluruh pilihan.
+4. Klik **Lihat unit** pada satu spesifikasi untuk masuk ke tingkat 3.
+
+### Tingkat 3 — daftar unit inventaris
+
+1. Halaman ini menampilkan **setiap barang fisik** pada satu spesifikasi, lengkap dengan kode inventaris, gedung, lantai, ruangan, kondisi, status, dan tahun pengadaan.
+2. Search mencakup kode inventaris dan nama barang; filter kondisi, status, gedung, lantai, ruangan, dan tahun pengadaan dapat digabung; data besar dipaginasi.
+3. Klik **Detail** untuk membuka rincian unit: kode aktif, kode lama, perolehan, foto, catatan, riwayat pemeliharaan, dan riwayat perpindahan (sesuai hak akses).
+4. Gunakan tombol **Cetak Label** pada detail unit untuk stiker satuan, atau tombol **Cetak Label Unit** di halaman katalog untuk mencetak massal unit katalog tersebut (termasuk "pilih semua sesuai filter").
 
 ### Mencari dengan kode inventaris
 
-Format kode: `G1-02-12` = Gedung G, lantai 1, Ruang 02, unit nomor 12.
+Format kode: `G1-02-R12-01` = Gedung G, lantai 2, Ruang 12, jenis barang R12 (Kursi), unit nomor 01. Pola umum: `[gedung+lantai]-[ruangan 2 digit]-[kode jenis 3 digit]-[nomor unit 2 digit]`.
 
 | Yang diketik | Hasil                                                          |
 | ------------ | -------------------------------------------------------------- |
-| `G1-02-12`   | Unit tersebut (harus persis).                                  |
+| `G1-02-R12-01`   | Unit tersebut (harus persis).                                  |
 | `G1-02`      | Semua unit di Ruang 02, Gedung G lantai 1, pada katalog aktif. |
 | `G1`         | Semua unit di Gedung G lantai 1 pada katalog aktif.            |
 | `G1-02-1`    | Unit 10–19 di ruangan tersebut (prefix).                       |
-| `g1-02-12`   | Sama dengan `G1-02-12` (huruf kecil otomatis dikapitalkan).    |
+| `g1-02-r12-01`   | Sama dengan `G1-02-R12-01` (huruf kecil otomatis dikapitalkan).    |
 | `G1/02/12`   | Ditolak dengan pesan format.                                   |
 
 - Pencarian kode di halaman detail katalog **tidak** menampilkan unit dari jenis barang lain.
@@ -210,12 +219,14 @@ Aplikasi kini mendukung dua cara serah terima, tergantung kesiapan data:
 - **Serah terima tanpa unit fisik (data lama):** bila katalog belum memiliki unit fisik, serah terima tetap dapat dilakukan dengan langsung menekan **Serahkan Barang**. Penugasan unit tidak wajib; pembukuan masih memakai jumlah katalog.
 
 Aturan penugasan unit:
+
 - Saat menugaskan unit, jumlah unit yang dipilih per barang **harus sama** dengan jumlah yang dipinjam (kecuali katalog tanpa unit fisik).
 - Unit yang ditugaskan harus aktif, dalam kondisi baik, dan belum dipinjam orang lain.
 - Unit yang sudah pernah dikembalikan pada pinjaman yang sama tidak boleh ditugaskan ulang.
 - Jika penugasan tidak lengkap atau unit tidak valid, sistem menolak serah terima dengan pesan yang menjelaskan masalahnya.
 
 Status dokumen peminjaman **terpisah** dari status transaksi:
+
 - Dokumen dapat dicetak setelah persetujuan lengkap, tanpa mengubah status pinjaman.
 - Tanda tangan fisik/digital hanya mencatat status dokumen, bukan persetujuan transaksi.
 - Dokumen yang belum dibuat tidak memblokir serah terima.
@@ -240,15 +251,25 @@ Status dokumen peminjaman **terpisah** dari status transaksi:
 ### Scan inventaris
 
 1. Buka menu **Scan** (tersedia untuk semua pengguna yang sudah login).
-2. Aktifkan kamera lalu arahkan ke QR, **atau** ketik kode unit (mis. `G1-02-12`) dan tekan Enter/Cari.
+2. Aktifkan kamera lalu arahkan ke QR, **atau** ketik kode unit (mis. `G1-02-R12-01`) dan tekan Enter/Cari.
 3. Hasil muncul di halaman yang sama: nama, spesifikasi, kode, gedung/lantai/ruangan, nomor unit, kondisi, dan status.
 4. Bila unit di luar cakupan akses, aplikasi hanya menampilkan pesan terbatas — bukan detail internal.
 
-### Pengadaan banyak lokasi
+### Pengadaan banyak lokasi dengan merek & tipe/model
 
-1. Buka **Pengadaan**, isi data barang dan jumlah (mis. 40 kursi).
-2. Di bagian alokasi, tambahkan baris lokasi (gedung → lantai → ruangan) dan jumlahnya (mis. 20 + 15 + 5).
-3. Sisa unit terlihat langsung; tombol simpan aktif hanya saat sisa 0. Kode unit dibuat otomatis setelah pengadaan disetujui.
+1. Buka **Pengadaan**. Pilih **katalog yang sudah ada** bila hanya menambah stok, atau isi nama katalog baru + kategori.
+2. Isi **merek/brand** dan **tipe/model**. Kosongkan bila memang tidak ada; sistem menyimpan `Tanpa Merek` / `Tidak Ditentukan` agar data tidak kosong.
+3. Isi jumlah (mis. 40 kursi) lalu tambahkan baris lokasi (gedung → lantai → ruangan) dan jumlahnya (mis. 20 + 15 + 5).
+4. Sisa unit terlihat langsung; tombol simpan aktif hanya saat sisa 0. Kode unit dibuat otomatis setelah pengadaan disetujui.
+5. Merek/tipe yang berbeda pada katalog yang sama **tidak** membuat katalog baru — keduanya menjadi spesifikasi terpisah.
+
+### Distribusi berdasarkan merek & tipe/model
+
+1. Buka **Distribusi** (Ketua Laboran dan Wakasek/Super Admin).
+2. Pilih **katalog → spesifikasi (merek + tipe/model) → jumlah → lokasi tujuan**; panel kanan menampilkan stok setiap spesifikasi secara terpisah.
+3. Ringkasan sebelum simpan menampilkan stok spesifikasi, jumlah distribusi, tujuan, dan sisa stok.
+4. Distribusi melebihi stok spesifikasi ditolak. Unit yang sudah didistribusikan atau sedang dipinjam tidak dapat dipakai lagi; stok merek lain tidak ikut terpakai.
+5. Setiap unit mendapat kode baru dan riwayat distribusi terhubung hingga kode inventarisnya (lihat riwayat pada halaman distribusi atau detail unit).
 
 ### Mutasi banyak unit
 

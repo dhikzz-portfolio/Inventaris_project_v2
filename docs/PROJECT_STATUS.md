@@ -58,7 +58,9 @@ Pengujian terakhir (29 Oktober 2026): **282 passed, 0 skipped, 1384 assertions**
 | Autentikasi & sesi                      | VERIFIED    | Login email/password, rate limit 5 percobaan, logout POST, registrasi Gmail mandiri (role Peminjam), verifikasi email belum aktif |
 | Role & permission                       | VERIFIED    | 4 role final (`SUPER_ADMIN`, `KETUA_LABORAN`, `LABORAN`, `PEMINJAM`) + middleware Spatie; kategori peminjam di `borrower_type` |
 | Dashboard                               | VERIFIED    | Data unit/katalog nyata, grafik Chart.js, cakupan per role (sekolah/lab/ruangan), personal vs operasional |
-| Katalog jenis barang                    | VERIFIED    | Tabel `item_catalogs`; jumlah unit dihitung dari unit; pencarian/filter/pagination                 |
+| Katalog jenis barang                    | VERIFIED    | Tabel `item_catalogs`; hierarki 3 tingkat (katalog → spesifikasi → unit); jumlah unit dihitung dari unit; pencarian/filter/pagination |
+| Spesifikasi merek & tipe/model          | VERIFIED    | Tabel `specifications`; satu katalog banyak spesifikasi, satu spesifikasi banyak unit; nilai `Tanpa Merek`/`Tidak Ditentukan`; halaman spesifikasi + filter gabungan |
+| Distribusi per spesifikasi              | VERIFIED    | `distributions` + `distribution_units`; stok per merek/tipe dihitung terpisah, batas stok & unit sekali alokasi ditegakkan |
 | Unit inventaris fisik                   | VERIFIED    | Tabel `asset_units`; kondisi/status/catatan dapat diubah sesuai role dan tercatat di audit log       |
 | Kode inventaris `G1-02-12`              | VERIFIED    | Validasi pola/lokasi, ledger kode, transaksi + unique index, batas 99, larangan daur ulang         |
 | Detail katalog & pencarian kode         | VERIFIED    | Pencarian exact/prefix, pesan format, scope, empty state, pagination 25 unit                       |

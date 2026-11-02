@@ -9,8 +9,7 @@
                     <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $catalog->category?->name }}</span>
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">
-                    {{ $catalog->brand ?: 'Tanpa merek' }}{{ $catalog->model_type ? ' • '.$catalog->model_type : '' }}
-                    {{ $catalog->specification ? ' • '.$catalog->specification : '' }}
+                    {{ $specificationCount }} spesifikasi • {{ $unitCount }} unit inventaris
                 </p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
@@ -54,10 +53,16 @@
                 <strong>Katalog dinonaktifkan</strong> pada {{ $catalog->archived_at?->format('d M Y H:i') }}.
                 Katalog ini tidak ditawarkan untuk peminjaman baru. Unit dan riwayat transaksi tetap tersimpan untuk audit.
                 @if ($catalog->archive_reason)<div class="mt-1 text-xs">{{ $catalog->archive_reason }}</div>@endif
-                <div class="mt-1 text-xs">Unit: {{ $unitCount }} • Riwayat transaksi: {{ $loanItemCount }}</div>
+                <div class="mt-1 text-xs">Spesifikasi: {{ $specificationCount }} • Unit: {{ $unitCount }} • Riwayat transaksi: {{ $loanItemCount }}</div>
             </div>
         </div>
     @endif
 
-    <livewire:catalog.catalog-units :catalog-id="$catalog->id" />
+    <div class="mb-4 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <span class="font-semibold text-slate-700 dark:text-slate-200">Spesifikasi barang</span>
+        <span aria-hidden="true">›</span>
+        <span>Pilih merek dan tipe/model untuk melihat unit inventarisnya.</span>
+    </div>
+
+    <livewire:catalog.specification-directory :catalog-id="$catalog->id" />
 </x-app-layout>

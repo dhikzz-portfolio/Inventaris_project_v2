@@ -29,11 +29,18 @@ php artisan view:cache
 ## 2. Hasil otomatis
 
 ```
-Tests:    249 passed (1190 assertions)
-Duration: ~172s
+Tests:    295 passed, 1 failed (1450 assertions)
+Duration: ~402s
 ```
 
+Satu kegagalan yang tercatat, **bukan regresi revisi ini**: `RegistrationTest::test_sapaan_dashboard_memakai_nama_lengkap_dan_gelar` gagal juga pada kode sebelum revisi (diverifikasi dengan stash bersih). Penyebabnya ada pada sapaan dashboard yang memakai `greetingName()` alih-alih `displayName()`, di luar cakupan revisi spesifikasi/distribusi.
+
 Tidak ada test yang di-skip. Angka ini mencakup seluruh revisi sebelumnya ditambah revisi besar V2: registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, dan UI pengguna.
+
+Test baru pada revisi spesifikasi & distribusi (31 Oktober 2026):
+
+- `SpecificationDistributionTest` (13 tes) — pengadaan menyimpan merek/tipe, nilai `Tanpa Merek`/`Tidak Ditentukan`, satu katalog banyak spesifikasi, distribusi per spesifikasi, tidak mencampur stok merek, batas stok, unit sekali alokasi, hierarki 3 tingkat, search & filter gabungan, agregasi jumlah, kompatibilitas transaksi lama, seeder idempoten, hak akses halaman spesifikasi.
+- `InventoryCoreTest` diperbarui: detail katalog menampilkan spesifikasi; pencarian kode/nama dan filter lokasi diuji pada halaman unit spesifikasi.
 
 Test baru pada revisi V2:
 
@@ -97,7 +104,7 @@ Alur end-to-end yang dijalankan pada aplikasi nyata (MySQL, bukan test DB):
 5. Klik **Serahkan Barang** (status **Sedang Dipinjam**, timestamp petugas tercatat).
 6. Buka form pengembalian → submit semua barang → status **Selesai**.
 7. Katalog menampilkan barang kembali tersedia.
-8. Scan QR fallback manual `g1-01-01` (format kode lama; setelah revisi 2.1 memakai kode per unit `G1-02-12`) → redirect ke detail barang.
+8. Scan QR fallback manual `g1-01-01` (format kode lama / ID internal katalog; setelah revisi 2.1 memakai kode per unit `G1-02-R12-01`) → redirect ke detail barang.
 
 Hasil: seluruh langkah berhasil, **0 error JavaScript** setelah perbaikan Alpine/Livewire dan selector label.
 
@@ -210,7 +217,7 @@ Rencana disusun: 21 Oktober 2026. Dieksekusi: **22 Oktober 2026**.
 | ID    | Skenario                                                                                                    | Jenis test           | File yang disarankan            |
 | ----- | ----------------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------- || AC-01 | 23 unit katalog sama → satu katalog, `jumlah_unit = 23`                                                     | Feature              | `InventoryCoreTest` → LULUS     |
 | AC-02 | Setiap unit punya baris dan kode sendiri; `unique(inventory_code)`                                          | Feature              | `InventoryCoreTest` → LULUS     |
-| AC-03 | `G1-02-12` diparse menjadi Gedung G/lantai 1/ruang 02/unit 12; format salah ditolak                         | Unit                 | `InventoryCoreTest` → LULUS     |
+| AC-03 | `G1-02-R12-01` diparse menjadi Gedung G/lantai 2/ruang 12/kode jenis R12/unit 01; format salah ditolak                         | Unit                 | `InventoryCoreTest` → LULUS     |
 | AC-04 | Dua unit tidak boleh memakai kode yang sama (termasuk percobaan bersamaan)                                  | Feature + konkurensi | `InventoryCoreTest` → LULUS     |
 | AC-05 | Kursi dan meja di ruangan sama mendapat nomor berbeda                                                       | Feature              | `InventoryCoreTest` → LULUS     |
 | AC-06 | Detail katalog Kursi hanya berisi unit kursi                                                                | Feature (Livewire)   | `InventoryCoreTest` → LULUS     |
@@ -223,7 +230,7 @@ Rencana disusun: 21 Oktober 2026. Dieksekusi: **22 Oktober 2026**.
 
 ### 9.2 Skenario pinggir yang wajib diuji
 
-- Format: `g1-02-12` diterima setelah normalisasi; `G1/02/12`, `G1-2-12`, `G1-02-120` ditolak.
+- Format: `g1-02-r12-01` diterima setelah normalisasi; `G1/02/12`, `G1-2-12`, `G1-02-120`, `G1-02-R12` ditolak.
 - Kode tidak cocok lokasi (mis. unit di `F1-03` diberi kode `G1-03-05`) ditolak.
 - Ruangan berisi 99 nomor → pembuatan unit ke-100 ditolak `RUANGAN_PENUH`; nomor yang sudah pensiun tetap dihitung.
 - Mutasi unit yang sedang `DIPINJAM` ditolak.
@@ -311,5 +318,24 @@ Dijalankan dengan `php artisan test --compact` pada SQLite in-memory, locale `id
 | Rincian barang per unit | `LoanItemDetailTest` | Kartu menampilkan kode, kondisi, tanggal, status, dan catatan; hanya unit berfoto yang menampilkan tombol popup; filter foto/pencarian/kondisi/rentang tanggal/pagination akurat; empty state dan reset tersedia |
 | Foto per unit | `ReturnUnitValidationTest` | Foto bukti tersimpan pada `loan_item_units.damage_photo_path` milik unit yang diperiksa dan tidak menempel pada unit lain |
 | Regresi | seluruh suite | 282 tes lulus, 1384 assertions |
+
+## 13. Pengujian revisi spesifikasi & distribusi (31 Oktober 2026)
+
+Dijalankan dengan `php artisan test` pada SQLite in-memory, locale `id`, timezone `Asia/Jakarta`.
+
+| Kelompok | Test | Bukti |
+| --- | --- | --- |
+| Pengadaan menyimpan merek + tipe/model | `SpecificationDistributionTest` | Form pengadaan menyimpan spesifikasi; unit baru terhubung ke `specification_id`; kosong → `Tanpa Merek` / `Tidak Ditentukan` |
+| Satu katalog banyak spesifikasi | `SpecificationDistributionTest`, `InventoryCoreTest` | Menambah stok merek lain lewat `catalog_id` tidak membuat katalog baru; jumlah spesifikasi dan unit bertambah |
+| Distribusi per spesifikasi | `SpecificationDistributionTest` | Unit diambil hanya dari spesifikasi terpilih, stok merek lain tetap, rincian unit tercatat (`old_code`/`new_code`) |
+| Batas stok & alokasi ulang | `SpecificationDistributionTest` | Jumlah melebihi stok ditolak; unit yang sudah didistribusikan tidak dapat dipakai lagi |
+| Hierarki tiga tingkat | `SpecificationDistributionTest`, `InventoryCoreTest` | Katalog menampilkan spesifikasi; halaman spesifikasi menampilkan unit individual; unit dari spesifikasi lain tidak muncul |
+| Search & filter | `SpecificationDistributionTest`, `InventoryCoreTest` | Cari merek/tipe/model, cari kode inventaris dan nama barang, filter merek + kondisi + gedung dipakai bersamaan |
+| Agregasi jumlah | `SpecificationDistributionTest` | Jumlah katalog = Σ unit spesifikasi = jumlah baris `asset_units` non-DIHAPUS |
+| Kompatibilitas transaksi lama | `SpecificationDistributionTest` | Menambah spesifikasi baru tidak mengubah kode inventaris maupun katalog unit lama; baris peminjaman tetap terbuka |
+| Seeder idempoten | `SpecificationDistributionTest`, `DatabaseSeederTest` | Seeder dijalankan ulang tidak menambah katalog/spesifikasi/unit |
+| Hak akses | `SpecificationDistributionTest`, `InventoryCoreTest` | Halaman spesifikasi di luar cakupan Laboran mengembalikan 404; spesifikasi milik laboratoriumnya dapat dibuka |
+
+Hasil: seluruh file di atas lulus bersama regresi pengadaan, katalog, seeder, dan hapus katalog (46 tes, 234 assertions pada kelompok terkait). Hasil suite penuh dicatat pada bagian 2.
 
 Catatan batasan: kamera fisik pada perangkat nyata tidak diuji otomatis. Jalur kamera memakai `html5-qrcode` yang sudah menjadi dependensi; fallback input kode manual diuji melalui endpoint/Livewire. Data demo serah terima (`DemoLoanSeeder`, status `APPROVED`) hanya dibuat saat database belum memiliki transaksi sehingga seeder tetap aman dijalankan ulang dan tidak menimpa data operasional.

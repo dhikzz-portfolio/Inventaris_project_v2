@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use App\Enums\UnitStatus;
 use App\Services\ItemTypeCodeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -90,10 +92,13 @@ class Item extends Model
         return $this->hasMany(AssetUnit::class, 'item_catalog_id');
     }
 
-    /** Spesifikasi yang dimiliki oleh katalog ini. */
-    public function specification(): BelongsTo
+    /**
+     * Spesifikasi (merek + tipe/model) yang dimiliki katalog ini.
+     * Kolom teks `specification` lama tetap dipertahankan sebagai catatan bebas.
+     */
+    public function specifications(): HasMany
     {
-        return $this->belongsTo(Specification::class, 'item_catalog_id');
+        return $this->hasMany(Specification::class, 'item_catalog_id');
     }
 
     /** Unit inventaris yang hanya dapat diakses jika memiliki spesifikasi aktif. */
@@ -117,10 +122,10 @@ class Item extends Model
         return $this->hasMany(AcquisitionAllocation::class, 'item_catalog_id');
     }
 
-    /** Spesifikasi aktif untuk katalog ini. */
-    public function activeSpecification(): ?Specification
+    /** Riwayat distribusi unit katalog ini. */
+    public function distributions(): HasMany
     {
-        return $this->hasOne(Specification::class, 'item_catalog_id')->whereNull('archived_at');
+        return $this->hasMany(Distribution::class, 'item_catalog_id');
     }
 
     /** Total unit yang dialokasikan (0 bila pengadaan legacy tanpa alokasi). */

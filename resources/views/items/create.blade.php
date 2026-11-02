@@ -32,7 +32,8 @@
           x-data="procurement({
               rooms: {{ \Illuminate\Support\Js::from($roomOptions) }},
               initialTotal: {{ (int) old('quantity', 1) }},
-              initialRows: {{ \Illuminate\Support\Js::from($initialAllocations) }}
+              initialRows: {{ \Illuminate\Support\Js::from($initialAllocations) }},
+              initialCatalogId: {{ \Illuminate\Support\Js::from((string) old('catalog_id', '')) }}
           })">
         @csrf
 
@@ -43,19 +44,57 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-                <x-input-label for="name" value="Nama Barang *" />
-                <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name')" required />
+            <div class="md:col-span-2">
+                <x-input-label for="catalog_id" value="Katalog barang yang sudah ada (opsional)" />
+                <select id="catalog_id" name="catalog_id" x-model="catalogId" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <option value="">— buat katalog baru —</option>
+                    @foreach ($catalogs as $catalogOption)
+                        <option value="{{ $catalogOption->id }}" @selected(old('catalog_id') == $catalogOption->id)>{{ $catalogOption->name }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Pilih katalog bila hanya menambah stok merek/tipe baru. Jangan buat katalog baru hanya karena merek atau tipe/model berbeda.
+                </p>
             </div>
 
             <div>
-                <x-input-label for="category_id" value="Kategori *" />
-                <select id="category_id" name="category_id" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" required>
+                <x-input-label for="name" value="Nama katalog baru" />
+                <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name')" placeholder="mis. Kursi Umum"
+                              x-bind:disabled="catalogId !== ''" x-bind:required="catalogId === ''" />
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="catalogId === ''">Wajib bila tidak memilih katalog yang sudah ada.</p>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="catalogId !== ''" x-cloak>Memakai katalog terpilih — kolom dinonaktifkan.</p>
+            </div>
+
+            <div>
+                <x-input-label for="category_id" value="Kategori katalog baru" />
+                <select id="category_id" name="category_id" :disabled="catalogId !== ''" :required="catalogId === ''" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 dark:disabled:bg-slate-800">
                     <option value="">— pilih kategori —</option>
                     @foreach ($categories as $category)
                         <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>{{ $category->name }}</option>
                     @endforeach
                 </select>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="catalogId === ''">Wajib untuk katalog baru.</p>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="catalogId !== ''" x-cloak>Mengikuti kategori katalog terpilih.</p>
+            </div>
+
+            <div>
+                <x-input-label for="brand" value="Merek / brand" />
+                <input id="brand" name="brand" type="text" list="brand-options" value="{{ old('brand') }}"
+                       placeholder="Futura, Chitose, atau Tanpa Merek"
+                       class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                <datalist id="brand-options">
+                    @foreach ($brands as $brandOption)
+                        <option value="{{ $brandOption }}"></option>
+                    @endforeach
+                </datalist>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kosongkan bila tidak bermerek; sistem menyimpan “Tanpa Merek”.</p>
+            </div>
+
+            <div>
+                <x-input-label for="model_type" value="Tipe / model" />
+                <x-text-input id="model_type" name="model_type" type="text" class="mt-1 block w-full"
+                              :value="old('model_type')" placeholder="mis. Kursi Plastik Tipe A" />
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kosongkan bila tidak ditentukan; sistem menyimpan “Tidak Ditentukan”.</p>
             </div>
 
             <div>
@@ -204,6 +243,7 @@
     <script>
         function procurement(config) {
             return {
+                catalogId: String(config.initialCatalogId || ''),
                 quantity: Number(config.initialTotal) || 1,
                 rooms: config.rooms || [],
                 rows: (config.initialRows || []).map((row, index) => ({

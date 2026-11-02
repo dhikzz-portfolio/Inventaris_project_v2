@@ -79,7 +79,7 @@
         </div>
     </form>
 
-    <form method="POST" action="{{ route('movements.store') }}" x-data="movementSelection()">
+    <form method="POST" action="{{ route('movements.store') }}" x-data="movementSelection({ unitIds: {{ \Illuminate\Support\Js::from($units->getCollection()->pluck('id')->values()) }} })">
         @csrf
 
         <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
@@ -87,7 +87,17 @@
             <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm lg:col-span-2 dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                     <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Unit ({{ $units->total() }})</h3>
-                    <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><strong x-text="selected.length"></strong> unit dipilih</span>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" @click="selectAll()" :disabled="selected.length === pageUnitIds.length"
+                                class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                            Pilih semua di halaman
+                        </button>
+                        <button type="button" @click="selected = []" :disabled="selected.length === 0"
+                                class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                            Kosongkan
+                        </button>
+                        <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><strong x-text="selected.length"></strong> unit dipilih</span>
+                    </div>
                 </div>
                 <div class="max-h-[60vh] overflow-auto">
                     <table class="w-full text-sm">
@@ -214,9 +224,14 @@
 
     @push('scripts')
     <script>
-        function movementSelection() {
+        function movementSelection(config) {
             return {
+                pageUnitIds: (config.unitIds || []).map(String),
                 selected: [],
+
+                selectAll() {
+                    this.selected = [...this.pageUnitIds];
+                },
             };
         }
     </script>

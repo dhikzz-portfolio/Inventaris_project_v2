@@ -154,24 +154,19 @@
                     </button>
                     <button type="button" @click="toggleScanner()"
                             class="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
-                        <span class="material-icons-round text-base">qr_code_scanner</span> Scan QR Unit
+                        <span class="material-icons-round text-base">qr_code_scanner</span> Pindai QR Unit
                     </button>
                 </div>
             </div>
-            <p class="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                Pilih Semua hanya memilih unit yang memenuhi syarat pada peminjaman ini dan berhenti pada batas jumlah setiap barang.
-                Pilihan yang sudah dibuat tetap tersimpan ketika filter berubah.
-            </p>
         </div>
 
-        {{-- Panel scan QR --}}
+        {{-- Panel pindai QR --}}
         <div x-show="scannerOpen" x-cloak class="mb-4 rounded-2xl border border-sky-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="flex items-start justify-between gap-3">
                 <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Scan QR Unit</h3>
-                    <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Hasil scan langsung dimasukkan ke daftar pilihan, tidak mengalihkan halaman.</p>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pindai QR Unit</h3>
                 </div>
-                <button type="button" @click="toggleScanner()" aria-label="Tutup panel scan"
+                <button type="button" @click="toggleScanner()" aria-label="Tutup panel pindai"
                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
                     <span class="material-icons-round text-lg">close</span>
                 </button>
@@ -195,7 +190,7 @@
                     </div>
                 </div>
                 <div>
-                    <label for="handover-scan-code" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Input manual kode inventaris</label>
+                    <label for="handover-scan-code" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Masukkan kode inventaris secara manual</label>
                     <div class="flex gap-2">
                         <input id="handover-scan-code" type="text" x-model="scanCode" @keydown.enter.prevent="submitScan()"
                                placeholder="Contoh: G1-02-12" autocomplete="off"
@@ -203,10 +198,6 @@
                         <button type="button" @click="submitScan()"
                                 class="inline-flex min-h-10 items-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Cari</button>
                     </div>
-                    <p class="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                        Kamera tidak tersedia atau izin ditolak? Masukkan kode inventaris secara manual — fallback ini selalu aktif.
-                        Pemindaian hanya memasukkan unit ke daftar pilihan; penyerahan tetap disimpan lewat tombol di bawah.
-                    </p>
                 </div>
             </div>
 
@@ -476,7 +467,7 @@
                         if (this.scannerOpen) {
                             await this.$nextTick();
                             if (!window.Html5Qrcode) {
-                                this.scanError = 'Modul kamera belum dimuat — gunakan input kode manual.';
+                                this.scanError = 'Modul kamera belum dimuat — masukkan kode secara manual.';
                             }
                         } else {
                             await this.stopCamera();
@@ -528,7 +519,7 @@
                             this.scanMessage = 'Kamera aktif — arahkan ke QR unit.';
                         } catch (e) {
                             this.cameraRunning = false;
-                            this.scanError = (e && e.message) ? e.message : 'Kamera tidak tersedia atau izin ditolak. Gunakan input kode manual.';
+                            this.scanError = (e && e.message) ? e.message : 'Kamera tidak tersedia atau izin ditolak. Masukkan kode secara manual.';
                             this.scanMessage = '';
                         }
                     },
@@ -603,7 +594,7 @@
                             await this.$nextTick();
                             document.getElementById('handover-unit-' + unit.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         } catch (e) {
-                            this.scanError = 'Gagal memproses hasil scan. Periksa koneksi lalu coba lagi.';
+                            this.scanError = 'Gagal memproses hasil pindai. Periksa koneksi lalu coba lagi.';
                         }
                     },
                 };

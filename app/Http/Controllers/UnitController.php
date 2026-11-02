@@ -24,6 +24,7 @@ class UnitController extends Controller
 
         $unit->load([
             'catalog.category',
+            'specification',
             'room.major',
             'codes' => fn ($query) => $query->orderByDesc('issued_at'),
             'movements.fromRoom',

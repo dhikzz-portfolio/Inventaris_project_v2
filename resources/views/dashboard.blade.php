@@ -242,7 +242,7 @@
             <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0">
                     <p class="text-xs font-semibold uppercase tracking-wider text-brand-100">Selamat datang</p>
-                    <h3 class="mt-1 truncate text-xl font-bold tracking-tight sm:text-2xl">{{ auth()->user()->name }}</h3>
+                    <h3 class="mt-1 truncate text-xl font-bold tracking-tight sm:text-2xl">{{ $dashboardUser->greetingName() }}</h3>
                     <p class="mt-2 text-xs leading-relaxed text-brand-100/90 sm:text-sm">
                     Ajukan peminjaman dan pantau statusnya di sini.
                     <span class="sm:hidden">{{ now()->translatedFormat('l, d F Y') }}</span>

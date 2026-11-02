@@ -1,11 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between gap-3">
-            <div>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Persetujuan Penghapusan</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Tinjau dokumen dan permintaan penghapusan barang.</p>
             </div>
-            <a href="{{ route('write-offs.index') }}" class="inline-flex min-h-10 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800"><span aria-hidden="true">←</span> Barang Dihapus</a>
+            <a href="{{ route('write-offs.index') }}" class="inline-flex min-h-10 items-center gap-1 self-start rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 sm:self-auto dark:text-brand-300 dark:hover:bg-slate-800"><span aria-hidden="true">←</span> Barang Dihapus</a>
         </div>
     </x-slot>
 
@@ -87,10 +87,13 @@
     @endif
 
     <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div class="border-b border-slate-100 px-5 py-4 text-sm font-bold text-slate-900 dark:border-slate-800 dark:text-slate-100">Riwayat Keputusan</div>
+        <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+            <p class="text-sm font-bold text-slate-900 dark:text-slate-100">Riwayat Keputusan</p>
+        </div>
         @if ($decided->isEmpty())
             <div class="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">Belum ada keputusan sebelumnya.</div>
         @else
+            <p class="px-5 pt-3 text-[11px] text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
             <div class="overflow-x-auto">
             <table class="w-full min-w-[820px] text-sm">
                 <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">

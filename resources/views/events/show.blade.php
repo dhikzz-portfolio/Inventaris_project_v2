@@ -139,7 +139,7 @@
                             <label class="block text-[11px] font-semibold text-gray-500 mb-1">Deskripsi</label>
                             <textarea name="description" rows="2" class="w-full rounded-lg border-gray-300 text-xs">{{ $event->description }}</textarea>
                         </div>
-                        <button type="submit" class="w-full rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2">Simpan Perubahan</button>
+                        <button type="submit" class="w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold py-2">Simpan Perubahan</button>
                         <p class="text-[10px] text-gray-400">Status kegiatan tidak mengubah status persetujuan peminjaman.</p>
                     </form>
 

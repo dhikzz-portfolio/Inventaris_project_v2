@@ -86,19 +86,19 @@
                     <table class="w-full text-sm">
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                             <tr>
-                                <td class="py-2.5 pe-4 text-xs text-gray-500 w-52">ID Internal / Spasial</td>
+                                <td class="w-40 py-2.5 pe-4 text-xs text-gray-500 sm:w-52">ID Internal / Spasial</td>
                                 <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->internal_id }}</td>
-                                <td class="py-2.5 text-xs text-gray-400">Pencarian ruangan</td>
+                                <td class="hidden py-2.5 text-xs text-gray-400 sm:table-cell">Pencarian ruangan</td>
                             </tr>
                             <tr>
-                                <td class="py-2.5 pe-4 text-xs text-gray-500">Standar Aset — Baris 1<br><span class="text-[10px]">Kode Lokasi/Instansi</span></td>
+                                <td class="w-40 py-2.5 pe-4 text-xs text-gray-500 sm:w-52">Standar Aset — Baris 1<br><span class="text-[10px]">Kode Lokasi/Instansi</span></td>
                                 <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->location_code }}</td>
-                                <td class="py-2.5 text-xs text-gray-400">Pelaporan dinas/yayasan</td>
+                                <td class="hidden py-2.5 text-xs text-gray-400 sm:table-cell">Pelaporan dinas/yayasan</td>
                             </tr>
                             <tr>
-                                <td class="py-2.5 pe-4 text-xs text-gray-500">Nomor Register<br><span class="text-[10px]">opsional, administratif</span></td>
+                                <td class="w-40 py-2.5 pe-4 text-xs text-gray-500 sm:w-52">Nomor Register<br><span class="text-[10px]">opsional, administratif</span></td>
                                 <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->register_no ?: '—' }}</td>
-                                <td class="py-2.5 text-xs text-gray-400">Bukan kode inventaris unit</td>
+                                <td class="hidden py-2.5 text-xs text-gray-400 sm:table-cell">Bukan kode inventaris unit</td>
                             </tr>
                         </tbody>
                     </table>
@@ -122,16 +122,17 @@
                 @if ($loanHistory->isEmpty())
                     <p class="text-sm text-gray-400">Belum ada riwayat peminjaman.</p>
                 @else
+                    <p class="mb-2 text-[11px] text-slate-400 md:hidden">Geser tabel ke samping untuk melihat semua kolom.</p>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
+                        <table class="w-full min-w-[640px] text-sm">
                             <thead class="text-xs uppercase text-gray-400">
                                 <tr>
-                                    <th class="text-left py-2">Peminjam</th>
-                                    <th class="text-left py-2">Tujuan</th>
-                                    <th class="text-left py-2">Periode</th>
-                                    <th class="text-center py-2">Qty</th>
-                                    <th class="text-center py-2">Kondisi Kembali</th>
-                                    <th class="text-center py-2">Status</th>
+                                    <th class="whitespace-nowrap text-left py-2">Peminjam</th>
+                                    <th class="whitespace-nowrap text-left py-2">Tujuan</th>
+                                    <th class="whitespace-nowrap text-left py-2">Periode</th>
+                                    <th class="whitespace-nowrap text-center py-2">Qty</th>
+                                    <th class="whitespace-nowrap text-center py-2">Kondisi Kembali</th>
+                                    <th class="whitespace-nowrap text-center py-2">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">

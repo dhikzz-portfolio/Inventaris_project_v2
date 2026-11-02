@@ -1,5 +1,4 @@
 @php
-    $isOperational = $mode === 'operational';
     $dashboardUser = auth()->user();
 @endphp
 
@@ -9,11 +8,11 @@
             <div class="min-w-0">
                 <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">
                     @if ($mode !== 'operational')
-                        Aktivitas peminjaman
-                    @elseif ($dashboardUser->isLaboran())
-                        Ringkasan laboratorium
-                    @else
+                        Ringkasan peminjaman
+                    @elseif ($dashboardUser->isSuperAdmin())
                         Ringkasan sekolah
+                    @else
+                        Ringkasan laboratorium
                     @endif
                 </p>
                 <h2 class="mt-1 text-xl font-bold leading-tight text-slate-900 dark:text-white">Ringkasan</h2>
@@ -21,7 +20,7 @@
                 @if ($mode === 'operational')
                     Ringkasan barang dan peminjaman untuk {{ $scopeLabel }}.
                 @else
-                    Ajukan peminjaman dan pantau statusnya di sini.
+                    Ringkasan pengajuan dan pinjaman barang Anda.
                 @endif
                 </p>
             </div>
@@ -32,47 +31,21 @@
         </div>
     </x-slot>
 
-    {{-- Sapaan setelah login: nama lengkap + gelar, fallback username. --}}
-    <div class="mb-4 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-900">
-        <div class="flex items-center gap-3">
-            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
-                <span class="material-icons-round text-xl" aria-hidden="true">waving_hand</span>
-            </span>
-            <div class="min-w-0">
-                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Selamat datang</p>
-                <p class="truncate text-base font-bold text-slate-900 dark:text-white">{{ $dashboardUser->greetingName() }}!</p>
+    <div class="min-h-full -m-4 bg-sky-50/80 p-4 sm:-m-5 sm:p-5 md:-m-6 md:p-6 dark:bg-slate-950/30">
+        <section class="relative isolate mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-sky-200 via-sky-100 to-cyan-100 p-5 text-slate-800 shadow-lg shadow-sky-900/5 sm:p-6 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700 dark:text-white">
+            <div class="pointer-events-none absolute -right-2 -top-8 z-0 hidden h-44 w-56 opacity-90 sm:block" aria-hidden="true">
+                <span class="absolute right-7 top-0 h-24 w-24 rounded-full bg-amber-100/90 blur-sm dark:bg-amber-500/10"></span>
+                <span class="absolute right-14 top-14 h-20 w-24 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
+                <span class="absolute right-2 top-20 h-16 w-24 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
+                <span class="absolute right-20 top-24 h-14 w-20 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
             </div>
-        </div>
-        <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ $dashboardUser->isPeminjam() ? 'Ajukan peminjaman dan pantau statusnya di sini.' : 'Pantau inventaris sesuai kewenangan Anda.' }}
-        </p>
-    </div>
-
-    <div @class([
-        'min-h-full',
-        '-m-4 bg-sky-50/80 p-4 sm:-m-5 sm:p-5 md:-m-6 md:p-6 dark:bg-slate-950/30' => $isOperational,
-    ])>
-    @if ($mode === 'operational')
-        <section @class([
-            'relative isolate mb-4 overflow-hidden rounded-2xl p-5 shadow-lg sm:p-6',
-            'bg-gradient-to-r from-sky-200 via-sky-100 to-cyan-100 text-slate-800 shadow-sky-900/5 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700 dark:text-white' => $isOperational,
-        ])>
-            @if ($isOperational)
-                <div class="pointer-events-none absolute -right-2 -top-8 z-0 hidden h-44 w-56 opacity-90 sm:block" aria-hidden="true">
-                    <span class="absolute right-7 top-0 h-24 w-24 rounded-full bg-amber-100/90 blur-sm dark:bg-amber-500/10"></span>
-                    <span class="absolute right-14 top-14 h-20 w-24 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
-                    <span class="absolute right-2 top-20 h-16 w-24 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
-                    <span class="absolute right-20 top-24 h-14 w-20 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
-                </div>
-            @endif
             <div class="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div class="min-w-0">
-                    <p @class([
-                        'text-sm font-medium',
-                        'text-sky-800 dark:text-sky-200' => $isOperational,
-                    ])>                        Selamat datang, {{ $dashboardUser->greetingName() }}</p>
+                    <p class="text-sm font-medium text-sky-800 dark:text-sky-200">Selamat datang, {{ $dashboardUser->greetingName() }}</p>
                     <h3 class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
-                        @if ($dashboardUser->isSuperAdmin())
+                        @if ($mode !== 'operational')
+                            Ajukan peminjaman barang
+                        @elseif ($dashboardUser->isSuperAdmin())
                             Pantau barang sekolah
                         @elseif ($dashboardUser->isKetuaLaboran())
                             Kelola barang laboratorium
@@ -80,11 +53,10 @@
                             Barang laboratorium Anda
                         @endif
                     </h3>
-                    <p @class([
-                        'mt-2 max-w-2xl text-xs leading-relaxed sm:text-sm',
-                        'text-sky-800/80 dark:text-slate-300' => $isOperational,
-                    ])>
-                        @if ($dashboardUser->isSuperAdmin())
+                    <p class="mt-2 max-w-2xl text-xs leading-relaxed text-sky-800/80 sm:text-sm dark:text-slate-300">
+                        @if ($mode !== 'operational')
+                            Ajukan peminjaman dan pantau statusnya di sini.
+                        @elseif ($dashboardUser->isSuperAdmin())
                             Lihat kondisi barang, permintaan pinjam, dan kegiatan terbaru di {{ $scopeLabel }}.
                         @elseif ($dashboardUser->isKetuaLaboran())
                             Kelola barang dan permintaan pinjam dari {{ $scopeLabel }}.
@@ -94,44 +66,52 @@
                     </p>
                 </div>
                 <div class="flex flex-col gap-2 sm:flex-row lg:shrink-0">
-                    @if ($dashboardUser->managesInventory())
-                        <a href="{{ route('items.create') }}" @class([
-                            'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2',
-                            'bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500' => $isOperational,
-                        ])>
-                            <span class="material-icons-round text-lg" aria-hidden="true">add_box</span>
-                            Tambah barang
+                    @if ($mode !== 'operational')
+                        <a href="{{ route('loans.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <span class="material-icons-round text-lg" aria-hidden="true">add_shopping_cart</span>
+                            Ajukan peminjaman
+                        </a>
+                        <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                            <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
+                            Lihat katalog
                         </a>
                     @else
-                        <a href="{{ route('scan') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-900 dark:hover:bg-brand-500">
-                            <span class="material-icons-round text-lg" aria-hidden="true">qr_code_scanner</span>
-                            Pindai kode barang
+                        @if ($dashboardUser->managesInventory())
+                            <a href="{{ route('items.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <span class="material-icons-round text-lg" aria-hidden="true">add_box</span>
+                                Tambah barang
+                            </a>
+                        @else
+                            <a href="{{ route('scan') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <span class="material-icons-round text-lg" aria-hidden="true">qr_code_scanner</span>
+                                Pindai kode barang
+                            </a>
+                        @endif
+                        <a href="{{ route('loans.pending') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/80 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                            <span class="material-icons-round text-lg" aria-hidden="true">how_to_reg</span>
+                            Permintaan pinjam
+                            @if ($stats[3]['value'] > 0)
+                                <span class="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-900 dark:text-red-100">{{ $stats[3]['value'] }}</span>
+                            @endif
+                        </a>
+                        <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                            <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
+                            Lihat barang
                         </a>
                     @endif
-                    <a href="{{ route('loans.pending') }}" @class([
-                        'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2',
-                        'border-brand-200 bg-white/80 text-brand-800 hover:bg-white focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600' => $isOperational,
-                    ])>
-                        <span class="material-icons-round text-lg" aria-hidden="true">how_to_reg</span>
-                        Permintaan pinjam
-                        @if ($stats[3]['value'] > 0)
-                            <span @class([
-                                'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                                'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100' => $isOperational,
-                            ])>{{ $stats[3]['value'] }}</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('catalogs.index') }}" @class([
-                        'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2',
-                        'border-brand-200 bg-white/50 text-brand-800 hover:bg-white/80 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600' => $isOperational,
-                    ])>
-                        <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
-                        Lihat barang
-                    </a>
                 </div>
             </div>
         </section>
-    @endif
+
+        <div @class([
+            'mb-4 grid grid-cols-2 gap-3',
+            'sm:grid-cols-3 xl:grid-cols-6' => $mode === 'operational',
+            'lg:grid-cols-4' => $mode !== 'operational',
+        ])>
+            @foreach ($stats as $stat)
+                <x-dashboard.stat-card :stat="$stat" operational />
+            @endforeach
+        </div>
 
     @if ($mode === 'operational')
         <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr] sm:gap-3">
@@ -235,42 +215,7 @@
             </x-dashboard.panel>
         </div>
     @else
-        {{-- Mode peminjam --}}
-        <section class="mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-700 to-brand-800 p-5 text-white shadow-lg shadow-brand-900/10 sm:p-6">
-            <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <div class="min-w-0">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-blue-100">Selamat datang kembali</p>
-                    <h3 class="mt-1 truncate text-xl font-bold tracking-tight sm:text-2xl">{{ auth()->user()->name }}</h3>
-                    <p class="mt-2 text-xs leading-relaxed text-blue-100/90 sm:text-sm">
-                    Pantau pengajuan dan pinjaman barang sekolah Anda.
-                    <span class="hidden sm:inline">{{ now()->translatedFormat('l, d F Y') }}</span>
-                    </p>
-                </div>
-                <div class="grid grid-cols-1 gap-2 sm:flex sm:shrink-0">
-                    <a href="{{ route('loans.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-3 py-2.5 text-xs font-semibold text-brand-800 shadow-sm dark:text-brand-200 transition hover:bg-brand-50 sm:px-4 sm:text-sm">
-                        <span class="material-icons-round text-lg" aria-hidden="true">add</span>
-                        Ajukan peminjaman
-                    </a>
-                    <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-white/20 sm:px-4 sm:text-sm">
-                        <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
-                        Lihat katalog
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <div class="mb-4 grid auto-rows-fr grid-cols-2 gap-3 md:mb-5 md:grid-cols-3 xl:grid-cols-4">
-            @foreach ($stats as $stat)
-                <x-dashboard.stat-card :stat="$stat" />
-            @endforeach
-        </div>
-
-        <div class="mb-4 grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 xl:gap-4 xl:grid-cols-4">
-            @foreach ($stats as $stat)
-                <x-dashboard.stat-card :stat="$stat" />
-            @endforeach
-        </div>
-
+        {{-- Mode peminjam: hanya aktivitas pribadi; hero & kartu memakai gaya dashboard operasional. --}}
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <x-dashboard.panel
                 title="Permintaan dan pinjaman saya"

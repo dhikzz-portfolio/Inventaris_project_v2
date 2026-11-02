@@ -42,7 +42,7 @@
                                 <input type="text" name="code" value="{{ $building->code }}" maxlength="1"
                                        class="w-14 rounded-lg border-gray-300 text-xs uppercase font-mono" required
                                        title="Identitas kode gedung (A-Z)">
-                                <button class="px-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">Simpan</button>
+                                <button class="px-2 rounded-lg bg-brand-600 text-white text-xs font-semibold">Simpan</button>
                             </form>
                             <p class="text-[10px] text-gray-400 mt-1">
                                 Kode gedung tidak dapat diubah bila sudah ada unit inventaris yang memakainya.
@@ -60,9 +60,9 @@
 
             <form method="POST" action="{{ route('masters.store-building') }}" class="grid grid-cols-2 gap-2">
                 @csrf
-                <input type="text" name="name" placeholder="Nama gedung * (Gedung C)" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
+                <input type="text" name="name" placeholder="Nama gedung * (Gedung C)" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
                 <input type="text" name="code" placeholder="Kode * (C)" maxlength="1" class="rounded-lg border-gray-300 text-sm uppercase font-mono focus:ring-blue-500 focus:border-blue-500" required>
-                <button class="rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Tambah Gedung</button>
+                <button class="min-h-10 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">Tambah Gedung</button>
             </form>
         </div>
 
@@ -107,7 +107,7 @@
                                                 <label class="flex items-center gap-1 text-[10px] text-gray-500">
                                                     <input type="checkbox" name="is_lab" value="1" @checked($room->is_lab)> Lab
                                                 </label>
-                                                <button class="px-2 rounded bg-slate-800 text-white text-[10px] font-semibold">Simpan</button>
+                                                <button class="px-2 rounded bg-brand-600 text-white text-[10px] font-semibold">Simpan</button>
                                             </div>
                                         </form>
                                         <form method="POST" action="{{ route('masters.destroy-room', $room) }}" class="mt-1" onsubmit="return confirm('Hapus ruangan ini?')">
@@ -134,8 +134,8 @@
                         <option value="{{ $major->id }}">{{ $major->name }}</option>
                     @endforeach
                 </select>
-                <div class="grid grid-cols-3 gap-2">
-                    <select name="building_id" class="col-span-1 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <select name="building_id" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 sm:col-span-1" required>
                         <option value="">— gedung —</option>
                         @foreach ($buildings as $building)
                             <option value="{{ $building->id }}" @disabled(! $building->is_active)>
@@ -152,7 +152,7 @@
                         <input type="checkbox" name="is_lab" value="1"> Ruangan lab
                     </label>
                 </div>
-                <button class="w-full rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Tambah Ruangan</button>
+                <button class="min-h-10 w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">Tambah Ruangan</button>
             </form>
         </div>
 
@@ -173,7 +173,7 @@
                                 @csrf @method('PUT')
                                 <input type="text" name="name" value="{{ $major->name }}" class="flex-1 rounded-lg border-gray-300 text-xs" required>
                                 <input type="text" name="code" value="{{ $major->code }}" class="w-20 rounded-lg border-gray-300 text-xs" placeholder="Kode">
-                                <button class="px-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">Simpan</button>
+                                <button class="px-2 rounded-lg bg-brand-600 text-white text-xs font-semibold">Simpan</button>
                             </form>
                             <form method="POST" action="{{ route('masters.destroy-major', $major) }}" class="mt-1" onsubmit="return confirm('Hapus jurusan ini?')">
                                 @csrf @method('DELETE')
@@ -187,7 +187,7 @@
                 @csrf
                 <input type="text" name="name" placeholder="Nama jurusan * (Teknik Pengelasan)" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
                 <input type="text" name="code" placeholder="Kode (opsional), mis. TP" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                <button class="rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Tambah</button>
+                <button class="min-h-10 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">Tambah</button>
             </form>
         </div>
 
@@ -208,7 +208,7 @@
                                 @csrf @method('PUT')
                                 <input type="text" name="name" value="{{ $category->name }}" class="w-full rounded border-gray-300 text-xs" required>
                                 <div class="flex gap-1 items-center">
-                                    <button class="px-2 py-1 rounded bg-slate-800 text-white text-xs font-semibold">Simpan</button>
+                                    <button class="px-2 py-1 rounded bg-brand-600 text-white text-xs font-semibold">Simpan</button>
                                 </div>
                             </form>
                             <form method="POST" action="{{ route('masters.destroy-category', $category) }}" class="mt-1" onsubmit="return confirm('Hapus kategori ini?')">
@@ -222,7 +222,7 @@
             <form method="POST" action="{{ route('masters.store-category') }}" class="space-y-2">
                 @csrf
                 <input type="text" name="name" placeholder="Nama kategori *" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
-                <button class="w-full rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">Tambah Kategori</button>
+                <button class="min-h-10 w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">Tambah Kategori</button>
             </form>
         </div>
     </div>

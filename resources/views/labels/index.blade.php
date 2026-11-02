@@ -106,6 +106,7 @@
                         <span class="material-icons-round text-lg">print</span> Cetak Massal (PDF)
                     </button>
                 </div>
+                <p class="w-full text-[11px] font-normal text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
             </div>
 
             <div class="overflow-x-auto max-h-[60vh] overflow-y-auto">

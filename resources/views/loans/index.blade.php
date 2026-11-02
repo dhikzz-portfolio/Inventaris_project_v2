@@ -37,25 +37,23 @@
         'DIBATALKAN' => ['Dibatalkan', $counts['DIBATALKAN']],
     ])
 
-    <nav class="mb-4 -mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" aria-label="Filter status peminjaman">
-        <div class="flex w-max min-w-full gap-2 sm:w-auto sm:min-w-0 sm:flex-wrap">
-            @foreach ($tabs as $key => [$label, $count])
-                <a href="{{ route('loans.index', array_filter(['status' => $key])) }}"
-                   @if (($status ?? '') === $key) aria-current="page" @endif
-                   @class([
-                       'inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm',
-                       'border-brand-600 bg-brand-600 text-white shadow-sm' => ($status ?? '') === $key,
-                       'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800' => ($status ?? '') !== $key,
-                   ])>
-                    {{ $label }}
-                    <span @class([
-                        'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                        'bg-white/20 text-white' => ($status ?? '') === $key,
-                        'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => ($status ?? '') !== $key,
-                    ])>{{ $count }}</span>
-                </a>
-            @endforeach
-        </div>
+    <nav class="mb-4 flex flex-wrap gap-2" aria-label="Filter status peminjaman">
+        @foreach ($tabs as $key => [$label, $count])
+            <a href="{{ route('loans.index', array_filter(['status' => $key])) }}"
+               @if (($status ?? '') === $key) aria-current="page" @endif
+               @class([
+                   'inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm',
+                   'border-brand-600 bg-brand-600 text-white shadow-sm' => ($status ?? '') === $key,
+                   'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800' => ($status ?? '') !== $key,
+               ])>
+                {{ $label }}
+                <span @class([
+                    'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+                    'bg-white/20 text-white' => ($status ?? '') === $key,
+                    'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => ($status ?? '') !== $key,
+                ])>{{ $count }}</span>
+            </a>
+        @endforeach
     </nav>
 
     <div class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 md:block">

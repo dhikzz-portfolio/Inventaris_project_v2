@@ -16,7 +16,7 @@
             </div>
             <div class="flex items-center gap-2 flex-wrap">
                 <a href="{{ route('loans.letter.preview', $loan) }}" target="_blank"
-                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">
+                   class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                     <span class="material-icons-round text-lg">print</span> Pratinjau Surat
                 </a>
                 @if ($loan->bast_path)
@@ -292,15 +292,15 @@
                     <div class="mt-5">
                         <h4 class="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Baris katalog tanpa unit fisik (data lama)</h4>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
+                            <table class="w-full min-w-[560px] text-sm">
                                 <thead class="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-slate-700 dark:text-slate-400">
                                     <tr>
-                                        <th class="py-2 text-left">Barang</th>
-                                        <th class="py-2 text-left">Ruangan</th>
-                                        <th class="py-2 text-center">Pinjam</th>
-                                        <th class="py-2 text-center">Kembali</th>
-                                        <th class="py-2 text-center">Kondisi Keluar</th>
-                                        <th class="py-2 text-center">Kondisi Masuk</th>
+                                        <th class="whitespace-nowrap py-2 text-left">Barang</th>
+                                        <th class="whitespace-nowrap py-2 text-left">Ruangan</th>
+                                        <th class="whitespace-nowrap py-2 text-center">Pinjam</th>
+                                        <th class="whitespace-nowrap py-2 text-center">Kembali</th>
+                                        <th class="whitespace-nowrap py-2 text-center">Kondisi Keluar</th>
+                                        <th class="whitespace-nowrap py-2 text-center">Kondisi Masuk</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">

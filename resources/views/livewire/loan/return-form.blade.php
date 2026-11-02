@@ -74,12 +74,6 @@
         },
     }"
     x-on:focus-unit.window="setTimeout(() => document.getElementById('return-unit-' + $event.detail.index)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)">
-    @if ($loan->status === \App\Enums\LoanStatus::APPROVED)
-        <div class="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:border-brand-900 dark:bg-brand-900/40 dark:text-brand-200">
-            Peminjaman masih berstatus <strong>Disetujui (belum diambil/diproses)</strong> — pengembalian tetap dapat divalidasi di sini.
-        </div>
-    @endif
-
     @if (session('success'))
         <div role="status" class="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">
             <span class="material-icons-round text-lg" aria-hidden="true">check_circle</span>
@@ -106,12 +100,6 @@
                 Ada unit yang tujuannya bukan ruangan asalnya. Sistem tetap memproses setelah Anda menyetujui, namun tercatat sebagai
                 <strong>mutasi lokasi otomatis</strong> (riwayat + pembaruan ID Internal).
             </div>
-        </div>
-    @endif
-
-    @if (! $hasUnitBasedRows)
-        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-            Peminjaman ini belum memiliki penugasan unit fisik (data legacy). Pengembalian dicatat per baris katalog dan jumlahnya akumulatif.
         </div>
     @endif
 
@@ -214,13 +202,12 @@
             <div class="mt-2 flex flex-wrap items-center gap-2">
                 <button type="button" wire:click="resetFilters"
                     class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
-                    Reset filter
+                    Hapus filter
                 </button>
                 <button type="button" x-on:click="toggleScan()"
                     class="inline-flex min-h-8 items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
-                    <span class="material-icons-round text-sm">qr_code_scanner</span> Scan QR untuk Menemukan Unit
+                    <span class="material-icons-round text-sm">qr_code_scanner</span> Pindai QR untuk Menemukan Unit
                 </button>
-                <span class="text-[11px] text-slate-500 dark:text-slate-400">Scan hanya menemukan dan memilih unit — konfirmasi tetap lewat tombol.</span>
             </div>
 
             <div x-show="scanOpen" x-cloak class="mt-3 rounded-lg border border-sky-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
@@ -242,7 +229,7 @@
                         </div>
                     </div>
                     <div>
-                        <label for="return-scan-code" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Input manual kode inventaris</label>
+                        <label for="return-scan-code" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Masukkan kode inventaris secara manual</label>
                         <div class="flex gap-2">
                             <input id="return-scan-code" type="text" wire:model="scanCode"
                                 wire:keydown.enter.prevent="scanUnitCode"
@@ -251,9 +238,6 @@
                             <button type="button" wire:click="scanUnitCode"
                                 class="inline-flex min-h-9 items-center rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700">Cari</button>
                         </div>
-                        <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                            Kamera tidak tersedia atau izin ditolak? Pencarian kode manual tetap dapat dipakai.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -277,7 +261,7 @@
     @if ($visibleUnitCount === 0)
         <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             Tidak ada unit yang cocok dengan pencarian/filter.
-            <button type="button" wire:click="resetFilters" class="font-semibold text-brand-700 underline dark:text-brand-300">Reset filter</button>
+            <button type="button" wire:click="resetFilters" class="font-semibold text-brand-700 underline dark:text-brand-300">Hapus filter</button>
         </div>
     @endif
 

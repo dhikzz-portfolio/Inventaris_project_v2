@@ -1,7 +1,7 @@
 # Project Status
 
-Tanggal: **29 Oktober 2026**
-Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026** (role, seeder lima jurusan, persetujuan otomatis, katalog peminjam, arsip katalog, batas penyerahan), **revisi besar V2 26 Oktober 2026** (registrasi Gmail, scan universal, gedung A–G, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus laporan, status kegiatan, surat peminjaman, UI pengguna), **revisi validasi pengembalian per unit 28 Oktober 2026**, dan **revisi serah terima/validasi/rincian barang 29 Oktober 2026**. Rincian: `REVISION_V2.md`, `DECISIONS.md` butir 38–39, dan `TESTING.md` bagian 12.
+Tanggal: **2 November 2026**
+Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026**, **revisi besar V2 26 Oktober 2026**, **revisi validasi pengembalian per unit 28 Oktober 2026**, **revisi serah terima/validasi/rincian barang 29 Oktober 2026**, **revisi V3 2 November 2026** (sinkronisasi label/QR ke spesifikasi unit, pengadaan dari katalog lama, field pengguna per kategori, password dua tahap, PIC kegiatan, hapus kegiatan terbatas, ringkasan peminjaman adaptif), dan **revisi V4 2 November 2026** (laporan penghapusan lintas katalog, anti-duplikasi unit, sinkronisasi stok, backfill CSV, invalidasi sesi, otorisasi Super Admin, QR aman, konkurensi MySQL, Playwright E2E, responsif 8 breakpoint). Rincian: `REVISION_V2.md`, `REVISION_V3.md`, `DECISIONS.md` butir 38–39, dan `TESTING.md` bagian 12–15.
 Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 
 ## 1. Ringkasan status
@@ -15,7 +15,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Label per unit + mutasi unit (kode baru & riwayat)           | **IMPLEMENTED & VERIFIED**                                                                 |
 | Privasi data unit untuk Peminjam (nilai, catatan, riwayat)   | **IMPLEMENTED & VERIFIED**                                                                 |
 | Audit log perubahan cakupan akses ruangan                    | **IMPLEMENTED & VERIFIED**                                                                 |
-| UI/UX desain lama + responsif + tema gelap                   | **IMPLEMENTED & VERIFIED** — Tailwind v4 menghasilkan utility CSS; 19 halaman diperiksa |
+| UI/UX desain lama + responsif + tema gelap                   | **IMPLEMENTED & VERIFIED** — 24 halaman × 8 breakpoint (320–1920 px), 193 pemeriksaan, 0 overflow dokumen |
 | Dashboard per role (katalog, unit, cakupan lab)              | **IMPLEMENTED & VERIFIED**                                                                 |
 | Penugasan unit fisik pada peminjaman (`loan_item_units`)      | **IMPLEMENTED & VERIFIED** — unit ditugaskan saat serah terima, dikonfirmasi terpisah saat kembali, status `DIPINJAM`/`AKTIF` + kondisi mengikuti pengembalian |
 | Alur serah terima (tanpa error 422 palsu)                    | **IMPLEMENTED & VERIFIED** — status transaksi menutup rantai persetujuan; pesan blokir tampil di UI |
@@ -32,7 +32,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Scan QR kontekstual serah terima                             | **IMPLEMENTED & VERIFIED** — endpoint server memverifikasi unit/transaksi/kelayakan/duplikasi/kuota; scan tidak menyerahkan |
 | Pencarian, filter, dan scan QR validasi pengembalian         | **IMPLEMENTED & VERIFIED** — QR hanya menyorot & memilih unit, konfirmasi tetap aksi petugas |
 | Rincian barang per unit + popup foto bukti                   | **IMPLEMENTED & VERIFIED** — kartu per unit, filter lengkap, pagination 24, foto terikat unit dan diakses sesuai peran |
-| Penghapusan per unit                                         | **BELUM** — masih level baris katalog                                                     |
+| Penghapusan per unit + katalog                               | **IMPLEMENTED & VERIFIED** — `write_off_units`, snapshot identitas, locking, unique aktif per unit, konfirmasi katalog |
 | Cakupan laporan/ekspor untuk Ketua Laboran                   | **IMPLEMENTED & VERIFIED** — data, PDF, Excel, dan arsip dibatasi laboratorium             |
 | Audit sinkronisasi fitur vs PRD 2.1                          | **IMPLEMENTED & VERIFIED** — matriks di `feature-sync-audit.md`; label massal per unit, penghapusan mengarsip unit, laporan per unit |
 | Registrasi mandiri Gmail + role Peminjam otomatis             | **IMPLEMENTED & VERIFIED** — validasi backend + `pattern` frontend, email dinormalisasi, role tidak dapat dikirim dari browser |
@@ -46,10 +46,26 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Status kegiatan Belum/Sedang/Sudah Berjalan                  | **IMPLEMENTED & VERIFIED** — tersimpan di `events.status`; guru/staf dapat mencatat                                         |
 | Surat peminjaman per kategori + pratinjau cetak              | **IMPLEMENTED & VERIFIED** — bagian kegiatan kondisional, tanggal tanpa jam, kode unit, `@media print`                      |
 | UI pengguna card tambah/edit                                 | **IMPLEMENTED & VERIFIED** — form bersama `_form.blade.php`                                                                |
+| Label/QR memakai identitas spesifikasi unit                  | **IMPLEMENTED & VERIFIED** — `RevisionV3Test`; katalog hanya fallback unit lama; QR rilis 2 |
+| Pengadaan dari katalog lama + validasi kategori              | **IMPLEMENTED & VERIFIED** — nama/kategori terkunci, kategori berbeda ditolak, tidak menduplikasi katalog |
+| Field pengguna per kategori + password dua tahap             | **IMPLEMENTED & VERIFIED** — gelar siswa & jurusan guru/staf ditolak backend; verifikasi password lama |
+| PIC kegiatan akun atau nama khusus + hapus terbatas          | **IMPLEMENTED & VERIFIED** — `events.pic_user_id`; hanya pembuat; kegiatan dengan peminjaman ditolak |
+| Ringkasan peminjaman adaptif                                 | **IMPLEMENTED & VERIFIED** — baris opsional kosong tidak dirender |
+| Penghapusan per unit + seluruh katalog                      | **IMPLEMENTED & VERIFIED** — `write_off_units`, snapshot identitas, locking, unique `(asset_unit_id, is_active)`, konfirmasi katalog |
+| Laporan penghapusan lintas katalog                          | **IMPLEMENTED & VERIFIED** — PDF/Excel/ringkasan memakai `write_off_units`; transaksi legacy ditandai dan tidak dihitung dua kali |
+| Filter unit pada inventaris keluar                          | **IMPLEMENTED & VERIFIED** — 10 parameter AND, pagination, pilih semua sesuai filter |
+| Backfill spesifikasi unit lama                              | **IMPLEMENTED & VERIFIED** — dry-run/apply, CSV kandidat+status, idempoten; unit ambigu tidak ditebak |
+| Invalidasi seluruh sesi setelah ganti password              | **IMPLEMENTED & VERIFIED** — `AuthenticateSession`; sesi aktif tetap login, hash lama ditolak |
+| Otorisasi hapus kegiatan                                    | **IMPLEMENTED & VERIFIED** — pembuat atau Super Admin; PIC bukan pemilik; kegiatan dengan peminjaman selalu ditolak |
+| QR rilis 1/2 + payload dimanipulasi                         | **IMPLEMENTED & VERIFIED** — versi tak dikenal ditolak, identitas/lokasi selalu dari database, mismatch diperingatkan |
+| Pengujian MySQL + konkuren                                  | **VERIFIED (terbatas)** — MySQL 8.4.3, 6 pembuat paralel unik, 3 penghapusan unit sama (1 sukses/2 ditolak), 3 unit berbeda stok konsisten |
+| Pengujian browser                                           | **VERIFIED** — Playwright E2E penuh pengadaan → label → scan → mutasi → pinjam → serah terima → kembali → hapus; 0 console error |
+| Audit responsif                                             | **VERIFIED** — 24 halaman × 8 breakpoint + modal, 193 pemeriksaan PASS |
+| Cetak fisik label/QR                                        | **BELUM DIVERIFIKASI** — PDF/QR digital valid; printer/pemindai tidak tersedia |
 | Verifikasi email (SMTP)                                      | **BELUM** — kolom & event siap; SMTP/MustVerifyEmail belum dikonfigurasi                                                    |
 | Deployment produksi                                          | **BLOCKED** — tidak ada akses server/domain pada lingkungan ini                            |
 
-Pengujian terakhir (29 Oktober 2026): **282 passed, 0 skipped, 1384 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`, dijalankan dengan `memory_limit=1G`). `vendor/bin/pint --dirty` dijalankan. Verifikasi browser (Playwright/Chrome) pada rilis sebelumnya tetap berlaku untuk alur katalog/unit/navigasi; perubahan UI revisi V2 diverifikasi melalui render Blade, Livewire test, dan HTTP test (bukan screenshot baru).
+Pengujian terakhir (2 November 2026): **330 passed, 0 skipped, 1682 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`). `vendor/bin/pint` dijalankan pada file yang diubah. Playwright E2E penuh dan audit responsif dijalankan pada MySQL 8.4.3 dengan database uji terpisah (`inventaris_e2e`); cetak fisik tetap **BLOCKED**.
 
 ## 2. Status per modul
 
@@ -73,11 +89,12 @@ Pengujian terakhir (29 Oktober 2026): **282 passed, 0 skipped, 1384 assertions**
 | Peminjaman multi-item                   | VERIFIED    | Multi-item; ketersediaan katalog dikurangi pinjaman aktif; status transaksi menutup rantai persetujuan (PENDING → APPROVED) |
 | Serah terima & pembatalan               | VERIFIED    | Timestamp petugas, pembebasan jadwal, penugasan unit fisik, penjagaan serah terima ganda           |
 | Pengembalian                            | VERIFIED    | Per unit: konfirmasi individual, validasi massal ≥11 unit per katalog, foto bukti per unit, pencarian/filter/QR fokus, mutasi unit, penyelesaian eksplisit; legacy kuantitas akumulatif |
-| Mutasi unit                             | VERIFIED    | Multi-select + pencarian/filter, kode baru diterbitkan, kode lama pensiun, riwayat, label perlu dicetak ulang || Penghapusan                                         | VERIFIED    | Level baris katalog; persetujuan kini **mengarsipkan unit fisik** dan menghitung ulang counter katalog; pemilihan unit per BA belum || QR & label                                          | VERIFIED    | Label unit (PDF), **massal per unit terpilih (filter + select-all lintas halaman)**, re-print, scan kode/ID lama |
+| Mutasi unit                             | VERIFIED    | Multi-select + pencarian/filter, kode baru diterbitkan, kode lama pensiun, riwayat, label perlu dicetak ulang || Penghapusan                                         | VERIFIED    | Per unit/katalog dengan snapshot `write_off_units`, unique aktif per unit, locking, rollback; laporan lintas katalog konsisten; BA masih satu berkas per pengajuan || QR & label                                          | VERIFIED    | Label unit (PDF), **massal per unit terpilih (filter + select-all lintas halaman)**, re-print, scan kode/ID lama |
 | BAST & surat                            | VERIFIED    | Per pinjaman & gabungan kegiatan, PDF privat                                                       || Laporan                                             | VERIFIED    | Impor CSV/XLSX (pratinjau + atomik), hapus arsip soft delete; PDF + Excel 5 sheet (sheet **Unit** per unit fisik; ringkasan kondisi dihitung per unit), filter 4 cakupan; Ketua Laboran hanya data laboratorium, arsip seluruh sekolah khusus Super Admin |
 | Notifikasi                              | VERIFIED    | In-app + 4 job terjadwal, deduplikasi                                                             |
 | Audit log                               | VERIFIED    | Immutable dari Eloquent; mutasi kode dan unit dicatat                                              |
-| Tema & mobile                          | VERIFIED    | Desain lama dipertahankan; bottom nav, dark mode, PWA; tanpa overflow horizontal di 390px           || Pengujian                                           | VERIFIED    | 282 passed, 1384 assertions (SQLite in-memory)                                                      |
+| Tema & mobile                          | VERIFIED    | Desain lama dipertahankan; 24 halaman × 8 breakpoint (320–1920 px), modal dalam viewport, tabel lebar memakai scroll horizontal |
+| Pengujian                                           | VERIFIED    | 330 passed, 1682 assertions (SQLite); MySQL konkuren, Playwright E2E penuh, responsif 8 breakpoint |
 | Seeder                                  | VERIFIED    | Master data, akun demo, inventaris demo, dan transaksi demo dipisah; aman dijalankan ulang        |
 | Dokumentasi                             | VERIFIED    | README + 12 dokumen `docs/`; status implementasi diselaraskan                                      |
 | Deployment                              | BLOCKED     | Panduan + Docker siap; server tidak tersedia                                                       |
@@ -87,8 +104,8 @@ Pengujian terakhir (29 Oktober 2026): **282 passed, 0 skipped, 1384 assertions**
 - PHP 8.3.32, Composer 2.10.2
 - Laravel 13, Livewire 4, Vite 8, Tailwind CSS 4.3
 - MySQL 8.4.3 (Laragon), Node 24; pengujian memakai SQLite in-memory
-- `php artisan test` (249 tes), `npm run build` (CSS ±78 KB dengan utility lengkap), migrasi + seed SQLite terpisah
-- Chrome headless (Playwright) untuk verifikasi UI: 19 halaman, alur katalog/unit, laporan, 4 role, mobile 390px, dan tema gelap
+- `php artisan test` (330 tes), `npm run build`, migrasi + seed SQLite dan MySQL terpisah
+- Chrome headless (Playwright) untuk E2E penuh pada MySQL, audit 24 halaman × 8 breakpoint, modal, dan skenario role
 - `config:cache`, `route:cache`, `view:cache` diperiksa ulang setelah perubahan
 
 ## 4. Data saat ini
@@ -100,11 +117,11 @@ Pengujian terakhir (29 Oktober 2026): **282 passed, 0 skipped, 1384 assertions**
 ## 5. Pekerjaan tersisa
 
 1. **Peminjaman per unit**: `loan_item_units` sudah dibuat dan unit ditugaskan saat serah terima (status `DIPINJAM` → `AKTIF` + kondisi saat kembali). Peminjam memilih katalog + jumlah; pemilihan unit fisik oleh peminjam pada saat pengajuan belum didukung (tetap di serah terima sesuai keputusan 28). Yang tersisa: migrasikan katalog lama ke unit fisik lalu menghapus pembukuan kuantitas warisan. (Lihat `KNOWN_ISSUES.md` butir 1 & 8.)
-2. **Penghapusan per unit**: ubah `write_offs` ke `asset_unit_id` + `batch_no`; sesuaikan BA/approval.
-3. **Penugasan unit pada pengembalian/mutasi katalog lama**: transisi dari `item_movements` ke `asset_unit_movements`.
-4. **Konfirmasi daftar gedung resmi** (nama & identitas kode satu huruf) dan daftar laboratorium sebelum go-live; master gedung A–G sudah tersedia, data demo masih memakai H/I.
-4b. **Aktifkan verifikasi email** (SMTP + `MustVerifyEmail`) bila sekolah menghendaki pembuktian kepemilikan Gmail.
-5. **Uji beban** penerbitan kode pada MySQL dengan konkurensi nyata.
+2. **Penugasan unit pada pengembalian/mutasi katalog lama**: transisi dari `item_movements` ke `asset_unit_movements`.
+3. **Konfirmasi daftar gedung resmi** (nama & identitas kode satu huruf) dan daftar laboratorium sebelum go-live; master gedung A–G sudah tersedia, data demo masih memakai H/I.
+3b. **Aktifkan verifikasi email** (SMTP + `MustVerifyEmail`) bila sekolah menghendaki pembuktian kepemilikan Gmail.
+4. **Uji beban** produksi (bukan hanya 6 proses lokal) dan rollback migration pada salinan database.
+5. **Validasi cetak fisik** label pada printer/media/pemindai sesungguhnya.
 6. Ganti akun demo, siapkan server/HTTPS, jalankan worker + scheduler, UAT.
 
 ## 6. Risiko yang dipantau
@@ -113,5 +130,5 @@ Pengujian terakhir (29 Oktober 2026): **282 passed, 0 skipped, 1384 assertions**
 - Nomor unit pensiun mengunci kapasitas ruangan (maks. 99 seumur hidup).
 - Scanning kode baru dan ID internal lama dapat bertabrakan karena format lama (`g1-01-01`) juga valid sebagai kode baru; scanner memprioritaskan unit.
 - Data demo tidak boleh dipakai di produksi.
-- Konkurensi tinggi belum di-load-test; unique index + lock ruangan sudah diterapkan.
+- Konkurensi diuji dengan 6 proses lokal dan 3 penghapusan paralel; belum load test produksi. Unique index, `lockForUpdate`, dan validasi ulang dalam transaksi sudah diterapkan.
 - Docker Compose belum dijalankan di host ber-Docker; deployment belum dilakukan.

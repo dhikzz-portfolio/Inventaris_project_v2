@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Enums\EventStatus;
 use App\Models\Event;
+use App\Models\User;
 use App\Services\BastService;
 use App\Services\EventStatusService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class EventController extends Controller
@@ -25,7 +29,7 @@ class EventController extends Controller
 
         return view('events.index', [
             'events' => Event::withCount('loans')
-                ->with(['creator', 'loans' => fn ($q) => $q->withCount('loanItems')])
+                ->with(['creator', 'picUser', 'loans' => fn ($q) => $q->withCount('loanItems')])
                 ->when(in_array($status, EventStatus::values(), true), function ($query) use ($status, $today): void {
                     match ($status) {
                         EventStatus::BELUM_BERJALAN->value => $query->whereDate('start_date', '>', $today),
@@ -38,6 +42,7 @@ class EventController extends Controller
                 ->withQueryString(),
             'statuses' => EventStatus::cases(),
             'activeStatus' => $status,
+            'picUsers' => $this->picUsers(),
         ]);
     }
 
@@ -55,15 +60,20 @@ class EventController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'pic_name' => ['required', 'string', 'max:255'],
+            'pic_mode' => ['nullable', Rule::in(['user', 'custom'])],
+            'pic_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'pic_name' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ]);
 
+        $pic = $this->resolvePic($data, $request);
+
         $event = Event::create([
             'name' => $data['name'],
-            'pic_name' => $data['pic_name'],
+            'pic_name' => $pic['pic_name'],
+            'pic_user_id' => $pic['pic_user_id'],
             'description' => $data['description'] ?? null,
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
@@ -88,14 +98,19 @@ class EventController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'pic_name' => ['required', 'string', 'max:255'],
+            'pic_mode' => ['nullable', Rule::in(['user', 'custom'])],
+            'pic_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'pic_name' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ]);
 
+        $pic = $this->resolvePic($data, $request);
         $before = $event->status?->value;
-        unset($data['status']);
+        unset($data['status'], $data['pic_mode']);
+        $data['pic_name'] = $pic['pic_name'];
+        $data['pic_user_id'] = $pic['pic_user_id'];
         $event->fill($data + ['updated_by' => $request->user()->id]);
         $event->status = app(EventStatusService::class)->calculateStatus($event);
         $event->save();
@@ -112,13 +127,83 @@ class EventController extends Controller
     public function show(Event $event, EventStatusService $statusService): View
     {
         $statusService->updateStatusIfNeeded($event);
-        $event->load(['loans.borrower', 'loans.loanItems.item', 'loans.loanItems.unitAssignments.unit', 'creator', 'editor']);
+        $event->load(['loans.borrower', 'loans.loanItems.item', 'loans.loanItems.unitAssignments.unit', 'creator', 'editor', 'picUser']);
 
         return view('events.show', [
             'event' => $event,
             'bookedItems' => collect($event->bookedItemIds()),
             'statuses' => EventStatus::cases(),
+            'picUsers' => $this->picUsers(),
         ]);
+    }
+
+    /**
+     * Hapus kegiatan. Pembuat atau Super Admin boleh menghapus, dan kegiatan
+     * yang sudah memiliki transaksi peminjaman selalu ditolak meskipun request
+     * dikirim langsung ke API/route.
+     */
+    public function destroy(Request $request, Event $event): RedirectResponse
+    {
+        $user = $request->user();
+        $isOwner = (int) $event->created_by === (int) $user->id;
+
+        abort_unless($isOwner || $user->isSuperAdmin(), 403,
+            'Hanya pembuat kegiatan atau Super Admin yang dapat menghapus kegiatan ini.');
+
+        if ($event->hasLoans()) {
+            return back()->with('error', 'Kegiatan tidak dapat dihapus karena telah memiliki riwayat transaksi peminjaman.');
+        }
+
+        // Keputusan akhir tetap di backend melalui policy (bukan hanya UI).
+        Gate::authorize('delete', $event);
+
+        $name = $event->name;
+
+        activity('kegiatan')
+            ->performedOn($event)
+            ->causedBy($request->user())
+            ->log('Menghapus kegiatan '.$name);
+
+        $event->delete();
+
+        return redirect()->route('events.index')
+            ->with('success', "Kegiatan \"{$name}\" dihapus.");
+    }
+
+    /**
+     * Tentukan penanggung jawab: akun pengguna terdaftar atau nama khusus.
+     * Tidak ada akun pengguna palsu yang dibuat untuk nama organisasi/panitia.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{pic_name: string, pic_user_id: int|null}
+     */
+    private function resolvePic(array $data, Request $request): array
+    {
+        $mode = (string) ($data['pic_mode'] ?? ($request->filled('pic_user_id') ? 'user' : 'custom'));
+
+        if ($mode === 'user') {
+            $user = User::query()->find($data['pic_user_id'] ?? null);
+
+            if ($user === null) {
+                abort(422, 'Pilih akun pengguna penanggung jawab atau gunakan nama khusus.');
+            }
+
+            return ['pic_name' => $user->displayName(), 'pic_user_id' => (int) $user->id];
+        }
+
+        $name = trim((string) ($data['pic_name'] ?? ''));
+
+        if ($name === '') {
+            abort(422, 'Nama penanggung jawab wajib diisi.');
+        }
+
+        return ['pic_name' => $name, 'pic_user_id' => null];
+    }
+
+    /** @return Collection<int, User> */
+    private function picUsers()
+    {
+        return User::query()->orderBy('name')->get(['id', 'name', 'degree', 'role']);
     }
 
     public function downloadBast(Request $request, Event $event, BastService $bast)

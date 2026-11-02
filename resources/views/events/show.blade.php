@@ -7,14 +7,17 @@
                     <span class="text-[11px] font-bold px-2 py-1 rounded-full {{ $event->status->badgeClass() }}">{{ $event->status->label() }}</span>
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">
-                    PJ: {{ $event->pic_name }} • {{ $event->start_date->format('d M Y') }} — {{ $event->end_date->format('d M Y') }}
+                    @if (filled($event->picDisplayName()))
+                        PJ: {{ $event->picDisplayName() }} •
+                    @endif
+                    {{ $event->start_date->format('d M Y') }} — {{ $event->end_date->format('d M Y') }}
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 @if (auth()->user()->managesInventory())
                     <a href="{{ route('events.bast', $event) }}" target="_blank"
                        class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span class="material-icons-round text-lg">description</span> BAST Gabungan (PDF)
+                        <span class="material-icons-round text-lg">description</span> Berita Acara Gabungan (PDF)
                     </a>
                 @endif
                 <a href="{{ route('events.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Semua kegiatan</a>
@@ -67,7 +70,7 @@
                             </ul>
                             @if ($loan->bast_path)
                                 <a href="{{ route('loans.bast', $loan) }}" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 font-semibold hover:underline">
-                                    <span class="material-icons-round text-sm">description</span> BAST/Surat pinjaman ini
+                                    <span class="material-icons-round text-sm">description</span> Berita Acara pinjaman ini
                                 </a>
                             @endif
                         </div>
@@ -120,7 +123,7 @@
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-gray-500 mb-1">Penanggung jawab *</label>
-                            <input type="text" name="pic_name" value="{{ $event->pic_name }}" required class="w-full rounded-lg border-gray-300 text-xs">
+                            @include('events._pic_fields', ['picUsers' => $picUsers, 'event' => $event])
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
@@ -139,6 +142,29 @@
                         <button type="submit" class="w-full rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2">Simpan Perubahan</button>
                         <p class="text-[10px] text-gray-400">Status kegiatan tidak mengubah status persetujuan peminjaman.</p>
                     </form>
+
+                    @if (auth()->user()?->isSuperAdmin() || (int) $event->created_by === (int) auth()->id())
+                        <div class="mt-4 border-t border-slate-100 pt-3 dark:border-slate-700">
+                            @if ($event->hasLoans())
+                                <p class="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                                    Kegiatan tidak dapat dihapus karena telah memiliki riwayat transaksi peminjaman.
+                                </p>
+                                <button type="button" disabled
+                                        class="w-full cursor-not-allowed rounded-lg bg-slate-100 py-2 text-xs font-semibold text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                    Hapus Kegiatan
+                                </button>
+                            @else
+                                <form method="POST" action="{{ route('events.destroy', $event) }}"
+                                      onsubmit="return confirm('Hapus kegiatan ini? Tindakan ini tidak dapat dibatalkan.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="w-full rounded-lg bg-red-50 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">
+                                        Hapus Kegiatan
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             @endif
 
@@ -149,7 +175,7 @@
                 <ol class="list-decimal ms-4 space-y-1.5 text-gray-600 text-xs">
                     <li>Peminjam mengajukan peminjaman <strong>dengan memilih kegiatan ini</strong>.</li>
                     <li>Laboran menyetujui (Wakasek untuk barang bernilai tinggi).</li>
-                    <li>BAST/Surat Peminjaman Resmi digenerate otomatis (PDF siap tanda tangan).</li>
+                    <li>Berita Acara resmi dibuat otomatis (PDF siap tanda tangan).</li>
                     <li>Seluruh barang dikembalikan & dilaporkan sebagai <strong>satu paket</strong>.</li>
                 </ol>
             </div>

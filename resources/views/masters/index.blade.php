@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Master Data</h2>
+            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Data Sekolah</h2>
             <p class="text-sm text-slate-500 dark:text-slate-400">Gedung, ruangan, jurusan, dan kategori barang</p>
         </div>
     </x-slot>

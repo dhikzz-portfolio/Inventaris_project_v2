@@ -6,8 +6,8 @@
                 <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per kategori, ruangan, atau jurusan</p>
             </div>
             <a href="{{ route('reports.import.form') }}"
-               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold">
-                <span class="material-icons-round text-lg">upload_file</span> Impor Laporan
+               class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500">
+                <span class="material-icons-round text-lg" aria-hidden="true">upload_file</span> Impor Laporan
             </a>
         </div>
     </x-slot>
@@ -24,13 +24,13 @@
             <span class="material-icons-round text-blue-600">tune</span> Parameter Laporan
         </h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <x-input-label for="report-period" value="Periode (Bulan)" />
                 <input type="month" x-model="period" min="2020-01" value="{{ $currentPeriod }}"
                        id="report-period" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
-            <div>
+            <div :class="scope === 'SEMUA' ? 'md:col-span-2' : ''">
                 <x-input-label for="report-scope" value="Cakupan" />
                 <select id="report-scope" x-model="scope" x-on:change="scopeId = ''" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     <option value="SEMUA">{{ auth()->user()->isSuperAdmin() ? 'Seluruh sekolah' : 'Seluruh laboratorium' }}</option>
@@ -67,28 +67,31 @@
                 </select>
             </div>
             <div class="flex items-end gap-2 flex-wrap">
-                <a :href="exportUrl('pdf')" target="_blank"
-                   class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
-                    <span class="material-icons-round text-lg">picture_as_pdf</span> Pratinjau PDF
+                <a :href="exportUrl('pdf')" target="_blank" rel="noopener"
+                   class="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                    <span class="material-icons-round text-lg" aria-hidden="true">picture_as_pdf</span> Pratinjau PDF
                 </a>
-                <button type="button" @click="window.open(exportUrl('pdf'), '_blank').print()"
-                   class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <span class="material-icons-round text-lg">print</span> Cetak
+                <button type="button" @click="printReport()"
+                   class="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <span class="material-icons-round text-lg" aria-hidden="true">print</span> Cetak
                 </button>
-                <a :href="exportUrl('excel')" target="_blank"
-                   class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    <span class="material-icons-round text-lg">table_view</span> Excel
+                <a :href="exportUrl('excel')" target="_blank" rel="noopener"
+                   class="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <span class="material-icons-round text-lg" aria-hidden="true">table_view</span> Excel
                 </a>
             </div>
         </div>
 
-        <form method="POST" action="{{ route('reports.generate') }}" class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-end dark:border-slate-700">
+        <form method="POST" action="{{ route('reports.generate') }}" x-data="{ submitting: false }" @submit="submitting = true" class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-end dark:border-slate-700">
             @csrf
             <input type="hidden" name="period" :value="period">
             <input type="hidden" name="scope" :value="scope">
             <input type="hidden" name="scope_id" :value="scope === 'SEMUA' ? '' : scopeId">
             <p class="flex-1 text-xs text-slate-500 dark:text-slate-400">Simpan snapshot laporan (PDF + Excel) ke arsip — laporan bulanan juga dibuat otomatis oleh scheduler setiap tanggal 1.</p>
-            <button class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto sm:py-2.5">Simpan ke Arsip</button>
+            <button :disabled="submitting" class="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-wait disabled:opacity-60 sm:w-auto">
+                <span class="material-icons-round text-lg" aria-hidden="true">archive</span>
+                <span x-text="submitting ? 'Menyimpan...' : 'Simpan ke Arsip'"></span>
+            </button>
         </form>
 
         <p class="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
@@ -104,7 +107,7 @@
             @endunless
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full min-w-[760px] text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                     <tr>
                         <th class="text-left px-5 py-2.5">Periode</th>
@@ -134,11 +137,16 @@
                             </td>
                             <td class="px-5 py-2.5 text-center">
                                 @if (auth()->user()->isSuperAdmin() || (int) $report->generated_by === (int) auth()->id())
-                                    <form method="POST" action="{{ route('reports.destroy', $report) }}"
+                                    <form method="POST" action="{{ route('reports.destroy', $report) }}" x-data="{ submitting: false }"
+                                          @submit="submitting = true"
                                           onsubmit="return confirm('Hapus arsip laporan periode {{ $report->period }} ({{ $report->scope }})?\n\nFile PDF/Excel dihapus dan arsip disembunyikan. Data inventaris sumber TIDAK ikut terhapus.')">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="text-xs font-semibold text-red-600 hover:underline">Hapus</button>
+                                        <button :disabled="submitting"
+                                                class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-wait disabled:opacity-60 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">
+                                            <span class="material-icons-round text-sm" aria-hidden="true">delete</span>
+                                            <span x-text="submitting ? 'Menghapus...' : 'Hapus'"></span>
+                                        </button>
                                     </form>
                                 @else
                                     <span class="text-slate-400 dark:text-slate-500">—</span>
@@ -165,6 +173,24 @@
                     const params = new URLSearchParams({ scope: this.scope });
                     if (this.scope !== 'SEMUA' && this.scopeId) params.set('scope_id', this.scopeId);
                     return `{{ url('laporan/export') }}/` + type + '/' + this.period + '?' + params.toString();
+                },
+                printReport() {
+                    const win = window.open(this.exportUrl('pdf'), '_blank', 'noopener');
+
+                    if (!win) {
+                        alert('Izinkan pop-up untuk mencetak laporan.');
+                        return;
+                    }
+
+                    let printed = false;
+                    const trigger = () => {
+                        if (printed) return;
+                        printed = true;
+                        try { win.focus(); win.print(); } catch (error) { /* pengguna dapat mencetak manual */ }
+                    };
+
+                    win.addEventListener('load', trigger, { once: true });
+                    setTimeout(trigger, 1500);
                 }
             };
         }

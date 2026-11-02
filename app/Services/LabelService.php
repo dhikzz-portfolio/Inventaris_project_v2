@@ -17,7 +17,7 @@ class LabelService
      * Versi skema payload QR. Dinaikkan bila struktur berubah; scanner tetap
      * menyelesaikan QR lama karena unit selalu dicari ulang di database.
      */
-    public const QR_RELEASE = 1;
+    public const QR_RELEASE = 2;
 
     /**
      * QR PNG base64 berisi URL detail barang yang tervalidasi.
@@ -42,8 +42,11 @@ class LabelService
         $room = $unit->room;
 
         return route('scan', [
+            // Identitas stabil unit adalah sumber kebenaran QR. Kode, spesifikasi,
+            // dan lokasi hanya petunjuk; server selalu membaca ulang database.
             'u' => $unit->id,
             'c' => $unit->inventory_code,
+            's' => $unit->specification_id,
             'r' => self::QR_RELEASE,
             'b' => $room?->building?->name ?: ($room?->buildingCode() ?? ''),
             'f' => $room?->floor,
@@ -70,7 +73,9 @@ class LabelService
             ->log('Mencetak label unit '.$unit->inventory_code);
 
         return Pdf::loadView('pdf.unit_label', [
-            'unit' => $unit->loadMissing(['catalog', 'room']),
+            // Label harus membaca identitas dari unit → spesifikasi, bukan dari
+            // data pengadaan pertama pada katalog.
+            'unit' => $unit->loadMissing(['catalog', 'specification', 'room.building']),
             'setting' => $setting,
             'qr' => $this->unitQrDataUrl($unit),
         ])->setPaper([0, 0, 260, 120], 'pt');
@@ -186,7 +191,7 @@ class LabelService
             ->visibleTo(auth()->user())
             ->whereHas('catalog', fn ($query) => $query->approved())
             ->where('status', '!=', UnitStatus::DIHAPUS->value)
-            ->with(['catalog.category', 'room'])
+            ->with(['catalog.category', 'specification', 'room.building'])
             ->whereIn('id', $unitIds)
             ->orderBy('inventory_code')
             ->get();

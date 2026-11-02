@@ -59,7 +59,8 @@ class ReportImportAndArchiveTest extends TestCase
         $this->actingAs($this->wakasek)
             ->get(route('reports.import.form'))
             ->assertOk()
-            ->assertSee('Pratinjau: laporan-unit.csv');
+            ->assertSee('Hasil Pemeriksaan')
+            ->assertSee('laporan-unit.csv');
     }
 
     public function test_konfirmasi_impor_mode_perbarui_mengubah_unit_cocok(): void

@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "pages": 24,
+  "widths": [
+    320,
+    375,
+    430,
+    768,
+    1024,
+    1366,
+    1440,
+    1920
+  ],
+  "checks": 193,
+  "failures": [],
+  "consoleErrors": []
+}

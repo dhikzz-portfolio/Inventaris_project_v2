@@ -68,6 +68,7 @@ class ProfileUpdateRequest extends FormRequest
         } else {
             // Guru/Staf/kategori non-Siswa: kelas & jurusan tidak berlaku.
             $rules['class_name'] = ['prohibited'];
+            $rules['major_id'] = ['prohibited'];
         }
 
         // Kategori pengguna tidak pernah bisa diubah lewat edit profil.
@@ -87,6 +88,7 @@ class ProfileUpdateRequest extends FormRequest
             'borrower_type.prohibited' => 'Kategori pengguna tidak dapat diubah melalui edit profil. Hubungi administrator sekolah.',
             'degree.prohibited' => 'Gelar tidak berlaku untuk kategori Siswa.',
             'class_name.prohibited' => 'Kelas hanya berlaku untuk kategori Siswa.',
+            'major_id.prohibited' => 'Jurusan tidak berlaku untuk kategori Guru/Staf.',
         ];
     }
 }

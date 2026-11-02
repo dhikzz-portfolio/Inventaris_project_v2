@@ -96,13 +96,30 @@ class ItemController extends Controller
             ];
         })->values();
 
+        $catalogs = Item::query()
+            ->whereNull('archived_at')
+            ->where('acquisition_status', 'APPROVED')
+            ->with(['category:id,name', 'specifications:id,item_catalog_id,brand,model_type'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'category_id']);
+
+        $catalogMap = $catalogs->mapWithKeys(fn (Item $catalog): array => [
+            $catalog->id => [
+                'name' => $catalog->name,
+                'category_id' => $catalog->category_id,
+                'category_name' => $catalog->category?->name,
+                'brands' => $catalog->specifications->pluck('brand')->filter()->unique()->values()->all(),
+                'models' => $catalog->specifications
+                    ->map(fn (Specification $spec): array => ['brand' => $spec->brand, 'model' => $spec->model_type])
+                    ->values()
+                    ->all(),
+            ],
+        ]);
+
         return view('items.create', [
             'categories' => Category::orderBy('name')->get(),
-            'catalogs' => Item::query()
-                ->whereNull('archived_at')
-                ->where('acquisition_status', 'APPROVED')
-                ->orderBy('name')
-                ->get(['id', 'name', 'category_id']),
+            'catalogs' => $catalogs,
+            'catalogMap' => $catalogMap,
             'brands' => Specification::query()
                 ->select('brand')->distinct()->orderBy('brand')->pluck('brand'),
             'rooms' => $rooms,
@@ -142,9 +159,37 @@ class ItemController extends Controller
         $this->assertAllocationsValid($allocations, $total);
 
         $firstRoom = Room::findOrFail($allocations->first()['room_id']);
-        $existingCatalog = filled($data['catalog_id'] ?? null)
-            ? Item::query()->whereKey($data['catalog_id'])->first()
-            : Item::query()->where('category_id', $data['category_id'])->where('name', $data['name'])->first();
+
+        $existingCatalog = null;
+
+        if (filled($data['catalog_id'] ?? null)) {
+            $existingCatalog = Item::query()->with('category')->whereKey($data['catalog_id'])->first();
+
+            if ($existingCatalog === null || $existingCatalog->archived_at !== null
+                || $existingCatalog->acquisition_status !== 'APPROVED') {
+                throw ValidationException::withMessages([
+                    'catalog_id' => 'Katalog yang dipilih tidak tersedia atau sudah diarsipkan.',
+                ]);
+            }
+
+            // Katalog terpilih menentukan nama & kategori. Kategori yang
+            // berbeda dari katalog tidak boleh diterima dari request manual.
+            if (filled($data['category_id'] ?? null)
+                && (int) $data['category_id'] !== (int) $existingCatalog->category_id) {
+                throw ValidationException::withMessages([
+                    'category_id' => 'Kategori tidak boleh berbeda dari kategori katalog yang dipilih.',
+                ]);
+            }
+
+            $data['name'] = $existingCatalog->name;
+            $data['category_id'] = $existingCatalog->category_id;
+        } else {
+            $existingCatalog = Item::query()
+                ->where('category_id', $data['category_id'])
+                ->where('name', $data['name'])
+                ->first();
+        }
+
         $category = $existingCatalog?->category ?? Category::findOrFail($data['category_id']);
 
         $createdAllocations = collect();

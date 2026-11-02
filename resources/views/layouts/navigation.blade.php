@@ -1,6 +1,6 @@
 <nav class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 safe-area-top backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
     <div class="px-3 sm:px-6 lg:px-8">
-        <div class="flex h-14 items-center justify-between sm:h-16">
+        <div class="flex h-14 items-center justify-between">
             <div class="flex min-w-0 items-center gap-2">
                 <button @click="menuOpen = ! menuOpen"
                         :aria-expanded="menuOpen.toString()"

@@ -1,3 +1,11 @@
+@php
+    // Identitas label selalu dari relasi unit → spesifikasi. Kolom merek pada
+    // katalog hanya cadangan untuk unit lama yang belum memiliki spesifikasi.
+    $specification = $unit->specification;
+    $brand = $specification?->brandLabel() ?: ($unit->catalog?->brand ?? '');
+    $model = $specification?->modelLabel() ?: ($unit->catalog?->model_type ?? '');
+    $identity = trim(collect([$brand, $model])->filter()->implode(' — '));
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,44 +14,19 @@
         @page { margin: 0; }
         * { box-sizing: border-box; }
         body { margin: 0; padding: 1pt; font-family: Helvetica, Arial, sans-serif; }
-
-        .label {
-            width: 240pt; height: 62pt;
-            border: 2pt solid #1c398e;
-            border-radius: 6pt;
-            padding: 3pt 7pt;
-            page-break-inside: avoid;
-        }
-        .head { height: 38pt; position: relative; top: 1pt; }
-        table.inner { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        table.inner td { vertical-align: middle; padding: 0; }
-        .logo-cell { width: 44pt; text-align: left; vertical-align: middle; }
-        .logo-cell img { max-width: 40pt; max-height: 40pt; margin-left: 2pt; }
-        .logo-wrap { text-align: left; }
-        .logo-fallback { font-size: 7pt; font-weight: bold; color: #333; line-height: 1.2; }
-        .codes { padding-left: 6pt !important; padding-right: 6pt !important; text-align: center; word-break: normal; overflow-wrap: normal; white-space: nowrap; vertical-align: middle; }
-        .codes .nama,
-        .codes .kode-unit { white-space: nowrap; }
-        .nama {
-            font-size: 13pt; font-weight: bold; text-transform: uppercase;
-            color: #1c398e; line-height: 1.05; margin-bottom: 1pt;
-            text-align: center;
-        }
-        .kode-unit {
-            font-size: 13pt; font-weight: bold; line-height: 1.05;
-            text-align: center; white-space: nowrap;
-            letter-spacing: 0.4pt; color: #1c398e;
-        }
-        .qr-cell { width: 36pt; text-align: right; padding-right: 0pt !important; vertical-align: top; position: relative; top: -1pt; }
-        .qr-cell img { width: 36pt; height: 36pt; }
-        .footer {
-            margin-top: 7pt;
-            border-top: 1pt solid #8ec5ff;
-            padding-top: 4pt;
-            font-size: 8pt; font-weight: bold;
-            text-align: center; text-transform: uppercase;
-            letter-spacing: 0.4pt; color: #1c398e;
-        }
+        .label { width: 242pt; height: 106pt; border: 1.5pt solid #1c398e; border-radius: 2pt; padding: 2pt 3pt; }
+        .head { height: 88pt; }
+        table.inner { width: 100%; border-collapse: collapse; }
+        table.inner td { vertical-align: top; padding: 0; }
+        .logo-cell { width: 38pt; text-align: center; vertical-align: middle; }
+        .logo-cell img { max-width: 34pt; max-height: 34pt; }
+        .logo-fallback { font-size: 6pt; font-weight: bold; color: #333; }
+        .codes { padding-left: 3pt !important; }
+        .kode-unit { font-family: 'Courier New', monospace; font-size: 14pt; font-weight: bold; line-height: 1.0; letter-spacing: 0.5pt; }
+        .nama { font-size: 8pt; font-weight: bold; text-transform: uppercase; margin-bottom: 1pt; line-height: 1.05; }
+        .qr-cell { width: 50pt; text-align: right; vertical-align: middle; }
+        .qr-cell img { width: 46pt; height: 46pt; }
+        .footer { margin-top: 2pt; padding-top: 1pt; font-size: 6.5pt; font-weight: bold; text-align: center; text-transform: uppercase; color: #1c398e; }
     </style>
 </head>
 <body>
@@ -62,6 +45,9 @@
                     </td>
                     <td class="codes">
                         <div class="nama">{{ $unit->catalog?->name }}</div>
+                        @if ($identity !== '')
+                            <div class="spesifikasi">{{ $identity }}</div>
+                        @endif
                         <div class="kode-unit">{{ $unit->inventory_code }}</div>
                     </td>
                     <td width="50" class="qr-cell">

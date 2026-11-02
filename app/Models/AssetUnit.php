@@ -74,6 +74,26 @@ class AssetUnit extends Model
         return $this->hasMany(MaintenanceRecord::class);
     }
 
+    /** Baris pengajuan penghapusan yang pernah memuat unit ini. */
+    public function writeOffUnits(): HasMany
+    {
+        return $this->hasMany(WriteOffUnit::class);
+    }
+
+    /** Unit sudah diajukan pada penghapusan yang masih menunggu keputusan. */
+    public function hasPendingWriteOff(): bool
+    {
+        return $this->writeOffUnits()
+            ->whereHas('writeOff', fn (Builder $query) => $query->where('status', 'PENDING'))
+            ->exists();
+    }
+
+    /** Unit sudah memiliki riwayat penghapusan aktif (PENDING/APPROVED). */
+    public function hasActiveWriteOff(): bool
+    {
+        return $this->writeOffUnits()->where('is_active', true)->exists();
+    }
+
     /** Penugasan unit pada peminjaman; satu unit hanya boleh punya satu penugasan terbuka. */
     public function openLoanItemUnit(): HasMany
     {

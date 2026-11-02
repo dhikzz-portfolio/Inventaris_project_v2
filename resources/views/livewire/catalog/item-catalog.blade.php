@@ -32,9 +32,9 @@
             <div class="flex items-center gap-2">
                 <span>{{ $items->total() }} barang ditemukan</span>
                 @if ($activeFilters > 0)
-                    <button wire:click="resetFilters" title="Reset filter"
+                    <button wire:click="resetFilters" title="Hapus filter"
                             class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                        <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
+                        <span class="material-icons-round text-sm">filter_alt_off</span> Hapus filter
                     </button>
                 @endif
             </div>

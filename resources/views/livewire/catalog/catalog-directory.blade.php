@@ -50,7 +50,7 @@
             <div class="flex items-center gap-2">
                 <span>{{ $catalogs->total() }} jenis barang ditemukan</span>
                 @if ($activeFilters > 0)
-                    <button wire:click="resetFilters" class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-brand-700 transition hover:bg-brand-100 dark:bg-brand-900/50 dark:text-brand-300 dark:hover:bg-brand-900">
+                    <button wire:click="resetFilters" class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-950">
                         <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
                     </button>
                 @endif
@@ -58,7 +58,7 @@
         </div>
     </div>
 
-    <div wire:loading.class="opacity-60" class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+    <div wire:loading.class="opacity-60" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
         @forelse ($catalogs as $catalog)
             <a href="{{ route('catalogs.show', $catalog) }}"
                class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 border-l-4 border-l-brand-500 bg-white transition hover:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:border-l-brand-400 dark:bg-slate-900 dark:hover:border-brand-700">

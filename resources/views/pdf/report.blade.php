@@ -134,18 +134,21 @@
         </table>
     @endif
 
-    @if ($writeOffs->isNotEmpty())
-        <h3>Penghapusan (Inventaris Keluar) Selama Periode</h3>
+    @if ($writeOffRows->isNotEmpty())
+        <h3>Penghapusan (Inventaris Keluar) Selama Periode — {{ $writeOffRows->sum('quantity') }} unit</h3>
         <table>
-            <thead><tr><th>Barang</th><th width="40" class="num">Qty</th><th>Alasan</th><th>Disetujui Oleh</th><th>Tanggal</th></tr></thead>
+            <thead><tr><th>Katalog</th><th width="80">Kode Unit</th><th>Merek / Tipe</th><th>Lokasi</th><th width="34" class="num">Qty</th><th>Alasan</th><th>Disetujui</th><th width="60">Tanggal</th></tr></thead>
             <tbody>
-                @foreach ($writeOffs as $wo)
+                @foreach ($writeOffRows as $wo)
                     <tr>
-                        <td>{{ $wo->item?->name }} ({{ $wo->item?->internal_id }})</td>
+                        <td>{{ $wo->catalog }}</td>
+                        <td style="font-family: monospace;">{{ $wo->code ?: '—' }}</td>
+                        <td>{{ trim(($wo->brand ?? '') . ' — ' . ($wo->model_type ?? '')) ?: '—' }}</td>
+                        <td>{{ $wo->room ?: '—' }}</td>
                         <td class="num">{{ $wo->quantity }}</td>
-                        <td>{{ $wo->reason }}</td>
-                        <td>{{ $wo->approver?->name }}</td>
-                        <td>{{ $wo->updated_at->format('d/m/Y') }}</td>
+                        <td>{{ \Illuminate\Support\Str::limit($wo->reason, 70) }}@if ($wo->legacy) <em>(data lama tanpa rincian unit)</em>@endif</td>
+                        <td>{{ $wo->approver }}</td>
+                        <td>{{ $wo->date?->format('d/m/Y') }}</td>
                     </tr>
                 @endforeach
             </tbody>

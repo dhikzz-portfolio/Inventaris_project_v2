@@ -41,10 +41,12 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <x-input-label value="Gelar (khusus guru)" />
+                <div x-show="type !== 'SISWA'" x-cloak>
+                    <x-input-label value="Gelar (guru/staf)" />
                     <input type="text" name="degree" value="{{ old('degree', $user?->degree) }}" placeholder="S.Kom, S.Pd"
-                           class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                           :disabled="type === 'SISWA'"
+                           class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500 disabled:bg-slate-100 disabled:text-slate-400">
+                    <p class="mt-1 text-[11px] text-gray-400">Tidak tersedia untuk peminjam kategori siswa.</p>
                     @error('degree') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
@@ -56,14 +58,17 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+                <div x-show="!['GURU', 'STAF'].includes(type)" x-cloak>
                     <x-input-label value="Jurusan" />
-                    <select name="major_id" class="mt-1 block w-full rounded-lg border-gray-300 text-sm">
+                    <select name="major_id" :disabled="['GURU', 'STAF'].includes(type)"
+                            class="mt-1 block w-full rounded-lg border-gray-300 text-sm disabled:bg-slate-100 disabled:text-slate-400">
                         <option value="">— tanpa jurusan —</option>
                         @foreach ($majors as $major)
                             <option value="{{ $major->id }}" @selected(old('major_id', $user?->major_id) == $major->id)>{{ $major->name }}</option>
                         @endforeach
                     </select>
+                    <p class="mt-1 text-[11px] text-gray-400">Tidak tersedia untuk peminjam kategori guru/staf.</p>
+                    @error('major_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
             </div>
         </fieldset>

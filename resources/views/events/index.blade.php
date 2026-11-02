@@ -41,8 +41,9 @@
                 </div>
                 <div>
                     <x-input-label value="Penanggung Jawab *" />
-                    <input type="text" name="pic_name" value="{{ old('pic_name', auth()->user()->displayName()) }}" required
-                           class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <div class="mt-1">
+                        @include('events._pic_fields', ['picUsers' => $picUsers, 'event' => null])
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -76,7 +77,7 @@
 
         <div class="{{ auth()->user()->canRecordActivities() || auth()->user()->managesInventory() ? 'lg:col-span-2' : 'lg:col-span-3' }} overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full min-w-[760px] text-sm">
                     <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
                             <th class="text-left px-5 py-3">Kegiatan</th>
@@ -96,7 +97,12 @@
                                         <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($event->description, 70) }}</div>
                                     @endif
                                 </td>
-                                <td class="px-5 py-3 text-xs text-slate-600 dark:text-slate-300">{{ $event->pic_name }}</td>
+                                <td class="px-5 py-3 text-xs text-slate-600 dark:text-slate-300">
+                                    {{ $event->picDisplayName() ?: '—' }}
+                                    @if ($event->picIsUserAccount())
+                                        <span class="block text-[10px] text-blue-600 dark:text-blue-300">akun terdaftar</span>
+                                    @endif
+                                </td>
                                 <td class="px-5 py-3 text-xs text-slate-500 dark:text-slate-400">
                                     {{ $event->start_date->format('d/m/Y') }} — {{ $event->end_date->format('d/m/Y') }}
                                 </td>

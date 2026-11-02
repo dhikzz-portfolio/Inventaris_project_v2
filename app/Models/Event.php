@@ -13,7 +13,7 @@ class Event extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'pic_name', 'description', 'start_date', 'end_date',
+        'name', 'pic_name', 'pic_user_id', 'description', 'start_date', 'end_date',
         'status', 'created_by', 'updated_by',
     ];
 
@@ -34,6 +34,46 @@ class Event extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** Akun penanggung jawab bila dipilih dari pengguna terdaftar. */
+    public function picUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pic_user_id');
+    }
+
+    /**
+     * Nama penanggung jawab untuk tampilan/dokumen. Nama akun (dengan gelar)
+     * diprioritaskan; nama khusus dipakai bila PIC bukan akun pengguna.
+     */
+    public function picDisplayName(): string
+    {
+        return trim((string) ($this->picUser?->displayName() ?: $this->pic_name));
+    }
+
+    /** PIC adalah akun pengguna terdaftar, bukan nama khusus. */
+    public function picIsUserAccount(): bool
+    {
+        return $this->pic_user_id !== null;
+    }
+
+    public function hasLoans(): bool
+    {
+        return $this->loans()->exists();
+    }
+
+    /**
+     * Pembuat kegiatan atau Super Admin boleh menghapus. PIC tidak otomatis
+     * menjadi pemilik. Kegiatan yang sudah memiliki riwayat peminjaman tidak
+     * dapat dihapus siapa pun.
+     */
+    public function canBeDeletedBy(?User $user): bool
+    {
+        if ($user === null || $this->hasLoans()) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || (int) $this->created_by === (int) $user->id;
     }
 
     public function editor(): BelongsTo

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Mutasi Unit Barang</h2>
+            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Mutasi &amp; Pindah Barang</h2>
             <p class="text-sm text-slate-500 dark:text-slate-400">Pilih satu atau beberapa unit fisik, lalu pindahkan bersama ke ruangan tujuan</p>
         </div>
     </x-slot>
@@ -17,9 +17,8 @@
     <form method="GET" action="{{ route('movements.index') }}" class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="mb-3 flex items-center justify-between gap-3">
             <h3 class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
-                <span class="material-icons-round text-base text-brand-600">filter_alt</span> Filter Unit
-            </h3>
-            <a href="{{ route('movements.index') }}" class="text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">Reset filter</a>
+                <span class="material-icons-round text-base text-brand-600">filter_alt</span>Filter Unit</h3>
+            <a href="{{ route('movements.index') }}" class="text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">Hapus filter</a>
         </div>
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -80,7 +79,7 @@
         </div>
     </form>
 
-    <form method="POST" action="{{ route('movements.store') }}" x-data="movementSelection()">
+    <form method="POST" action="{{ route('movements.store') }}" x-data="movementSelection({ unitIds: {{ \Illuminate\Support\Js::from($units->getCollection()->pluck('id')->values()) }} })">
         @csrf
 
         <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
@@ -88,10 +87,20 @@
             <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm lg:col-span-2 dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                     <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Unit ({{ $units->total() }})</h3>
-                    <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><strong x-text="selected.length"></strong> unit dipilih</span>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" @click="selectAll()" :disabled="selected.length === pageUnitIds.length"
+                                class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                            Pilih semua di halaman
+                        </button>
+                        <button type="button" @click="selected = []" :disabled="selected.length === 0"
+                                class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                            Kosongkan
+                        </button>
+                        <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><strong x-text="selected.length"></strong> unit dipilih</span>
+                    </div>
                 </div>
                 <div class="max-h-[60vh] overflow-auto">
-                    <table class="w-full text-sm">
+                    <table class="w-full min-w-[760px] text-sm">
                         <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                             <tr>
                                 <th class="w-10 px-3 py-2.5"></th>
@@ -134,7 +143,7 @@
             {{-- Panel tujuan: menempel saat halaman di-scroll --}}
             <div class="space-y-4 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm lg:sticky lg:top-20 dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-brand-600">move_to_inbox</span> Tujuan Mutasi
+                    <span class="material-icons-round text-brand-600"> move_to_inbox</span> Tujuan perpindahan
                 </h3>
 
                 <div>
@@ -159,17 +168,17 @@
                 </div>
 
                 <div>
-                    <x-input-label for="note" value="Catatan mutasi" />
+                    <x-input-label for="note" value="Catatan perpindahan" />
                     <textarea id="note" name="note" rows="3" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">{{ old('note') }}</textarea>
                 </div>
 
                 <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-                    Mutasi menerbitkan kode inventaris baru sesuai lokasi tujuan. Kode lama dipensiunkan dan tetap dapat ditelusuri. Cetak ulang label setelah mutasi.
+                    Setiap perpindahan menerbitkan kode inventaris baru sesuai ruangan tujuan. Kode lama disimpan sebagai riwayat dan tetap dapat ditelusuri. Cetak ulang label setelah pindah.
                 </div>
 
                 <button type="submit" :disabled="selected.length === 0"
                         class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:disabled:bg-slate-700">
-                    <span class="material-icons-round text-lg">swap_horiz</span> Simpan Mutasi
+                    <span class="material-icons-round text-lg"> swap_horiz</span> Simpan perpindahan
                 </button>
             </div>
         </div>
@@ -177,7 +186,7 @@
 
     <div class="mt-6 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <h3 class="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
-            <span class="material-icons-round text-brand-600">route</span> Riwayat Mutasi Unit ({{ $movements->total() }})
+            <span class="material-icons-round text-brand-600"> route</span> Riwayat perpindahan barang ({{ $movements->total() }})
         </h3>
         <div class="max-h-[45vh] overflow-auto">
             <table class="w-full text-sm">
@@ -205,7 +214,7 @@
                             <td class="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">{{ $movement->note ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-3 py-8 text-center text-sm text-slate-400">Belum ada mutasi tercatat.</td></tr>
+                        <tr><td colspan="6" class="px-3 py-8 text-center text-sm text-slate-400">Belum ada perpindahan yang tercatat.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -215,9 +224,14 @@
 
     @push('scripts')
     <script>
-        function movementSelection() {
+        function movementSelection(config) {
             return {
+                pageUnitIds: (config.unitIds || []).map(String),
                 selected: [],
+
+                selectAll() {
+                    this.selected = [...this.pageUnitIds];
+                },
             };
         }
     </script>

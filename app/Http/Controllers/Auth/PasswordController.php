@@ -17,12 +17,23 @@ class PasswordController extends Controller
     {
         $validated = $request->validateWithBag('updatePassword', [
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::defaults(), 'confirmed'],
+            'password' => ['required', 'string', Password::defaults(), 'confirmed', 'different:current_password'],
+        ], [
+            'password.different' => 'Kata sandi baru harus berbeda dari kata sandi lama.',
         ]);
 
-        $request->user()->update([
+        $user = $request->user();
+        $user->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        // Sesi aktif tetap boleh melanjutkan; hash baru disimpan agar
+        // AuthenticateSession tidak memutus sesi yang sedang dipakai.
+        $request->session()->put(
+            'password_hash_'.config('auth.defaults.guard', 'web'),
+            $user->getAuthPassword()
+        );
+        $request->session()->regenerate();
 
         return back()->with('status', 'password-updated');
     }

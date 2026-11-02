@@ -88,10 +88,11 @@ class LabelController extends Controller
     {
         $code = trim((string) $request->query('code', ''));
         $unitId = $request->query('u');
+        $release = $request->query('r');
 
         return view('labels.scan', [
             'code' => $code,
-            'result' => $this->scanResult($request->user(), $code, $unitId),
+            'result' => $this->scanResult($request->user(), $code, $unitId, $release),
             'qrRelease' => LabelService::QR_RELEASE,
         ]);
     }
@@ -101,7 +102,7 @@ class LabelController extends Controller
     {
         return view('labels.scan', [
             'code' => $internalId,
-            'result' => $this->scanResult($request->user(), $internalId, null),
+            'result' => $this->scanResult($request->user(), $internalId, null, null),
             'qrRelease' => LabelService::QR_RELEASE,
         ]);
     }
@@ -109,10 +110,20 @@ class LabelController extends Controller
     /**
      * @return array<string, mixed>|null
      */
-    private function scanResult(User $user, string $code, mixed $unitHint): ?array
+    private function scanResult(User $user, string $code, mixed $unitHint, mixed $release = null): ?array
     {
         if ($code === '' && $unitHint === null) {
             return null;
+        }
+
+        // Rilis 1 dan 2 memakai identitas unit yang sama; rilis 2 menambahkan
+        // parameter spesifikasi sebagai petunjuk. Versi lain ditolak eksplisit.
+        if ($release !== null && $release !== '' && ! in_array((string) $release, ['1', '2'], true)) {
+            return [
+                'status' => 'invalid',
+                'code' => $code,
+                'message' => 'Versi QR tidak didukung. Gunakan label terbaru atau masukkan kode inventaris secara manual.',
+            ];
         }
 
         $codes = app(InventoryCodeService::class);
@@ -122,7 +133,7 @@ class LabelController extends Controller
 
         // Identitas stabil (ID unit) diprioritaskan bila QR menyertakannya.
         if ($unitHint !== null && ctype_digit((string) $unitHint)) {
-            $unit = AssetUnit::query()->with(['catalog.category', 'room.major', 'room.building'])->find((int) $unitHint);
+            $unit = AssetUnit::query()->with(['catalog.category', 'specification', 'room.major', 'room.building'])->find((int) $unitHint);
         }
 
         if ($unit === null && $normalized !== '') {
@@ -135,7 +146,7 @@ class LabelController extends Controller
                 $unit = $codes->resolve($normalized);
 
                 if ($unit !== null) {
-                    $unit->load(['catalog.category', 'room.major', 'room.building']);
+                    $unit->load(['catalog.category', 'specification', 'room.major', 'room.building']);
                 }
             }
 
@@ -189,14 +200,29 @@ class LabelController extends Controller
         // catatan internal, nomor register, dan riwayat tidak ditampilkan.
         $internal = $user->managesInventory() || $user->canApproveLoans();
 
+        // Identitas merek/tipe WAJIB berasal dari spesifikasi unit. Kolom
+        // `item_catalogs.brand/model_type` hanya data pengadaan lama dan tidak
+        // boleh menimpa spesifikasi unit yang tercetak pada label.
+        $specification = $unit->specification;
+
+        $payloadCode = trim((string) $code);
+        $normalizedPayload = $payloadCode !== '' ? $codes->normalize($payloadCode) : '';
+
         return [
             'status' => 'found',
             'unit_id' => $unit->id,
+            'payload_code' => $payloadCode !== '' ? $payloadCode : null,
+            'payload_mismatch' => $normalizedPayload !== '' && $normalizedPayload !== $unit->inventory_code,
             'code' => $unit->inventory_code,
             'name' => $unit->catalog?->name,
-            'specification' => $unit->catalog?->specification,
-            'brand' => $unit->catalog?->brand,
-            'model_type' => $unit->catalog?->model_type,
+            'specification' => $specification?->description ?: $unit->catalog?->specification,
+            'specification_id' => $specification?->id,
+            'specification_code' => $specification?->spec_code,
+            'specification_label' => $specification?->displayName(),
+            'brand' => $specification?->brandLabel() ?: $unit->catalog?->brand,
+            'model_type' => $specification?->modelLabel() ?: $unit->catalog?->model_type,
+            'qr_release' => LabelService::QR_RELEASE,
+            'payload_release' => $release !== null && $release !== '' ? (int) $release : null,
             'category' => $unit->catalog?->category?->name,
             'major' => $room?->major?->name,
             'building' => $room?->building?->name ?: ($room?->buildingCode() ? 'Gedung '.$room->buildingCode() : null),

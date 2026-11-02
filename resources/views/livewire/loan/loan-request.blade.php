@@ -43,7 +43,7 @@
             </div>
             @if ($activeFilters > 0)
                 <div class="mt-2 text-right">
-                    <button wire:click="resetFilters" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:bg-brand-50 hover:text-brand-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-brand-300">
+                    <button wire:click="resetFilters" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-300">
                         <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
                     </button>
                 </div>
@@ -204,12 +204,12 @@
         </div>
 
         {{-- Kalender ketersediaan --}}
-        <div class="order-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
+        <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="mb-3 flex items-center justify-between gap-2">
                 <h3 class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600" aria-hidden="true">calendar_month</span> Ketersediaan
                 </h3>
-                <div class="flex items-center gap-1">
+                <div class="flex shrink-0 items-center gap-1">
                     <button wire:click="prevMonth" aria-label="Bulan sebelumnya" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"><span class="material-icons-round text-lg" aria-hidden="true">chevron_left</span></button>
                     <span class="w-24 text-center text-xs font-semibold text-slate-700 dark:w-32 dark:text-slate-200 sm:w-32">{{ $calendar['label'] }}</span>
                     <button wire:click="nextMonth" aria-label="Bulan berikutnya" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"><span class="material-icons-round text-lg" aria-hidden="true">chevron_right</span></button>
@@ -254,9 +254,9 @@
         </div>
     </div>
 
-    {{-- Form pengajuan --}}
-    <div id="loan-request-form" class="order-3 scroll-mt-24 lg:col-span-2 lg:order-none">
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-20">
+    {{-- Kanan: form pengajuan --}}
+    <div class="lg:col-span-2">
+        <div class="sticky top-20 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">edit_note</span> 3. Detail pengajuan
             </h3>
@@ -296,7 +296,7 @@
                             <option value="{{ $event->id }}">{{ $event->name }} ({{ $event->start_date->format('d/m') }}–{{ $event->end_date->format('d/m/Y') }})</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Peminjaman dalam satu kegiatan tercatat dalam satu dokumen BAST (Berita Acara Serah Terima).</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Peminjaman massal terikat satu kegiatan → satu paket BAST.</p>
                 </div>
 
                 <button wire:click="submit" wire:loading.attr="disabled"
@@ -308,9 +308,9 @@
 
                 <p class="text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                     @if (auth()->user()->isPeminjam())
-                        Pengajuan akan ditinjau oleh petugas. Barang bernilai tinggi memerlukan persetujuan berjenjang dari Laboran dan Wakasek. Dokumen dapat dicetak untuk ditandatangani secara fisik.
+                        Permintaan akan ditinjau oleh petugas. Barang bernilai tinggi memerlukan persetujuan berjenjang dari Laboran lalu Wakasek. Dokumen dapat dicetak untuk ditandatangani secara fisik.
                     @else
-                        Barang bernilai tinggi memerlukan persetujuan berjenjang dari Laboran dan Wakasek. Tanda tangan digital bersifat opsional; dokumen juga dapat ditandatangani secara fisik.
+                        Barang bernilai tinggi melewati persetujuan Laboran lalu Wakasek. Tanda tangan digital opsional — dokumen dapat ditandatangani secara fisik.
                     @endif
                 </p>
             </div>

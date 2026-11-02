@@ -1,5 +1,5 @@
 <nav class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 safe-area-top backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
-    <div class="px-3 sm:px-6 lg:px-8">
+    <div class="mx-auto w-full max-w-7xl px-4 sm:px-5 md:px-6 2xl:max-w-[1600px]">
         <div class="flex h-14 items-center justify-between">
             <div class="flex min-w-0 items-center gap-2">
                 <button @click="menuOpen = ! menuOpen"

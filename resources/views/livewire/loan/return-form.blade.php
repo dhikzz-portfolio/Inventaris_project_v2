@@ -82,7 +82,7 @@
     @endif
 
     @if ($errors->any())
-        <div role="alert" class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+        <div role="alert" class="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-700">
             <span class="material-icons-round text-lg" aria-hidden="true">error_outline</span>
             <div class="space-y-1">
                 @foreach ($errors->all() as $error)
@@ -108,7 +108,7 @@
             <div>
                 <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600">fact_check</span>
-                    Validasi Pengembalian per Unit
+                    Pemeriksaan Pengembalian per Unit
                 </h3>
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Peminjam: <strong>{{ $loan->borrower?->name }}</strong> • Kembali
@@ -120,7 +120,7 @@
                     {{ $progress['confirmed'] }} dari {{ $progress['total'] }} unit sudah dikonfirmasi
                 </div>
                 <div class="text-xs {{ $progress['pending'] > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-green-700 dark:text-green-300' }}">
-                    {{ $progress['pending'] > 0 ? $progress['pending'].' unit belum dikonfirmasi' : 'Seluruh unit terkonfirmasi' }}
+                    {{ $progress['pending'] > 0 ? $progress['pending'] . ' unit belum dikonfirmasi' : 'Seluruh unit terkonfirmasi' }}
                 </div>
             </div>
         </div>
@@ -159,7 +159,7 @@
                         class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 </div>
                 <div>
-                    <label for="return-filter-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status validasi</label>
+                    <label for="return-filter-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status pemeriksaan</label>
                     <select id="return-filter-validation" wire:model.live="filterValidation"
                         class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua status</option>
@@ -246,7 +246,7 @@
                 <p role="status" class="mt-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">{{ $scanMessage }}</p>
             @endif
             @if ($scanError !== '')
-                <p role="alert" class="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $scanError }}</p>
+                <p role="alert" class="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-700">{{ $scanError }}</p>
             @endif
         </div>
 
@@ -299,7 +299,7 @@
                             <button type="button" wire:click="requestMassValidation({{ $group['item_id'] }})"
                                 class="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-xs font-bold text-white hover:bg-purple-700">
                                 <span class="material-icons-round text-base">done_all</span>
-                                Validasi Semua {{ $group['item_name'] }}
+                                Pemeriksaan Semua {{ $group['item_name'] }}
                             </button>
                         @endif
                     </div>
@@ -307,7 +307,7 @@
 
                 @if ($massGroupId === (int) $group['item_id'])
                     <div class="border-b border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900 dark:border-purple-900 dark:bg-purple-950/30 dark:text-purple-100">
-                        <p class="font-semibold">Konfirmasi validasi massal</p>
+                        <p class="font-semibold">Konfirmasi pemeriksaan massal</p>
                         <p class="mt-1 text-xs">
                             Akan memproses <strong>{{ $massPendingCount }} unit {{ $massGroupName }}</strong> yang belum dikonfirmasi.
                             Unit yang sudah selesai tidak ikut diproses. Kondisi dan catatan per unit tetap disimpan sesuai isian masing-masing.
@@ -315,7 +315,7 @@
                         <div class="mt-3 flex flex-wrap gap-2">
                             <button type="button" wire:click="confirmMassValidation" wire:loading.attr="disabled"
                                 class="rounded-lg bg-purple-700 px-3 py-2 text-xs font-bold text-white hover:bg-purple-800 disabled:opacity-50">
-                                Ya, validasi {{ $massPendingCount }} unit
+                                Ya, lakukan pemeriksaan {{ $massPendingCount }} unit
                             </button>
                             <button type="button" wire:click="cancelMassValidation"
                                 class="rounded-lg border border-purple-300 px-3 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-100 dark:border-purple-700 dark:text-purple-100 dark:hover:bg-purple-900/40">
@@ -334,7 +334,7 @@
                             : (in_array($index, $selected)
                                 ? \App\Enums\ReturnStatus::MENUNGGU_KONFIRMASI
                                 : \App\Enums\ReturnStatus::BELUM_DIPERIKSA))
-                        <div class="p-4 sm:p-5" id="return-unit-{{ $index }}" wire:key="unit-row-{{ $row['assignment_id'] ?? 'legacy-'.$index }}">
+                        <div class="p-4 sm:p-5" id="return-unit-{{ $index }}" wire:key="unit-row-{{ $row['assignment_id'] ?? 'legacy-' . $index }}">
                             <div @class([
                                 'rounded-xl border p-3 sm:p-4',
                                 'border-orange-300 bg-orange-50/40 dark:border-orange-900 dark:bg-orange-950/20' => $isMismatch,
@@ -485,7 +485,7 @@
                         @disabled($selectedCount === 0)
                         class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3 text-sm font-bold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
                         <span class="material-icons-round text-lg">playlist_add_check</span>
-                        Konfirmasi {{ $selectedCount > 0 ? $selectedCount.' unit terpilih' : 'unit terpilih' }}
+                        Konfirmasi {{ $selectedCount > 0 ? $selectedCount . ' unit terpilih' : 'unit terpilih' }}
                     </button>
 
                     <button type="button" wire:click="finishReturn" wire:loading.attr="disabled"
@@ -502,7 +502,7 @@
 
             <p class="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
                 Centang unit lalu konfirmasi sesuai kondisi masing-masing. Pilihan unit tidak otomatis mengonfirmasi pengembalian.
-                Validasi massal hanya tampil untuk kelompok sejenis dengan minimal {{ $massThreshold }} unit dan tidak memproses unit yang sudah dikonfirmasi.
+                Pemeriksaan massal hanya tampil untuk kelompok sejenis dengan minimal {{ $massThreshold }} unit dan tidak memproses unit yang sudah dikonfirmasi.
             </p>
         @else
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

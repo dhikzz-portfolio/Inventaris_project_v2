@@ -17,11 +17,11 @@
                 </p>
                 <h2 class="mt-1 text-xl font-bold leading-tight text-slate-900 dark:text-white">Ringkasan</h2>
                 <p class="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                @if ($mode === 'operational')
-                    Ringkasan barang dan peminjaman untuk {{ $scopeLabel }}.
-                @else
-                    Ringkasan pengajuan dan pinjaman barang Anda.
-                @endif
+                    @if ($mode === 'operational')
+                        Ringkasan barang dan peminjaman untuk {{ $scopeLabel }}.
+                    @else
+                        Ringkasan pengajuan dan pinjaman barang Anda.
+                    @endif
                 </p>
             </div>
             <div class="hidden shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 sm:inline-flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
@@ -106,292 +106,329 @@
         <div @class([
             'mb-4 grid grid-cols-2 gap-3',
             'sm:grid-cols-3 xl:grid-cols-6' => $mode === 'operational',
-            'lg:grid-cols-4' => $mode !== 'operational',
+            'sm:grid-cols-2 xl:grid-cols-4' => $mode !== 'operational',
         ])>
             @foreach ($stats as $stat)
                 <x-dashboard.stat-card :stat="$stat" operational />
             @endforeach
         </div>
 
-    @if ($mode === 'operational')
-        <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr] sm:gap-3">
-            <x-dashboard.panel title="Barang paling sering dipinjam" description="Bulan {{ now()->translatedFormat('F Y') }} · berdasarkan jumlah barang">
-                @if ($topBorrowed->isEmpty())
-                    <div class="flex min-h-48 flex-col items-center justify-center sm:min-h-56 rounded-xl bg-slate-50 px-4 text-center dark:bg-slate-800/70">
-                        <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">bar_chart</span>
-                        <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Belum ada data peminjaman</p>
-                        <p class="mt-1 text-xs text-slate-400">Data bulan ini akan muncul di sini.</p>
-                    </div>
-                @else
-                    <div class="h-44"><canvas id="chartTopBorrowed" aria-label="Grafik barang paling sering dipinjam bulan ini"></canvas></div>
-                @endif
-            </x-dashboard.panel>
+        @php
+            $borrowChartColors = ['#0875b9', '#169fe0', '#43b9ef', '#83d4f5', '#beeafb'];
+            $statusChartColors = ['#0875b9', '#38bdf8', '#f59e0b', '#ef4444', '#64748b'];
+            $emptyStateClass = 'flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed px-4 text-center';
+        @endphp
 
-            <x-dashboard.panel title="Barang yang sering rusak" description="Bulan {{ now()->translatedFormat('F Y') }} · barang yang dilaporkan rusak">
-                @if ($topDamaged->isEmpty())
-                    <div class="flex min-h-48 flex-col items-center justify-center sm:min-h-56 rounded-xl bg-green-50/70 px-4 text-center dark:bg-green-950/20">
-                        <span class="material-icons-round text-3xl text-green-500" aria-hidden="true">task_alt</span>
-                        <p class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">Tidak ada laporan kerusakan</p>
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kondisi barang tercatat baik bulan ini.</p>
-                    </div>
-                @else
-                    <ul class="max-h-64 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-700">
-                        @foreach ($topDamaged as $row)
-                            <li class="flex items-center justify-between gap-3 py-3 text-sm first:pt-1">
-                                <span class="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">{{ $row->item?->name }}</span>
-                                <span class="inline-flex shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 dark:bg-red-950/40 dark:text-red-300">
-                                    <span class="material-icons-round text-sm" aria-hidden="true">build</span>
-                                    {{ $row->total }} rusak
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </x-dashboard.panel>
-        </div>
+        @if ($mode === 'operational')
+            {{-- Grid dua kolom setara: setiap baris berisi dua kartu dengan tinggi sama. --}}
+            <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <x-dashboard.panel title="Barang paling sering dipinjam" description="Bulan {{ now()->translatedFormat('F Y') }} · berdasarkan jumlah barang">
+                    @if ($topBorrowed->isEmpty())
+                        <div class="{{ $emptyStateClass }} border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/50">
+                            <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">bar_chart</span>
+                            <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Belum ada data peminjaman</p>
+                            <p class="mt-1 text-xs text-slate-400">Data bulan ini akan muncul di sini.</p>
+                        </div>
+                    @else
+                        <div class="h-44"><canvas id="chartTopBorrowed" aria-label="Grafik barang paling sering dipinjam bulan ini"></canvas></div>
+                    @endif
+                </x-dashboard.panel>
 
-        <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1.4fr] sm:gap-3">
-            <x-dashboard.panel title="Kondisi barang" description="Kondisi barang yang berada di {{ $scopeLabel }}.">
-                <div class="h-56 sm:h-64"><canvas id="chartStatus" aria-label="Grafik kondisi barang"></canvas></div>
-            </x-dashboard.panel>
-            <x-dashboard.panel title="Peminjaman enam bulan terakhir" description="Jumlah peminjaman setiap bulan.">
-                <div class="h-56 sm:h-64"><canvas id="chartTrend" aria-label="Grafik tren peminjaman enam bulan terakhir"></canvas></div>
-            </x-dashboard.panel>
-        </div>
-
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <x-dashboard.panel title="Terlambat dikembalikan" description="Pinjaman yang telah melewati tanggal jatuh tempo.">
-                @if ($overdue->isEmpty())
-                    <div class="flex min-h-48 flex-col items-center justify-center sm:min-h-56 rounded-xl bg-green-50/70 px-4 text-center dark:bg-green-950/20">
-                        <span class="material-icons-round text-3xl text-green-500" aria-hidden="true">check_circle</span>
-                        <p class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">Semua pinjaman tepat waktu</p>
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tidak ada keterlambatan saat ini.</p>
-                    </div>
-                @else
-                    <ul class="max-h-64 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-700">
-                        @foreach ($overdue as $loan)
-                            <li class="py-3 first:pt-1">
-                                <a href="{{ route('loans.show', $loan) }}" class="text-sm font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $loan->borrower?->name }}</a>
-                                <span class="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($loan->purpose, 60) }}</span>
-                                <span class="mt-2 inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">
-                                    <span class="material-icons-round text-sm" aria-hidden="true">event_busy</span>
-                                    Jatuh tempo {{ $loan->due_date->format('d/m/Y') }}, terlambat {{ $loan->due_date->diffForHumans(now()) }}
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </x-dashboard.panel>
-
-            <x-dashboard.panel title="Kegiatan terbaru" description="Catatan terbaru tentang barang dan peminjaman.">
-                <ul class="max-h-64 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-700">
-                    @forelse ($recentActivity as $activity)
-                        <li class="flex items-start gap-3 py-3 first:pt-1">
-                            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300">
-                                <span class="material-icons-round text-base" aria-hidden="true">history</span>
-                            </span>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-xs leading-relaxed text-slate-700 dark:text-slate-200">{{ $activity->description }}</p>
-                                <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 dark:text-slate-500">
-                                    <span class="inline-flex items-center gap-1">
-                                        <span class="material-icons-round text-[13px]" aria-hidden="true">person</span>
-                                        {{ $activity->causer?->name ?: 'Sistem' }}
+                <x-dashboard.panel title="Barang yang sering rusak" description="Bulan {{ now()->translatedFormat('F Y') }} · barang yang dilaporkan rusak">
+                    @if ($topDamaged->isEmpty())
+                        <div class="{{ $emptyStateClass }} border-green-200 bg-green-50/60 dark:border-green-900 dark:bg-green-950/20">
+                            <span class="material-icons-round text-3xl text-green-500" aria-hidden="true">task_alt</span>
+                            <p class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">Tidak ada laporan kerusakan</p>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kondisi barang tercatat baik bulan ini.</p>
+                        </div>
+                    @else
+                        <ul class="divide-y divide-slate-100 dark:divide-slate-700">
+                            @foreach ($topDamaged as $row)
+                                <li class="flex items-center justify-between gap-3 py-2.5 text-sm first:pt-0">
+                                    <span class="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">{{ $row->item?->name }}</span>
+                                    <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                                        <span class="material-icons-round text-sm" aria-hidden="true">build</span>
+                                        {{ $row->total }}× rusak
                                     </span>
-                                    <span class="inline-flex items-center gap-1">
-                                        <span class="material-icons-round text-[13px]" aria-hidden="true">schedule</span>
-                                        {{ $activity->created_at->diffForHumans() }}
-                                    </span>
-                                </p>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </x-dashboard.panel>
+
+                <x-dashboard.panel title="Kondisi barang" description="Kondisi barang yang berada di {{ $scopeLabel }}.">
+                    @php($statusTotal = $statusDistribution->sum('value'))
+                    <div class="flex h-full flex-col items-center justify-center gap-4">
+                        <div class="relative h-40 w-40 shrink-0 sm:h-44 sm:w-44">
+                            <canvas id="chartStatus" aria-label="Grafik kondisi barang"></canvas>
+                            <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-xl font-bold tabular-nums text-slate-900 dark:text-slate-100">{{ $statusTotal }}</span>
+                                <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">unit</span>
                             </div>
-                        </li>
-                    @empty
-                        <li class="flex min-h-48 flex-col items-center justify-center sm:min-h-56 rounded-xl bg-slate-50 px-4 text-center dark:bg-slate-800/70">
-                            <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">history</span>
-                            <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Belum ada kegiatan</p>
-                            <p class="mt-1 text-xs text-slate-400">Kegiatan terbaru akan tampil di sini.</p>
-                        </li>
-                    @endforelse
-                </ul>
-            </x-dashboard.panel>
-        </div>
-    @else
-        {{-- Mode peminjam: hanya aktivitas pribadi; hero & kartu memakai gaya dashboard operasional. --}}
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <x-dashboard.panel
-                title="Permintaan dan pinjaman saya"
-                description="Lihat status dan jadwal barang yang Anda pinjam."
-                class="xl:col-span-2"
-            >
-                <x-slot name="actions">
-                    <a href="{{ route('loans.index') }}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800">
-                        Lihat riwayat
-                        <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
-                    </a>
-                </x-slot>
-
-                @if ($myActive->isEmpty())
-                    <div class="flex flex-col items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center dark:border-slate-700 dark:bg-slate-800/70">
-                        <span class="material-icons-round text-3xl text-slate-400" aria-hidden="true">inventory_2</span>
-                        <p class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">Belum ada pengajuan peminjaman.</p>
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Pilih barang untuk mulai mengajukan peminjaman.</p>
-                        <a href="{{ route('loans.create') }}" class="mt-4 inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700">
-                            Ajukan peminjaman
-                            <span class="material-icons-round text-sm" aria-hidden="true">arrow_forward</span>
-                        </a>
+                        </div>
+                        <ul class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px]">
+                            @foreach ($statusDistribution as $index => $status)
+                                <li class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                                    <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ $statusChartColors[$index] ?? '#94a3b8' }}"></span>
+                                    <span>{{ $status['label'] }}</span>
+                                    <span class="font-bold tabular-nums text-slate-800 dark:text-slate-100">{{ $status['value'] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
                     </div>
-                @else
-                    <ul class="space-y-3">
-                        @foreach ($myActive as $loan)
-                            <li class="rounded-xl border border-slate-200 p-4 transition hover:border-brand-200 hover:shadow-sm dark:border-slate-700">
-                                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                    <div class="min-w-0">
-                                        <a href="{{ route('loans.show', $loan) }}" class="break-words text-sm font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $loan->purpose }}</a>
-                                        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                                            <span class="inline-flex items-center gap-1">
-                                                <span class="material-icons-round text-sm" aria-hidden="true">inventory_2</span>
-                                                {{ $loan->loanItems->count() }} jenis barang
-                                            </span>
-                                            <span class="inline-flex items-center gap-1">
-                                                <span class="material-icons-round text-sm" aria-hidden="true">event</span>
-                                                {{ $loan->start_date->format('d/m/Y') }} hingga {{ $loan->due_date->format('d/m/Y') }}
-                                            </span>
-                                        </div>
-                                        @if ($loan->event)
-                                            <p class="mt-2 text-xs text-slate-500">Kegiatan: {{ $loan->event->name }}</p>
-                                        @endif
-                                    </div>
-                                    <span class="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[10px] font-bold {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
-                                </div>
-                                @if ($loan->isOverdue())
-                                    <p class="mt-3 inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">
-                                        <span class="material-icons-round text-sm" aria-hidden="true">warning</span>
-                                        Terlambat dikembalikan
-                                    </p>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </x-dashboard.panel>
+                </x-dashboard.panel>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                <x-dashboard.panel title="Peminjaman enam bulan terakhir" description="Jumlah peminjaman setiap bulan.">
+                    <div class="h-52 sm:h-56"><canvas id="chartTrend" aria-label="Grafik tren peminjaman enam bulan terakhir"></canvas></div>
+                </x-dashboard.panel>
+
+                <x-dashboard.panel title="Terlambat dikembalikan" description="Pinjaman yang telah melewati tanggal jatuh tempo.">
+                    @if ($overdue->isEmpty())
+                        <div class="{{ $emptyStateClass }} border-green-200 bg-green-50/60 dark:border-green-900 dark:bg-green-950/20">
+                            <span class="material-icons-round text-3xl text-green-500" aria-hidden="true">check_circle</span>
+                            <p class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">Semua pinjaman tepat waktu</p>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tidak ada keterlambatan saat ini.</p>
+                        </div>
+                    @else
+                        <ul class="h-52 divide-y divide-slate-100 overflow-y-auto pe-1 dark:divide-slate-700">
+                            @foreach ($overdue as $loan)
+                                <li class="py-2.5 first:pt-0">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <a href="{{ route('loans.show', $loan) }}" class="min-w-0 truncate text-sm font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $loan->borrower?->name }}</a>
+                                        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                                            Jatuh tempo {{ $loan->due_date->format('d/m/Y') }} • terlambat {{ $loan->due_date->diffForHumans(now(), ['parts' => 1]) }}
+                                        </span>
+                                    </div>
+                                    <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($loan->purpose, 60) }}</p>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </x-dashboard.panel>
+
+                <x-dashboard.panel title="Kegiatan terbaru" description="Catatan terbaru tentang barang dan peminjaman.">
+                    <ul class="h-52 divide-y divide-slate-100 overflow-y-auto pe-1 dark:divide-slate-700">
+                        @forelse ($recentActivity as $activity)
+                            <li class="flex items-center gap-3 py-2.5 first:pt-0">
+                                <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-amber-200 text-amber-500 dark:border-amber-900 dark:text-amber-300">
+                                    <span class="material-icons-round text-sm" aria-hidden="true">history</span>
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-xs font-medium leading-relaxed text-slate-700 dark:text-slate-200">{{ $activity->description }}</p>
+                                    <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+                                        <span class="inline-flex items-center gap-1">
+                                            <span class="material-icons-round text-[13px]" aria-hidden="true">person</span>
+                                            {{ $activity->causer?->name ?: 'Sistem' }}
+                                        </span>
+                                        <span class="inline-flex items-center gap-1">
+                                            <span class="material-icons-round text-[13px]" aria-hidden="true">schedule</span>
+                                            {{ $activity->created_at->diffForHumans() }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </li>
+                        @empty
+                            <li class="{{ $emptyStateClass }} border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/50">
+                                <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">history</span>
+                                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Belum ada kegiatan</p>
+                                <p class="mt-1 text-xs text-slate-400">Kegiatan terbaru akan tampil di sini.</p>
+                            </li>
+                        @endforelse
+                    </ul>
+                </x-dashboard.panel>
+            </div>
+        @else
+            {{-- Mode peminjam: grid dua kolom yang sama dengan dashboard operasional. --}}
+            <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <x-dashboard.panel
+                    title="Permintaan dan pinjaman saya"
+                    description="Lihat status dan jadwal barang yang Anda pinjam."
+                >
+                    <x-slot name="actions">
+                        <a href="{{ route('loans.index') }}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300">
+                            Lihat riwayat
+                            <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
+                        </a>
+                    </x-slot>
+
+                    @if ($myActive->isEmpty())
+                        <div class="{{ $emptyStateClass }} border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70">
+                            <span class="material-icons-round text-3xl text-slate-400" aria-hidden="true">inventory_2</span>
+                            <p class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">Belum ada pengajuan peminjaman.</p>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Pilih barang untuk mulai mengajukan peminjaman.</p>
+                            <a href="{{ route('loans.create') }}" class="mt-4 inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700">
+                                Ajukan peminjaman
+                                <span class="material-icons-round text-sm" aria-hidden="true">arrow_forward</span>
+                            </a>
+                        </div>
+                    @else
+                        <ul class="max-h-60 space-y-2 overflow-y-auto">
+                            @foreach ($myActive as $loan)
+                                <li class="rounded-xl border border-slate-200 p-3 transition hover:border-brand-200 hover:shadow-sm dark:border-slate-700">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <a href="{{ route('loans.show', $loan) }}" class="block truncate text-sm font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $loan->purpose }}</a>
+                                            <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                                                {{ $loan->loanItems->count() }} jenis barang • {{ $loan->start_date->format('d/m/Y') }} – {{ $loan->due_date->format('d/m/Y') }}
+                                            </p>
+                                        </div>
+                                        <span class="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
+                                    </div>
+                                    @if ($loan->isOverdue())
+                                        <p class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                                            <span class="material-icons-round text-sm" aria-hidden="true">warning</span>
+                                            Terlambat dikembalikan
+                                        </p>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </x-dashboard.panel>
+
                 <x-dashboard.panel title="Jumlah permintaan pinjam" description="Jumlah permintaan setiap bulan selama enam bulan terakhir.">
-                    <div class="h-56">
+                    <div class="h-52 sm:h-56">
                         <canvas id="chartTrend" aria-label="Grafik jumlah permintaan pinjam enam bulan terakhir"></canvas>
                     </div>
                 </x-dashboard.panel>
 
                 <x-dashboard.panel title="Katalog barang" description="Temukan barang yang dapat Anda pinjam.">
-                    <div class="flex items-end justify-between gap-3">
-                        <div>
-                            <p class="text-3xl font-bold tabular-nums text-slate-900 dark:text-slate-100">{{ $catalogCount }}</p>
-                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">jenis barang tersedia di katalog</p>
+                    <div class="flex h-full flex-col justify-center">
+                        <div class="flex items-end justify-between gap-3">
+                            <div>
+                                <p class="text-3xl font-bold tabular-nums text-slate-900 dark:text-slate-100">{{ $catalogCount }}</p>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">jenis barang tersedia di katalog</p>
+                            </div>
+                            <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                                <span class="material-icons-round" aria-hidden="true">inventory_2</span>
+                            </span>
                         </div>
-                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
-                            <span class="material-icons-round" aria-hidden="true">inventory_2</span>
-                        </span>
+                        <a href="{{ route('catalogs.index') }}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700">
+                            Buka katalog
+                            <span class="material-icons-round text-lg" aria-hidden="true">arrow_forward</span>
+                        </a>
                     </div>
-                    <a href="{{ route('catalogs.index') }}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700">
-                        Buka katalog
-                        <span class="material-icons-round text-lg" aria-hidden="true">arrow_forward</span>
-                    </a>
+                </x-dashboard.panel>
+
+                <x-dashboard.panel title="Aktivitas terbaru" description="Catatan terbaru terkait akun dan peminjaman Anda.">
+                    <ul class="h-52 divide-y divide-slate-100 overflow-y-auto pe-1 dark:divide-slate-700">
+                        @forelse ($recentActivity as $activity)
+                            <li class="flex items-center gap-3 py-2.5 first:pt-0">
+                                <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-amber-200 text-amber-500 dark:border-amber-900 dark:text-amber-300">
+                                    <span class="material-icons-round text-sm" aria-hidden="true">history</span>
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-xs font-medium leading-relaxed text-slate-700 dark:text-slate-200">{{ $activity->description }}</p>
+                                    <p class="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+                                        <span class="material-icons-round text-[13px]" aria-hidden="true">schedule</span>
+                                        {{ $activity->created_at->diffForHumans() }}
+                                    </p>
+                                </div>
+                            </li>
+                        @empty
+                            <li class="{{ $emptyStateClass }} border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/50">
+                                <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">history</span>
+                                <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Belum ada kegiatan</p>
+                                <p class="mt-1 text-xs text-slate-400">Kegiatan terbaru akan tampil di sini.</p>
+                            </li>
+                        @endforelse
+                    </ul>
                 </x-dashboard.panel>
             </div>
-        </div>
+        @endif
 
-        <x-dashboard.panel title="Aktivitas terbaru" description="Catatan terbaru terkait akun dan peminjaman Anda." class="mt-4">
-            @forelse ($recentActivity as $activity)
-                <div class="flex items-start gap-3 border-b border-slate-100 py-3 last:border-b-0 last:pb-0 dark:border-slate-700">
-                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
-                        <span class="material-icons-round text-base" aria-hidden="true">history</span>
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="break-words text-sm text-slate-700 dark:text-slate-200">{{ $activity->description }}</p>
-                        <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">{{ $activity->created_at->diffForHumans() }}</p>
-                    </div>
-                </div>
-            @empty
-                <p class="rounded-xl bg-slate-50 px-4 py-5 text-center text-sm text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">Belum ada kegiatan terbaru.</p>
-            @endforelse
-        </x-dashboard.panel>
-    @endif
+        @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                if (!window.Chart) {
+                    return;
+                }
 
-    @php
-        $borrowChartColors = ['#0875b9', '#169fe0', '#43b9ef', '#83d4f5', '#beeafb'];
-        $statusChartColors = ['#0875b9', '#38bdf8', '#f59e0b', '#ef4444', '#64748b'];
-    @endphp
+                Chart.defaults.font.family = "'Figtree', ui-sans-serif, system-ui, sans-serif";
+                Chart.defaults.color = '#64748b';
 
-    @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const trendLabels = @json(collect($loansPerMonth)->pluck('label'));
-            const trendData = @json(collect($loansPerMonth)->pluck('count'));
+                const trendLabels = @json(collect($loansPerMonth)->pluck('label'));
+                const trendData = @json(collect($loansPerMonth)->pluck('count'));
 
-            const trendCanvas = document.getElementById('chartTrend');
-            if (trendCanvas && window.Chart) {
-                new Chart(trendCanvas, {
-                    type: 'line',
-                    data: {
-                        labels: trendLabels,
-                        datasets: [{
-                            label: 'Peminjaman',
-                            data: trendData,
-                            borderColor: '#2563eb',
-                            backgroundColor: 'rgba(37,99,235,0.12)',
-                            fill: true,
-                            tension: 0.35,
-                            pointRadius: 4,
-                        }]
-                    },
-                    options: {
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-                        maintainAspectRatio: false,
-                    }
-                });
-            }
-
-            @if ($mode === 'operational')
-                const borrowCanvas = document.getElementById('chartTopBorrowed');
-                if (borrowCanvas && window.Chart) {
-                    new Chart(borrowCanvas, {
-                        type: 'bar',
+                const trendCanvas = document.getElementById('chartTrend');
+                if (trendCanvas) {
+                    new Chart(trendCanvas, {
+                        type: 'line',
                         data: {
-                            labels: @json($topBorrowed->map(fn ($r) => \Illuminate\Support\Str::limit($r->item?->name ?? '-', 18))->values()),
+                            labels: trendLabels,
                             datasets: [{
-                                label: 'Jumlah dipinjam',
-                                data: @json($topBorrowed->pluck('total')->values()),
-                                backgroundColor: @json($borrowChartColors),
-                                borderRadius: 6,
+                                label: 'Peminjaman',
+                                data: trendData,
+                                borderColor: '#0875b9',
+                                backgroundColor: 'rgba(8,117,185,0.12)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 3,
+                                pointBackgroundColor: '#0875b9',
                             }]
                         },
                         options: {
-                            indexAxis: 'y',
                             plugins: { legend: { display: false } },
-                            scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+                            scales: {
+                                x: { grid: { display: false }, border: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
+                                y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(148,163,184,0.18)' }, border: { display: false } },
+                            },
                             maintainAspectRatio: false,
                         }
                     });
                 }
 
-                const statusCanvas = document.getElementById('chartStatus');
-                if (statusCanvas && window.Chart) {
-                    new Chart(statusCanvas, {
-                        type: 'doughnut',
-                        data: {
-                            labels: @json($statusDistribution->pluck('label')),
-                            datasets: [{
-                                data: @json($statusDistribution->pluck('value')),
-                                backgroundColor: @json($statusChartColors),
-                                borderWidth: 2,
-                            }]
-                        },
-                        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }, maintainAspectRatio: false }
-                    });
-                }
-            @endif
-        });
-    </script>
-    @endpush
+                @if ($mode === 'operational')
+                    const borrowCanvas = document.getElementById('chartTopBorrowed');
+                    if (borrowCanvas) {
+                        new Chart(borrowCanvas, {
+                            type: 'bar',
+                            data: {
+                                labels: @json($topBorrowed->map(fn ($r) => \Illuminate\Support\Str::limit($r->item?->name ?? '-', 18))->values()),
+                                datasets: [{
+                                    label: 'Jumlah dipinjam',
+                                    data: @json($topBorrowed->pluck('total')->values()),
+                                    backgroundColor: @json($borrowChartColors),
+                                    borderRadius: 6,
+                                    barPercentage: 0.7,
+                                }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(148,163,184,0.18)' }, border: { display: false } },
+                                    y: { grid: { display: false }, border: { display: false } },
+                                },
+                                maintainAspectRatio: false,
+                            }
+                        });
+                    }
+
+                    const statusCanvas = document.getElementById('chartStatus');
+                    if (statusCanvas) {
+                        new Chart(statusCanvas, {
+                            type: 'doughnut',
+                            data: {
+                                labels: @json($statusDistribution->pluck('label')),
+                                datasets: [{
+                                    data: @json($statusDistribution->pluck('value')),
+                                    backgroundColor: @json($statusChartColors),
+                                    borderWidth: 0,
+                                    hoverOffset: 4,
+                                }]
+                            },
+                            options: {
+                                cutout: '70%',
+                                plugins: { legend: { display: false } },
+                                maintainAspectRatio: false,
+                            }
+                        });
+                    }
+                @endif
+            });
+        </script>
+        @endpush
     </div>
 </x-app-layout>

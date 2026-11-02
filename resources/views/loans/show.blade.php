@@ -132,7 +132,7 @@
                             </select>
                         </div>
                         <div>
-                            <label for="item-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status validasi</label>
+                            <label for="item-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status pemeriksaan</label>
                             <select id="item-validation" name="item_validation" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 <option value="">Semua status</option>
                                 @foreach ($filterOptions['validations'] as $validation)

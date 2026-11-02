@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Persetujuan Peminjaman</h2>
+                    <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Permintaan Pinjam</h2>
                     <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">{{ $loans->count() }} MENUNGGU</span>
                 </div>
                 <p class="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
@@ -57,7 +57,7 @@
                             <div class="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                                 {{ $loan->start_date->format('d M Y H:i') }} → {{ $loan->due_date->format('d M Y H:i') }}
                                 @if ($loan->event) • Kegiatan: <strong>{{ $loan->event->name }}</strong> (PJ: {{ $loan->event->pic_name }}) @endif
-                                @if ($loan->isOverdue()) <span class="text-red-600 font-bold">⚠ TERLAMBAT</span> @endif
+                                @if ($loan->isOverdue()) <span class="inline-flex items-center gap-0.5 font-bold text-red-600"><span class="material-icons-round text-sm" aria-hidden="true">warning</span> TERLAMBAT</span> @endif
                             </div>
 
                             <div class="mt-2 flex flex-wrap gap-1.5">

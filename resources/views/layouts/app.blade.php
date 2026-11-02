@@ -33,12 +33,12 @@
         @stack('styles')
     </head>
     <body class="bg-brand-50/30 font-sans antialiased text-slate-800 dark:bg-slate-950 dark:text-slate-100">
-        <div class="min-h-screen flex" x-data="{ menuOpen: false }">
+        <div class="min-h-screen" x-data="{ menuOpen: false }">
             <aside id="main-menu"
-                   class="fixed inset-y-0 left-0 z-40 flex w-64 max-w-[85vw] -translate-x-full flex-col border-r border-slate-200 bg-white text-slate-700 shadow-xl transition-transform duration-200 ease-in-out dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:static sm:w-44 sm:shrink-0 sm:translate-x-0 sm:shadow-none lg:w-64"
+                   class="fixed inset-y-0 left-0 z-40 flex w-64 max-w-[85vw] -translate-x-full flex-col border-r border-slate-200 bg-white text-slate-700 shadow-xl transition-transform duration-200 ease-in-out dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:w-44 sm:translate-x-0 sm:shadow-none lg:w-64"
                    :class="menuOpen ? 'translate-x-0' : '-translate-x-full'"
                    @keydown.escape.window="menuOpen = false">
-                <div class="flex min-h-14 items-center justify-between gap-2 border-b border-slate-100 px-3 dark:border-slate-800">
+                <div class="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-3 dark:border-slate-800">
                     <div class="flex min-w-0 items-center gap-2">
                         <div class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
                             @if ($institution->logo_path)
@@ -65,7 +65,7 @@
             <div x-cloak x-show="menuOpen" x-transition.opacity @click="menuOpen = false"
                  class="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-[1px] sm:hidden" aria-hidden="true"></div>
 
-            <div class="flex-1 flex flex-col min-w-0">
+            <div class="flex min-h-screen min-w-0 flex-col sm:pl-44 lg:pl-64">
                 @include('layouts.navigation')
 
                 @isset($header)

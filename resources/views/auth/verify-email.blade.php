@@ -1,11 +1,11 @@
 <x-guest-layout>
     <div class="mb-4 text-sm text-slate-600">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
+        {{ __('Terima kasih sudah mendaftar. Sebelum mulai, silakan verifikasi alamat email Anda dengan mengeklik tautan yang baru saja kami kirim. Bila emailnya tidak masuk, kami bisa kirim ulang.') }}
     </div>
 
     @if (session('status') == 'verification-link-sent')
         <div class="mb-4 font-medium text-sm text-green-600">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
+            {{ __('Tautan verifikasi baru sudah dikirim ke alamat email yang Anda daftarkan.') }}
         </div>
     @endif
 
@@ -15,7 +15,7 @@
 
             <div>
                 <x-primary-button>
-                    {{ __('Resend Verification Email') }}
+                    {{ __('Kirim ulang email verifikasi') }}
                 </x-primary-button>
             </div>
         </form>
@@ -24,7 +24,7 @@
             @csrf
 
             <button type="submit" class="underline text-sm text-slate-600 hover:text-slate-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-                {{ __('Log Out') }}
+                {{ __('Keluar') }}
             </button>
         </form>
     </div>

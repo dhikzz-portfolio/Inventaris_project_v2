@@ -9,7 +9,7 @@
                         <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300">NILAI TINGGI</span>
                     @endif
                     @if ($loan->isOverdue())
-                        <span class="text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300">⚠ TERLAMBAT</span>
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300"><span class="material-icons-round text-sm" aria-hidden="true">warning</span> TERLAMBAT</span>
                     @endif
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">{{ $loan->purpose }}</p>
@@ -22,7 +22,7 @@
                 @if ($loan->bast_path)
                     <a href="{{ route('loans.bast', $loan) }}"
                        class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                        <span class="material-icons-round text-lg">description</span> Unduh BAST / Surat
+                        <span class="material-icons-round text-lg">description</span> Unduh Berita Acara
                     </a>
                 @endif
                 @if ($loan->borrower_id === auth()->id())
@@ -161,7 +161,7 @@
                     </div>
                     <div class="mt-2 flex flex-wrap items-center gap-2">
                         <button type="submit" class="inline-flex min-h-8 items-center rounded-lg bg-brand-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-brand-700">Terapkan filter</button>
-                        <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Reset filter</a>
+                        <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Hapus filter</a>
                         @if ($filtersActive)
                             <span class="text-[11px] text-slate-500 dark:text-slate-400">
                                 Menampilkan {{ $unitAssignments->firstItem() ?? 0 }}–{{ $unitAssignments->lastItem() ?? 0 }} dari {{ $unitAssignments->total() }} unit sesuai filter.
@@ -242,7 +242,7 @@
                         @empty
                             <div class="col-span-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                                 Tidak ada unit fisik yang cocok dengan pencarian/filter.
-                                <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-brand-700 underline dark:text-brand-300">Reset filter</a>
+                                <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-brand-700 underline dark:text-brand-300">Hapus filter</a>
                             </div>
                         @endforelse
                     </div>
@@ -265,7 +265,7 @@
                             <img x-show="!photoError" x-on:error="photoError = true" :src="photo.url" :alt="'Foto bukti kerusakan unit ' + (photo.code || '')"
                                  class="max-h-[55vh] w-full rounded-xl border border-slate-200 bg-slate-100 object-contain dark:border-slate-700 dark:bg-slate-800">
                             <div x-show="photoError" x-cloak class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-                                File foto tidak ditemukan atau tidak dapat dibuka. Hubungi petugas inventaris untuk bukti fisik.
+                                Foto tidak ditemukan atau tidak dapat dibuka. Hubungi petugas inventaris untuk bukti fisik.
                             </div>
 
                             <dl class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
@@ -476,9 +476,6 @@
                                     <img :src="signature" alt="Pratinjau tanda tangan digital" class="h-14 rounded-lg border border-slate-200 bg-white px-1 dark:border-slate-600">
                                     <span class="text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">Tanda tangan ini dilampirkan saat persetujuan dikirim.</span>
                                 </div>
-                                <p class="mt-2 text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">
-                                    Opsional. Dokumen resmi tetap dapat dipratinjau, dicetak, dan ditandatangani secara fisik.
-                                </p>
                             </div>
 
                             <div class="flex gap-3">
@@ -595,13 +592,21 @@
                     <div class="border-t border-dashed border-slate-200 pt-3 text-slate-600 dark:border-slate-700 dark:text-slate-300">
                         <div class="text-xs font-bold">DIBATALKAN:</div>
                         <div class="text-xs">{{ $loan->cancel_reason ?: 'Tanpa alasan tertulis' }}</div>
-                        <div class="text-xs text-slate-500 dark:text-slate-400">oleh {{ $loan->canceller?->name }} • {{ $loan->cancelled_at?->format('d M Y H:i') }}</div>
+                        @php($cancelMeta = collect([
+                            filled($loan->canceller?->name) ? 'oleh '.$loan->canceller->name : null,
+                            $loan->cancelled_at?->format('d M Y H:i'),
+                        ])->filter()->implode(' • '))
+                        @if ($cancelMeta !== '')
+                            <div class="text-xs text-slate-500 dark:text-slate-400">{{ $cancelMeta }}</div>
+                        @endif
                     </div>
                 @endif
                 @if ($loan->handed_over_at)
                     <div class="border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
                         <span class="text-slate-500 dark:text-slate-400">Diserahkan:</span> <span class="text-slate-700 dark:text-slate-200">{{ $loan->handed_over_at->format('d M Y H:i') }}</span>
-                        <div class="text-xs text-slate-500 dark:text-slate-400">oleh {{ $loan->handoverOfficer?->name }}</div>
+                        @if (filled($loan->handoverOfficer?->name))
+                            <div class="text-xs text-slate-500 dark:text-slate-400">oleh {{ $loan->handoverOfficer->name }}</div>
+                        @endif
                     </div>
                 @endif
 
@@ -622,7 +627,9 @@
                 @if ($loan->returned_at)
                     <div class="border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
                         <span class="text-slate-500 dark:text-slate-400">Dikembalikan:</span> <span class="text-slate-700 dark:text-slate-200">{{ $loan->returned_at->format('d M Y H:i') }}</span>
-                        <div class="text-xs text-slate-500 dark:text-slate-400">oleh {{ $loan->returner?->name }}</div>
+                        @if (filled($loan->returner?->name))
+                            <div class="text-xs text-slate-500 dark:text-slate-400">oleh {{ $loan->returner->name }}</div>
+                        @endif
                     </div>
                 @endif
             </div>
@@ -642,12 +649,8 @@
 
                     <a href="{{ route('loans.bast', $loan) }}" target="_blank"
                        class="mb-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                        {{ $loan->event ? 'Surat Peminjaman / BAST (PDF)' : 'Buat Surat Peminjaman (PDF)' }}
+                        {{ $loan->event ? 'Surat Peminjaman & Berita Acara' : 'Buat Surat Peminjaman' }}
                     </a>
-                    <p class="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                        Dokumen dapat dipratinjau dan dicetak, lalu ditandatangani secara fisik oleh Peminjam, Laboran, dan Wakasek.
-                        Status dokumen terpisah dari status persetujuan transaksi.
-                    </p>
 
                     @if ($canManageDocuments)
                         <div class="mt-3 space-y-2 border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">

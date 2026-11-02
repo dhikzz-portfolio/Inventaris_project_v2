@@ -110,7 +110,7 @@
     </table>
 
     <div class="footer">
-        Dokumen digenerate otomatis oleh Sistem Manajemen Inventaris &amp; Aset Sekolah — {{ $setting->institution_name }} • {{ now()->format('d M Y H:i') }}
+        Dokumen dibuat otomatis oleh Sistem Manajemen Inventaris &amp; Aset Sekolah — {{ $setting->institution_name }} • {{ now()->format('d M Y H:i') }}
     </div>
 </body>
 </html>

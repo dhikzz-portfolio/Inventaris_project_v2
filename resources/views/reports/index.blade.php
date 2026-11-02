@@ -24,13 +24,13 @@
             <span class="material-icons-round text-blue-600">tune</span> Parameter Laporan
         </h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <x-input-label for="report-period" value="Periode (Bulan)" />
                 <input type="month" x-model="period" min="2020-01" value="{{ $currentPeriod }}"
                        id="report-period" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
-            <div>
+            <div :class="scope === 'SEMUA' ? 'md:col-span-2' : ''">
                 <x-input-label for="report-scope" value="Cakupan" />
                 <select id="report-scope" x-model="scope" x-on:change="scopeId = ''" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     <option value="SEMUA">{{ auth()->user()->isSuperAdmin() ? 'Seluruh sekolah' : 'Seluruh laboratorium' }}</option>

@@ -106,7 +106,7 @@ class HandoverScanTest extends TestCase
             ->assertOk()
             ->assertSee('Pilih Semua Unit yang Dapat Diserahkan')
             ->assertSee('Batal Pilih Semua')
-            ->assertSee('Scan QR Unit')
+            ->assertSee('Pindai QR Unit')
             ->assertSee('data-unit-card', false)
             ->assertSee('Serahkan Barang + Tandai Unit Dipinjam')
             ->assertSee($units->first()->inventory_code)

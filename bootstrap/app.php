@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -23,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'profile.completed' => EnsureProfileCompleted::class,
+        ]);
+
+        // Semua sesi memverifikasi hash password terbaru pada setiap request.
+        // Setelah password berubah, sesi lain otomatis diputus.
+        $middleware->web(append: [
+            AuthenticateSession::class,
         ]);
 
         $middleware->redirectGuestsTo('/login');

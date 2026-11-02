@@ -560,9 +560,15 @@
                     <span class="material-icons-round text-brand-600">info</span> Ringkasan
                 </h3>
                 @unless (auth()->user()->isPeminjam())
-                    <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Peminjam:</span> <strong>{{ $loan->borrower?->name }}</strong></div>
-                    <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Email:</span> {{ $loan->borrower?->email }}</div>
-                    <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Jurusan:</span> {{ $loan->borrower?->major?->name ?: '-' }}</div>
+                    @if ($loan->borrower?->displayName())
+                        <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Peminjam:</span> <strong>{{ $loan->borrower->displayName() }}</strong></div>
+                    @endif
+                    @if ($loan->borrower?->email)
+                        <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Email:</span> {{ $loan->borrower->email }}</div>
+                    @endif
+                    @if ($loan->borrower?->major?->name)
+                        <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">Jurusan:</span> {{ $loan->borrower->major->name }}</div>
+                    @endif
                 @endunless
                 <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">{{ auth()->user()->isPeminjam() ? 'Mulai pinjam:' : 'Pinjam:' }}</span> <strong>{{ $loan->start_date->format('d M Y H:i') }}</strong></div>
                 <div class="text-slate-700 dark:text-slate-200"><span class="text-slate-500 dark:text-slate-400">{{ auth()->user()->isPeminjam() ? 'Batas pengembalian:' : 'Kembali:' }}</span> <strong class="{{ $loan->isOverdue() ? 'text-red-600 dark:text-red-400' : '' }}">{{ $loan->due_date->format('d M Y H:i') }}</strong></div>
@@ -570,8 +576,12 @@
                     <div class="border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
                         <div class="text-xs text-slate-500 dark:text-slate-400">Kegiatan:</div>
                         <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $loan->event->name }}</div>
-                        <div class="text-xs text-slate-600 dark:text-slate-300">PJ: {{ $loan->event->pic_name }}</div>
-                        <div class="text-xs text-slate-600 dark:text-slate-300">{{ $loan->event->start_date->format('d/m/Y') }} — {{ $loan->event->end_date->format('d/m/Y') }}</div>
+                        @if (filled($loan->event->picDisplayName()))
+                            <div class="text-xs text-slate-600 dark:text-slate-300">PJ: {{ $loan->event->picDisplayName() }}</div>
+                        @endif
+                        @if ($loan->event->start_date || $loan->event->end_date)
+                            <div class="text-xs text-slate-600 dark:text-slate-300">{{ $loan->event->start_date->format('d/m/Y') }} — {{ $loan->event->end_date->format('d/m/Y') }}</div>
+                        @endif
                         <a href="{{ route('events.show', $loan->event) }}" class="inline-flex min-h-8 items-center text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">Lihat rekap kegiatan →</a>
                     </div>
                 @endif

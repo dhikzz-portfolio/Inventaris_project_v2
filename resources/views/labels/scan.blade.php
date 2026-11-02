@@ -65,8 +65,11 @@
                     <div class="flex items-start justify-between gap-3 flex-wrap mb-4">
                         <div>
                             <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ $result['name'] }}</h3>
-                            <p class="text-sm text-slate-500 dark:text-slate-400">
-                                {{ $result['specification'] ?: 'Spesifikasi belum dicatat' }}</p>
+                            <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                                {{ $result['specification_label'] ?: 'Spesifikasi belum dicatat' }}</p>
+                            @if ($result['specification'] && $result['specification'] !== $result['specification_label'])
+                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ $result['specification'] }}</p>
+                            @endif
                         </div>
                         <div class="text-right">
                             <div class="font-mono text-lg font-bold text-slate-900 dark:text-slate-100">{{ $result['code'] }}</div>
@@ -78,6 +81,13 @@
                         <div class="mb-4 rounded-lg bg-gray-100 border border-gray-300 px-4 py-3 text-sm text-gray-700">
                             Unit ini sudah diarsipkan/dihapus secara logis. Data ditampilkan untuk penelusuran riwayat,
                             bukan sebagai unit aktif.
+                        </div>
+                    @endif
+
+                    @if ($result['payload_mismatch'])
+                        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            Kode pada QR ({{ $result['payload_code'] }}) berbeda dari data unit di database.
+                            Data terbaru dari database yang ditampilkan; jangan gunakan QR lama untuk transaksi.
                         </div>
                     @endif
 
@@ -126,7 +136,10 @@
                             <div>
                                 <dt class="text-xs text-gray-400">Merek / Tipe</dt>
                                 <dd class="font-medium">
-                                    {{ trim(($result['brand'] ?? '') . ' ' . ($result['model_type'] ?? '')) ?: '—' }}</dd>
+                                    {{ trim(($result['brand'] ?? '') . ' — ' . ($result['model_type'] ?? '')) ?: '—' }}</dd>
+                                @if ($result['specification_code'])
+                                    <dd class="font-mono text-[10px] text-gray-400">{{ $result['specification_code'] }}</dd>
+                                @endif
                             </div>
                         @endif
                     </dl>

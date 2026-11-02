@@ -109,16 +109,111 @@ class ReportService
             ->with(['item', 'fromRoom', 'toRoom', 'mover'])
             ->get();
 
+        // Cakupan penghapusan mengikuti unit yang benar-benar tercatat pada
+        // `write_off_units`; `write_offs.item_id` hanya dipakai untuk transaksi
+        // lama yang belum memiliki rincian unit.
+        $unitScope = function ($query) use ($scope, $scopeId, $labOnly): void {
+            $query->when($labOnly, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('is_lab', true)))
+                ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->whereHas('catalog', fn ($c) => $c->where('category_id', $scopeId)))
+                ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
+                ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('catalog.room', fn ($r) => $r->where('major_id', $scopeId)));
+        };
+
+        $legacyScope = function ($query) use ($scope, $scopeId, $labOnly): void {
+            $query->when($labOnly, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('is_lab', true)))
+                ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->where('category_id', $scopeId))
+                ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
+                ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)));
+        };
+
         $writeOffs = WriteOff::where('status', 'APPROVED')
             ->whereBetween('updated_at', [$start, $end])
-            ->when($labOnly, fn ($q) => $q->whereHas('item.room', fn ($r) => $r->where('is_lab', true)))
-            ->when($scope !== 'SEMUA' && $scopeId, fn ($q) => $q->whereHas('item', function ($qq) use ($scope, $scopeId) {
-                $qq->when($scope === 'KATEGORI', fn ($q3) => $q3->where('category_id', $scopeId))
-                    ->when($scope === 'RUANGAN', fn ($q3) => $q3->where('room_id', $scopeId))
-                    ->when($scope === 'JURUSAN', fn ($q3) => $q3->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)));
-            }))
-            ->with('item')
+            ->where(function ($query) use ($unitScope, $legacyScope): void {
+                $query->whereHas('units', fn ($units) => $unitScope($units))
+                    ->orWhere(function ($legacy) use ($legacyScope): void {
+                        $legacy->whereDoesntHave('units')
+                            ->whereHas('item', fn ($item) => $legacyScope($item));
+                    });
+            })
+            ->with([
+                'item.room',
+                'requester',
+                'approver',
+                'units.catalog.category',
+                'units.catalog.room',
+                'units.specification',
+                'units.room.building',
+            ])
             ->get();
+
+        // Satu baris per unit fisik. Transaksi lama tanpa rincian unit tetap
+        // ditampilkan sebagai satu baris katalog dengan penanda legacy — tidak
+        // ada unit fiktif yang dibuat.
+        $writeOffRows = collect();
+
+        foreach ($writeOffs as $writeOff) {
+            if ($writeOff->units->isNotEmpty()) {
+                foreach ($writeOff->units as $row) {
+                    // Transaksi boleh lintas katalog, tetapi baris yang keluar
+                    // dari cakupan peran tidak boleh ikut tampil.
+                    if ($labOnly && ! $row->room?->is_lab) {
+                        continue;
+                    }
+
+                    if ($scope === 'KATEGORI' && $scopeId && (int) $row->catalog?->category_id !== (int) $scopeId) {
+                        continue;
+                    }
+
+                    if ($scope === 'RUANGAN' && $scopeId && (int) $row->room_id !== (int) $scopeId) {
+                        continue;
+                    }
+
+                    if ($scope === 'JURUSAN' && $scopeId && (int) $row->catalog?->room?->major_id !== (int) $scopeId) {
+                        continue;
+                    }
+
+                    $writeOffRows->push((object) [
+                        'write_off_id' => $writeOff->id,
+                        'legacy' => false,
+                        'date' => $writeOff->updated_at,
+                        'catalog' => $row->catalog?->name ?? $writeOff->item?->name,
+                        'code' => $row->inventory_code,
+                        'brand' => $row->specification?->brandLabel() ?: $row->brand,
+                        'model_type' => $row->specification?->modelLabel() ?: $row->model_type,
+                        'specification' => $row->specification?->displayName(),
+                        'room' => $row->room
+                            ? trim(collect([$row->room->code, $row->room->name])->filter()->implode(' — '))
+                            : null,
+                        'quantity' => 1,
+                        'reason' => $writeOff->reason,
+                        'requester' => $writeOff->requester?->name,
+                        'approver' => $writeOff->approver?->name,
+                    ]);
+                }
+
+                continue;
+            }
+
+            $item = $writeOff->item;
+
+            $writeOffRows->push((object) [
+                'write_off_id' => $writeOff->id,
+                'legacy' => true,
+                'date' => $writeOff->updated_at,
+                'catalog' => $item?->name,
+                'code' => null,
+                'brand' => $item?->brand,
+                'model_type' => $item?->model_type,
+                'specification' => $item?->specification,
+                'room' => $item?->room
+                    ? trim(collect([$item->room->code, $item->room->name])->filter()->implode(' — '))
+                    : null,
+                'quantity' => (int) $writeOff->quantity,
+                'reason' => $writeOff->reason,
+                'requester' => $writeOff->requester?->name,
+                'approver' => $writeOff->approver?->name,
+            ]);
+        }
 
         return [
             'setting' => InstitutionSetting::current(),
@@ -162,11 +257,13 @@ class ReportService
                 })->count(),
                 'kerusakan' => $damageRows->count(),
                 'mutasi' => $movements->count(),
-                'penghapusan' => $writeOffs->count(),
+                'penghapusan' => (int) $writeOffRows->sum('quantity'),
+                'penghapusan_transaksi' => $writeOffs->count(),
             ],
             'damageRows' => $damageRows,
             'movements' => $movements,
             'writeOffs' => $writeOffs,
+            'writeOffRows' => $writeOffRows,
         ];
     }
 

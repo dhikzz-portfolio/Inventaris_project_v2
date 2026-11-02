@@ -1,6 +1,8 @@
 # Testing Report
 
-Tanggal eksekusi terakhir: **27 Oktober 2026**
+Tanggal eksekusi terakhir: **2 November 2026**
+
+> Hasil terbaru (revisi V4) ada di **§15**: 330 tes lulus (1682 assertions), MySQL 8.4.3, konkuren 6 pembuat/3 penghapusan, Playwright E2E penuh, dan audit responsif 8 breakpoint. Bagian lama dipertahankan sebagai riwayat.
 Lingkungan: Windows 11, PHP 8.3.32, Laravel 13, MySQL 8.4.3, Node 24, Chrome headless.
 
 > Hasil ini mencakup revisi besar V2 (26 Oktober 2026): registrasi Gmail + role Peminjam, scan universal, gedung A–G, penghapusan `asset_code`, pengadaan multi-lokasi, mutasi multi-unit, impor/hapus arsip laporan, status kegiatan, surat peminjaman per kategori + pratinjau cetak, dan UI pengguna berbasis kartu. Rincian: `REVISION_V2.md`.
@@ -339,3 +341,115 @@ Dijalankan dengan `php artisan test` pada SQLite in-memory, locale `id`, timezon
 Hasil: seluruh file di atas lulus bersama regresi pengadaan, katalog, seeder, dan hapus katalog (46 tes, 234 assertions pada kelompok terkait). Hasil suite penuh dicatat pada bagian 2.
 
 Catatan batasan: kamera fisik pada perangkat nyata tidak diuji otomatis. Jalur kamera memakai `html5-qrcode` yang sudah menjadi dependensi; fallback input kode manual diuji melalui endpoint/Livewire. Data demo serah terima (`DemoLoanSeeder`, status `APPROVED`) hanya dibuat saat database belum memiliki transaksi sehingga seeder tetap aman dijalankan ulang dan tidak menimpa data operasional.
+
+## 14. Pengujian revisi V3 (2 November 2026)
+
+Dijalankan dengan `php artisan test --compact` pada SQLite in-memory, locale `id`, timezone `Asia/Jakarta`.
+
+| Kelompok | Test | Bukti |
+| --- | --- | --- |
+| Label/QR memakai spesifikasi unit | `RevisionV3Test` | Dua spesifikasi dalam satu katalog; scan dan template label menampilkan merek/tipe unit, bukan merek pengadaan katalog |
+| Identitas QR stabil + mutasi | `RevisionV3Test` | Payload memuat `u` (unit), `s` (spesifikasi), `r` (rilis skema); setelah mutasi, scan menampilkan lokasi baru dan `specification_id` tidak berubah |
+| Pengadaan katalog lama | `RevisionV3Test` | Memilih `catalog_id` menambah unit + spesifikasi pada katalog yang sama tanpa membuat katalog baru; kategori berbeda ditolak backend |
+| Field pengguna per kategori | `RevisionV3Test` | Gelar siswa ditolak; jurusan guru/staf ditolak; nilai lama tidak berubah saat request ditolak |
+| Password dua tahap | `RevisionV3Test` | Password lama salah tidak menyimpan password baru; password lama benar + konfirmasi cocok berhasil dan `Hash::check` lolos |
+| PIC kegiatan | `RevisionV3Test` | PIC akun tersimpan sebagai `pic_user_id` + nama tampilan; PIC nama khusus tersimpan tanpa akun pengguna |
+| Hapus kegiatan | `RevisionV3Test` | Pembuat dapat menghapus kegiatan tanpa peminjaman; pengguna lain 403; kegiatan dengan `loans` ditolak dan tetap ada |
+| Ringkasan peminjaman | `RevisionV3Test` | Baris jurusan dan kegiatan tidak dirender bila nilainya kosong |
+| Backfill spesifikasi | `RevisionV3AuditTest` | Unit ambigu tetap `NULL`; katalog satu spesifikasi dan alokasi ruangan dipetakan; command idempoten dan menulis CSV |
+| Penghapusan per unit | `RevisionV3AuditTest` | Hanya unit terpilih yang diarsipkan; unit lain tetap AKTIF; `write_off_units` menyimpan snapshot |
+| Penghapusan seluruh katalog | `RevisionV3AuditTest` | Tanpa `confirm_catalog` ditolak; dengan konfirmasi seluruh unit layak diarsipkan; katalog tetap ada |
+| Integritas transaksi | `RevisionV3AuditTest` | Unit dipinjam / sudah menunggu / katalog tanpa unit layak ditolak; tidak ada write-off parsial |
+| Filter inventaris keluar | `RevisionV3AuditTest` | Kombinasi merek + kondisi + status + gedung + lantai; pencarian sebagian kode; reset menampilkan semua |
+| Password | `RevisionV3AuditTest` | Password sama, konfirmasi berbeda, tanpa autentikasi, dan percobaan ke-7 (429) |
+| Otorisasi kegiatan | `RevisionV3AuditTest` | Super Admin bukan pembuat 403; akun pembuat kegiatan tidak dapat dihapus |
+| QR rilis 1 & 2 | `RevisionV3AuditTest` | `r=1` dan `r=2` valid; `s` palsu diabaikan; `r=99` ditolak |
+| Label digital | `RevisionV3AuditTest` | PDF `%PDF`, `MediaBox` 260×120 pt, QR persegi > 100 px |
+| Regresi | seluruh suite | **322 tes lulus, 1602 assertions** |
+
+### 14.1 MySQL 8.4.3
+
+- `migrate:fresh --force --seed` pada database terpisah `inventaris_v3_test`: **PASS** (40 tabel, 5 FK `write_off_units`, 165 unit, 42 katalog, 13 pengguna).
+- Konkuren pembuatan unit (dua proses paralel): **PASS** — dua unit berbeda `unit_no`/kode; 0 duplikasi kode, slot, atau kode aktif ganda.
+- Konkuren mutasi unit yang sama (dua proses paralel): **PASS (terbatas)** — dua mutasi diproses berurutan oleh row lock; 2 riwayat, 0 kode aktif ganda, 0 mutasi yatim.
+- Rollback migration dan load test produksi: **NOT TESTED**.
+
+### 14.2 Browser Playwright 1.64.1
+
+- Login Wakasek, pengadaan (katalog lama mengunci nama/kategori), inventaris keluar (modal katalog + filter), laporan (5 tombol), mutasi, kegiatan (buat + hapus lewat UI), modal password, mobile 390px.
+- **PASS** 12 checkpoint, 0 console error/page error. Screenshot: `tmp/e2e/screens/`.
+- End-to-end penuh pengadaan → label → scan → mutasi → pinjam → serah terima → kembali → hapus: **PASS** pada revisi V4 (§15.4); catatan lama ini hanya berlaku untuk rilis V3.
+
+### 14.3 Cetak fisik label
+
+- PDF dan QR diperiksa secara digital: **PASS**.
+- Cetak pada printer/media label dan pemindaian dengan perangkat fisik: **BLOCKED** — tidak ada perangkat pada lingkungan ini. Status: **BELUM DIVERIFIKASI**.
+
+`vendor/bin/pint` dijalankan pada seluruh file PHP yang diubah.
+
+## 15. Pengujian revisi V4 (2 November 2026)
+
+### 15.1 Suite otomatis
+
+```
+php artisan test --compact
+Tests:    330 passed (1682 assertions)
+Duration: ~310s
+```
+
+SQLite in-memory, locale `id`, timezone `Asia/Jakarta`, tanpa skip. Test baru `RevisionV4Test` (8 tes) mencakup:
+
+| Kelompok | Bukti |
+| --- | --- |
+| Laporan lintas katalog | Satu transaksi berisi unit dari dua katalog menghasilkan dua baris laporan; ringkasan 5 unit (3 legacy + 2 unit), bukan 2 transaksi; PDF dan sheet Excel memakai baris yang sama |
+| Cakupan laporan campuran | Transaksi berisi unit lab + non-lab hanya menampilkan unit lab untuk Ketua Laboran; Super Admin melihat keduanya |
+| Anti-duplikasi lintas transaksi | Endpoint menolak unit yang sudah aktif; unique `(asset_unit_id, is_active)` menolak duplikasi di level database; penolakan melepas kunci sehingga unit dapat diajukan kembali |
+| Stok dua mode | Mode UNIT 2 unit → stok 3; mode CATALOG 3 unit → stok 0, status katalog DIHAPUS, 5 unit terarsip, `write_offs.quantity` = jumlah `write_off_units` |
+| Backfill | Dry-run tidak mengubah unit; CSV berisi kandidat/status/manual_check; apply idempoten dan menulis `SUDAH_BENAR` pada run berikutnya |
+| Invalidasi sesi | Sesi aktif tetap login setelah ubah password; hash password lama pada sesi lain ditolak dan diarahkan ke login |
+| Otorisasi kegiatan | Ketua/PIC tidak boleh menghapus; Super Admin boleh menghapus kegiatan tanpa peminjaman; kegiatan dengan peminjaman tetap ditolak |
+| QR | Payload dengan kode palsu menampilkan peringatan mismatch dan identitas database; unit terarsip tetap dapat ditelusuri dengan penanda arsip |
+
+### 15.2 MySQL 8.4.3
+
+- `migrate --force` pada `inventaris_v3_test`: **PASS**. Kolom `is_active` dan unique `write_off_units_unit_active_unique` terpasang; 5 FK tetap aktif.
+- Enam proses pembuatan unit paralel pada ruangan yang sama: **PASS** — 6 kode/`unit_no` unik berurutan, 0 duplikasi.
+- Tiga proses penghapusan unit **yang sama**: **PASS** — 1 sukses, 2 ditolak karena unit sudah dihapus; 1 baris `write_off_units` aktif; katalog 4 → 3.
+- Tiga proses penghapusan unit **berbeda** pada satu katalog: **PASS** — 3 sukses, stok akhir 0, 4 unit terarsip, 3 baris snapshot, tanpa stok negatif.
+- Ini pengujian lokal terbatas, **bukan** load test produksi.
+
+### 15.3 Playwright E2E penuh (`tmp/e2e/full_flow.mjs`)
+
+Server MySQL terpisah `inventaris_e2e`, basis data dibangun ulang dengan `migrate:fresh --seed`. Hasil: **PASS**, 0 console/page error.
+
+1. Pengadaan katalog baru + alokasi ruangan → unit dan spesifikasi tercipta di DB.
+2. PDF label 260×120 pt valid; scan QR `r=2` menampilkan merek/tipe dari database (parameter `s` palsu diabaikan).
+3. Mutasi lewat UI → lokasi berubah, kode baru, 1 riwayat, `specification_id` tetap.
+4. Peminjaman lewat UI → otomatis APPROVED untuk Wakasek.
+5. Serah terima memilih unit → loan DIPINJAM, unit DIPINJAM, penugasan tercatat.
+6. Pengembalian per unit + selesai → loan SELESAI, unit AKTIF.
+7. Inventaris keluar → unit DIHAPUS, transaksi APPROVED, 1 snapshot, stok katalog 0.
+8. QR versi tidak dikenal ditolak; Guru mendapat **403** pada `/pengguna`.
+
+### 15.4 Audit responsif (`tmp/e2e/responsive.mjs`)
+
+24 halaman × 8 lebar (320, 375, 430, 768, 1024, 1366, 1440, 1920) + modal = **193 pemeriksaan PASS**, 0 overflow dokumen, 0 console error. Screenshot di `tmp/e2e/screens-responsive/`.
+
+Perbaikan yang ditemukan audit:
+
+- Header kalender peminjaman dibuat `flex-wrap` pada 320 px.
+- Tabel riwayat inventaris keluar, daftar unit, pengguna, laporan, kegiatan, label, mutasi, dan persetujuan diberi `min-width` + wrapper scroll horizontal agar kolom tidak terjepit.
+
+### 15.5 Cetak fisik
+
+- PDF dan QR digital: **PASS**.
+- Printer, media label, dan pemindai fisik: **BLOCKED** — tidak tersedia. Status tetap **BELUM DIVERIFIKASI**, bukan PASS.
+
+Checklist yang harus dijalankan saat perangkat tersedia:
+
+1. Cetak PDF label pada media yang disepakati (target `MediaBox` 260×120 pt), skala **100%**, margin printer **None/Minimum**.
+2. Ukur lebar/tinggi label fisik; pastikan tidak ada elemen terpotong.
+3. Verifikasi judul barang, merek/tipe, kode inventaris, dan QR terbaca; QR tetap persegi (tidak terdistorsi).
+4. Pindai dengan minimal dua perangkat/aplikasi berbeda; hasil harus membuka unit yang sama di database.
+5. Mutasikan unit, cetak ulang label, lalu pindai lagi: lokasi terbaru tampil, merek/tipe tidak berubah.
+6. Catat printer, jenis media, pengaturan skala/margin, hasil pindai, dan simpan bukti foto.

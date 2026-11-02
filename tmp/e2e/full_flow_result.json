@@ -1,0 +1,69 @@
+{
+  "ok": true,
+  "checks": [
+    {
+      "check": "login-wakasek",
+      "url": "http://127.0.0.1:8098/dashboard"
+    },
+    {
+      "check": "procurement-created-unit",
+      "catalog_id": 46,
+      "unit_id": 169,
+      "code": "G1-01-089-17",
+      "room_id": 1,
+      "spec_id": 48,
+      "brand": "Futura",
+      "model": "Tipe E2E",
+      "catalog_qty": 1
+    },
+    {
+      "check": "label-pdf-media-box",
+      "bytes": 4270
+    },
+    {
+      "check": "scan-r2-database-identity"
+    },
+    {
+      "check": "mutation-keeps-spec-and-records-history",
+      "room_id": 3,
+      "code": "G1-03-089-11",
+      "brand": "Futura",
+      "spec_id": 48,
+      "movements": 1
+    },
+    {
+      "check": "scan-after-mutation"
+    },
+    {
+      "check": "loan-request-approved",
+      "id": 8,
+      "status": "APPROVED",
+      "qty": "1"
+    },
+    {
+      "check": "handover-unit-assigned",
+      "status": "DIPINJAM",
+      "unit_status": "DIPINJAM",
+      "assignments": 1
+    },
+    {
+      "check": "return-completed",
+      "status": "SELESAI",
+      "unit_status": "AKTIF",
+      "returned_at": "2026-11-02 17:24:20"
+    },
+    {
+      "check": "write-off-applied-and-recorded",
+      "unit_status": "DIHAPUS",
+      "archived_at": "2026-11-02 17:24:23",
+      "write_off_status": "APPROVED",
+      "write_off_units": 1,
+      "catalog_qty": 0
+    },
+    {
+      "check": "role-guru-users-denied",
+      "status": 403
+    }
+  ],
+  "consoleErrors": []
+}

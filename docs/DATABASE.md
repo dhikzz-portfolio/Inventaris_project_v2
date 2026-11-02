@@ -100,6 +100,8 @@ Index:
 
 Catatan: `inventory_code` sengaja **diredundansi** dari `asset_unit_codes` yang aktif untuk mempercepat pencarian dan unique constraint. Konsistensi dijaga transaksi; perintah `inventory:verify-codes` mencocokkan keduanya secara berkala.
 
+Identitas label/QR dibaca dari `asset_units.specification_id` → `specifications`. Kolom `item_catalogs.brand`/`model_type` hanya cadangan untuk unit lama yang belum memiliki spesifikasi dan tidak boleh menimpa identitas unit. Payload QR (`LabelService::QR_RELEASE = 2`) memuat ID unit stabil (`u`), kode (`c`), dan ID spesifikasi (`s`); lokasi selalu dibaca ulang dari database saat dipindai.
+
 ### 2.3 `asset_unit_codes` (buku besar kode)
 
 Mencatat **setiap** kode yang pernah diterbitkan, termasuk yang sudah pensiun. Tabel ini adalah otoritas nomor unit dan mencegah pemakaian ulang.
@@ -287,14 +289,51 @@ Role **tidak** ditentukan oleh kolom input registrasi. `users.role` dan role Spa
 
 Index `index(item_catalog_id, room_id)` — unique lama `(item_catalog_id, room_id)` **dihapus** karena satu ruangan kini boleh menerima beberapa spesifikasi (merek/tipe) dari katalog yang sama. Duplikasi dalam satu form tetap dicegah validasi `distinct` pada `room_id`. Unit fisik dibuat dari baris alokasi yang `provisioned_at` masih `NULL`; kode unit tetap diterbitkan `InventoryCodeService` dan tidak disimpan di tabel alokasi.
 
-### 2.16 `events` — status pelaksanaan
+### 2.16 `events` — status pelaksanaan dan penanggung jawab
 
 | Kolom        | Tipe                       | Keterangan                                                                                     |
 | ------------ | -------------------------- | ---------------------------------------------------------------------------------------------- |
 | `status`     | varchar(30) default `BELUM_BERJALAN` | `BELUM_BERJALAN`, `SEDANG_BERJALAN`, `SUDAH_BERJALAN` (`App\Enums\EventStatus`).     |
 | `updated_by` | FK `users` nullable        | Pengguna terakhir yang memperbarui kegiatan; `nullOnDelete`.                                   |
+| `pic_user_id` | FK `users` nullable       | Akun penanggung jawab bila PIC dipilih dari pengguna terdaftar; `nullOnDelete`. `pic_name` tetap menyimpan teks tampilan/nama khusus (panitia/organisasi). |
 
 Status kegiatan **tidak** mengubah status persetujuan peminjaman terkait. Relasi `loans.event_id` tetap opsional; peminjaman biasa tidak wajib memiliki kegiatan.
+
+### 2.19 `write_off_units` — penghapusan per unit
+
+| Kolom             | Tipe                          | Keterangan                                                                 |
+| ----------------- | ----------------------------- | -------------------------------------------------------------------------- |
+| `id`              | bigint PK                     |                                                                            |
+| `write_off_id`    | FK `write_offs`               | Pengajuan induk; cascade saat pengajuan dihapus.                            |
+| `asset_unit_id`   | FK `asset_units`              | Unit yang dihapus; `restrictOnDelete` agar histori tidak kehilangan unit.   |
+| `is_active`       | boolean nullable              | `1` untuk pengajuan PENDING/APPROVED; `NULL` untuk REJECTED. Digunakan unique constraint agar satu unit hanya punya satu penghapusan aktif. |
+| `item_catalog_id` | FK `item_catalogs`            | Katalog unit saat pengajuan.                                               |
+| `specification_id`| FK `specifications` nullable  | Spesifikasi unit saat pengajuan; `nullOnDelete`.                           |
+| `inventory_code`  | varchar(12)                   | Snapshot kode inventaris.                                                  |
+| `brand`           | varchar(100) nullable         | Snapshot merek dari spesifikasi unit.                                      |
+| `model_type`      | varchar(100) nullable         | Snapshot tipe/model dari spesifikasi unit.                                 |
+| `room_id`         | FK `rooms` nullable           | Snapshot lokasi; `nullOnDelete`.                                           |
+| `condition`       | varchar(30) nullable          | Kondisi saat pengajuan.                                                    |
+| `status_before`   | varchar(30) nullable          | Status unit sebelum diarsipkan.                                            |
+| `created_at`, `updated_at` | timestamp            |                                                                            |
+
+Index: unique `(write_off_id, asset_unit_id)` (anti-duplikasi dalam satu transaksi), unique `(asset_unit_id, is_active)` `write_off_units_unit_active_unique` (anti-duplikasi lintas transaksi; MySQL/SQLite mengizinkan banyak `NULL`), index `asset_unit_id`, index `item_catalog_id`.
+
+Migration `2026_11_02_000003_enforce_single_active_write_off_per_unit.php` menambahkan kolom dan constraint tersebut. Data lama dengan beberapa baris aktif untuk unit yang sama dipertahankan seluruhnya; hanya baris terbaru yang diberi `is_active = 1`, baris lain menjadi `NULL` agar tidak menghapus histori. Penolakan pengajuan mengubah baris menjadi `NULL` sehingga unit boleh diajukan kembali.
+
+`write_offs.mode` (`CATALOG` default, `UNIT`) menentukan cara pengajuan dibuat. Pengajuan lama tanpa baris `write_off_units` tetap diproses dengan alur kuantitas legacy (counter katalog dikurangi, tanpa unit fiktif). Unit diarsipkan (`status = DIHAPUS`, `archived_at` diisi); katalog, spesifikasi, dan transaksi historis tidak dihapus.
+
+### 2.19a Sumber laporan penghapusan
+
+Laporan bulanan, PDF, dan Excel memakai **satu baris per `write_off_units`** (katalog, kode, merek, tipe, lokasi snapshot) sehingga transaksi lintas katalog tidak terpotong oleh `write_offs.item_id`. Transaksi lama tanpa rincian unit ditampilkan sebagai satu baris agregat bertanda `legacy` dan tidak dihitung dua kali. Ringkasan `penghapusan` = jumlah unit (bukan jumlah transaksi); `penghapusan_transaksi` = jumlah transaksi.
+
+Penguncian: pengajuan mengunci baris unit (`lockForUpdate`), penerapan mengunci ulang unit dan memvalidasi jumlah terhadap `write_offs.quantity`; kegagalan satu unit membatalkan seluruh transaksi. Stok katalog dihitung ulang dari unit setelah update, bukan dikurangi dua kali.
+
+### 2.20 Backfill `asset_units.specification_id`
+
+Command `php artisan inventory:backfill-specifications` memetakan unit lama hanya bila buktinya tunggal (satu spesifikasi katalog, kecocokan merek/tipe katalog, atau alokasi pengadaan ruangan). Default simulasi (opsi eksplisit `--dry-run` juga tersedia); `--apply` menyimpan; laporan CSV ditulis ke `storage/app/reports/`.
+
+Kolom CSV: `asset_unit_id`, `inventory_code`, `catalog_name`, `specification_found`, `specification_id_before`, `candidate_specification_id`, `status` (`DIPETAKAN`, `SUDAH_BENAR`, `TIDAK_DIPETAKAN`, `KATALOG_HILANG`, `GAGAL`), `reason`, `manual_check`. Unit ambigu dibiarkan `NULL` dan tetap memakai fallback katalog sampai diverifikasi manual. Command idempoten dan tidak menimpa spesifikasi yang sudah benar.
 
 ### 2.17 `reports` — penghapusan arsip
 

@@ -99,7 +99,7 @@
             </div>
 
             <div class="overflow-x-auto max-h-[60vh] overflow-y-auto">
-                <table class="w-full text-sm">
+                <table class="w-full min-w-[820px] text-sm">
                     <thead class="sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
                             <th class="px-4 py-2.5 w-10"></th>

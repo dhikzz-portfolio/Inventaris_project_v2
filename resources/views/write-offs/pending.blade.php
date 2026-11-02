@@ -40,9 +40,21 @@
                         <div class="lg:col-span-2">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <a href="{{ route('items.show', $wo->item) }}" class="font-semibold text-slate-900 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $wo->item?->name }}</a>
-                                <span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 dark:bg-red-950/50 dark:text-red-300">{{ $wo->quantity }} {{ $wo->item?->unit }}</span>
+                                <span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 dark:bg-red-950/50 dark:text-red-300">{{ $wo->quantity }} unit</span>
+                                <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $wo->mode ?: 'CATALOG' }}</span>
                             </div>
                             <p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-200">{{ $wo->reason }}</p>
+
+                            @if ($wo->units->isNotEmpty())
+                                <div class="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                                    <div class="font-semibold text-slate-700 dark:text-slate-200">Unit yang dihapus:</div>
+                                    <ul class="mt-1 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+                                        @foreach ($wo->units as $row)
+                                            <li class="font-mono">{{ $row->inventory_code }} — {{ $row->identityLabel() }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
                             <div class="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                                 <span class="font-mono">{{ $wo->item?->internal_id }}</span> • Ruang {{ $wo->item?->room?->code }} •
                                 Diajukan {{ $wo->created_at->diffForHumans() }} oleh {{ $wo->requester?->name }}
@@ -80,7 +92,7 @@
             <div class="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">Belum ada keputusan sebelumnya.</div>
         @else
             <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full min-w-[820px] text-sm">
                 <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
                     <tr>
                         <th class="text-left px-5 py-2.5">Barang</th>

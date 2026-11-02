@@ -202,20 +202,26 @@ class MonthlyReportExport implements Export, WithMultipleSheets
 
                 public function array(): array
                 {
-                    return $this->data['writeOffs']->map(fn ($row) => [
-                        $row->item?->internal_id,
-                        $row->item?->name,
+                    return $this->data['writeOffRows']->map(fn ($row) => [
+                        $row->date?->format('d/m/Y H:i'),
+                        $row->write_off_id,
+                        $row->catalog,
+                        $row->code ?: '—',
+                        $row->brand,
+                        $row->model_type,
+                        $row->specification,
+                        $row->room,
                         $row->quantity,
                         $row->reason,
-                        $row->requester?->name,
-                        $row->approver?->name,
-                        $row->approved_at?->format('d/m/Y H:i'),
+                        $row->requester,
+                        $row->approver,
+                        $row->legacy ? 'Transaksi lama tanpa rincian unit' : null,
                     ])->all();
                 }
 
                 public function headings(): array
                 {
-                    return ['ID Internal', 'Barang', 'Jumlah', 'Alasan', 'Pengaju', 'Penyetuju', 'Tanggal Persetujuan'];
+                    return ['Tanggal', 'ID Transaksi', 'Katalog', 'Kode Unit', 'Merek', 'Tipe/Model', 'Spesifikasi', 'Lokasi', 'Jumlah', 'Alasan', 'Pengaju', 'Penyetuju', 'Catatan'];
                 }
             },
         ];

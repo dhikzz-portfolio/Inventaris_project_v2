@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\BorrowerType;
 use App\Enums\Role;
+use App\Models\Event;
 use App\Models\Major;
 use App\Models\Room;
 use App\Models\User;
@@ -36,31 +37,30 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $this->normalizeEmail($request);
+        $category = $this->borrowerContext($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'degree' => ['nullable', 'string', 'max:100'],
+            'degree' => $category['is_siswa'] ? ['prohibited'] : ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'string', 'email', 'max:255', new GmailAddress, 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(Role::values())],
             'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
-            'class_name' => ['nullable', 'string', 'max:50'],
-            'major_id' => ['nullable', 'exists:majors,id'],
+            'class_name' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'string', 'max:50'],
+            'major_id' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'exists:majors,id'],
             'room_ids' => ['nullable', 'array'],
             'room_ids.*' => ['integer', Rule::exists('rooms', 'id')->where('is_lab', true)],
-        ]);
+        ], $this->categoryMessages());
 
         $user = User::create([
             'name' => $data['name'],
-            'degree' => $data['degree'] ?? null,
+            'degree' => $category['is_siswa'] ? null : ($data['degree'] ?? null),
             'email' => $data['email'] ?? null,
             'password' => Hash::make($data['password']),
             'role' => $data['role'],
-            'borrower_type' => $data['role'] === Role::PEMINJAM->value ? ($data['borrower_type'] ?? null) : null,
-            'class_name' => ($data['borrower_type'] ?? null) === BorrowerType::SISWA->value
-                ? ($data['class_name'] ?? null)
-                : null,
-            'major_id' => $data['major_id'] ?? null,
+            'borrower_type' => $category['is_peminjam'] ? ($data['borrower_type'] ?? null) : null,
+            'class_name' => $category['is_siswa'] ? ($data['class_name'] ?? null) : null,
+            'major_id' => $category['is_teacher_or_staff'] ? null : ($data['major_id'] ?? null),
         ]);
 
         $user->syncRoles([$data['role']]);
@@ -76,19 +76,20 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $this->normalizeEmail($request);
+        $category = $this->borrowerContext($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'degree' => ['nullable', 'string', 'max:100'],
+            'degree' => $category['is_siswa'] ? ['prohibited'] : ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'string', 'email', 'max:255', new GmailAddress, Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(Role::values())],
             'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
-            'class_name' => ['nullable', 'string', 'max:50'],
-            'major_id' => ['nullable', 'exists:majors,id'],
+            'class_name' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'string', 'max:50'],
+            'major_id' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'exists:majors,id'],
             'room_ids' => ['nullable', 'array'],
             'room_ids.*' => ['integer', Rule::exists('rooms', 'id')->where('is_lab', true)],
-        ]);
+        ], $this->categoryMessages());
 
         // Cegah diri sendiri menurunkan role sendiri.
         if ($request->user()->id === $user->id && $data['role'] !== Role::SUPER_ADMIN->value) {
@@ -98,16 +99,14 @@ class UserController extends Controller
         $scopeBefore = $this->roomScopeIds($user);
 
         $user->name = $data['name'];
-        $user->degree = $data['degree'] ?? null;
+        $user->degree = $category['is_siswa'] ? null : ($data['degree'] ?? null);
         $user->email = $data['email'] ?? null;
         $user->role = $data['role'];
-        $user->borrower_type = $data['role'] === Role::PEMINJAM->value
+        $user->borrower_type = $category['is_peminjam']
             ? ($data['borrower_type'] ?? $user->borrower_type)
             : null;
-        $user->class_name = $user->borrower_type === BorrowerType::SISWA
-        ? ($data['class_name'] ?? null)
-        : null;
-        $user->major_id = $data['major_id'] ?? null;
+        $user->class_name = $category['is_siswa'] ? ($data['class_name'] ?? null) : null;
+        $user->major_id = $category['is_teacher_or_staff'] ? null : ($data['major_id'] ?? null);
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
         }
@@ -124,6 +123,36 @@ class UserController extends Controller
             ->log("Mengubah pengguna {$user->name}");
 
         return back()->with('success', "Pengguna \"{$user->name}\" diperbarui.");
+    }
+
+    /**
+     * Kategori peminjam menentukan field yang sah. Nilai ini dibaca dari
+     * request tetapi aturan backend tetap menolak data yang tidak sesuai.
+     *
+     * @return array{is_peminjam: bool, is_siswa: bool, is_teacher_or_staff: bool}
+     */
+    private function borrowerContext(Request $request): array
+    {
+        $isPeminjam = (string) $request->input('role') === Role::PEMINJAM->value;
+        $type = (string) $request->input('borrower_type');
+        $isSiswa = $isPeminjam && $type === BorrowerType::SISWA->value;
+        $isTeacherOrStaff = $isPeminjam && in_array($type, [BorrowerType::GURU->value, BorrowerType::STAF->value], true);
+
+        return [
+            'is_peminjam' => $isPeminjam,
+            'is_siswa' => $isSiswa,
+            'is_teacher_or_staff' => $isTeacherOrStaff,
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function categoryMessages(): array
+    {
+        return [
+            'degree.prohibited' => 'Gelar tidak berlaku untuk peminjam kategori Siswa.',
+            'major_id.prohibited' => 'Jurusan tidak berlaku untuk peminjam kategori Guru/Staf.',
+            'class_name.prohibited' => 'Kelas hanya berlaku untuk peminjam kategori Siswa.',
+        ];
     }
 
     private function normalizeEmail(Request $request): void
@@ -161,6 +190,11 @@ class UserController extends Controller
     {
         abort_if($user->id === $request->user()->id, 422, 'Tidak dapat menghapus akun sendiri.');
         abort_if($user->loans()->exists(), 422, 'Pengguna memiliki riwayat peminjaman — nonaktifkan role-nya saja.');
+        abort_if(
+            Event::where('created_by', $user->id)->exists(),
+            422,
+            'Pengguna tercatat sebagai pembuat kegiatan. Pertahankan akun agar relasi kegiatan tidak yatim.'
+        );
 
         activity('pengguna')->performedOn($user)->causedBy($request->user())->log("Menghapus pengguna {$user->name}");
         $user->delete();

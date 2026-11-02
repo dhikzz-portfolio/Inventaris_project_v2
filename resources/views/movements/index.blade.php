@@ -91,7 +91,7 @@
                     <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><strong x-text="selected.length"></strong> unit dipilih</span>
                 </div>
                 <div class="max-h-[60vh] overflow-auto">
-                    <table class="w-full text-sm">
+                    <table class="w-full min-w-[760px] text-sm">
                         <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                             <tr>
                                 <th class="w-10 px-3 py-2.5"></th>

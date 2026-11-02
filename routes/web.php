@@ -66,6 +66,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
     Route::get('/kegiatan', [EventController::class, 'index'])->name('events.index');
     Route::post('/kegiatan', [EventController::class, 'store'])->name('events.store');
     Route::patch('/kegiatan/{event}', [EventController::class, 'update'])->name('events.update');
+    Route::delete('/kegiatan/{event}', [EventController::class, 'destroy'])->name('events.destroy');
     Route::get('/kegiatan/{event}', [EventController::class, 'show'])->name('events.show');
 
     // ================= NOTIFIKASI =================

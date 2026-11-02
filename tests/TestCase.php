@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use RuntimeException;
 
@@ -20,5 +21,19 @@ abstract class TestCase extends BaseTestCase
                 'Jalankan `php artisan optimize:clear` lalu ulangi `php artisan test`.'
             );
         }
+    }
+
+    /**
+     * Satu tes kadang berpindah pengguna pada sesi yang sama, sedangkan
+     * AuthenticateSession menyimpan hash password per sesi. Hapus hash saat
+     * berpindah pengguna agar perilaku tes sama dengan login terpisah.
+     */
+    public function be(UserContract $user, $guard = null)
+    {
+        $this->app['session']->forget(
+            'password_hash_'.($guard ?? config('auth.defaults.guard', 'web'))
+        );
+
+        return parent::be($user, $guard);
     }
 }

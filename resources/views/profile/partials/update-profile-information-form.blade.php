@@ -68,14 +68,6 @@
                     {{ \App\Enums\Role::tryFrom($user->role)?->label() ?? $user->role }}
                 </div>
             </div>
-            @if ($user->borrower_type !== \App\Enums\BorrowerType::SISWA)
-                <div>
-                    <x-input-label :value="__('Jurusan')" />
-                    <div class="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        {{ $user->major?->name ?? '-' }}
-                    </div>
-                </div>
-            @endif
         </div>
 
         <div class="flex items-center gap-4">

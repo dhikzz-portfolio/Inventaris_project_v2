@@ -103,7 +103,7 @@
         </div>
     @endif
 
-    @if (session('success'))
+    <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">

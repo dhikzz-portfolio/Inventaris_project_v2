@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class SetupCommandTest extends TestCase
@@ -11,12 +10,16 @@ class SetupCommandTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * First probe only: confirm there is an “artisan setup” equivalent task
-     * for this Laravel 12 project on Windows, then we can align the test with
-     * the actual command or workflow.
+     * Memastikan workflow setup (composer run setup) tetap tersedia untuk
+     * instalasi baru di Windows/SQLite tanpa menjalankan proses berat di test.
      */
-    public function test_project_setup_passes_on_windows_sqlite(): void
+    public function test_project_setup_script_provides_windows_sqlite_workflow(): void
     {
-        $this->markTestSkipped('No dedicated setup command found yet; keeping this test as a placeholder for the Windows SQLite setup probe.');
+        $composer = json_decode(file_get_contents(base_path('composer.json')), true);
+        $setup = $composer['scripts']['setup'] ?? [];
+
+        $this->assertNotEmpty($setup, 'composer.json harus mendefinisikan script "setup".');
+        $this->assertContains('@php artisan migrate --force', $setup);
+        $this->assertContains('npm run build', $setup);
     }
 }

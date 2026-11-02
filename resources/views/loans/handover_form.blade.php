@@ -25,11 +25,190 @@
         </div>
     @endif
 
-    <div class="max-w-4xl">
-        <p class="mb-4 rounded-xl border border-blue-100 bg-blue-50/70 p-4 text-sm leading-relaxed text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
+    @php
+        $limits = collect($availableUnits)->mapWithKeys(fn ($bucket, $id) => [(int) $id => (int) $bucket['qty_borrowed']])->all();
+        $unitMeta = [];
+        foreach ($availableUnits as $loanItemId => $bucket) {
+            foreach ($bucket['units'] as $unit) {
+                $unitMeta[(int) $unit->id] = (int) $loanItemId;
+            }
+        }
+        $totalCapacity = (int) array_sum($limits);
+
+        $categories = collect($availableUnits)->pluck('item.category')->filter()->unique('id')->sortBy('name')->values();
+        $catalogs = collect($availableUnits)->pluck('item')->filter()->unique('id')->sortBy('name')->values();
+        $specifications = collect($availableUnits)
+            ->flatMap(fn ($bucket) => $bucket['units']->pluck('specification'))
+            ->filter()
+            ->unique('id')
+            ->sortBy(fn ($spec) => $spec->displayName())
+            ->values();
+        $buildings = collect($availableUnits)
+            ->flatMap(fn ($bucket) => $bucket['units']->pluck('room'))
+            ->filter()
+            ->map(fn ($room) => $room->buildingCode())
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+        $rooms = collect($availableUnits)
+            ->flatMap(fn ($bucket) => $bucket['units']->pluck('room'))
+            ->filter()
+            ->unique('id')
+            ->sortBy('code')
+            ->values();
+    @endphp
+
+    <div class="max-w-4xl" x-data="handoverForm({
+            limits: {{ \Illuminate\Support\Js::from($limits) }},
+            unitItem: {{ \Illuminate\Support\Js::from($unitMeta) }},
+            scanUrl: '{{ route('loans.handover-scan', $loan) }}',
+            totalCapacity: {{ $totalCapacity }},
+        })" x-init="init()">
+        <p class="mb-4 rounded-xl border border-brand-100 bg-brand-50/70 p-4 text-sm leading-relaxed text-brand-900 dark:border-brand-900/60 dark:bg-brand-900/30 dark:text-brand-100">
             Serah terima barang ke peminjam dan pilih unit inventaris fisik yang diserahkan.
-            Setiap unit yang dipilih akan tercatat kode inventaris, kondisi saat keluar, dan status akan berubah menjadi <strong class="text-blue-700">Sedang Dipinjam</strong>.
+            Setiap unit yang dipilih akan tercatat kode inventaris, kondisi saat keluar, dan status akan berubah menjadi <strong class="text-brand-700">Sedang Dipinjam</strong>.
         </p>
+
+        {{-- Pencarian & filter unit --}}
+        <div class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="sm:col-span-2 lg:col-span-1">
+                    <label for="handover-search" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Cari unit</label>
+                    <input id="handover-search" type="search" x-model="search" @input.debounce.200ms="applyFilters()"
+                           placeholder="Nama, spesifikasi, kode, gedung, ruangan…"
+                           class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                </div>
+                <div>
+                    <label for="handover-filter-category" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Kategori</label>
+                    <select id="handover-filter-category" x-model="filters.category" @change="applyFilters()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua kategori</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="handover-filter-catalog" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Katalog</label>
+                    <select id="handover-filter-catalog" x-model="filters.catalog" @change="applyFilters()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua katalog</option>
+                        @foreach ($catalogs as $catalog)
+                            <option value="{{ $catalog->id }}">{{ $catalog->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="handover-filter-spec" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Spesifikasi</label>
+                    <select id="handover-filter-spec" x-model="filters.spec" @change="applyFilters()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua spesifikasi</option>
+                        @foreach ($specifications as $specification)
+                            <option value="{{ $specification->id }}">{{ $specification->displayName() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="handover-filter-building" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Gedung</label>
+                    <select id="handover-filter-building" x-model="filters.building" @change="applyFilters()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua gedung</option>
+                        @foreach ($buildings as $building)
+                            <option value="{{ $building }}">Gedung {{ $building }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="handover-filter-room" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Ruangan</label>
+                    <select id="handover-filter-room" x-model="filters.room" @change="applyFilters()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua ruangan</option>
+                        @foreach ($rooms as $room)
+                            <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 dark:border-slate-700">
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="rounded-full bg-brand-50 px-2.5 py-1 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
+                        <span x-text="selected.length"></span> unit terpilih
+                    </span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        <span x-text="Math.max(0, totalCapacity - selected.length)"></span> unit masih dapat diserahkan
+                    </span>
+                    <span class="text-slate-500 dark:text-slate-400" x-show="totalFiltersActive()">
+                        Menampilkan <strong x-text="totalVisible"></strong> unit sesuai filter
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="selectAll()" :disabled="selected.length >= totalCapacity"
+                            class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
+                        <span class="material-icons-round text-base">done_all</span> Pilih Semua Unit yang Dapat Diserahkan
+                    </button>
+                    <button type="button" @click="clearAll()" x-show="selected.length > 0"
+                            class="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                        <span class="material-icons-round text-base">remove_done</span> Batal Pilih Semua
+                    </button>
+                    <button type="button" @click="toggleScanner()"
+                            class="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                        <span class="material-icons-round text-base">qr_code_scanner</span> Pindai QR Unit
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Panel pindai QR --}}
+        <div x-show="scannerOpen" x-cloak class="mb-4 rounded-2xl border border-sky-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pindai QR Unit</h3>
+                </div>
+                <button type="button" @click="toggleScanner()" aria-label="Tutup panel pindai"
+                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <span class="material-icons-round text-lg">close</span>
+                </button>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <div class="relative flex min-h-[180px] items-center justify-center overflow-hidden rounded-lg bg-slate-900">
+                        <div id="handover-qr-reader" class="w-full h-full min-h-[180px]"></div>
+                        <span x-show="!cameraRunning" class="absolute px-4 text-center text-sm text-slate-400 pointer-events-none">Kamera belum aktif</span>
+                    </div>
+                    <div class="mt-2 flex justify-center gap-2">
+                        <button type="button" x-show="!cameraRunning" @click="startCamera()"
+                                class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700">
+                            <span class="material-icons-round text-base">photo_camera</span> Aktifkan Kamera
+                        </button>
+                        <button type="button" x-show="cameraRunning" @click="stopCamera()"
+                                class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700">
+                            <span class="material-icons-round text-base">photo_camera_back</span> Matikan Kamera
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label for="handover-scan-code" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Masukkan kode inventaris secara manual</label>
+                    <div class="flex gap-2">
+                        <input id="handover-scan-code" type="text" x-model="scanCode" @keydown.enter.prevent="submitScan()"
+                               placeholder="Contoh: G1-02-12" autocomplete="off"
+                               class="min-w-0 flex-1 rounded-xl border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <button type="button" @click="submitScan()"
+                                class="inline-flex min-h-10 items-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Cari</button>
+                    </div>
+                </div>
+            </div>
+
+            <p x-show="scanMessage" class="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200" x-text="scanMessage" role="status"></p>
+            <p x-show="scanError" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200" x-text="scanError" role="alert"></p>
+        </div>
+
+        <div x-show="totalVisible === 0" x-cloak class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            Tidak ada unit yang cocok dengan pencarian/filter.
+            <button type="button" @click="resetFilters()" class="font-semibold text-brand-700 underline dark:text-brand-300">Hapus filter</button>
+        </div>
 
         <form method="POST" action="{{ route('loans.handover', $loan) }}" id="handover-form">
             @csrf
@@ -106,8 +285,8 @@
                                                name="unit_assignments[{{ $loanItemId }}][unit_ids][]"
                                                value="{{ $unit->id }}"
                                                x-model="selected"
-                                               :disabled="selected.length >= max && ! selected.includes('{{ $unit->id }}')"
-                                               class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed dark:border-slate-600 dark:bg-slate-950">
+                                               :disabled="isDisabled({{ $unit->id }})"
+                                               class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed dark:border-slate-600 dark:bg-slate-950">
                                         <div class="flex-1 min-w-0">
                                             <div class="flex flex-wrap items-center gap-2">
                                                 <span class="font-mono text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</span>

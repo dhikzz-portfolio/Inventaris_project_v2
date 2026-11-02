@@ -304,8 +304,16 @@ Batasan yang tidak diuji: kamera fisik pada perangkat nyata (diuji melalui jalur
 - Foto unit rusak sebelumnya tidak boleh dipakai sebagai bukti untuk unit rusak berikutnya; backend menolak unit rusak tanpa foto sendiri.
 - Petugas di luar cakupan dan peminjam tidak dapat membuka form pengembalian.
 - Unit yang sudah dikonfirmasi tidak dapat diproses dua kali, baik dari komponen maupun service.
+- Tombol **Selesaikan Pengembalian** membawa status `data-can-finish="false"` selama masih ada unit tertunda dan berubah menjadi `true` setelah seluruh unit dikonfirmasi.
+- `LoanService::processReturn()` memeriksa ulang izin petugas: peminjam dan Laboran di luar cakupan ruangan ditolak, bukan hanya diblokir di route/komponen.
+- Permintaan konfirmasi ganda (klik ganda/pengiriman ulang payload yang sama) tidak menggandakan `qty_returned`, `qty_damaged`, atau jumlah unit terkonfirmasi; permintaan kedua ditolak.
+- Peminjaman lama tanpa unit fisik tetap dapat diselesaikan dan riwayatnya dibuka kembali di halaman detail peminjaman.
 
-Regresi yang dijalankan bersama: `ReturnFormLivewireTest`, `LoanUnitFlowTest`, `LoanLifecycleTest`, `InventoryFlowTest`, dan `CriticalBusinessRulesTest`.
+Regresi yang dijalankan bersama: `ReturnFormLivewireTest`, `SecurityAccessTest`, `CriticalBusinessRulesTest`, `LoanUnitFlowTest`, `LoanLifecycleTest`, dan `InventoryFlowTest`.
+
+Hasil verifikasi terakhir (2 November 2026, SQLite in-memory): `ReturnUnitValidationTest`, `ReturnFormLivewireTest`, `SecurityAccessTest`, dan `CriticalBusinessRulesTest` — **35 tes lulus (194 assertions)**, `vendor/bin/pint --dirty` bersih.
+
+Batasan: dua permintaan benar-benar paralel pada MySQL tidak dijalankan pada lingkungan ini; perlindungannya adalah `lockForUpdate()` pada baris pinjaman dan penugasan unit ditambah unique index, sedangkan pengiriman ulang payload yang sama diuji secara berurutan.
 
 ## 12. Pengujian revisi serah terima, validasi, dan rincian barang (29 Oktober 2026)
 

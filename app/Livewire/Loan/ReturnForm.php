@@ -208,11 +208,32 @@ class ReturnForm extends Component
             ->all();
     }
 
+    /**
+     * Indeks unit yang dapat dipilih pada kelompok dan sedang tampil.
+     * "Pilih semua" harus mengikuti daftar yang dilihat petugas, bukan unit
+     * yang sedang disembunyikan filter.
+     *
+     * @return array<int, int>
+     */
+    private function visibleConfirmableIndexesForGroup(int $itemId): array
+    {
+        return collect($this->rows)
+            ->map(fn (array $row, int $index) => $row + ['row_index' => $index])
+            ->filter(fn (array $row) => (int) $row['item_id'] === $itemId
+                && $row['has_assignment']
+                && ! $row['returned']
+                && $this->rowMatchesFilters($row))
+            ->pluck('row_index')
+            ->map(fn ($index) => (int) $index)
+            ->values()
+            ->all();
+    }
+
     public function toggleGroup(int $itemId): void
     {
         $this->authorizeAction();
 
-        $indexes = $this->confirmableIndexesForGroup($itemId);
+        $indexes = $this->visibleConfirmableIndexesForGroup($itemId);
         $selected = $this->normalizedSelection();
         $allSelected = $indexes !== [] && array_diff($indexes, $selected) === [];
 
@@ -380,6 +401,8 @@ class ReturnForm extends Component
         $this->massPendingCount = 0;
 
         session()->flash('success', count($indexes).' unit berhasil dikonfirmasi.');
+
+        $this->loan->refresh();
 
         if ($redirect) {
             $this->redirectRoute('loans.show', ['loan' => $this->loan->id]);

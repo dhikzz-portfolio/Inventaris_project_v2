@@ -135,6 +135,7 @@ class ReturnUnitValidationTest extends TestCase
             ->set('rows.0.return_notes', 'Sudah diperiksa lebih dulu')
             ->call('confirmOne', 0)
             ->assertHasNoErrors()
+            ->assertSee('Validasi Semua Kursi Sebelas Unit')
             ->call('requestMassValidation', $catalog->id)
             ->assertSet('massPendingCount', 10)
             ->assertSet('massGroupId', $catalog->id)
@@ -182,13 +183,130 @@ class ReturnUnitValidationTest extends TestCase
         $this->actingAs($this->laboran);
 
         Livewire::test(ReturnForm::class, ['loan' => $loan])
+            ->assertSeeHtml('data-can-finish="false"')
             ->call('confirmOne', 0)
             ->assertHasNoErrors()
             ->assertSee('1 dari 2 unit sudah dikonfirmasi')
+            ->assertSeeHtml('data-can-finish="false"')
             ->call('finishReturn')
             ->assertHasErrors(['finish']);
 
         $this->assertSame(LoanStatus::DIPINJAM, $loan->refresh()->status);
+    }
+
+    public function test_tombol_selesai_aktif_setelah_seluruh_unit_dikonfirmasi(): void
+    {
+        [$loan] = $this->makeUnitLoan(2);
+
+        $this->actingAs($this->laboran);
+
+        Livewire::test(ReturnForm::class, ['loan' => $loan])
+            ->call('confirmOne', 0)
+            ->assertSeeHtml('data-can-finish="false"')
+            ->call('confirmOne', 1)
+            ->assertHasNoErrors()
+            ->assertSee('2 dari 2 unit sudah dikonfirmasi')
+            ->assertSeeHtml('data-can-finish="true"');
+    }
+
+    public function test_dua_permintaan_konfirmasi_yang_sama_tidak_menggandakan_pengembalian(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        [$loan, $loanItem, $units] = $this->makeUnitLoan(1);
+        $assignment = LoanItemUnit::where('asset_unit_id', $units[0]->id)->firstOrFail();
+
+        $this->actingAs($this->laboran);
+
+        $payload = [[
+            'loan_item_id' => $loanItem->id,
+            'assignment_id' => $assignment->id,
+            'unit_id' => $units[0]->id,
+            'qty_returned' => 1,
+            'condition_in' => Condition::RUSAK_RINGAN->value,
+            'returned_room_id' => $this->room->id,
+            'return_notes' => 'Baret halus',
+            'damage_photo' => UploadedFile::fake()->image('baret.jpg'),
+        ]];
+
+        app(LoanService::class)->processReturn($loan->refresh(), $this->laboran, $payload);
+
+        // Permintaan kedua (mis. klik ganda) harus ditolak, bukan menambah counter.
+        try {
+            app(LoanService::class)->processReturn($loan->refresh(), $this->laboran, $payload);
+            $this->fail('Permintaan konfirmasi ganda seharusnya ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('rows', $exception->errors());
+        }
+
+        $loanItem->refresh();
+
+        $this->assertSame(1, (int) $loanItem->qty_returned);
+        $this->assertSame(1, (int) $loanItem->qty_damaged);
+        $this->assertSame(1, LoanItemUnit::where('loan_item_id', $loanItem->id)->whereNotNull('returned_at')->count());
+        $this->assertSame(1, LoanItemUnit::where('loan_item_id', $loanItem->id)
+            ->where('return_status', ReturnStatus::SUDAH_DIKONFIRMASI->value)->count());
+    }
+
+    public function test_petugas_tanpa_izin_tidak_dapat_memvalidasi_pengembalian(): void
+    {
+        [$loan, $loanItem, $units] = $this->makeUnitLoan(1);
+        $assignment = LoanItemUnit::where('asset_unit_id', $units[0]->id)->firstOrFail();
+        $otherLaboran = User::where('email', 'laboran.rpl@gmail.com')->firstOrFail();
+
+        $payload = [[
+            'loan_item_id' => $loanItem->id,
+            'assignment_id' => $assignment->id,
+            'unit_id' => $units[0]->id,
+            'qty_returned' => 1,
+            'condition_in' => Condition::BAIK->value,
+            'returned_room_id' => $this->room->id,
+        ]];
+
+        foreach ([$this->guru, $otherLaboran] as $actor) {
+            $this->actingAs($actor);
+
+            try {
+                app(LoanService::class)->processReturn($loan->refresh(), $actor, $payload);
+                $this->fail('Petugas tanpa izin seharusnya tidak dapat memvalidasi pengembalian.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringContainsString('tidak berwenang', $exception->getMessage());
+            }
+        }
+
+        $this->assertNull($assignment->refresh()->returned_at);
+        $this->assertSame(0, (int) $loanItem->refresh()->qty_returned);
+    }
+
+    public function test_riwayat_peminjaman_lama_tetap_dapat_dibuka(): void
+    {
+        [$catalog, $units] = $this->createCatalog(1, 'Kursi Riwayat Lama');
+
+        $loan = app(LoanService::class)->requestLoan(
+            $this->guru,
+            [['item_id' => $catalog->id, 'qty' => 1]],
+            'Riwayat peminjaman lama tanpa unit fisik',
+            '2026-10-01',
+            '2026-10-02'
+        );
+        $loan->update(['status' => LoanStatus::DIPINJAM]);
+        $loanItem = $loan->loanItems()->firstOrFail();
+
+        app(LoanService::class)->processReturn($loan->refresh(), $this->laboran, [[
+            'loan_item_id' => $loanItem->id,
+            'qty_returned' => 1,
+            'condition_in' => Condition::BAIK->value,
+            'returned_room_id' => $this->room->id,
+        ]]);
+
+        $this->assertSame(LoanStatus::SELESAI, $loan->refresh()->status);
+
+        $this->actingAs($this->laboran)
+            ->get(route('loans.show', $loan))
+            ->assertOk()
+            ->assertSee('Riwayat peminjaman lama tanpa unit fisik')
+            ->assertSee('Kursi Riwayat Lama');
     }
 
     public function test_backend_menolak_penyelesaian_jika_masih_ada_unit_belum_dikonfirmasi(): void

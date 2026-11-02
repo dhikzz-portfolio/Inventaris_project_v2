@@ -675,6 +675,13 @@ class LoanService
             throw new \RuntimeException('Layanan inventaris belum terhubung. Pemrosesan pengembalian tidak dapat dilanjutkan.');
         }
 
+        // Izin diperiksa ulang di service, bukan hanya di route/komponen: peminjam
+        // dan petugas di luar cakupan laboratorium tidak boleh memvalidasi unit
+        // meskipun request dibuat langsung tanpa melewati antarmuka.
+        if (! $returner->canApproveLoans() || ! $loan->canBeManagedBy($returner)) {
+            throw new \RuntimeException('Anda tidak berwenang memvalidasi pengembalian untuk peminjaman ini.');
+        }
+
         return DB::transaction(function () use ($loan, $returner, $rows) {
             /** @var Loan $loan */
             $loan = Loan::whereKey($loan->id)->lockForUpdate()->firstOrFail();

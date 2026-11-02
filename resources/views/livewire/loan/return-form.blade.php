@@ -506,6 +506,9 @@
 
                     <button type="button" wire:click="finishReturn" wire:loading.attr="disabled"
                         @disabled(! $canFinish)
+                        aria-disabled="{{ $canFinish ? 'false' : 'true' }}"
+                        data-can-finish="{{ $canFinish ? 'true' : 'false' }}"
+                        title="{{ $canFinish ? 'Seluruh unit sudah dikonfirmasi' : 'Masih ada unit yang belum dikonfirmasi' }}"
                         class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 {{ $canFinish ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-400 dark:bg-slate-700' }}">
                         <span class="material-icons-round text-lg">task_alt</span>
                         Selesaikan Pengembalian

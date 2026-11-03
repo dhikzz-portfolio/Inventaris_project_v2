@@ -65,7 +65,7 @@
             <div x-cloak x-show="menuOpen" x-transition.opacity @click="menuOpen = false"
                  class="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-[1px] sm:hidden" aria-hidden="true"></div>
 
-            <div class="flex min-h-screen min-w-0 flex-col sm:pl-44 lg:pl-64">
+            <div class="flex min-h-screen w-full min-w-0 flex-1 flex-col sm:pl-44 lg:pl-64">
                 @include('layouts.navigation')
 
                 @isset($header)
@@ -74,16 +74,16 @@
                         'bg-sky-50/80 dark:bg-slate-950/30' => request()->routeIs('dashboard'),
                         'bg-white dark:bg-slate-900' => ! request()->routeIs('dashboard'),
                     ])>
-                        <div class="mx-auto max-w-full px-4 py-3 sm:px-5 sm:py-2 lg:px-8">
+                        <div class="mx-auto w-full max-w-7xl px-4 py-3 sm:px-5 sm:py-2 md:px-6 2xl:max-w-[1600px]">
                             {{ $header }}
                         </div>
                     </header>
                 @endisset
 
-                <main class="flex-1 bg-brand-50/30 p-4 pb-24 sm:p-5 sm:pb-24 md:p-6 dark:bg-slate-950">
-                    @isset($slot)
-                    {{ $slot }}
-                    @endisset
+                <main class="flex-1 bg-brand-50/30 dark:bg-slate-950">
+                    <div class="mx-auto w-full max-w-7xl p-4 pb-24 sm:p-5 sm:pb-24 md:p-6 2xl:max-w-[1600px]">
+                        {{ $slot }}
+                    </div>
                 </main>
             </div>
 

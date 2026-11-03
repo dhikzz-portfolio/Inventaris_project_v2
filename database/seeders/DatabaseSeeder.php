@@ -7,19 +7,31 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seeder dipisah menjadi empat bagian agar aman dijalankan ulang:
-     * master data, akun demo, inventaris demo, dan transaksi demo.
+     * Seeder aplikasi.
      *
-     * Seeder ini tidak menjalankan `migrate:fresh`, tidak menghapus transaksi,
-     * dan tidak mereset password akun yang sudah ada.
+     * Di environment production (atau saat demo data dinonaktifkan),
+     * hanya MasterDataSeeder dan SuperAdminSeeder yang dijalankan.
+     * Akun demo, inventaris demo, dan transaksi demo hanya dijalankan
+     * pada environment non-production atau bila SEED_DEMO_DATA=true.
      */
     public function run(): void
     {
         $this->call([
             MasterDataSeeder::class,
-            DemoAccountSeeder::class,
-            DemoInventorySeeder::class,
-            DemoLoanSeeder::class,
+            SuperAdminSeeder::class,
         ]);
+
+        $seedDemoConfig = config('auth.seed_demo_data');
+        $shouldSeedDemo = $seedDemoConfig !== null && $seedDemoConfig !== ''
+            ? filter_var($seedDemoConfig, FILTER_VALIDATE_BOOLEAN)
+            : ! app()->environment('production');
+
+        if ($shouldSeedDemo) {
+            $this->call([
+                DemoAccountSeeder::class,
+                DemoInventorySeeder::class,
+                DemoLoanSeeder::class,
+            ]);
+        }
     }
 }

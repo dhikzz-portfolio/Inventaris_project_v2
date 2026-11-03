@@ -40,7 +40,7 @@
 
         <div class="lg:col-span-2 self-start overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">Daftar Pengguna</div>
-            <div class="overflow-x-auto">
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full min-w-[760px] text-sm">
                     <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
@@ -62,9 +62,6 @@
                                         @endunless
                                     </div>
                                     <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $user->email }}</div>
-                                    @if ($user->email)
-                                        <div class="text-[10px] text-gray-400">{{ $user->email }}</div>
-                                    @endif
                                 </td>
                                 <td class="px-4 py-3">
                                     <span @class([
@@ -98,6 +95,44 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            <div class="divide-y divide-slate-100 md:hidden dark:divide-slate-800">
+                @foreach ($users as $user)
+                    <article @class([
+                        'space-y-3 p-4',
+                        'bg-blue-50 dark:bg-blue-950/30' => $editUser && $editUser->id === $user->id,
+                    ])>
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $user->displayName() }}</p>
+                                @if ($user->email)
+                                    <p class="truncate font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $user->email }}</p>
+                                @endif
+                            </div>
+                            <span @class([
+                                'shrink-0 rounded-full px-2 py-1 text-[10px] font-bold',
+                                'bg-purple-100 text-purple-700' => $user->role === 'SUPER_ADMIN',
+                                'bg-blue-100 text-blue-700' => $user->role === 'KETUA_LABORAN',
+                                'bg-teal-100 text-teal-700' => $user->role === 'LABORAN',
+                                'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => $user->role === 'PEMINJAM',
+                            ])>{{ \App\Enums\Role::tryFrom($user->role)?->label() }}</span>
+                        </div>
+                        <div class="space-y-0.5 text-xs text-slate-500 dark:text-slate-400">
+                            <p>{{ $user->major?->name ?: '—' }}</p>
+                            @if ($user->borrower_type)
+                                <p class="text-[11px]">Kategori: {{ $user->borrower_type->label() }}@if($user->class_name) • {{ $user->class_name }}@endif</p>
+                            @endif
+                            @if ($user->roomScopes->isNotEmpty())
+                                <p class="text-[11px] text-blue-700 dark:text-blue-300">{{ $user->roomScopes->pluck('room.name')->implode(', ') }}</p>
+                            @endif
+                        </div>
+                        <div class="flex items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+                            <p>Login terakhir: {{ $user->last_login_at?->format('d M Y H:i') ?: 'belum pernah' }}</p>
+                            <a href="{{ route('users.index', ['edit' => $user->id]) }}"
+                               class="inline-flex min-h-9 items-center rounded-lg px-2.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">Ubah</a>
+                        </div>
+                    </article>
+                @endforeach
             </div>
             <div class="px-4 py-3">{{ $users->links() }}</div>
         </div>

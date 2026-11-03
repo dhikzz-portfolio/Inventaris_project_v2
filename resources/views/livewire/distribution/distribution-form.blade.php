@@ -266,6 +266,7 @@
         <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
             <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Riwayat distribusi terakhir</h3>
             <p class="text-xs text-slate-500 dark:text-slate-400">Setiap baris terhubung ke unit inventaris yang dipindahkan.</p>
+            <p class="mt-1 text-[11px] text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
         </div>
 
         <div class="overflow-x-auto">

@@ -114,4 +114,32 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Super Administrator Initial Seed Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Digunakan oleh SuperAdminSeeder untuk membuat atau memperbarui akun awal
+    | Super Administrator di production melalui variabel environment.
+    |
+    */
+    'super_admin' => [
+        'name' => env('SUPER_ADMIN_NAME', 'Wakasek Sarpras'),
+        'degree' => env('SUPER_ADMIN_DEGREE', 'S.Kom'),
+        'email' => env('SUPER_ADMIN_EMAIL', 'wakasek@gmail.com'),
+        'password' => env('SUPER_ADMIN_PASSWORD', 'wakasek123'),
+        'birth_date' => env('SUPER_ADMIN_BIRTH_DATE', '1975-06-15'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Seed Demo Data Control
+    |--------------------------------------------------------------------------
+    |
+    | Menentukan apakah akun, barang, dan transaksi demo perlu di-seed.
+    | Di environment production, nilainya default ke false.
+    |
+    */
+    'seed_demo_data' => env('SEED_DEMO_DATA', false),
+
 ];

@@ -77,4 +77,32 @@ class DatabaseSeederTest extends TestCase
             $this->assertTrue($user->isLaboran());
         }
     }
+
+    public function test_seeder_hanya_menjalankan_super_admin_dan_master_data_saat_production(): void
+    {
+        config(['app.env' => 'production']);
+        config(['auth.seed_demo_data' => false]);
+        config(['auth.super_admin.email' => 'superadmin.prod@gmail.com']);
+        config(['auth.super_admin.name' => 'Super Admin Prod']);
+
+        $this->seed();
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'superadmin.prod@gmail.com',
+            'role' => Role::SUPER_ADMIN->value,
+        ]);
+
+        // Akun demo tidak di-seed
+        $this->assertDatabaseMissing('users', [
+            'email' => 'guru.budi@gmail.com',
+        ]);
+        $this->assertDatabaseMissing('users', [
+            'email' => 'siswa.raka@gmail.com',
+        ]);
+
+        // Barang demo dan transaksi demo tidak di-seed
+        $this->assertSame(0, Item::count());
+        $this->assertSame(0, AssetUnit::count());
+        $this->assertSame(0, Loan::count());
+    }
 }

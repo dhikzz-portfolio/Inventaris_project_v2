@@ -75,7 +75,7 @@
         </div>
 
         <div class="mt-4">
-            <button type="submit" class="inline-flex min-h-9 items-center rounded-lg bg-slate-800 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500">Terapkan filter</button>
+            <button type="submit" class="inline-flex min-h-9 items-center rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">Terapkan filter</button>
         </div>
     </form>
 
@@ -99,6 +99,7 @@
                         </button>
                         <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><strong x-text="selected.length"></strong> unit dipilih</span>
                     </div>
+                    <p class="w-full text-[11px] font-normal text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
                 </div>
                 <div class="max-h-[60vh] overflow-auto">
                     <table class="w-full min-w-[760px] text-sm">
@@ -231,6 +232,7 @@
         <h3 class="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
             <span class="material-icons-round text-brand-600">route</span> Riwayat perpindahan barang ({{ $movements->total() }})
         </h3>
+        <p class="mb-2 text-[11px] text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
         <div class="max-h-[45vh] overflow-auto">
             <table class="w-full min-w-[900px] text-sm">
                 <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">

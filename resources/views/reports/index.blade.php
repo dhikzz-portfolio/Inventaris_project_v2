@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
-            <div>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporan Bulanan</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per kategori, ruangan, atau jurusan</p>
             </div>
@@ -115,13 +115,13 @@
     </div>
 
     <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-3 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
-            Arsip Laporan Tersimpan
+        <div class="border-b border-slate-100 px-5 py-3 dark:border-slate-800">
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Arsip Laporan Tersimpan</p>
             @unless (auth()->user()->isSuperAdmin())
-                <span class="text-[11px] font-normal text-slate-500 dark:text-slate-400">— hanya laporan yang Anda buat; laporan otomatis seluruh sekolah hanya dapat diunduh Super Admin.</span>
+                <p class="mt-0.5 text-[11px] font-normal leading-relaxed text-slate-500 dark:text-slate-400">Hanya laporan yang Anda buat; laporan otomatis seluruh sekolah hanya dapat diunduh Super Admin.</p>
             @endunless
         </div>
-        <div class="overflow-x-auto">
+        <div class="hidden overflow-x-auto md:block">
             <table class="w-full min-w-[760px] text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                     <tr>
@@ -173,6 +173,46 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="divide-y divide-slate-100 md:hidden dark:divide-slate-800">
+            @forelse ($reports as $report)
+                <article class="space-y-3 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $report->period)->translatedFormat('F Y') }}</p>
+                            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $report->scope }}{{ $report->scope_id ? ' #'.$report->scope_id : '' }}</p>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-2">
+                            @if ($report->pdf_path)
+                                <a href="{{ route('files.show', ['path' => $report->pdf_path]) }}" target="_blank"
+                                   class="inline-flex min-h-8 items-center rounded-lg bg-red-50 px-2.5 text-[11px] font-bold text-red-700 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">PDF</a>
+                            @endif
+                            @if ($report->excel_path)
+                                <a href="{{ route('files.show', ['path' => $report->excel_path]) }}" download
+                                   class="inline-flex min-h-8 items-center rounded-lg bg-green-50 px-2.5 text-[11px] font-bold text-green-700 transition hover:bg-green-100 dark:bg-green-950/40 dark:text-green-300 dark:hover:bg-green-950/60">Excel</a>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                        <p>{{ $report->generator?->name ?: 'Scheduler' }} • {{ $report->generated_at->format('d M Y H:i') }}</p>
+                        @if (auth()->user()->isSuperAdmin() || (int) $report->generated_by === (int) auth()->id())
+                            <form method="POST" action="{{ route('reports.destroy', $report) }}" x-data="{ submitting: false }"
+                                  @submit="submitting = true"
+                                  onsubmit="return confirm('Hapus arsip laporan periode {{ $report->period }} ({{ $report->scope }})?\n\nFile PDF/Excel dihapus dan arsip disembunyikan. Data inventaris sumber TIDAK ikut terhapus.')">
+                                @csrf
+                                @method('DELETE')
+                                <button :disabled="submitting"
+                                        class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-wait disabled:opacity-60 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">
+                                    <span class="material-icons-round text-sm" aria-hidden="true">delete</span>
+                                    <span x-text="submitting ? 'Menghapus...' : 'Hapus'"></span>
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </article>
+            @empty
+                <p class="px-5 py-8 text-center text-sm text-slate-400">Belum ada laporan tersimpan.</p>
+            @endforelse
         </div>
         <div class="border-t border-slate-100 px-5 py-3 dark:border-slate-800">{{ $reports->links() }}</div>
     </div>

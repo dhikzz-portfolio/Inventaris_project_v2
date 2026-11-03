@@ -110,7 +110,7 @@ class ReturnUnitValidationTest extends TestCase
         $this->actingAs($this->laboran);
 
         $component = Livewire::test(ReturnForm::class, ['loan' => $loan])
-            ->assertDontSee('Validasi Semua')
+            ->assertDontSee('Pemeriksaan Semua')
             ->call('requestMassValidation', $catalog->id)
             ->assertHasErrors(['mass']);
 
@@ -135,11 +135,11 @@ class ReturnUnitValidationTest extends TestCase
             ->set('rows.0.return_notes', 'Sudah diperiksa lebih dulu')
             ->call('confirmOne', 0)
             ->assertHasNoErrors()
-            ->assertSee('Validasi Semua Kursi Sebelas Unit')
+            ->assertSee('Pemeriksaan Semua Kursi Sebelas Unit')
             ->call('requestMassValidation', $catalog->id)
             ->assertSet('massPendingCount', 10)
             ->assertSet('massGroupId', $catalog->id)
-            ->assertSee('Konfirmasi validasi massal')
+            ->assertSee('Konfirmasi pemeriksaan massal')
             ->call('confirmMassValidation')
             ->assertHasNoErrors();
 

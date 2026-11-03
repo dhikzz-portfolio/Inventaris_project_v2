@@ -137,6 +137,13 @@ class LabelAndQrTest extends TestCase
 
         $response->assertOk();
 
+        $this->assertSame(1, substr_count($response->getContent(), '<table'));
+        $this->assertSame(1, substr_count($response->getContent(), 'id="label-search"'));
+        $response->assertSee('x-data="{ filtersOpen: false }"', false);
+        $response->assertSee('id="label-filter-panel" x-show="filtersOpen" x-cloak', false);
+        $response->assertSee('Cetak unit terpilih');
+        $response->assertSee('Cetak semua sesuai filter');
+
         foreach (AssetUnit::query()->visibleTo($this->laboran)->limit(5)->get() as $unit) {
             $response->assertSee($unit->inventory_code);
         }
@@ -224,6 +231,7 @@ class LabelAndQrTest extends TestCase
         $this->actingAs($this->laboran)
             ->get(route('labels.index', ['search' => $unit->inventory_code]))
             ->assertOk()
+            ->assertSee('x-data="{ filtersOpen: true }"', false)
             ->assertSee($unit->inventory_code);
     }
 }

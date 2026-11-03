@@ -5,7 +5,9 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengadaan Barang</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Alur tiga tahap: Laboran → Ketua Laboran → Wakasek Sarpras. Barang baru menjadi inventaris setelah diterima dan dicatat.</p>
             </div>
-            <a href="{{ route('items.create') }}" class="inline-flex min-h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700">+ Pengajuan baru</a>
+            <a href="{{ route('items.create') }}" class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
+                <span class="material-icons-round text-base" aria-hidden="true">add</span> Pengajuan baru
+            </a>
         </div>
     </x-slot>
 
@@ -18,30 +20,51 @@
         <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
 
-    <div class="mb-4 grid gap-2 rounded-2xl border border-sky-100 bg-white p-4 text-xs text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 sm:grid-cols-3">
+    <div class="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 sm:grid-cols-3">
         <div class="flex items-start gap-2"><span class="material-icons-round text-base text-blue-600">edit_note</span><span>Laboran menyusun draft lalu mengirimkannya.</span></div>
         <div class="flex items-start gap-2"><span class="material-icons-round text-base text-amber-600">how_to_reg</span><span>Ketua Laboran hanya mengonfirmasi telah mengetahui — bukan persetujuan akhir.</span></div>
         <div class="flex items-start gap-2"><span class="material-icons-round text-base text-green-700">verified</span><span>Wakasek Sarpras memutuskan menyetujui atau menolak.</span></div>
     </div>
+
+    <form method="GET" action="{{ route('items.acquisitions') }}" role="search"
+          class="mb-5 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row">
+        <label for="acquisition-search" class="sr-only">Cari pengadaan</label>
+        <div class="relative min-w-0 flex-1">
+            <span class="material-icons-round pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true">search</span>
+            <input id="acquisition-search" type="search" name="search" value="{{ $search }}"
+                   placeholder="Cari nama barang, kode internal, kategori, ruangan, pengaju, atau sumber dana"
+                   class="min-h-10 w-full rounded-xl border-slate-200 bg-slate-50 py-2 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:bg-slate-950">
+        </div>
+        <div class="flex shrink-0 gap-2">
+            <button type="submit" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 sm:flex-none">
+                <span class="material-icons-round text-base" aria-hidden="true">search</span> Cari
+            </button>
+            @if ($search !== '')
+                <a href="{{ route('items.acquisitions') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    Hapus
+                </a>
+            @endif
+        </div>
+    </form>
 
     @foreach ($statuses as $status)
         @php
             $items = $groups->get($status->value, collect());
         @endphp
         @continue($items->isEmpty())
-        <div class="mb-6 overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-                <div class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ $status->label() }}</div>
-                <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $status->badgeClass() }}">{{ $items->count() }}</span>
+        <div class="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3.5 dark:border-slate-800 sm:px-5">
+                <div class="min-w-0 text-sm font-bold text-slate-800 dark:text-slate-100">{{ $status->label() }}</div>
+                <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold {{ $status->badgeClass() }}">{{ $items->count() }}</span>
             </div>
 
-            <div class="divide-y divide-slate-100 dark:divide-slate-800">
+            <div class="max-h-[34rem] divide-y divide-slate-100 overflow-y-auto overscroll-contain dark:divide-slate-800">
                 @foreach ($items as $item)
                     @php
                         $isRequester = (int) $item->acquisition_requested_by === (int) $user->id;
                         $canOwn = $isRequester || $user->isSuperAdmin();
                     @endphp
-                    <div class="flex flex-col gap-4 p-5 lg:flex-row lg:items-start">
+                    <div class="flex flex-col gap-4 p-4 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40 sm:p-5 lg:flex-row lg:items-start">
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
                                 <a href="{{ route('catalogs.show', $item) }}" class="font-semibold text-slate-900 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $item->name }}</a>
@@ -163,8 +186,14 @@
     @endforeach
 
     @if ($groups->isEmpty())
-        <div class="rounded-2xl border border-sky-100 bg-white p-10 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-            Belum ada pengajuan pengadaan pada ruang lingkup Anda.
+        <div class="rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">{{ $search !== '' ? 'search_off' : 'inventory_2' }}</span>
+            <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {{ $search !== '' ? 'Pengadaan tidak ditemukan' : 'Belum ada pengajuan pengadaan' }}
+            </p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {{ $search !== '' ? 'Coba kata kunci lain atau hapus pencarian.' : 'Pengajuan pada ruang lingkup Anda akan tampil di sini.' }}
+            </p>
         </div>
     @endif
 </x-app-layout>

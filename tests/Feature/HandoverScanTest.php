@@ -110,7 +110,9 @@ class HandoverScanTest extends TestCase
             ->assertSee('data-unit-card', false)
             ->assertSee('Serahkan Barang + Tandai Unit Dipinjam')
             ->assertSee($units->first()->inventory_code)
-            ->assertSee('Cari unit');
+            ->assertSee('Filter')
+            ->assertSee('Cari unit')
+            ->assertSeeInOrder(['id="handover-search"', 'id="handover-filter-panel"'], false);
     }
 
     public function test_qr_unit_valid_ditambahkan_tanpa_menyerahkan_barang(): void

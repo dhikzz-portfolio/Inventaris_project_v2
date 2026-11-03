@@ -48,42 +48,80 @@
     @else
         <div class="space-y-4">
             @foreach ($loans as $loan)
-                <article class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $loan->borrower?->name }}</span>
-                                <span class="text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower?->major?->name ?: $loan->borrower?->role }}</span>
-                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
+                @php
+                    $borrowerName = trim((string) ($loan->borrower?->name ?? 'Peminjam'));
+                    $borrowerInitials = collect(preg_split('/\s+/', $borrowerName))
+                        ->filter()
+                        ->take(2)
+                        ->map(fn (string $part) => mb_strtoupper(mb_substr($part, 0, 1)))
+                        ->implode('');
+                @endphp
+                <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <div class="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="flex min-w-0 items-start gap-3">
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                {{ $borrowerInitials ?: 'P' }}
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">{{ $borrowerName }}</h3>
+                                    <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
+                                </div>
                                 @if ($loan->needs_high_value_approval)
-                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300">NILAI TINGGI — PERSETUJUAN WAKASEK</span>
+                                    <div class="mt-1.5">
+                                        <span class="inline-flex rounded-full bg-purple-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-purple-800 dark:bg-purple-950/50 dark:text-purple-300">Nilai tinggi — persetujuan Wakasek</span>
+                                    </div>
                                 @endif
-                            </div>
-                            <div class="mt-1 text-sm text-slate-700 dark:text-slate-200">{{ $loan->purpose }}</div>
-                            <div class="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                                {{ $loan->start_date->format('d M Y H:i') }} → {{ $loan->due_date->format('d M Y H:i') }}
-                                @if ($loan->event) • Kegiatan: <strong>{{ $loan->event->name }}</strong> (PJ: {{ $loan->event->pic_name }}) @endif
-                                @if ($loan->isOverdue()) <span class="inline-flex items-center gap-0.5 font-bold text-red-600"><span class="material-icons-round text-sm" aria-hidden="true">warning</span> TERLAMBAT</span> @endif
-                            </div>
 
-                            <div class="mt-2 flex flex-wrap gap-1.5">
-                                @foreach ($loan->loanItems as $li)
-                                    <span class="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                                        {{ $li->item?->name }}
-                                        <strong>×{{ $li->qty_borrowed }}</strong>
-                                        @if ($li->item?->is_high_value)
-                                            <span class="material-icons-round text-xs text-purple-500">workspace_premium</span>
-                                        @endif
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower?->major?->name ?: $loan->borrower?->role }}</p>
+                                <div class="mt-2 flex flex-col gap-1.5 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 dark:text-slate-400">
+                                    @if ($loan->purpose)
+                                        <span class="inline-flex min-w-0 items-start gap-1.5">
+                                            <span class="material-icons-round mt-px text-sm" aria-hidden="true">description</span>
+                                            <span class="break-words">{{ $loan->purpose }}</span>
+                                        </span>
+                                    @endif
+                                    <span class="inline-flex items-start gap-1.5">
+                                        <span class="material-icons-round mt-px text-sm" aria-hidden="true">calendar_today</span>
+                                        <span>{{ $loan->start_date->format('d M Y, H:i') }} → {{ $loan->due_date->format('d M Y, H:i') }}</span>
                                     </span>
-                                @endforeach
+                                    @if ($loan->isOverdue())
+                                        <span class="inline-flex items-center gap-1 font-bold text-red-600 dark:text-red-400">
+                                            <span class="material-icons-round text-sm" aria-hidden="true">warning</span> Terlambat
+                                        </span>
+                                    @endif
+                                </div>
+                                @if ($loan->event)
+                                    <p class="mt-1.5 break-words text-xs text-slate-500 dark:text-slate-400">
+                                        <span class="font-semibold text-slate-600 dark:text-slate-300">Kegiatan:</span> {{ $loan->event->name }}
+                                        @if ($loan->event->pic_name)
+                                            <span class="text-slate-400 dark:text-slate-500"> · PJ {{ $loan->event->pic_name }}</span>
+                                        @endif
+                                    </p>
+                                @endif
                             </div>
                         </div>
 
-                        <div class="shrink-0">
+                        <div class="shrink-0 sm:pl-[3.25rem] lg:pl-0">
                             <a href="{{ route('loans.show', $loan) }}"
-                               class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800 lg:w-auto lg:py-2 dark:focus:ring-offset-slate-900">
-                                <span class="material-icons-round text-lg">gavel</span> Proses Persetujuan
+                               class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800 lg:w-auto dark:focus:ring-offset-slate-900">
+                                <span class="material-icons-round text-base" aria-hidden="true">check</span> Proses Persetujuan
                             </a>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5 dark:border-slate-800 dark:bg-slate-800/30">
+                        <span class="shrink-0 pt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">Barang</span>
+                        <div class="flex min-w-0 flex-wrap gap-1.5">
+                            @foreach ($loan->loanItems as $li)
+                                <span class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                                    <span class="break-words">{{ $li->item?->name }}</span>
+                                    <strong class="shrink-0">×{{ $li->qty_borrowed }}</strong>
+                                    @if ($li->item?->is_high_value)
+                                        <span class="material-icons-round shrink-0 text-xs text-purple-600 dark:text-purple-400" aria-label="Barang bernilai tinggi">workspace_premium</span>
+                                    @endif
+                                </span>
+                            @endforeach
                         </div>
                     </div>
                 </article>

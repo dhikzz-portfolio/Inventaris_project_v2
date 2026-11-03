@@ -21,13 +21,13 @@
     <x-menu-link :href="route('events.index')" :active="request()->routeIs('events.*')" icon="event" label="Rekap Kegiatan" />
 
     @if ($canApprove)
-        <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Pinjaman &amp; Pengembalian</div>
+        <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pinjaman &amp; Pengembalian</div>
         <x-menu-link :href="route('loans.pending')" :active="request()->routeIs('loans.pending')" icon="how_to_reg" label="Permintaan Pinjam" />
         <x-menu-link :href="route('loans.returns')" :active="request()->routeIs('loans.returns')" icon="assignment_return" label="Pengembalian" />
     @endif
 
     @if ($canManage || $canApprove)
-        <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Barang Sekolah</div>
+        <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Barang Sekolah</div>
         @if ($canManage)
             <x-menu-link :href="route('movements.index')" :active="request()->routeIs('movements.*')" icon="swap_horiz" label="Pindah Barang" />
         @endif
@@ -35,7 +35,7 @@
     @endif
 
     @if ($canApprove)
-        <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Pengadaan &amp; Kondisi</div>
+        <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengadaan &amp; Kondisi</div>
         <x-menu-link :href="route('items.acquisitions')" :active="request()->routeIs('items.acquisitions*')" icon="shopping_bag" label="Pengadaan Barang" />
         <x-menu-link :href="route('damage-reports.index')" :active="request()->routeIs('damage-reports.*')" icon="report_problem" label="Laporan Kerusakan" />
     @endif
@@ -54,17 +54,17 @@
     @endif
 @endunless
 
-<div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Akun Saya</div>
+<div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Akun Saya</div>
 <x-menu-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" icon="notifications" label="Pemberitahuan"
              :badge="$user?->unreadNotifications()->count() ?? 0" />
 
 @if ($isWakasek)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Pengelolaan Sekolah</div>
+    <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengelolaan Sekolah</div>
     <x-menu-link :href="route('write-offs.pending')" :active="request()->routeIs('write-offs.pending')" icon="verified_user" label="Setujui Penghapusan" />
     <x-menu-link :href="route('settings.edit')" :active="request()->routeIs('settings.*')" icon="settings" label="Pengaturan Sekolah" />
 @endif
 
 @if ($canManageUsers)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Administrasi Akun</div>
+    <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Administrasi Akun</div>
     <x-menu-link :href="route('users.index')" :active="request()->routeIs('users.*')" icon="manage_accounts" label="Akun Pengguna" />
 @endif

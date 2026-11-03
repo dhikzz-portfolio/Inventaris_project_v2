@@ -52,6 +52,23 @@ class DamageReportTest extends TestCase
         return DamageReport::latest('id')->firstOrFail();
     }
 
+    public function test_halaman_laporan_kerusakan_menyediakan_pencarian_dan_filter_lanjutan(): void
+    {
+        $response = $this->actingAs($this->ketua)->get(route('damage-reports.index'));
+
+        $response->assertOk()
+            ->assertSee('Cari kode / nama barang')
+            ->assertSee('Filter')
+            ->assertSeeInOrder([
+                'id="q"',
+                'id="damage-report-filter-panel"',
+                'id="classification"',
+                'id="status"',
+                'id="room_id"',
+            ], false)
+            ->assertSee('Terapkan');
+    }
+
     public function test_laboran_melaporkan_rusak_ringan_tanpa_menghapus_unit(): void
     {
         $unitCount = AssetUnit::count();

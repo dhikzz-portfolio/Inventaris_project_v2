@@ -50,7 +50,7 @@
                     </div>
                     <div class="flex-1 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
                         <p class="font-medium text-slate-800 dark:text-slate-100">{{ $item->specification ?: 'Tidak ada spesifikasi detail.' }}</p>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                        <div class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                             <div><span class="text-gray-400">Kategori:</span> <strong>{{ $item->category?->name }}</strong></div>
                             <div><span class="text-gray-400">Jumlah:</span> <strong>{{ $item->quantity }} {{ $item->unit }}</strong></div>
                             <div><span class="text-gray-400">Tersedia:</span> <strong class="{{ $item->availableQuantity() === 0 ? 'text-red-600' : 'text-green-700' }}">{{ $item->availableQuantity() }} {{ $item->unit }}</strong>

@@ -61,6 +61,28 @@ class MovementAndWriteOffTest extends TestCase
         ]);
     }
 
+    public function test_halaman_pindah_barang_menampilkan_pencarian_dan_filter_lanjutan(): void
+    {
+        $response = $this->actingAs($this->admin)->get(route('movements.index'));
+
+        $response->assertOk()
+            ->assertSee('Filter Unit')
+            ->assertSee('Cari kode unit')
+            ->assertSee('Filter')
+            ->assertSeeInOrder(['id="movement-search"', 'id="movement-filter-panel"'], false)
+            ->assertSee('movement-catalog', false)
+            ->assertSee('Terapkan filter');
+    }
+
+    public function test_write_off_form_submits_selected_units_from_responsive_views(): void
+    {
+        $response = $this->actingAs($this->admin)->get(route('write-offs.index'));
+
+        $response->assertOk()
+            ->assertSee('x-for="unitId in selected"', false)
+            ->assertSee('type="hidden" name="unit_ids[]" :value="unitId"', false);
+    }
+
     public function test_mutasi_multi_unit_memperbarui_lokasi_kode_dan_riwayat(): void
     {
         $service = app(AssetUnitService::class);

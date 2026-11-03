@@ -32,44 +32,73 @@
         </div>
     </div>
 
-    <form method="GET" action="{{ route('damage-reports.index') }}" class="mb-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <div>
+    @php
+        $activeFilterCount = collect($filters)->except('q')->filter(fn ($value) => $value !== null && $value !== '')->count();
+    @endphp
+    <form method="GET" action="{{ route('damage-reports.index') }}"
+          x-data="{ filtersOpen: {{ $activeFilterCount > 0 ? 'true' : 'false' }} }"
+          class="mb-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <div class="min-w-0 flex-1">
                 <x-input-label for="q" value="Cari kode / nama barang" />
-                <input id="q" name="q" type="text" value="{{ $filters['q'] ?? '' }}" placeholder="mis. G1-02 atau Kursi"
-                       class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                <input id="q" name="q" type="search" value="{{ $filters['q'] ?? '' }}" placeholder="mis. G1-02 atau Kursi"
+                       class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
-            <div>
-                <x-input-label for="classification" value="Klasifikasi" />
-                <select id="classification" name="classification" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">Semua</option>
-                    @foreach ($classifications as $classification)
-                        <option value="{{ $classification->value }}" @selected(($filters['classification'] ?? '') === $classification->value)>{{ $classification->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <x-input-label for="status" value="Status Penanganan" />
-                <select id="status" name="status" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">Semua</option>
-                    @foreach ($statuses as $status)
-                        <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <x-input-label for="room_id" value="Ruangan" />
-                <select id="room_id" name="room_id" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">Semua ruangan</option>
-                    @foreach ($rooms as $room)
-                        <option value="{{ $room->id }}" @selected((string) ($filters['room_id'] ?? '') === (string) $room->id)>{{ $room->code }} — {{ $room->name }}</option>
-                    @endforeach
-                </select>
-            </div>
+            <button type="button" @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen.toString()"
+                    aria-controls="damage-report-filter-panel"
+                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 self-end rounded-xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-blue-900/30">
+                <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
+                Filter
+                @if ($activeFilterCount > 0)
+                    <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800 dark:bg-blue-900 dark:text-blue-200">{{ $activeFilterCount }}</span>
+                @endif
+                <span class="material-icons-round text-base text-slate-400 transition-transform" :class="filtersOpen ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+            </button>
+            <button type="submit" class="sr-only">Cari laporan</button>
         </div>
-        <div class="mt-3 flex justify-end gap-2">
-            <a href="{{ route('damage-reports.index') }}" class="inline-flex min-h-9 items-center rounded-lg px-3 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Reset</a>
-            <button class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-slate-800 px-4 text-xs font-semibold text-white hover:bg-slate-900">Terapkan</button>
+
+        <div id="damage-report-filter-panel" x-show="filtersOpen" x-cloak x-transition
+             class="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                    <x-input-label for="classification" value="Klasifikasi" />
+                    <select id="classification" name="classification" class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua</option>
+                        @foreach ($classifications as $classification)
+                            <option value="{{ $classification->value }}" @selected(($filters['classification'] ?? '') === $classification->value)>{{ $classification->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <x-input-label for="status" value="Status Penanganan" />
+                    <select id="status" name="status" class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua</option>
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <x-input-label for="room_id" value="Ruangan" />
+                    <select id="room_id" name="room_id" class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        <option value="">Semua ruangan</option>
+                        @foreach ($rooms as $room)
+                            <option value="{{ $room->id }}" @selected((string) ($filters['room_id'] ?? '') === (string) $room->id)>{{ $room->code }} — {{ $room->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="mt-3 flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                @if ($activeFilterCount > 0 || filled($filters['q'] ?? null))
+                    <a href="{{ route('damage-reports.index') }}"
+                       class="inline-flex min-h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+                        Reset
+                    </a>
+                @endif
+                <button type="submit" class="inline-flex min-h-9 items-center justify-center rounded-xl bg-slate-800 px-4 text-xs font-semibold text-white transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Terapkan
+                </button>
+            </div>
         </div>
     </form>
 

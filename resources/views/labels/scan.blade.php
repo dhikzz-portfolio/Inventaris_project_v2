@@ -1,16 +1,26 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Scan Inventaris</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Pindai QR unit atau ketik kode inventaris — hasil tampil langsung di
-                    halaman ini</p>
-            </div>
+<x-slot name="header">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+            <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Scan Inventaris</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Pindai QR unit atau ketik kode inventaris — hasil tampil langsung di
+                halaman ini</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:bg-brand-500 dark:hover:bg-brand-600 dark:focus:ring-brand-400 dark:focus:ring-offset-slate-900">
+                <span class="material-icons-round text-base" aria-hidden="true">inventory_2</span> Katalog
+            </a>
+            <a href="{{ route('scan') }}" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:border-slate-600 dark:focus:ring-brand-400 dark:focus:ring-offset-slate-900">
+                <span class="material-icons-round text-base" aria-hidden="true">qr_code_scanner</span> Scan QR
+            </a>
             @if (auth()->user()->canApproveLoans())
-                <a href="{{ route('labels.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Cetak Label</a>
+                <a href="{{ route('labels.index') }}" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:border-slate-600 dark:focus:ring-brand-400 dark:focus:ring-offset-slate-900">
+                    <span class="material-icons-round text-base" aria-hidden="true">label</span> Cetak Label
+                </a>
             @endif
         </div>
-    </x-slot>
+    </div>
+</x-slot>
 
     <div class="max-w-3xl mx-auto space-y-5">
         <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900" x-data="scanner()"
@@ -53,7 +63,7 @@
                         hanya diperlukan bila perangkat mendukung; input manual selalu tersedia.
                     </p>
                     <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                        Pemindaian tidak mengubah data inventaris. Informasi detail mengikuti kewenangan akun Anda.
+                        Pemindaian hanya membaca data inventaris. Informasi detail mengikuti kewenangan akun Anda.
                     </div>
                 </div>
             </div>

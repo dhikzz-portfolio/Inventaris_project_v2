@@ -423,10 +423,26 @@ class ItemController extends Controller
     public function acquisitions(Request $request): View
     {
         $user = $request->user();
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim($validated['search'] ?? '');
 
         $requests = Item::query()
             ->with(['room', 'category', 'requester', 'confirmer', 'approver', 'receiver'])
             ->whereIn('acquisition_status', AcquisitionStatus::values())
+            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
+                $like = "%{$search}%";
+
+                $query->where('name', 'like', $like)
+                    ->orWhere('internal_id', 'like', $like)
+                    ->orWhere('funding_source', 'like', $like)
+                    ->orWhere('acquisition_note', 'like', $like)
+                    ->orWhereHas('category', fn ($category) => $category->where('name', 'like', $like))
+                    ->orWhereHas('room', fn ($room) => $room->where('code', 'like', $like)->orWhere('name', 'like', $like))
+                    ->orWhereHas('allocations.room', fn ($room) => $room->where('code', 'like', $like)->orWhere('name', 'like', $like))
+                    ->orWhereHas('requester', fn ($requester) => $requester->where('name', 'like', $like));
+            }))
             ->when($user->isLaboran(), fn ($query) => $query->where(function ($scope) use ($user) {
                 $scope->where('acquisition_requested_by', $user->id)
                     ->orWhereHas('allocations.room', fn ($room) => $room->whereIn('id', $user->roomScopes()->select('room_id')));
@@ -443,6 +459,7 @@ class ItemController extends Controller
             'groups' => $requests->groupBy('acquisition_status'),
             'statuses' => AcquisitionStatus::cases(),
             'user' => $user,
+            'search' => $search,
         ]);
     }
 

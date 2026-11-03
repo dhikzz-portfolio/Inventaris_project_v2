@@ -188,7 +188,8 @@ class LoanItemDetailTest extends TestCase
         $this->actingAs($this->laboran)
             ->get(route('loans.show', [$loan, 'item_search' => 'barang-yang-tidak-ada']))
             ->assertOk()
-            ->assertSee('Belum ada unit.')
+            ->assertSee('Tidak ada unit yang cocok')
+            ->assertDontSee('aria-label="Daftar unit barang"')
             ->assertSee('Hapus semua filter');
     }
 

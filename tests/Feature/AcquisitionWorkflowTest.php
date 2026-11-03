@@ -73,6 +73,48 @@ class AcquisitionWorkflowTest extends TestCase
         $this->actingAs($this->ketua)->post(route('items.acquisitions.confirm', $item))->assertRedirect();
     }
 
+    public function test_search_only_shows_matching_acquisitions(): void
+    {
+        $matchingItem = $this->createDraft();
+        $this->createDraft();
+
+        $response = $this->actingAs($this->laboran)
+            ->get(route('items.acquisitions', ['search' => $matchingItem->name]));
+
+        $response->assertOk()
+            ->assertViewHas('search', $matchingItem->name)
+            ->assertViewHas('groups', fn ($groups): bool => $groups->flatten()->pluck('id')->all() === [$matchingItem->id]);
+    }
+
+    public function test_search_shows_empty_state_when_no_acquisitions_match(): void
+    {
+        $this->createDraft();
+
+        $this->actingAs($this->laboran)
+            ->get(route('items.acquisitions', ['search' => 'Tidak Ada Barang Ini']))
+            ->assertOk()
+            ->assertViewHas('groups', fn ($groups): bool => $groups->isEmpty())
+            ->assertSeeText('Pengadaan tidak ditemukan');
+    }
+
+    public function test_search_does_not_show_acquisitions_outside_laboran_scope(): void
+    {
+        $item = $this->createDraft();
+        $laboranDkv = User::where('email', 'laboran.dkv@gmail.com')->firstOrFail();
+
+        $this->actingAs($laboranDkv)
+            ->get(route('items.acquisitions', ['search' => $item->name]))
+            ->assertOk()
+            ->assertViewHas('groups', fn ($groups): bool => $groups->isEmpty());
+    }
+
+    public function test_search_rejects_keywords_longer_than_100_characters(): void
+    {
+        $this->actingAs($this->laboran)
+            ->get(route('items.acquisitions', ['search' => str_repeat('a', 101)]))
+            ->assertSessionHasErrors('search');
+    }
+
     public function test_alur_tiga_tahap_barang_tercatat_setelah_diterima(): void
     {
         $item = $this->createDraft();

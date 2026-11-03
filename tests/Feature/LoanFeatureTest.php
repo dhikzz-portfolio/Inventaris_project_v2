@@ -226,7 +226,9 @@ class LoanFeatureTest extends TestCase
 
         $this->get(route('loans.index', ['search' => 'Praktik multimedia']))
             ->assertOk()
-            ->assertSee('Praktik multimedia untuk kelas XI');
+            ->assertSee('Praktik multimedia untuk kelas XI')
+            ->assertSee('Filter status')
+            ->assertSee(route('loans.index', ['status' => 'PENDING', 'search' => 'Praktik multimedia']));
 
         $this->get(route('loans.index', ['search' => 'Kamera Video 4K']))
             ->assertOk()

@@ -36,42 +36,40 @@
         'SELESAI' => ['Selesai', $counts['SELESAI']],
         'DIBATALKAN' => ['Dibatalkan', $counts['DIBATALKAN']],
     ])
+    @php($activeStatus = $tabs[$status ?? ''] ?? $tabs[''])
 
-    <nav
-        x-data="{ page: {{ filled($status ?? null) ? 2 : 1 }} }"
-        class="mb-4 flex flex-wrap items-center gap-2"
-        aria-label="Filter status peminjaman"
-    >
-        @foreach ($tabs as $key => [$label, $count])
-            <a href="{{ route('loans.index', array_filter(['status' => $key, 'search' => $search], fn ($value) => $value !== null && $value !== '')) }}"
-               x-show="page === {{ $key === '' ? 1 : 2 }}"
-               x-cloak
-               @if (($status ?? '') === $key) aria-current="page" @endif
-               @class([
-                   'inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm',
-                   'border-brand-600 bg-brand-600 text-white shadow-sm' => ($status ?? '') === $key,
-                   'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800' => ($status ?? '') !== $key,
-               ])>
-                {{ $label }}
-                @if ($key !== '')
-                    <span @class([
-                        'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                        'bg-white/20 text-white' => ($status ?? '') === $key,
-                        'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => ($status ?? '') !== $key,
-                    ])>{{ $count }}</span>
-                @endif
-            </a>
-        @endforeach
-
-        <div class="inline-flex min-h-10 items-center" aria-label="Navigasi halaman filter">
-            <button type="button"
-                    x-on:click="page = page === 1 ? 2 : 1"
-                    x-bind:aria-label="page === 1 ? 'Tampilkan filter berikutnya' : 'Tampilkan filter sebelumnya'"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-brand-300">
-                <span class="material-icons-round text-lg" aria-hidden="true" x-text="page === 1 ? 'chevron_right' : 'chevron_left'"></span>
-            </button>
-        </div>
-    </nav>
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+        <details class="group relative">
+            <summary class="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800">
+                <span class="material-icons-round text-lg text-brand-600 dark:text-brand-300" aria-hidden="true">filter_list</span>
+                <span>Filter status</span>
+                <span class="max-w-40 truncate rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $activeStatus[0] }}</span>
+                <span class="material-icons-round text-base text-slate-400 transition group-open:rotate-180" aria-hidden="true">expand_more</span>
+            </summary>
+            <div class="absolute left-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                <div class="px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Pilih status peminjaman</div>
+                @foreach ($tabs as $key => [$label, $count])
+                    <a href="{{ route('loans.index', array_filter(['status' => $key, 'search' => $search], fn ($value) => $value !== null && $value !== '')) }}"
+                       @if (($status ?? '') === $key) aria-current="page" @endif
+                       @class([
+                           'flex min-h-10 items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-sm transition',
+                           'bg-brand-50 font-semibold text-brand-700 dark:bg-brand-950/40 dark:text-brand-300' => ($status ?? '') === $key,
+                           'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800' => ($status ?? '') !== $key,
+                       ])>
+                        <span class="min-w-0 truncate">{{ $label }}</span>
+                        <span @class([
+                            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
+                            'bg-brand-100 text-brand-700 dark:bg-brand-900/60 dark:text-brand-300' => ($status ?? '') === $key,
+                            'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => ($status ?? '') !== $key,
+                        ])>{{ $count }}</span>
+                    </a>
+                @endforeach
+            </div>
+        </details>
+        <span class="text-xs text-slate-500 dark:text-slate-400">
+            {{ $activeStatus[1] }} peminjaman ditemukan
+        </span>
+    </div>
 
     <form method="GET" action="{{ route('loans.index') }}" class="mb-4 flex flex-col gap-2 sm:flex-row">
         @if (filled($status ?? null))

@@ -1,6 +1,8 @@
 @php
     $initialMode = old('mode', 'UNIT');
     $initialCatalog = old('catalog_id', '');
+    $activeFilterCount = collect($filters)->filter(fn ($value) => $value !== '')->count();
+    $activeAdditionalFilterCount = collect($filters)->except('search')->filter(fn ($value) => $value !== '')->count();
 @endphp
 
 <x-app-layout>
@@ -32,28 +34,45 @@
         </div>
     @endif
 
-    <div x-data="writeOffForm({
+    <div class="min-w-0" x-data="writeOffForm({
         mode: @js($initialMode),
         catalogId: @js($initialCatalog),
         summaries: @js($catalogSummaries),
         filteredTotal: {{ $units->total() }},
     })" x-cloak>
 
-        {{-- Filter: parameter sama dengan mutasi & cetak label --}}
-        <form method="GET" action="{{ route('write-offs.index') }}" class="mb-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="mb-3 flex items-center justify-between gap-3">
-                <h3 class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-base text-brand-600">filter_alt</span> Filter Unit
-                </h3>
-                <a href="{{ route('write-offs.index') }}" class="text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">Reset filter</a>
+        <form method="GET" action="{{ route('write-offs.index') }}"
+              x-data="{ filterOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }} }"
+              class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="mb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pilih Unit Inventaris Keluar</h3>
+                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Cari unit atau gunakan filter lanjutan untuk mempersempit daftar.</p>
+            </div>
+            <div class="flex items-end gap-2">
+                <div class="min-w-0 flex-1">
+                    <label for="write-off-search" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Cari kode / nama barang</label>
+                    <div class="relative">
+                        <span class="material-icons-round pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true">search</span>
+                        <input id="write-off-search" type="search" name="search" value="{{ $filters['search'] }}" placeholder="mis. G1-02-12 atau Kursi"
+                               class="min-h-10 w-full rounded-xl border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                    </div>
+                </div>
+                <button type="button" @click="filterOpen = !filterOpen" :aria-expanded="filterOpen.toString()"
+                        aria-controls="write-off-unit-filters"
+                        class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
+                    <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
+                    Filter
+                    @if ($activeFilterCount > 0)
+                        <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $activeFilterCount }}</span>
+                    @endif
+                    <span class="material-icons-round text-base text-slate-400 transition-transform" :class="filterOpen ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+                </button>
+                <button type="submit" class="sr-only">Cari unit</button>
             </div>
 
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                <div>
-                    <label class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kode / nama barang</label>
-                    <input type="text" name="search" value="{{ $filters['search'] }}" placeholder="G1-02-12 atau Kursi"
-                           class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                </div>
+            <div id="write-off-unit-filters" x-show="filterOpen" x-cloak x-transition
+                 class="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kategori</label>
                     <select name="category" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
@@ -135,13 +154,22 @@
                         @endforeach
                     </select>
                 </div>
-            </div>
+                </div>
 
-            <div class="mt-4 flex flex-wrap items-center gap-2">
-                <button type="submit" class="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                    <span class="material-icons-round text-base">search</span> Terapkan filter
-                </button>
-                <span class="text-xs text-slate-500 dark:text-slate-400">{{ $units->total() }} unit sesuai filter</span>
+                <div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">{{ number_format($units->total(), 0, ',', '.') }} unit sesuai filter</span>
+                    <div class="flex justify-end gap-2">
+                        @if ($activeFilterCount > 0)
+                            <a href="{{ route('write-offs.index') }}"
+                               class="inline-flex min-h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+                                Reset
+                            </a>
+                        @endif
+                        <button type="submit" class="inline-flex min-h-9 items-center justify-center rounded-xl bg-slate-800 px-4 text-xs font-semibold text-white transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            Terapkan
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
 
@@ -155,27 +183,40 @@
             <input type="hidden" name="select_all" :value="selectAll ? 1 : 0">
             <input type="hidden" name="confirm_delete" :value="confirmDelete ? 1 : ''">
             <input type="hidden" name="confirm_catalog" :value="confirmCatalog ? 1 : ''">
+            <template x-for="unitId in selected" :key="unitId">
+                <input type="hidden" name="unit_ids[]" :value="unitId">
+            </template>
 
-            <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
-                <div class="space-y-4 lg:col-span-2">
-                    <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                        <div class="flex flex-wrap items-center gap-2">
+            <div class="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-3">
+                <div class="min-w-0 space-y-4 xl:col-span-2">
+                    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                        <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="min-w-0">
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pilih cakupan penghapusan</h3>
+                                <p class="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">Tentukan unit tertentu atau seluruh unit dalam satu katalog.</p>
+                            </div>
+                            <div class="grid w-full shrink-0 grid-cols-2 gap-1.5 sm:w-auto" role="group" aria-label="Cakupan penghapusan">
                             <button type="button" @click="mode = 'UNIT'"
+                                    :aria-pressed="(mode === 'UNIT').toString()"
                                     :class="mode === 'UNIT' ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-600 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-300'"
-                                    class="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition">
-                                <span class="material-icons-round text-lg">checklist</span> Pilih unit
+                                    class="inline-flex min-h-9 items-center justify-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand-500 sm:px-3">
+                                <span class="material-icons-round text-base" aria-hidden="true">checklist</span> Unit
                             </button>
                             <button type="button" @click="mode = 'CATALOG'"
+                                    :aria-pressed="(mode === 'CATALOG').toString()"
                                     :class="mode === 'CATALOG' ? 'bg-red-600 text-white' : 'border border-slate-200 bg-white text-slate-600 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-300'"
-                                    class="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition">
-                                <span class="material-icons-round text-lg">delete_sweep</span> Seluruh katalog
+                                    class="inline-flex min-h-9 items-center justify-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-red-500 sm:px-3">
+                                <span class="material-icons-round text-base" aria-hidden="true">delete_sweep</span> Seluruh katalog
                             </button>
-                            <span class="ms-auto text-xs text-slate-500 dark:text-slate-400" x-show="mode === 'UNIT'">
-                                <strong x-text="selectAll ? {{ $units->total() }} : selected.length"></strong> unit dipilih
-                            </span>
+                            </div>
                         </div>
 
-                        <div x-show="mode === 'CATALOG'" class="mt-4 space-y-2">
+                        <div x-show="mode === 'UNIT'" class="mt-2 inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-brand-50 px-2.5 py-1.5 text-[11px] font-medium text-brand-800 dark:bg-brand-900/30 dark:text-brand-200">
+                            <span class="material-icons-round text-sm" aria-hidden="true">inventory_2</span>
+                            <strong x-text="selectAll ? {{ $units->total() }} : selected.length"></strong> unit dipilih
+                        </div>
+
+                        <div x-show="mode === 'CATALOG'" x-cloak class="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                             <x-input-label for="catalog_id" value="Katalog yang dihapus seluruh unitnya *" />
                             <select id="catalog_id" name="catalog_id" x-model.number="catalogId"
                                     class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-red-500 focus:ring-red-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
@@ -187,39 +228,97 @@
                             <p class="text-[11px] text-red-700 dark:text-red-300">Tindakan ini mencakup seluruh unit yang memenuhi syarat dalam katalog, bukan hanya unit di halaman ini.</p>
                         </div>
 
-                        <div x-show="mode === 'CATALOG' && catalogSummary" class="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+                        <div x-show="mode === 'CATALOG' && catalogSummary" x-cloak class="mt-3 rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
                             <div class="font-bold" x-text="catalogSummary?.name"></div>
-                            <div class="mt-1 grid grid-cols-2 gap-1 sm:grid-cols-4">
-                                <div>Spesifikasi: <strong x-text="catalogSummary?.spec_count"></strong></div>
-                                <div>Total unit: <strong x-text="catalogSummary?.unit_count"></strong></div>
-                                <div>Dapat dihapus: <strong x-text="catalogSummary?.eligible_count"></strong></div>
-                                <div>Lokasi: <strong x-text="catalogSummary?.locations?.length || 0"></strong></div>
+                            <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                <div><div class="text-[10px] uppercase tracking-wide opacity-75">Spesifikasi</div><strong class="mt-0.5 block text-base" x-text="catalogSummary?.spec_count"></strong></div>
+                                <div><div class="text-[10px] uppercase tracking-wide opacity-75">Total unit</div><strong class="mt-0.5 block text-base" x-text="catalogSummary?.unit_count"></strong></div>
+                                <div><div class="text-[10px] uppercase tracking-wide opacity-75">Dapat dihapus</div><strong class="mt-0.5 block text-base" x-text="catalogSummary?.eligible_count"></strong></div>
+                                <div><div class="text-[10px] uppercase tracking-wide opacity-75">Lokasi</div><strong class="mt-0.5 block text-base" x-text="catalogSummary?.locations?.length || 0"></strong></div>
                             </div>
-                            <div class="mt-1 text-[11px]" x-show="(catalogSummary?.eligible_count || 0) === 0">Tidak ada unit yang memenuhi syarat pada katalog ini.</div>
+                            <div class="mt-3 border-t border-red-200 pt-2 text-[11px] dark:border-red-900" x-show="(catalogSummary?.eligible_count || 0) === 0">Tidak ada unit yang memenuhi syarat pada katalog ini.</div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div x-show="mode === 'UNIT'" class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-                            <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Unit ({{ $units->total() }})</h3>
-                            <label class="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    <div x-show="mode === 'UNIT'" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-4 dark:border-slate-800 dark:bg-slate-800/40 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Unit</h3>
+                                        <span class="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">{{ number_format($units->total(), 0, ',', '.') }} unit</span>
+                                    </div>
+                                    <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                        Menampilkan {{ number_format($units->firstItem() ?? 0, 0, ',', '.') }}–{{ number_format($units->lastItem() ?? 0, 0, ',', '.') }} dari {{ number_format($units->total(), 0, ',', '.') }} unit
+                                    </p>
+                                </div>
+                            </div>
+                            <label class="inline-flex min-h-10 cursor-pointer items-center gap-2.5 self-start rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-brand-700 dark:hover:bg-slate-800 sm:self-auto">
                                 <input type="checkbox" x-model="selectAll" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
                                 Pilih semua sesuai filter
                             </label>
-                            <p class="w-full text-[11px] font-normal text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
                         </div>
 
-                        <div class="max-h-[60vh] overflow-auto">
-                            <table class="w-full min-w-[900px] text-sm">
-                                <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        <div class="max-h-[60vh] space-y-3 overflow-y-auto overscroll-contain p-3 2xl:hidden">
+                            @forelse ($units as $unit)
+                                @php($blocked = $unit->is_on_loan || $unit->has_pending_write_off || $unit->status === \App\Enums\UnitStatus::DIPINJAM)
+                                <article class="rounded-xl border border-slate-200 bg-white p-3 transition dark:border-slate-700 dark:bg-slate-900">
+                                    <div class="flex items-start gap-3">
+                                        <label class="flex min-h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg">
+                                            <input type="checkbox" value="{{ $unit->id }}" x-model="selected"
+                                                   @disabled($blocked)
+                                                   aria-label="Pilih unit {{ $unit->inventory_code }}"
+                                                   class="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40">
+                                        </label>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="font-mono text-xs font-bold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</span>
+                                                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
+                                            </div>
+                                            <h4 class="mt-1 break-words text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $unit->catalog?->name }}</h4>
+                                            <p class="text-[11px] text-slate-500 dark:text-slate-400">{{ $unit->catalog?->category?->name }}</p>
+                                        </div>
+                                    </div>
+                                    <dl class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
+                                        <div class="min-w-0">
+                                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Merek / Tipe</dt>
+                                            <dd class="mt-0.5 break-words text-slate-700 dark:text-slate-300">{{ $unit->specification?->displayName() ?: '—' }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Kondisi</dt>
+                                            <dd class="mt-0.5"><span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300' }}">{{ $unit->condition->label() }}</span></dd>
+                                        </div>
+                                        <div class="col-span-2 min-w-0">
+                                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Lokasi</dt>
+                                            <dd class="mt-0.5 break-words text-slate-700 dark:text-slate-300">{{ $unit->locationLabel() }}</dd>
+                                        </div>
+                                    </dl>
+                                    @if ($unit->is_on_loan || $unit->status === \App\Enums\UnitStatus::DIPINJAM || $unit->has_pending_write_off)
+                                        <p class="mt-3 flex items-center gap-1 border-t border-amber-100 pt-2 text-[11px] font-medium text-amber-700 dark:border-amber-900/60 dark:text-amber-300">
+                                            <span class="material-icons-round text-sm" aria-hidden="true">info</span>
+                                            {{ $unit->has_pending_write_off ? 'Menunggu persetujuan penghapusan' : 'Unit sedang dipinjam dan tidak dapat dipilih' }}
+                                        </p>
+                                    @endif
+                                </article>
+                            @empty
+                                <div class="rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center dark:border-slate-700">
+                                    <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">inventory_2</span>
+                                    <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Tidak ada unit yang cocok dengan filter.</p>
+                                </div>
+                            @endforelse
+                        </div>
+
+                        <div class="hidden max-h-[60vh] overflow-auto overscroll-contain 2xl:block">
+                            <table class="w-full min-w-[820px] text-sm">
+                                <thead class="sticky top-0 z-10 bg-white text-[11px] font-bold uppercase tracking-wide text-slate-500 shadow-[inset_0_-1px_0_0_#e2e8f0] dark:bg-slate-900 dark:text-slate-400 dark:shadow-[inset_0_-1px_0_0_#334155]">
                                     <tr>
-                                        <th class="w-10 px-3 py-2.5"></th>
-                                        <th class="px-3 py-2.5 text-left">Kode</th>
-                                        <th class="px-3 py-2.5 text-left">Barang</th>
-                                        <th class="px-3 py-2.5 text-left">Merek / Tipe</th>
-                                        <th class="px-3 py-2.5 text-left">Lokasi</th>
-                                        <th class="px-3 py-2.5 text-left">Kondisi</th>
-                                        <th class="px-3 py-2.5 text-left">Status</th>
+                                        <th class="w-10 px-3 py-3"></th>
+                                        <th class="whitespace-nowrap px-3 py-3 text-left">Kode</th>
+                                        <th class="whitespace-nowrap px-3 py-3 text-left">Barang</th>
+                                        <th class="whitespace-nowrap px-3 py-3 text-left">Merek / Tipe</th>
+                                        <th class="whitespace-nowrap px-3 py-3 text-left">Lokasi</th>
+                                        <th class="whitespace-nowrap px-3 py-3 text-left">Kondisi</th>
+                                        <th class="whitespace-nowrap px-3 py-3 text-left">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -227,8 +326,9 @@
                                         @php($blocked = $unit->is_on_loan || $unit->has_pending_write_off || $unit->status === \App\Enums\UnitStatus::DIPINJAM)
                                         <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
                                             <td class="px-3 py-2.5">
-                                                <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" x-model="selected"
+                                                <input type="checkbox" value="{{ $unit->id }}" x-model="selected"
                                                        @disabled($blocked)
+                                                       aria-label="Pilih unit {{ $unit->inventory_code }}"
                                                        class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40">
                                             </td>
                                             <td class="px-3 py-2.5 font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
@@ -253,60 +353,75 @@
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="7" class="px-3 py-10 text-center text-sm text-slate-400">Tidak ada unit yang cocok dengan filter.</td></tr>
+                                        <tr><td colspan="7" class="px-3 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+                                            <span class="material-icons-round mb-1 block text-2xl text-slate-300 dark:text-slate-600" aria-hidden="true">inventory_2</span>
+                                            Tidak ada unit yang cocok dengan filter.
+                                        </td></tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
-                        <div class="border-t border-slate-100 px-4 py-3 dark:border-slate-800">{{ $units->links() }}</div>
+                        <div class="border-t border-slate-100 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                            <div class="w-full min-w-0 overflow-x-auto [&_nav>div]:min-w-max [&_nav>div]:!flex-nowrap">{{ $units->links() }}</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="space-y-4 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm lg:sticky lg:top-20 dark:border-slate-700 dark:bg-slate-900">
-                    <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                        <span class="material-icons-round text-red-500">delete_forever</span> Pengajuan Penghapusan
-                    </h3>
-
-                    <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                        <span x-show="mode === 'UNIT'"><strong x-text="selectAll ? {{ $units->total() }} : selected.length"></strong> unit dipilih.</span>
-                        <span x-show="mode === 'CATALOG' && !catalogSummary">Pilih katalog terlebih dahulu.</span>
-                        <span x-show="mode === 'CATALOG' && catalogSummary"><strong x-text="catalogSummary?.name"></strong> — <strong x-text="catalogSummary?.eligible_count"></strong> unit dapat dihapus.</span>
+                <section class="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto sm:p-5 dark:border-slate-700 dark:bg-slate-900">
+                    <div class="flex items-start gap-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300">
+                            <span class="material-icons-round text-xl" aria-hidden="true">delete_forever</span>
+                        </span>
+                        <div class="min-w-0 pt-0.5">
+                            <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Pengajuan Penghapusan</h3>
+                            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Lengkapi alasan dan berita acara untuk melanjutkan.</p>
+                        </div>
                     </div>
 
-                    <div>
+                    <div class="flex min-h-11 items-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                        <span class="material-icons-round text-base text-slate-400" aria-hidden="true">inventory_2</span>
+                        <span x-show="mode === 'UNIT'"><strong class="font-bold text-slate-800 dark:text-slate-100" x-text="selectAll ? {{ $units->total() }} : selected.length"></strong> unit dipilih</span>
+                        <span x-show="mode === 'CATALOG' && !catalogSummary">Pilih katalog terlebih dahulu</span>
+                        <span class="min-w-0 truncate" x-show="mode === 'CATALOG' && catalogSummary"><strong x-text="catalogSummary?.name"></strong> — <strong x-text="catalogSummary?.eligible_count"></strong> unit dapat dihapus</span>
+                    </div>
+
+                    <div class="space-y-1.5">
                         <x-input-label for="reason" value="Alasan Pemusnahan *" />
                         <textarea id="reason" name="reason" rows="3" required
-                                  class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+                                  class="block w-full resize-y rounded-xl border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-red-400 focus:ring-2 focus:ring-red-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-red-700 dark:focus:ring-red-950/50"
                                   placeholder="Rusak berat, tidak layak pakai, hilang...">{{ old('reason') }}</textarea>
                         <x-input-error class="mt-1" :messages="$errors->get('reason')" />
                     </div>
 
-                    <div x-data="{ fileName: '' }">
+                    <div class="space-y-1.5" x-data="{ fileName: '' }">
                         <label class="block">
-                            <span class="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">Berita Acara (PDF/Gambar) *</span>
-                            <span class="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:border-red-300 hover:bg-red-50 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                            <span class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Berita Acara (PDF/Gambar) *</span>
+                            <span class="mt-1.5 flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:border-red-300 hover:bg-red-50/60 focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-red-800 dark:hover:bg-red-950/20 dark:focus-within:border-red-700 dark:focus-within:ring-red-950/50">
                                 <input type="file" name="berita_acara" accept=".pdf,.jpg,.jpeg,.png" required
                                        x-on:change="fileName = $event.target.files.length ? $event.target.files[0].name : ''"
                                        class="peer sr-only">
                                 <span class="material-icons-round text-lg text-red-600 dark:text-red-400" aria-hidden="true">upload_file</span>
-                                <span class="min-w-0 flex-1 truncate" x-text="fileName || 'Pilih berkas berita acara'"></span>
-                                <span class="shrink-0 text-xs font-semibold text-red-700 dark:text-red-300">Pilih</span>
+                                <span class="min-w-0 flex-1 truncate text-sm" x-text="fileName || 'Pilih berkas berita acara'"></span>
+                                <span class="shrink-0 text-xs font-bold text-red-700 dark:text-red-300">Pilih</span>
                             </span>
                         </label>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500">PDF, JPG, atau PNG · Maksimal 4 MB</p>
                         <x-input-error class="mt-1" :messages="$errors->get('berita_acara')" />
                     </div>
 
                     <button type="button" @click="openConfirm()"
-                            class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
-                        <span class="material-icons-round text-lg">delete_forever</span> Tinjau &amp; Ajukan
+                            class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-red-600/20 transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:bg-red-800 dark:focus:ring-offset-slate-900">
+                        <span class="material-icons-round text-lg" aria-hidden="true">delete_forever</span> Tinjau &amp; Ajukan
                     </button>
-                </div>
+                </section>
             </div>
 
             {{-- Modal ringkasan + konfirmasi eksplisit --}}
-            <div x-show="modalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4" role="dialog" aria-modal="true">
-                <div class="w-full max-w-lg rounded-2xl border border-sky-100 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">Konfirmasi penghapusan</h3>
+            <div x-show="modalOpen" x-cloak x-on:keydown.escape.window="modalOpen = false"
+                 class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 p-3 sm:p-4"
+                 role="dialog" aria-modal="true" aria-labelledby="write-off-confirm-title">
+                <div class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl sm:max-h-[calc(100dvh-2rem)] sm:p-6 dark:border-slate-700 dark:bg-slate-900">
+                    <h3 id="write-off-confirm-title" class="text-lg font-bold text-slate-900 dark:text-slate-100">Konfirmasi penghapusan</h3>
 
                     <div x-show="mode === 'UNIT'" class="mt-3 text-sm text-slate-600 dark:text-slate-300">
                         <strong x-text="selectAll ? {{ $units->total() }} : selected.length"></strong> unit akan diajukan untuk dihapus.
@@ -334,13 +449,13 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 flex items-center justify-end gap-2">
+                    <div class="mt-5 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end dark:border-slate-800">
                         <button type="button" @click="modalOpen = false"
-                                class="min-h-10 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">
+                                class="min-h-10 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">
                             Batal
                         </button>
                         <button type="button" @click="submitConfirmed()"
-                                class="min-h-10 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700">
+                                class="min-h-10 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                             Ya, ajukan penghapusan
                         </button>
                     </div>
@@ -349,11 +464,55 @@
         </form>
 
         <div class="mt-5 overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-                <p class="text-base font-bold text-slate-900 dark:text-slate-100">Riwayat Inventaris Keluar ({{ $history->total() }})</p>
-                <p class="mt-1 text-[11px] font-normal text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
+            <div class="flex flex-col gap-1 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Riwayat Inventaris Keluar</h3>
+                <span class="text-xs text-slate-500 dark:text-slate-400">{{ number_format($history->total(), 0, ',', '.') }} pengajuan</span>
             </div>
-            <div class="overflow-x-auto">
+            @if ($history->isEmpty())
+                <div class="px-4 py-10 text-center">
+                    <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">history</span>
+                    <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">Belum ada riwayat inventaris keluar.</p>
+                </div>
+            @else
+            <div class="divide-y divide-slate-100 p-3 dark:divide-slate-800 xl:hidden">
+                @foreach ($history as $wo)
+                    @php($catalogNames = $wo->units->pluck('catalog.name')->filter()->unique())
+                    <article class="py-3 first:pt-0 last:pb-0">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                @if ($catalogNames->isNotEmpty())
+                                    <h4 class="break-words text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $catalogNames->take(2)->implode(', ') }}</h4>
+                                    @if ($catalogNames->count() > 2)
+                                        <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">+{{ $catalogNames->count() - 2 }} katalog lain</p>
+                                    @endif
+                                @elseif ($wo->item)
+                                    <a href="{{ route('items.show', $wo->item) }}" class="break-words text-sm font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $wo->item->name }}</a>
+                                    <p class="font-mono text-[11px] text-slate-400 dark:text-slate-500">{{ $wo->item->internal_id }}</p>
+                                @else
+                                    <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Pengajuan inventaris keluar</h4>
+                                @endif
+                            </div>
+                            @if ($wo->status === 'PENDING')
+                                <span class="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">MENUNGGU</span>
+                            @elseif ($wo->status === 'APPROVED')
+                                <span class="shrink-0 rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-bold text-red-800 dark:bg-red-950/50 dark:text-red-300">DIHAPUS</span>
+                            @else
+                                <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">DITOLAK</span>
+                            @endif
+                        </div>
+                        <p class="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">{{ \Illuminate\Support\Str::limit($wo->reason, 120) }}</p>
+                        @if ($wo->decision_note)
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-300">Catatan: {{ $wo->decision_note }}</p>
+                        @endif
+                        <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 pt-2 text-[11px] text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                            <span class="font-semibold uppercase">{{ $wo->mode ?: 'CATALOG' }}</span>
+                            <span>{{ $wo->units_count ?: $wo->quantity }} unit</span>
+                            <span class="ms-auto">{{ $wo->requester?->name }} · {{ $wo->created_at->format('d M Y') }}</span>
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+            <div class="hidden overflow-x-auto xl:block">
                 <table class="w-full min-w-[880px] text-sm">
                     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
@@ -376,8 +535,12 @@
                                             <span class="text-[11px] text-slate-400">+{{ $catalogNames->count() - 2 }} katalog lain</span>
                                         @endif
                                     @else
-                                        <a href="{{ route('items.show', $wo->item) }}" class="font-medium text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $wo->item?->name }}</a>
-                                        <div class="font-mono text-[11px] text-slate-400">{{ $wo->item?->internal_id }}</div>
+                                        @if ($wo->item)
+                                            <a href="{{ route('items.show', $wo->item) }}" class="font-medium text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $wo->item->name }}</a>
+                                            <div class="font-mono text-[11px] text-slate-400">{{ $wo->item->internal_id }}</div>
+                                        @else
+                                            <span class="text-slate-500">Pengajuan inventaris keluar</span>
+                                        @endif
                                     @endif
                                 </td>
                                 <td class="px-3 py-2.5 text-center text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">{{ $wo->mode ?: 'CATALOG' }}</td>
@@ -408,6 +571,7 @@
                     </tbody>
                 </table>
             </div>
+            @endif
             <div class="border-t border-slate-100 px-4 py-3 dark:border-slate-800">{{ $history->links() }}</div>
         </div>
     </div>

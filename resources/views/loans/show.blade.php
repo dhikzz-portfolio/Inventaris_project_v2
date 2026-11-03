@@ -48,6 +48,78 @@
             {{-- Rincian barang --}}
             @php
                 $filtersActive = collect($itemFilters)->filter(fn ($value) => $value !== '')->isNotEmpty();
+                $activeFilterCount = collect($itemFilters)->except('search')->filter(fn ($value) => $value !== '')->count();
+                $filterQuery = [
+                    'item_search' => $itemFilters['search'],
+                    'item_category' => $itemFilters['category'],
+                    'item_catalog' => $itemFilters['catalog'],
+                    'item_spec' => $itemFilters['specification'],
+                    'item_building' => $itemFilters['building'],
+                    'item_room' => $itemFilters['room'],
+                    'item_condition' => $itemFilters['condition'],
+                    'item_status' => $itemFilters['status'],
+                    'item_validation' => $itemFilters['validation'],
+                    'item_photo' => $itemFilters['photo'],
+                    'item_from' => $itemFilters['from'],
+                    'item_to' => $itemFilters['to'],
+                ];
+                $activeFilterTags = [];
+
+                if ($itemFilters['search'] !== '') {
+                    $activeFilterTags[] = ['key' => 'item_search', 'label' => 'Pencarian: '.$itemFilters['search']];
+                }
+
+                if ($itemFilters['category'] !== '') {
+                    $categoryName = $filterOptions['categories']->firstWhere('id', (int) $itemFilters['category'])?->name;
+                    $activeFilterTags[] = ['key' => 'item_category', 'label' => 'Kategori: '.($categoryName ?? $itemFilters['category'])];
+                }
+
+                if ($itemFilters['catalog'] !== '') {
+                    $catalogName = $filterOptions['catalogs']->firstWhere('id', (int) $itemFilters['catalog'])?->name;
+                    $activeFilterTags[] = ['key' => 'item_catalog', 'label' => 'Katalog: '.($catalogName ?? $itemFilters['catalog'])];
+                }
+
+                if ($itemFilters['specification'] !== '') {
+                    $specificationName = $filterOptions['specifications']->firstWhere('id', (int) $itemFilters['specification'])?->displayName();
+                    $activeFilterTags[] = ['key' => 'item_spec', 'label' => 'Spesifikasi: '.($specificationName ?? $itemFilters['specification'])];
+                }
+
+                if ($itemFilters['building'] !== '') {
+                    $activeFilterTags[] = ['key' => 'item_building', 'label' => 'Gedung: '.$itemFilters['building']];
+                }
+
+                if ($itemFilters['room'] !== '') {
+                    $room = $filterOptions['rooms']->firstWhere('id', (int) $itemFilters['room']);
+                    $activeFilterTags[] = ['key' => 'item_room', 'label' => 'Ruangan: '.($room ? $room->code.' — '.$room->name : $itemFilters['room'])];
+                }
+
+                if ($itemFilters['condition'] !== '') {
+                    $condition = collect($filterOptions['conditions'])->firstWhere('value', $itemFilters['condition']);
+                    $activeFilterTags[] = ['key' => 'item_condition', 'label' => 'Kondisi: '.($condition?->label() ?? $itemFilters['condition'])];
+                }
+
+                if ($itemFilters['status'] !== '') {
+                    $status = collect($filterOptions['statuses'])->firstWhere('value', $itemFilters['status']);
+                    $activeFilterTags[] = ['key' => 'item_status', 'label' => 'Status inventaris: '.($status?->label() ?? $itemFilters['status'])];
+                }
+
+                if ($itemFilters['validation'] !== '') {
+                    $validation = collect($filterOptions['validations'])->firstWhere('value', $itemFilters['validation']);
+                    $activeFilterTags[] = ['key' => 'item_validation', 'label' => 'Pemeriksaan: '.($validation?->label() ?? $itemFilters['validation'])];
+                }
+
+                if ($itemFilters['photo'] !== '') {
+                    $activeFilterTags[] = ['key' => 'item_photo', 'label' => 'Foto bukti: '.($itemFilters['photo'] === 'ada' ? 'Ada' : 'Tidak ada')];
+                }
+
+                if ($itemFilters['from'] !== '') {
+                    $activeFilterTags[] = ['key' => 'item_from', 'label' => 'Diperiksa dari: '.$itemFilters['from']];
+                }
+
+                if ($itemFilters['to'] !== '') {
+                    $activeFilterTags[] = ['key' => 'item_to', 'label' => 'Diperiksa sampai: '.$itemFilters['to']];
+                }
+
                 $legacyItems = $loan->loanItems->filter(fn ($li) => $li->unitAssignments->isEmpty());
             @endphp
             <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
@@ -60,119 +132,182 @@
                     </span>
                 </div>
 
-                <form method="GET" action="{{ route('loans.show', $loan) }}" class="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/40">
-                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        <div class="lg:col-span-2">
-                            <label for="item-search" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Cari unit / catatan kondisi</label>
+                <div x-data="{ filtersOpen: false }" class="mb-4 space-y-3">
+                    <form method="GET" action="{{ route('loans.show', $loan) }}">
+                        <div class="flex flex-col gap-2 sm:flex-row">
+                            <label for="item-search" class="sr-only">Cari unit atau catatan kondisi</label>
                             <input id="item-search" type="search" name="item_search" value="{{ $itemFilters['search'] }}"
-                                   placeholder="Nama barang, spesifikasi, merek, kode inventaris, ruangan…"
-                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                   x-on:keydown.enter.prevent="$el.form.requestSubmit()"
+                                   placeholder="Cari nama barang, kode, ruangan, atau catatan"
+                                   class="min-h-10 min-w-0 flex-1 rounded-xl border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                            <button type="button" x-on:click="filtersOpen = !filtersOpen"
+                                    x-bind:aria-expanded="filtersOpen"
+                                    aria-controls="loan-item-filter-panel"
+                                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                                <span class="material-icons-round text-lg" aria-hidden="true">tune</span>
+                                Filter
+                                @if ($activeFilterCount > 0)
+                                    <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-bold text-brand-700 dark:bg-brand-900/50 dark:text-brand-200">{{ $activeFilterCount }}</span>
+                                @endif
+                            </button>
+                            <button type="submit" class="sr-only">Cari unit</button>
                         </div>
-                        <div>
-                            <label for="item-category" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kategori</label>
-                            <select id="item-category" name="item_category" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua kategori</option>
-                                @foreach ($filterOptions['categories'] as $category)
-                                    <option value="{{ $category->id }}" @selected($itemFilters['category'] === (string) $category->id)>{{ $category->name }}</option>
-                                @endforeach
-                            </select>
+
+                        <div id="loan-item-filter-panel" x-show="filtersOpen" x-cloak x-transition
+                             class="mt-3 space-y-4 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900 sm:p-4">
+                            <section>
+                                <h4 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Barang</h4>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label for="item-category" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Kategori</label>
+                                        <select id="item-category" name="item_category" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua kategori</option>
+                                            @foreach ($filterOptions['categories'] as $category)
+                                                <option value="{{ $category->id }}" @selected($itemFilters['category'] === (string) $category->id)>{{ $category->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="item-catalog" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Katalog</label>
+                                        <select id="item-catalog" name="item_catalog" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua katalog</option>
+                                            @foreach ($filterOptions['catalogs'] as $catalog)
+                                                <option value="{{ $catalog->id }}" @selected($itemFilters['catalog'] === (string) $catalog->id)>{{ $catalog->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="item-spec" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Spesifikasi</label>
+                                        <select id="item-spec" name="item_spec" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua spesifikasi</option>
+                                            @foreach ($filterOptions['specifications'] as $specification)
+                                                <option value="{{ $specification->id }}" @selected($itemFilters['specification'] === (string) $specification->id)>{{ $specification->displayName() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h4 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Lokasi</h4>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label for="item-building" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Gedung</label>
+                                        <select id="item-building" name="item_building" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua gedung</option>
+                                            @foreach ($filterOptions['buildings'] as $building)
+                                                <option value="{{ $building }}" @selected($itemFilters['building'] === (string) $building)>Gedung {{ $building }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="item-room" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Ruangan</label>
+                                        <select id="item-room" name="item_room" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua ruangan</option>
+                                            @foreach ($filterOptions['rooms'] as $room)
+                                                <option value="{{ $room->id }}" @selected($itemFilters['room'] === (string) $room->id)>{{ $room->code }} — {{ $room->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h4 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</h4>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label for="item-condition" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Kondisi unit</label>
+                                        <select id="item-condition" name="item_condition" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua kondisi</option>
+                                            @foreach ($filterOptions['conditions'] as $condition)
+                                                <option value="{{ $condition->value }}" @selected($itemFilters['condition'] === $condition->value)>{{ $condition->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="item-status" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Status inventaris</label>
+                                        <select id="item-status" name="item_status" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua status</option>
+                                            @foreach ($filterOptions['statuses'] as $status)
+                                                <option value="{{ $status->value }}" @selected($itemFilters['status'] === $status->value)>{{ $status->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="item-validation" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Status pemeriksaan</label>
+                                        <select id="item-validation" name="item_validation" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua status</option>
+                                            @foreach ($filterOptions['validations'] as $validation)
+                                                <option value="{{ $validation->value }}" @selected($itemFilters['validation'] === $validation->value)>{{ $validation->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="item-photo" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Foto bukti kerusakan</label>
+                                        <select id="item-photo" name="item_photo" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                            <option value="">Semua unit</option>
+                                            <option value="ada" @selected($itemFilters['photo'] === 'ada')>Ada foto</option>
+                                            <option value="tidak" @selected($itemFilters['photo'] === 'tidak')>Tanpa foto</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h4 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tanggal pemeriksaan</h4>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label for="item-from" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Diperiksa dari</label>
+                                        <input id="item-from" type="date" name="item_from" value="{{ $itemFilters['from'] }}"
+                                               class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                    </div>
+                                    <div>
+                                        <label for="item-to" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Sampai</label>
+                                        <input id="item-to" type="date" name="item_to" value="{{ $itemFilters['to'] }}"
+                                               class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                                    @if ($filtersActive)
+                                        Menampilkan {{ $unitAssignments->firstItem() ?? 0 }}–{{ $unitAssignments->lastItem() ?? 0 }} dari {{ $unitAssignments->total() }} unit sesuai filter.
+                                    @else
+                                        Menampilkan {{ $unitAssignments->count() }} dari {{ $unitAssignments->total() }} unit.
+                                    @endif
+                                </span>
+                                <div class="flex justify-end gap-2">
+                                    <a href="{{ route('loans.show', $loan) }}"
+                                       class="inline-flex min-h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                                        Hapus filter
+                                    </a>
+                                    <button type="submit" x-on:click="filtersOpen = false"
+                                            class="inline-flex min-h-9 items-center justify-center rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white transition hover:bg-brand-700">
+                                        Terapkan
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label for="item-catalog" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Katalog</label>
-                            <select id="item-catalog" name="item_catalog" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua katalog</option>
-                                @foreach ($filterOptions['catalogs'] as $catalog)
-                                    <option value="{{ $catalog->id }}" @selected($itemFilters['catalog'] === (string) $catalog->id)>{{ $catalog->name }}</option>
-                                @endforeach
-                            </select>
+                    </form>
+
+                    @if ($activeFilterTags !== [])
+                        <div class="flex flex-wrap items-center gap-2" aria-label="Filter aktif">
+                            @foreach ($activeFilterTags as $tag)
+                                @php
+                                    $remainingFilters = array_filter($filterQuery, fn ($value, $key) => $key !== $tag['key'] && $value !== '', ARRAY_FILTER_USE_BOTH);
+                                @endphp
+                                <a href="{{ route('loans.show', ['loan' => $loan->id] + $remainingFilters) }}"
+                                   class="inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-brand-300"
+                                   aria-label="Hapus filter {{ $tag['label'] }}">
+                                    <span class="truncate">{{ $tag['label'] }}</span>
+                                    <span class="material-icons-round shrink-0 text-sm" aria-hidden="true">close</span>
+                                </a>
+                            @endforeach
+                            <a href="{{ route('loans.show', $loan) }}" class="px-1 text-[11px] font-semibold text-brand-700 underline dark:text-brand-300">Hapus semua</a>
                         </div>
-                        <div>
-                            <label for="item-spec" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Spesifikasi</label>
-                            <select id="item-spec" name="item_spec" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua spesifikasi</option>
-                                @foreach ($filterOptions['specifications'] as $specification)
-                                    <option value="{{ $specification->id }}" @selected($itemFilters['specification'] === (string) $specification->id)>{{ $specification->displayName() }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="item-building" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Gedung</label>
-                            <select id="item-building" name="item_building" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua gedung</option>
-                                @foreach ($filterOptions['buildings'] as $building)
-                                    <option value="{{ $building }}" @selected($itemFilters['building'] === (string) $building)>Gedung {{ $building }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="item-room" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Ruangan</label>
-                            <select id="item-room" name="item_room" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua ruangan</option>
-                                @foreach ($filterOptions['rooms'] as $room)
-                                    <option value="{{ $room->id }}" @selected($itemFilters['room'] === (string) $room->id)>{{ $room->code }} — {{ $room->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="item-condition" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kondisi unit</label>
-                            <select id="item-condition" name="item_condition" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua kondisi</option>
-                                @foreach ($filterOptions['conditions'] as $condition)
-                                    <option value="{{ $condition->value }}" @selected($itemFilters['condition'] === $condition->value)>{{ $condition->label() }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="item-status" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status inventaris</label>
-                            <select id="item-status" name="item_status" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua status</option>
-                                @foreach ($filterOptions['statuses'] as $status)
-                                    <option value="{{ $status->value }}" @selected($itemFilters['status'] === $status->value)>{{ $status->label() }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="item-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status pemeriksaan</label>
-                            <select id="item-validation" name="item_validation" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua status</option>
-                                @foreach ($filterOptions['validations'] as $validation)
-                                    <option value="{{ $validation->value }}" @selected($itemFilters['validation'] === $validation->value)>{{ $validation->label() }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="item-photo" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Foto bukti kerusakan</label>
-                            <select id="item-photo" name="item_photo" class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua unit</option>
-                                <option value="ada" @selected($itemFilters['photo'] === 'ada')>Ada foto</option>
-                                <option value="tidak" @selected($itemFilters['photo'] === 'tidak')>Tanpa foto</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="item-from" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Diperiksa dari</label>
-                            <input id="item-from" type="date" name="item_from" value="{{ $itemFilters['from'] }}"
-                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        </div>
-                        <div>
-                            <label for="item-to" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Sampai</label>
-                            <input id="item-to" type="date" name="item_to" value="{{ $itemFilters['to'] }}"
-                                   class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        </div>
-                    </div>
-                    <div class="mt-2 flex flex-wrap items-center gap-2">
-                        <button type="submit" class="inline-flex min-h-8 items-center rounded-lg bg-brand-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-brand-700">Terapkan filter</button>
-                        <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Hapus filter</a>
-                        @if ($filtersActive)
-                            <span class="text-[11px] text-slate-500 dark:text-slate-400">
-                                Menampilkan {{ $unitAssignments->firstItem() ?? 0 }}–{{ $unitAssignments->lastItem() ?? 0 }} dari {{ $unitAssignments->total() }} unit sesuai filter.
-                            </span>
-                        @else
-                            <span class="text-[11px] text-slate-500 dark:text-slate-400">
-                                Menampilkan {{ $unitAssignments->count() }} dari {{ $unitAssignments->total() }} unit.
-                            </span>
-                        @endif
-                    </div>
-                </form>
+                    @endif
+                </div>
 
                 <div x-data="{
                         photoOpen: false,
@@ -182,69 +317,113 @@
                         closePhoto() { this.photoOpen = false; },
                      }"
                      @keydown.escape.window="closePhoto()">
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        @forelse ($unitAssignments as $assignment)
-                            @php
-                                $unit = $assignment->unit;
-                                $loanItem = $assignment->loanItem;
-                                $specification = $unit?->specification?->displayName()
-                                    ?: ($loanItem?->item?->specification ?: 'Spesifikasi belum dicatat');
-                                $checkedAt = $assignment->confirmed_at ?? $assignment->returned_at;
-                                $damagePhoto = $assignment->damage_photo_path;
-                            @endphp
-                            <article class="rounded-xl border p-3 text-xs {{ $damagePhoto ? 'border-red-200 bg-red-50/30 dark:border-red-900/60 dark:bg-red-950/20' : 'border-slate-200 dark:border-slate-700' }}">
-                                <div class="flex flex-wrap items-center justify-between gap-2">
-                                    <span class="font-mono text-sm font-bold text-slate-800 dark:text-slate-100">{{ $unit?->inventory_code ?? '-' }}</span>
-                                    <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ ($assignment->condition_in ?? $unit?->condition)?->isDamaged() ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
-                                        {{ ($assignment->condition_in ?? $unit?->condition)?->label() ?? '—' }}
-                                    </span>
-                                </div>
-                                <div class="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $loanItem?->item?->name ?? '-' }}</div>
-                                <div class="text-slate-500 dark:text-slate-400">{{ $specification }}</div>
-                                @if ($loanItem?->item?->brand || $loanItem?->item?->model_type)
-                                    <div class="text-slate-500 dark:text-slate-400">Merek/Model: {{ trim(($loanItem?->item?->brand ?? '').' '.($loanItem?->item?->model_type ?? '')) }}</div>
-                                @endif
-                                <div class="mt-1 text-slate-600 dark:text-slate-300">{{ $unit?->locationLabel() ?? '-' }}</div>
-                                <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                                        {{ ($assignment->return_status ?? \App\Enums\ReturnStatus::BELUM_DIPERIKSA)->label() }}
-                                    </span>
-                                    <span class="text-slate-500 dark:text-slate-400">
-                                        {{ $assignment->returned_at ? 'Kembali' : 'Dipinjam' }}
-                                        @if ($checkedAt) • {{ $checkedAt->format('d M Y H:i') }} @endif
-                                    </span>
-                                </div>
-                                @if ($assignment->return_notes)
-                                    <p class="mt-1 italic text-slate-600 dark:text-slate-300">Catatan: {{ $assignment->return_notes }}</p>
-                                @endif
+                    <div class="flex items-center justify-between gap-2 pb-2">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Daftar unit</p>
+                        @if ($unitAssignments->count() > 2)
+                            <span class="inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+                                <span class="material-icons-round text-sm" aria-hidden="true">unfold_more</span>
+                                Gulir untuk melihat unit lain
+                            </span>
+                        @endif
+                    </div>
 
-                                @if ($damagePhoto && $canViewDamagePhotos)
-                                    <button type="button"
-                                            x-on:click="openPhoto({{ \Illuminate\Support\Js::from([
-                                                'url' => route('files.show', ['path' => $damagePhoto]),
-                                                'code' => $unit?->inventory_code,
-                                                'name' => $loanItem?->item?->name,
-                                                'specification' => $specification,
-                                                'date' => $checkedAt?->format('d M Y H:i'),
-                                                'notes' => $assignment->return_notes,
-                                                'officer' => $assignment->confirmer?->name,
-                                            ]) }})"
-                                            class="mt-2 inline-flex items-center gap-1 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[11px] font-bold text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-950/30">
-                                        <span class="material-icons-round text-sm">photo_camera</span>
-                                        Lihat foto bukti kerusakan
-                                    </button>
-                                @elseif ($damagePhoto)
-                                    <p class="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 dark:text-red-300">
-                                        <span class="material-icons-round text-sm">photo_camera</span> Foto bukti tersedia (akses petugas)
-                                    </p>
-                                @endif
-                            </article>
-                        @empty
-                            <div class="col-span-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                Tidak ada unit fisik yang cocok dengan pencarian/filter.
-                                <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-brand-700 underline dark:text-brand-300">Hapus filter</a>
-                            </div>
-                        @endforelse
+                    <div role="region" aria-label="Daftar unit barang" tabindex="0"
+                         class="max-h-[26rem] overflow-y-auto overscroll-contain rounded-xl px-1 pb-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            @forelse ($unitAssignments as $assignment)
+                                @php
+                                    $unit = $assignment->unit;
+                                    $loanItem = $assignment->loanItem;
+                                    $specification = $unit?->specification?->displayName()
+                                        ?: ($loanItem?->item?->specification ?: 'Spesifikasi belum dicatat');
+                                    $checkedAt = $assignment->confirmed_at ?? $assignment->returned_at;
+                                    $damagePhoto = $assignment->damage_photo_path;
+                                @endphp
+                                <article class="flex h-full flex-col rounded-xl border p-3 text-xs {{ $damagePhoto ? 'border-red-200 bg-red-50/30 dark:border-red-900/60 dark:bg-red-950/20' : 'border-slate-200 dark:border-slate-700' }}">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <p class="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $loanItem?->item?->name ?? '-' }}</p>
+                                            <p class="truncate text-slate-500 dark:text-slate-400" title="{{ $specification }}">{{ $specification }}</p>
+                                        </div>
+                                        <div class="flex shrink-0 flex-col items-end gap-1">
+                                            <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Kondisi</span>
+                                            <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ ($assignment->condition_in ?? $unit?->condition)?->isDamaged() ? 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300' }}">
+                                                {{ ($assignment->condition_in ?? $unit?->condition)?->label() ?? '—' }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <dl class="mt-2 space-y-1 text-slate-600 dark:text-slate-300">
+                                        <div class="flex items-start gap-1.5">
+                                            <dt class="shrink-0">
+                                                <span class="material-icons-round text-[13px] text-slate-400" aria-hidden="true">qr_code_2</span>
+                                                <span class="sr-only">Kode inventaris</span>
+                                            </dt>
+                                            <dd class="min-w-0 break-all font-mono text-[11px] font-bold text-slate-800 dark:text-slate-100">{{ $unit?->inventory_code ?? '-' }}</dd>
+                                        </div>
+                                        @if ($loanItem?->item?->brand || $loanItem?->item?->model_type)
+                                            <div class="flex items-start gap-1.5">
+                                                <dt class="shrink-0">
+                                                    <span class="material-icons-round text-[13px] text-slate-400" aria-hidden="true">sell</span>
+                                                    <span class="sr-only">Merek dan model</span>
+                                                </dt>
+                                                <dd class="min-w-0">{{ trim(($loanItem?->item?->brand ?? '').' '.($loanItem?->item?->model_type ?? '')) }}</dd>
+                                            </div>
+                                        @endif
+                                        <div class="flex items-start gap-1.5">
+                                            <dt class="shrink-0">
+                                                <span class="material-icons-round text-[13px] text-slate-400" aria-hidden="true">place</span>
+                                                <span class="sr-only">Lokasi</span>
+                                            </dt>
+                                            <dd class="min-w-0">{{ $unit?->locationLabel() ?? '-' }}</dd>
+                                        </div>
+                                    </dl>
+
+                                    @if ($assignment->return_notes)
+                                        <p class="mt-2 line-clamp-2 rounded-lg bg-slate-50 px-2 py-1.5 italic text-slate-600 dark:bg-slate-800/70 dark:text-slate-300" title="{{ $assignment->return_notes }}">Catatan: {{ $assignment->return_notes }}</p>
+                                    @endif
+
+                                    <div class="mt-auto pt-2">
+                                        @if ($damagePhoto && $canViewDamagePhotos)
+                                            <button type="button"
+                                                    x-on:click="openPhoto({{ \Illuminate\Support\Js::from([
+                                                        'url' => route('files.show', ['path' => $damagePhoto]),
+                                                        'code' => $unit?->inventory_code,
+                                                        'name' => $loanItem?->item?->name,
+                                                        'specification' => $specification,
+                                                        'date' => $checkedAt?->format('d M Y H:i'),
+                                                        'notes' => $assignment->return_notes,
+                                                        'officer' => $assignment->confirmer?->name,
+                                                    ]) }})"
+                                                    class="inline-flex items-center gap-1 rounded-lg border border-red-300 bg-white px-2.5 py-1.5 text-[11px] font-bold text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-950/30">
+                                                <span class="material-icons-round text-sm">photo_camera</span>
+                                                Lihat foto bukti kerusakan
+                                            </button>
+                                        @elseif ($damagePhoto)
+                                            <p class="inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 dark:text-red-300">
+                                                <span class="material-icons-round text-sm">photo_camera</span> Foto bukti tersedia (akses petugas)
+                                            </p>
+                                        @endif
+
+                                        <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 pt-2 dark:border-slate-700/80 {{ $damagePhoto ? 'mt-2' : '' }}">
+                                            <span class="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                                {{ ($assignment->return_status ?? \App\Enums\ReturnStatus::BELUM_DIPERIKSA)->label() }}
+                                            </span>
+                                            <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                                                {{ $assignment->returned_at ? 'Kembali' : 'Dipinjam' }}
+                                                @if ($checkedAt) • {{ $checkedAt->format('d M Y H:i') }} @endif
+                                            </span>
+                                        </div>
+                                    </div>
+                                </article>
+                            @empty
+                                <div class="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                                    <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">search_off</span>
+                                    <p class="mt-1 font-semibold">Belum ada unit.</p>
+                                    <a href="{{ route('loans.show', $loan) }}" class="mt-1 inline-flex items-center font-semibold text-brand-700 underline dark:text-brand-300">Hapus semua filter</a>
+                                </div>
+                            @endforelse
+                        </div>
                     </div>
 
                     {{-- Popup bukti kerusakan --}}

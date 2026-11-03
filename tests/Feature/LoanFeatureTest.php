@@ -211,4 +211,33 @@ class LoanFeatureTest extends TestCase
             '2026-12-14'
         );
     }
+
+    public function test_daftar_peminjaman_dapat_dicari_berdasarkan_tujuan_peminjam_barang_dan_id(): void
+    {
+        $loan = app(LoanService::class)->requestLoan(
+            $this->guruBudi,
+            [['item_id' => $this->kamera->id, 'qty' => 1]],
+            'Praktik multimedia untuk kelas XI',
+            '2026-12-15',
+            '2026-12-16'
+        );
+
+        $this->actingAs($this->wakasek);
+
+        $this->get(route('loans.index', ['search' => 'Praktik multimedia']))
+            ->assertOk()
+            ->assertSee('Praktik multimedia untuk kelas XI');
+
+        $this->get(route('loans.index', ['search' => 'Kamera Video 4K']))
+            ->assertOk()
+            ->assertSee('Praktik multimedia untuk kelas XI');
+
+        $this->get(route('loans.index', ['search' => 'Budi']))
+            ->assertOk()
+            ->assertSee('Praktik multimedia untuk kelas XI');
+
+        $this->get(route('loans.index', ['search' => (string) $loan->id]))
+            ->assertOk()
+            ->assertSee('Praktik multimedia untuk kelas XI');
+    }
 }

@@ -20,24 +20,24 @@
         body { margin: 0; padding: 1pt; font-family: Helvetica, Arial, sans-serif; color: #111827; }
 
         .label {
-            width: 252pt;
-            height: 102pt;
+            width: 210pt;
+            height: 58pt;
             border: 2.5pt solid #2563eb;
             border-radius: 7pt;
-            padding: 9pt 10pt 6pt;
+            padding: 7pt 9pt 5pt;
         }
 
         table.inner { width: 100%; border-collapse: collapse; table-layout: fixed; }
         table.inner td { padding: 0; vertical-align: middle; }
 
-        .logo-cell { width: 50pt; text-align: left; }
-        .logo-cell img { max-width: 46pt; max-height: 46pt; }
-        .logo-fallback { font-size: 7pt; font-weight: bold; color: #475569; line-height: 1.2; }
+        .logo-cell { width: 40pt; text-align: left; }
+        .logo-cell img { max-width: 39pt; max-height: 39pt; }
+        .logo-fallback { font-size: 6pt; font-weight: bold; color: #475569; line-height: 1.2; }
 
-        .codes { padding-left: 9pt; text-align: center; }
+        .codes { padding-left: 8pt; text-align: center; }
 
         .nama {
-            font-size: 11.5pt;
+            font-size: 9pt;
             font-weight: bold;
             text-transform: uppercase;
             line-height: 1.1;
@@ -52,27 +52,27 @@
         }
 
         .kode-unit {
-            margin-top: 2.5pt;
+            margin-top: 2pt;
             font-family: 'Courier New', monospace;
-            font-size: 17pt;
+            font-size: 12pt;
             font-weight: bold;
-            letter-spacing: 0.8pt;
+            letter-spacing: 0.5pt;
             line-height: 1.1;
             white-space: nowrap;
             color: #1c398e;
         }
 
-        .qr-cell { width: 44pt; text-align: right; }
-        .qr-cell img { width: 42pt; height: 42pt; }
+        .qr-cell { width: 40pt; text-align: right; }
+        .qr-cell img { width: 36pt; height: 36pt; }
 
         .divider {
-            margin-top: 13pt;
+            margin-top: 5pt;
             border-top: 1pt solid #a9c4ea;
         }
 
         .footer {
-            margin-top: 6pt;
-            font-size: 8.5pt;
+            margin-top: 1pt;
+            font-size: 7.5pt;
             font-weight: bold;
             letter-spacing: 0.7pt;
             text-align: center;

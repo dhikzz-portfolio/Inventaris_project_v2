@@ -11,7 +11,7 @@
 
 {{-- Peminjaman --}}
 <x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isPeminjam() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
-<x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" label="Peminjaman Saya" />
+<x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" :label="$isWakasek ? 'Daftar Peminjaman' : 'Peminjaman Saya'" />
 
 {{-- Scan universal: semua pengguna yang sudah login boleh memindai. --}}
 <x-menu-link :href="route('scan')" :active="request()->routeIs('scan') || request()->routeIs('scan.resolve')" icon="qr_code_scanner" label="Scan Inventaris" />

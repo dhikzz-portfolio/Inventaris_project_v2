@@ -37,9 +37,15 @@
         'DIBATALKAN' => ['Dibatalkan', $counts['DIBATALKAN']],
     ])
 
-    <nav class="mb-4 flex flex-wrap gap-2" aria-label="Filter status peminjaman">
+    <nav
+        x-data="{ page: {{ filled($status ?? null) ? 2 : 1 }} }"
+        class="mb-4 flex flex-wrap items-center gap-2"
+        aria-label="Filter status peminjaman"
+    >
         @foreach ($tabs as $key => [$label, $count])
-            <a href="{{ route('loans.index', array_filter(['status' => $key])) }}"
+            <a href="{{ route('loans.index', array_filter(['status' => $key, 'search' => $search], fn ($value) => $value !== null && $value !== '')) }}"
+               x-show="page === {{ $key === '' ? 1 : 2 }}"
+               x-cloak
                @if (($status ?? '') === $key) aria-current="page" @endif
                @class([
                    'inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm',
@@ -47,14 +53,55 @@
                    'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800' => ($status ?? '') !== $key,
                ])>
                 {{ $label }}
-                <span @class([
-                    'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                    'bg-white/20 text-white' => ($status ?? '') === $key,
-                    'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => ($status ?? '') !== $key,
-                ])>{{ $count }}</span>
+                @if ($key !== '')
+                    <span @class([
+                        'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+                        'bg-white/20 text-white' => ($status ?? '') === $key,
+                        'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => ($status ?? '') !== $key,
+                    ])>{{ $count }}</span>
+                @endif
             </a>
         @endforeach
+
+        <div class="inline-flex min-h-10 items-center" aria-label="Navigasi halaman filter">
+            <button type="button"
+                    x-on:click="page = page === 1 ? 2 : 1"
+                    x-bind:aria-label="page === 1 ? 'Tampilkan filter berikutnya' : 'Tampilkan filter sebelumnya'"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-brand-300">
+                <span class="material-icons-round text-lg" aria-hidden="true" x-text="page === 1 ? 'chevron_right' : 'chevron_left'"></span>
+            </button>
+        </div>
     </nav>
+
+    <form method="GET" action="{{ route('loans.index') }}" class="mb-4 flex flex-col gap-2 sm:flex-row">
+        @if (filled($status ?? null))
+            <input type="hidden" name="status" value="{{ $status }}">
+        @endif
+        <label for="loan-search" class="sr-only">Cari peminjaman</label>
+        <div class="relative min-w-0 flex-1">
+            <span class="material-icons-round pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true">search</span>
+            <input
+                id="loan-search"
+                type="search"
+                name="search"
+                value="{{ $search }}"
+                maxlength="100"
+                placeholder="Cari peminjam, tujuan, kegiatan, barang, atau ID"
+                class="min-h-10 w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500"
+            >
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 sm:flex-none">
+                Cari
+            </button>
+            @if ($search !== '')
+                <a href="{{ route('loans.index', array_filter(['status' => $status])) }}"
+                   class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    Hapus
+                </a>
+            @endif
+        </div>
+    </form>
 
     <div class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 md:block">
         <div class="overflow-x-auto">
@@ -128,8 +175,10 @@
                         <tr>
                             <td colspan="{{ $isSelfServiceBorrower ? 5 : 6 }}" class="px-5 py-14 text-center">
                                 <span class="material-icons-round text-4xl text-slate-300 dark:text-slate-600" aria-hidden="true">inventory_2</span>
-                                <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ $isSelfServiceBorrower ? 'Belum ada pengajuan peminjaman' : 'Belum ada data peminjaman' }}</p>
-                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $isSelfServiceBorrower ? 'Pengajuan Anda akan ditampilkan di sini.' : 'Data peminjaman akan ditampilkan di sini.' }}</p>
+                                <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ $search !== '' ? 'Tidak ada peminjaman yang cocok dengan pencarian.' : ($isSelfServiceBorrower ? 'Belum ada pengajuan peminjaman' : 'Belum ada data peminjaman') }}</p>
+                                @if ($search === '')
+                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $isSelfServiceBorrower ? 'Pengajuan Anda akan ditampilkan di sini.' : 'Data peminjaman akan ditampilkan di sini.' }}</p>
+                                @endif
                             </td>
                         </tr>
                     @endforelse
@@ -138,67 +187,50 @@
         </div>
     </div>
 
-    <div class="grid gap-3 md:hidden">
+    <div class="grid max-h-[65vh] gap-2 overflow-y-auto overscroll-contain pr-1 md:hidden">
         @forelse ($loans as $loan)
-            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <div class="flex items-start justify-between gap-3">
+            <article class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div class="flex items-center justify-between gap-2">
                     <div class="min-w-0">
                         @unless ($isSelfServiceBorrower)
-                            <p class="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{{ $loan->borrower?->name ?? 'Peminjam' }}</p>
+                            <p class="truncate text-[11px] text-slate-500 dark:text-slate-400">{{ $loan->borrower?->name ?? 'Peminjam' }}</p>
                         @endunless
-                        <h3 class="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-slate-900 dark:text-white">{{ $loan->purpose }}</h3>
+                        <h3 class="line-clamp-1 text-sm font-semibold text-slate-900 dark:text-white">{{ $loan->purpose }}</h3>
                     </div>
-                    <span class="inline-flex shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
+                    <span class="inline-flex shrink-0 rounded-full px-2 py-1 text-[10px] font-bold {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
                 </div>
 
-                @if ($loan->event)
-                    <p class="mt-2 inline-flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300">
-                        <span class="material-icons-round text-sm" aria-hidden="true">event</span>
-                        {{ $loan->event->name }}
-                    </p>
-                @endif
-
-                <div class="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70">
-                    <div class="min-w-0">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Mulai</p>
-                        <p class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">{{ $loan->start_date->format('d/m/Y, H:i') }}</p>
-                    </div>
-                    <div class="min-w-0">
-                        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Batas pengembalian</p>
-                        <p class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">{{ $loan->due_date->format('d/m/Y, H:i') }}</p>
-                    </div>
-                </div>
-
-                <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-                    <span class="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
-                        <span class="material-icons-round text-base text-slate-400" aria-hidden="true">inventory_2</span>
-                        {{ $loan->loanItems->count() }} jenis barang
-                    </span>
-                    @if ($loan->needs_high_value_approval)
-                        <span class="text-[10px] font-semibold text-purple-700 dark:text-purple-300">Perlu persetujuan khusus</span>
+                <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span>{{ $loan->start_date->format('d/m/Y') }} – {{ $loan->due_date->format('d/m/Y') }}</span>
+                    <span>{{ $loan->loanItems->count() }} jenis barang</span>
+                    @if ($loan->event)
+                        <span class="inline-flex items-center gap-1 text-brand-700 dark:text-brand-300">
+                            <span class="material-icons-round text-sm" aria-hidden="true">event</span>
+                            {{ $loan->event->name }}
+                        </span>
                     @endif
                 </div>
 
                 @if ($loan->isOverdue())
-                    <p class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                    <p class="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 dark:text-red-300">
                         <span class="material-icons-round text-sm" aria-hidden="true">warning</span>
                         Terlambat {{ $loan->due_date->diffForHumans(now()) }}
                     </p>
-                @elseif ($loan->status === \App\Enums\LoanStatus::APPROVED)
-                    <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Menunggu serah terima barang.</p>
                 @endif
 
                 <a href="{{ route('loans.show', $loan) }}"
-                   class="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-brand-200 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-slate-700 dark:text-brand-300 dark:hover:bg-slate-800">
+                   class="mt-2 inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">
                     Lihat detail
-                    <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
+                    <span class="material-icons-round text-sm" aria-hidden="true">arrow_forward</span>
                 </a>
             </article>
         @empty
             <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center dark:border-slate-700 dark:bg-slate-900">
                 <span class="material-icons-round text-4xl text-slate-300 dark:text-slate-600" aria-hidden="true">inventory_2</span>
-                <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ $isSelfServiceBorrower ? 'Belum ada pengajuan peminjaman' : 'Belum ada data peminjaman' }}</p>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $isSelfServiceBorrower ? 'Pengajuan Anda akan ditampilkan di sini.' : 'Data peminjaman akan ditampilkan di sini.' }}</p>
+                <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ $search !== '' ? 'Tidak ada peminjaman yang cocok dengan pencarian.' : ($isSelfServiceBorrower ? 'Belum ada pengajuan peminjaman' : 'Belum ada data peminjaman') }}</p>
+                @if ($search === '')
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $isSelfServiceBorrower ? 'Pengajuan Anda akan ditampilkan di sini.' : 'Data peminjaman akan ditampilkan di sini.' }}</p>
+                @endif
             </div>
         @endforelse
     </div>

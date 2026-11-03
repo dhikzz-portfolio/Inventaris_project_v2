@@ -1,22 +1,28 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-                <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
                     <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Permintaan Pinjam</h2>
-                    <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">{{ $loans->count() }} MENUNGGU</span>
+                    <span class="shrink-0 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">{{ $loans->count() }} MENUNGGU</span>
                 </div>
-                <p class="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                <p class="mt-1 max-w-3xl text-xs leading-5 text-slate-500 dark:text-slate-400 sm:text-sm sm:leading-relaxed">
                     @if (auth()->user()->isKetuaLaboran())
-                        Tinjau permintaan pinjaman dari seluruh laboratorium. Untuk barang bernilai tinggi, persetujuan Ketua Laboran menjadi tahap awal sebelum ditinjau Wakasek.
+                        Tinjau permintaan dari seluruh laboratorium. Barang bernilai tinggi perlu persetujuan Ketua Laboran lalu Wakasek.
                     @elseif (auth()->user()->isSuperAdmin())
-                        Tinjau permintaan pinjaman yang menunggu persetujuan. Barang bernilai tinggi memerlukan persetujuan Wakasek pada tahap akhir.
+                        Tinjau permintaan yang menunggu persetujuan. Barang bernilai tinggi memerlukan persetujuan akhir Wakasek.
                     @else
-                        Tinjau permintaan pinjaman sesuai cakupan laboratorium Anda. Barang bernilai tinggi memerlukan persetujuan Wakasek pada tahap berikutnya.
+                        Tinjau permintaan sesuai cakupan laboratorium. Barang bernilai tinggi perlu persetujuan Wakasek.
                     @endif
                 </p>
             </div>
-            <a href="{{ route('loans.returns') }}" class="inline-flex min-h-10 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">Pengembalian <span aria-hidden="true">→</span></a>
+            <a href="{{ route('loans.returns') }}"
+               aria-label="Lihat pengembalian"
+               class="inline-flex h-9 w-9 shrink-0 items-center justify-center gap-1 rounded-xl border border-slate-200 text-brand-700 transition hover:bg-brand-50 sm:w-auto sm:px-3 dark:border-slate-700 dark:text-brand-300 dark:hover:bg-slate-800">
+                <span class="material-icons-round text-lg" aria-hidden="true">assignment_return</span>
+                <span class="hidden text-sm font-semibold sm:inline">Pengembalian</span>
+                <span class="hidden sm:inline" aria-hidden="true">→</span>
+            </a>
         </div>
     </x-slot>
 

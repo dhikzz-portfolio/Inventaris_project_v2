@@ -325,134 +325,185 @@
                     </div>
                 @endif
 
-                <div class="divide-y divide-slate-100 dark:divide-slate-700">
-                    @foreach ($group['rows'] as $row)
-                        @php($index = $row['row_index'])
-                        @php($isMismatch = in_array($index, $mismatches, true))
-                        @php($unitStatus = $row['returned']
-                            ? \App\Enums\ReturnStatus::SUDAH_DIKONFIRMASI
-                            : (in_array($index, $selected)
-                                ? \App\Enums\ReturnStatus::MENUNGGU_KONFIRMASI
-                                : \App\Enums\ReturnStatus::BELUM_DIPERIKSA))
-                        <div class="p-4 sm:p-5" id="return-unit-{{ $index }}" wire:key="unit-row-{{ $row['assignment_id'] ?? 'legacy-' . $index }}">
-                            <div @class([
-                                'rounded-xl border p-3 sm:p-4',
-                                'border-orange-300 bg-orange-50/40 dark:border-orange-900 dark:bg-orange-950/20' => $isMismatch,
-                                'border-slate-200 dark:border-slate-700' => ! $isMismatch,
-                                'ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-slate-900' => $focusedIndex === $index,
-                            ])>
-                                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                    <div class="flex min-w-0 items-start gap-3">
-                                        @if ($row['has_assignment'] && ! $row['returned'])
-                                            <input type="checkbox" value="{{ $index }}" wire:model.live="selected"
-                                                aria-label="Pilih unit {{ $row['inventory_code'] ?? $row['item_name'] }}"
-                                                class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950">
-                                        @endif
+                <div class="px-4 pb-4 pt-3 sm:px-5">
+                    <div class="flex items-center justify-between gap-2 pb-2">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Daftar unit</p>
+                        @if (count($group['rows']) > 4)
+                            <span class="inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+                                <span class="material-icons-round text-sm" aria-hidden="true">unfold_more</span>
+                                Gulir ke bawah untuk melihat unit lain
+                            </span>
+                        @endif
+                    </div>
 
-                                        <div class="min-w-0">
-                                            <div class="flex flex-wrap items-center gap-2">
-                                                <span class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $row['item_name'] }}</span>
-                                                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $unitStatus->badgeClass() }}">
-                                                    {{ $unitStatus->label() }}
-                                                </span>
+                    <div role="region" aria-label="Daftar unit {{ $group['item_name'] }}" tabindex="0"
+                         class="max-h-[30rem] overflow-y-auto overscroll-contain rounded-xl px-1 pb-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 sm:max-h-[40rem]">
+                        <div class="space-y-3">
+                            @foreach ($group['rows'] as $row)
+                                @php($index = $row['row_index'])
+                                @php($isMismatch = in_array($index, $mismatches, true))
+                                @php($unitStatus = $row['returned']
+                                    ? \App\Enums\ReturnStatus::SUDAH_DIKONFIRMASI
+                                    : (in_array($index, $selected)
+                                        ? \App\Enums\ReturnStatus::MENUNGGU_KONFIRMASI
+                                        : \App\Enums\ReturnStatus::BELUM_DIPERIKSA))
+                                <div class="min-w-0" id="return-unit-{{ $index }}" wire:key="unit-row-{{ $row['assignment_id'] ?? 'legacy-' . $index }}">
+                                    <div @class([
+                                        'flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm dark:bg-slate-900',
+                                        'border-orange-300 dark:border-orange-900' => $isMismatch,
+                                        'border-slate-200 dark:border-slate-700' => ! $isMismatch,
+                                        'ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-slate-900' => $focusedIndex === $index,
+                                    ])>
+                                        {{-- Kepala kartu: judul + status pemeriksaan --}}
+                                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+                                            <div class="flex min-w-0 items-center gap-2">
+                                                @if ($row['has_assignment'] && ! $row['returned'])
+                                                    <input type="checkbox" value="{{ $index }}" wire:model.live="selected"
+                                                        aria-label="Pilih unit {{ $row['inventory_code'] ?? $row['item_name'] }}"
+                                                        class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950">
+                                                @endif
+                                                <h5 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pengembalian Aset</h5>
                                             </div>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400">{{ $row['specification'] ?: 'Spesifikasi tidak tersedia' }}</p>
+                                            <span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $unitStatus->badgeClass() }}">
+                                                {{ $unitStatus->label() }}
+                                            </span>
+                                        </div>
 
-                                            @if ($row['inventory_code'])
-                                                <div class="mt-1 break-all font-mono text-sm font-bold text-slate-800 dark:text-slate-100">
-                                                    {{ $row['inventory_code'] }}
-                                                </div>
-                                                <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                                                    {{ $row['unit_location'] ?? $row['room_code'] }}
-                                                </div>
-                                            @else
-                                                <div class="mt-1 break-all font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                                                    {{ $row['internal_id'] }} • Ruang asal: {{ $row['room_code'] }}
-                                                </div>
-                                            @endif
+                                        {{-- Jalur aset: nama barang › spesifikasi › kode unit --}}
+                                        <nav aria-label="Jalur aset"
+                                            class="flex flex-wrap items-center gap-x-1 gap-y-0.5 border-b border-slate-100 bg-slate-50/70 px-4 py-1.5 text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                                            <span>{{ $row['item_name'] }}</span>
+                                            <span class="material-icons-round text-sm text-slate-300 dark:text-slate-600" aria-hidden="true">chevron_right</span>
+                                            <span>{{ $row['specification'] ?: 'Spesifikasi tidak tersedia' }}</span>
+                                            <span class="material-icons-round text-sm text-slate-300 dark:text-slate-600" aria-hidden="true">chevron_right</span>
+                                            <span aria-current="page" class="font-mono font-semibold text-slate-700 dark:text-slate-200">
+                                                {{ $row['inventory_code'] ?? $row['internal_id'] }}
+                                            </span>
+                                        </nav>
 
-                                            <div class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                                Kondisi keluar: {{ \App\Enums\Condition::from($row['condition_out'])->label() }}
-                                                @if ($row['returned'] && $row['confirmed_at'])
-                                                    • Dikonfirmasi {{ $row['confirmed_at']->format('d/m/Y H:i') }}
-                                                    @if ($row['confirmed_by_name']) oleh {{ $row['confirmed_by_name'] }} @endif
+                                        <div class="grid flex-1 grid-cols-1 md:grid-cols-[15rem_1fr]">
+                                            {{-- Panel kiri: identitas dan riwayat unit --}}
+                                            <div class="border-b border-slate-200 bg-brand-50/60 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/40 md:border-b-0 md:border-e">
+                                                <p class="truncate font-bold text-slate-900 dark:text-slate-100" title="{{ $row['item_name'] }}">{{ $row['item_name'] }}</p>
+                                                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $row['specification'] ?: 'Spesifikasi tidak tersedia' }}</p>
+
+                                                <dl class="mt-3 space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
+                                                    <div>
+                                                        <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Kode Aset</dt>
+                                                        <dd class="mt-0.5 break-all font-mono text-xs font-bold text-brand-700 dark:text-brand-300">
+                                                            {{ $row['inventory_code'] ?? $row['internal_id'] }}
+                                                        </dd>
+                                                    </div>
+                                                    @if (! empty($row['qr']))
+                                                        <div class="flex justify-center rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700">
+                                                            <img src="{{ $row['qr'] }}" loading="lazy"
+                                                                alt="QR unit {{ $row['inventory_code'] ?? $row['item_name'] }}"
+                                                                class="h-32 w-32">
+                                                        </div>
+                                                    @endif
+                                                    <div>
+                                                        <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Lokasi</dt>
+                                                        <dd class="mt-0.5 text-xs text-slate-700 dark:text-slate-200">
+                                                            {{ $row['unit_location'] ?? $row['room_code'] }}
+                                                        </dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Kondisi Keluar</dt>
+                                                        <dd class="mt-0.5 text-xs text-slate-700 dark:text-slate-200">
+                                                            {{ \App\Enums\Condition::from($row['condition_out'])->label() }}
+                                                        </dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Dikonfirmasi</dt>
+                                                        <dd class="mt-0.5 text-xs text-slate-700 dark:text-slate-200">
+                                                            @if ($row['returned'] && $row['confirmed_at'])
+                                                                {{ $row['confirmed_at']->format('d/m/Y H:i') }}
+                                                                @if ($row['confirmed_by_name'])
+                                                                    <span class="block text-[11px] text-slate-500 dark:text-slate-400">oleh {{ $row['confirmed_by_name'] }}</span>
+                                                                @endif
+                                                            @else
+                                                                <span class="text-slate-500 dark:text-slate-400">Belum dikonfirmasi</span>
+                                                            @endif
+                                                        </dd>
+                                                    </div>
+                                                </dl>
+                                            </div>
+
+                                            {{-- Panel kanan: isian pemeriksaan --}}
+                                            <div class="flex flex-col p-4">
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                    <div>
+                                                        @if ($row['has_assignment'])
+                                                            <x-input-label value="Jumlah kembali" />
+                                                            <div class="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                                                1 unit ({{ $row['inventory_code'] ?? '-' }})
+                                                            </div>
+                                                        @else
+                                                            <x-input-label value="Jumlah Kembali *" />
+                                                            <input type="number" min="0" max="{{ $row['remaining'] }}"
+                                                                wire:model.live="rows.{{ $index }}.qty_returned"
+                                                                @disabled($row['returned'])
+                                                                class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                        @endif
+                                                    </div>
+
+                                                    <div>
+                                                        <x-input-label value="Kondisi Akhir *" />
+                                                        <select wire:model.live="rows.{{ $index }}.condition_in" @disabled($row['returned'])
+                                                            class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                            @foreach ($conditions as $condition)
+                                                                <option value="{{ $condition->value }}">{{ $condition->label() }}</option>
+                                                            @endforeach
+                                                        </select>
+
+                                                        @if (($row['condition_in'] ?? 'BAIK') !== 'BAIK' && ! $row['returned'])
+                                                            <div class="mt-2">
+                                                                <x-input-label value="Foto bukti kerusakan *" />
+                                                                <input type="file" wire:model.live="rows.{{ $index }}.damage_photo"
+                                                                    accept="image/*"
+                                                                    class="mt-1 block w-full text-xs text-slate-600 file:me-2 file:rounded file:border-0 file:bg-red-50 file:px-2 file:py-1.5 file:text-red-700 dark:text-slate-300 dark:file:bg-red-950/50 dark:file:text-red-300">
+                                                                <div wire:loading wire:target="rows.{{ $index }}.damage_photo" class="mt-1 text-[11px] text-slate-500">
+                                                                    Mengunggah...
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                </div>
+
+                                                <div class="mt-3">
+                                                    <x-input-label value="Dikembalikan ke Ruangan *" />
+                                                    <select wire:model.live="rows.{{ $index }}.returned_room_id" @disabled($row['returned'])
+                                                        class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 @if ($isMismatch) border-orange-400 dark:border-orange-500 @endif">
+                                                        @foreach ($rooms as $room)
+                                                            <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
+                                                <div class="mt-3">
+                                                    <x-input-label value="Catatan kondisi / kerusakan (opsional)" />
+                                                    <textarea rows="2" wire:model.live="rows.{{ $index }}.return_notes" @disabled($row['returned'])
+                                                        placeholder="Contoh: retak pada rangka, kabel terkelupas, atau catatan pemeriksaan lain"
+                                                        class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"></textarea>
+                                                </div>
+
+                                                @if (! $row['returned'])
+                                                    <div class="mt-auto flex justify-end pt-3">
+                                                        <button type="button" wire:click="confirmOne({{ $index }})" wire:loading.attr="disabled"
+                                                            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700 disabled:opacity-50">
+                                                            <span class="material-icons-round text-base">task_alt</span>
+                                                            Konfirmasi unit ini
+                                                        </button>
+                                                    </div>
                                                 @endif
                                             </div>
-                                            @if ($row['returned'] && filled($row['return_notes']))
-                                                <div class="mt-1 text-xs italic text-slate-600 dark:text-slate-300">
-                                                    Catatan: {{ $row['return_notes'] }}
-                                                </div>
-                                            @endif
                                         </div>
                                     </div>
-
-                                    @if (! $row['returned'])
-                                        <button type="button" wire:click="confirmOne({{ $index }})" wire:loading.attr="disabled"
-                                            class="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700 disabled:opacity-50">
-                                            <span class="material-icons-round text-base">task_alt</span>
-                                            Konfirmasi unit ini
-                                        </button>
-                                    @endif
                                 </div>
-
-                                <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                                    <div>
-                                        @if ($row['has_assignment'])
-                                            <x-input-label value="Jumlah kembali" />
-                                            <div class="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                                                1 unit ({{ $row['inventory_code'] ?? '-' }})
-                                            </div>
-                                        @else
-                                            <x-input-label value="Jumlah Kembali *" />
-                                            <input type="number" min="0" max="{{ $row['remaining'] }}"
-                                                wire:model.live="rows.{{ $index }}.qty_returned"
-                                                @disabled($row['returned'])
-                                                class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                        @endif
-                                    </div>
-
-                                    <div>
-                                        <x-input-label value="Kondisi Akhir *" />
-                                        <select wire:model.live="rows.{{ $index }}.condition_in" @disabled($row['returned'])
-                                            class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                            @foreach ($conditions as $condition)
-                                                <option value="{{ $condition->value }}">{{ $condition->label() }}</option>
-                                            @endforeach
-                                        </select>
-
-                                        @if (($row['condition_in'] ?? 'BAIK') !== 'BAIK' && ! $row['returned'])
-                                            <div class="mt-2">
-                                                <x-input-label value="Foto bukti kerusakan *" />
-                                                <input type="file" wire:model.live="rows.{{ $index }}.damage_photo"
-                                                    accept="image/*"
-                                                    class="mt-1 block w-full text-xs text-slate-600 file:me-2 file:rounded file:border-0 file:bg-red-50 file:px-2 file:py-1.5 file:text-red-700 dark:text-slate-300 dark:file:bg-red-950/50 dark:file:text-red-300">
-                                                <div wire:loading wire:target="rows.{{ $index }}.damage_photo" class="mt-1 text-[11px] text-slate-500">
-                                                    Mengunggah...
-                                                </div>
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <div>
-                                        <x-input-label value="Dikembalikan ke Ruangan *" />
-                                        <select wire:model.live="rows.{{ $index }}.returned_room_id" @disabled($row['returned'])
-                                            class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 @if ($isMismatch) border-orange-400 dark:border-orange-500 @endif">
-                                            @foreach ($rooms as $room)
-                                                <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="mt-3">
-                                    <x-input-label value="Catatan kondisi / kerusakan (opsional)" />
-                                    <textarea rows="2" wire:model.live="rows.{{ $index }}.return_notes" @disabled($row['returned'])
-                                        placeholder="Contoh: retak pada rangka, kabel terkelupas, atau catatan pemeriksaan lain"
-                                        class="mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"></textarea>
-                                </div>
-                            </div>
+                            @endforeach
                         </div>
-                    @endforeach
+                    </div>
                 </div>
             </section>
         @endforeach

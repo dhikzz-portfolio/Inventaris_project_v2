@@ -10,6 +10,7 @@ use App\Models\LoanItem;
 use App\Models\LoanItemUnit;
 use App\Models\Room;
 use App\Services\InventoryCodeService;
+use App\Services\LabelService;
 use App\Services\LoanService;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -126,6 +127,7 @@ class ReturnForm extends Component
             'assignment_id' => null,
             'unit_id' => null,
             'inventory_code' => null,
+            'qr' => null,
             'unit_location' => null,
             'unit_room_id' => null,
             'borrowed' => (int) $loanItem->qty_borrowed,
@@ -160,6 +162,7 @@ class ReturnForm extends Component
             'assignment_id' => $assignment->id,
             'unit_id' => $assignment->asset_unit_id,
             'inventory_code' => $unit?->inventory_code,
+            'qr' => $unit !== null ? app(LabelService::class)->unitQrDataUrl($unit) : null,
             'unit_location' => $unit?->locationLabel(),
             'unit_room_id' => $unit?->room_id,
             'borrowed' => 1,

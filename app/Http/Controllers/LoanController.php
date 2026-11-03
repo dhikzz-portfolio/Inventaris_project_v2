@@ -87,21 +87,42 @@ class LoanController extends Controller
     public function index(Request $request): View
     {
         $status = $request->query('status');
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim($validated['search'] ?? '');
+        $filteredLoans = fn () => $this->scopeFor($request)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $like = "%{$search}%";
+
+                    $query->where('purpose', 'like', $like)
+                        ->orWhereHas('borrower', fn ($borrower) => $borrower->where('name', 'like', $like))
+                        ->orWhereHas('event', fn ($event) => $event->where('name', 'like', $like))
+                        ->orWhereHas('loanItems.item', fn ($item) => $item->where('name', 'like', $like));
+
+                    if (ctype_digit($search)) {
+                        $query->orWhere('id', (int) $search);
+                    }
+                });
+            });
 
         return view('loans.index', [
-            'loans' => $this->scopeFor($request)
+            'loans' => $filteredLoans()
                 ->with(['borrower', 'event', 'loanItems.item'])
                 ->when($status, fn ($q) => $q->where('status', $status))
                 ->latest()
-                ->paginate(12),
+                ->paginate(12)
+                ->withQueryString(),
             'status' => $status,
+            'search' => $search,
             'counts' => [
-                'all' => $this->scopeFor($request)->count(),
-                'PENDING' => $this->scopeFor($request)->where('status', 'PENDING')->count(),
-                'APPROVED' => $this->scopeFor($request)->where('status', 'APPROVED')->count(),
-                'DIPINJAM' => $this->scopeFor($request)->where('status', 'DIPINJAM')->count(),
-                'SELESAI' => $this->scopeFor($request)->where('status', 'SELESAI')->count(),
-                'DIBATALKAN' => $this->scopeFor($request)->where('status', 'DIBATALKAN')->count(),
+                'all' => $filteredLoans()->count(),
+                'PENDING' => $filteredLoans()->where('status', 'PENDING')->count(),
+                'APPROVED' => $filteredLoans()->where('status', 'APPROVED')->count(),
+                'DIPINJAM' => $filteredLoans()->where('status', 'DIPINJAM')->count(),
+                'SELESAI' => $filteredLoans()->where('status', 'SELESAI')->count(),
+                'DIBATALKAN' => $filteredLoans()->where('status', 'DIBATALKAN')->count(),
             ],
         ]);
     }

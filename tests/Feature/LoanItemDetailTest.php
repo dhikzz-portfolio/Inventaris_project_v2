@@ -188,8 +188,27 @@ class LoanItemDetailTest extends TestCase
         $this->actingAs($this->laboran)
             ->get(route('loans.show', [$loan, 'item_search' => 'barang-yang-tidak-ada']))
             ->assertOk()
-            ->assertSee('Tidak ada unit fisik yang cocok')
-            ->assertSee('Hapus filter');
+            ->assertSee('Belum ada unit.')
+            ->assertSee('Hapus semua filter');
+    }
+
+    public function test_filter_aktif_dapat_dihapus_satu_per_satu_tanpa_menghapus_filter_lain(): void
+    {
+        [$catalog, $units] = $this->createCatalog(1, 'Kursi Filter Aktif');
+        $loan = $this->createLoan([[$catalog, $units]]);
+        $search = $units[0]->inventory_code;
+
+        $this->actingAs($this->laboran)
+            ->get(route('loans.show', [
+                $loan,
+                'item_search' => $search,
+                'item_category' => $this->category->id,
+            ]))
+            ->assertOk()
+            ->assertSee('Kategori: '.$this->category->name)
+            ->assertSee('Pencarian: '.$search)
+            ->assertSee(route('loans.show', ['loan' => $loan->id, 'item_search' => $search]))
+            ->assertSee(route('loans.show', ['loan' => $loan->id, 'item_category' => $this->category->id]));
     }
 
     public function test_rentang_tanggal_pemeriksaan_dan_pagination_tetap_akurat(): void

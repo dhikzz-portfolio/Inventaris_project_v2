@@ -25,7 +25,7 @@
         @endforeach
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
         @if (auth()->user()->canRecordActivities() || auth()->user()->managesInventory())
         <div class="self-start rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
@@ -75,96 +75,54 @@
         </div>
         @endif
 
-        <div class="{{ auth()->user()->canRecordActivities() || auth()->user()->managesInventory() ? 'lg:col-span-2' : 'lg:col-span-3' }} overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="hidden overflow-x-auto md:block">
-                <table class="w-full min-w-[760px] text-sm">
-                    <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                        <tr>
-                            <th class="text-left px-5 py-3">Kegiatan</th>
-                            <th class="text-left px-5 py-3">Penanggung Jawab</th>
-                            <th class="text-left px-5 py-3">Tanggal</th>
-                            <th class="text-left px-5 py-3">Status</th>
-                            <th class="text-center px-5 py-3">Peminjaman</th>
-                            <th class="text-center px-5 py-3">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                        @forelse ($events as $event)
-                            <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                                <td class="px-5 py-3">
-                                    <a href="{{ route('events.show', $event) }}" class="font-medium text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $event->name }}</a>
-                                    @if ($event->description)
-                                        <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($event->description, 70) }}</div>
-                                    @endif
-                                </td>
-                                <td class="px-5 py-3 text-xs text-slate-600 dark:text-slate-300">
-                                    {{ $event->picDisplayName() ?: '—' }}
-                                    @if ($event->picIsUserAccount())
-                                        <span class="block text-[10px] text-blue-600 dark:text-blue-300">akun terdaftar</span>
-                                    @endif
-                                </td>
-                                <td class="px-5 py-3 text-xs text-slate-500 dark:text-slate-400">
-                                    {{ $event->start_date->format('d/m/Y') }} — {{ $event->end_date->format('d/m/Y') }}
-                                </td>
-                                <td class="px-5 py-3">
-                                    <span class="text-[10px] font-bold px-2 py-1 rounded-full {{ $event->status->badgeClass() }}">{{ $event->status->label() }}</span>
-                                </td>
-                                <td class="px-5 py-3 text-center text-xs">
-                                    <strong>{{ $event->loans_count }}</strong> pinjam
-                                    <span class="block text-[10px] text-gray-400">{{ $event->loans->sum('loan_items_count') }} item</span>
-                                </td>
-                                <td class="px-5 py-3 text-center">
-                                    <a href="{{ route('events.show', $event) }}" class="text-xs font-semibold text-blue-700 hover:underline">Detail →</a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="6" class="px-5 py-10 text-center text-slate-400 text-sm">Belum ada kegiatan.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div class="divide-y divide-slate-100 md:hidden dark:divide-slate-800">
+        <div class="{{ auth()->user()->canRecordActivities() || auth()->user()->managesInventory() ? 'lg:col-span-2' : 'lg:col-span-3' }} min-w-0 self-start overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div role="region" aria-label="Daftar kegiatan" tabindex="0"
+                 class="max-h-[65vh] divide-y divide-slate-100 overflow-y-auto overscroll-contain focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:divide-slate-800 lg:max-h-[calc(100vh-12rem)]">
                 @forelse ($events as $event)
-                    <article class="space-y-3 p-4">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
-                                <a href="{{ route('events.show', $event) }}" class="line-clamp-2 text-sm font-semibold text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $event->name }}</a>
-                                @if ($event->description)
-                                    <p class="mt-1 line-clamp-2 text-[11px] text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($event->description, 90) }}</p>
-                                @endif
-                            </div>
-                            <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold {{ $event->status->badgeClass() }}">{{ $event->status->label() }}</span>
+                <article class="min-w-0 space-y-3 p-4 sm:p-5">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <a href="{{ route('events.show', $event) }}" class="break-words text-sm font-semibold text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $event->name }}</a>
+                            @if ($event->description)
+                                <p class="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($event->description, 90) }}</p>
+                            @endif
                         </div>
-                        <dl class="grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70">
-                            <div class="min-w-0">
-                                <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Penanggung jawab</dt>
-                                <dd class="mt-0.5 text-xs font-medium text-slate-700 dark:text-slate-200">
-                                    {{ $event->picDisplayName() ?: '—' }}
-                                    @if ($event->picIsUserAccount())
-                                        <span class="block text-[10px] text-blue-600 dark:text-blue-300">akun terdaftar</span>
-                                    @endif
-                                </dd>
-                            </div>
-                            <div class="min-w-0">
-                                <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Tanggal</dt>
-                                <dd class="mt-0.5 text-xs font-medium text-slate-700 dark:text-slate-200">{{ $event->start_date->format('d/m/Y') }} — {{ $event->end_date->format('d/m/Y') }}</dd>
-                            </div>
-                            <div class="col-span-2 min-w-0">
-                                <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Peminjaman</dt>
-                                <dd class="mt-0.5 text-xs font-medium text-slate-700 dark:text-slate-200">{{ $event->loans_count }} pinjam • {{ $event->loans->sum('loan_items_count') }} item</dd>
-                            </div>
-                        </dl>
-                        <a href="{{ route('events.show', $event) }}"
-                           class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-brand-200 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-slate-700 dark:text-brand-300 dark:hover:bg-slate-800">
-                            Lihat detail
-                            <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
-                        </a>
-                    </article>
+                        <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold {{ $event->status->badgeClass() }}">{{ $event->status->label() }}</span>
+                    </div>
+
+                    <dl class="grid grid-cols-1 gap-2 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 dark:bg-slate-800/70">
+                        <div class="min-w-0">
+                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Penanggung jawab</dt>
+                            <dd class="mt-0.5 break-words text-xs font-medium text-slate-700 dark:text-slate-200">
+                                {{ $event->picDisplayName() ?: '—' }}
+                                @if ($event->picIsUserAccount())
+                                    <span class="block text-[10px] text-blue-600 dark:text-blue-300">akun terdaftar</span>
+                                @endif
+                            </dd>
+                        </div>
+                        <div class="min-w-0">
+                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Tanggal</dt>
+                            <dd class="mt-0.5 text-xs font-medium text-slate-700 dark:text-slate-200">{{ $event->start_date->format('d/m/Y') }} — {{ $event->end_date->format('d/m/Y') }}</dd>
+                        </div>
+                        <div class="min-w-0 sm:col-span-2">
+                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Peminjaman</dt>
+                            <dd class="mt-0.5 text-xs font-medium text-slate-700 dark:text-slate-200">{{ $event->loans_count }} pinjam • {{ $event->loans->sum('loan_items_count') }} item</dd>
+                        </div>
+                    </dl>
+
+                    <a href="{{ route('events.show', $event) }}"
+                       class="inline-flex min-h-9 items-center gap-2 rounded-lg px-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">
+                        Lihat detail
+                        <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
+                    </a>
+                </article>
                 @empty
-                    <p class="px-5 py-10 text-center text-sm text-slate-400">Belum ada kegiatan.</p>
+                <p class="px-5 py-10 text-center text-sm text-slate-400">Belum ada kegiatan.</p>
                 @endforelse
             </div>
-            <div class="border-t border-slate-100 px-5 py-3 dark:border-slate-800">{{ $events->links() }}</div>
+            @if ($events->hasPages())
+                <div class="border-t border-slate-100 px-4 py-3 dark:border-slate-800">{{ $events->links() }}</div>
+            @endif
         </div>
     </div>
 </x-app-layout>

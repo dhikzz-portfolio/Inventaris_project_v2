@@ -13,7 +13,7 @@
 
         .label {
             width: 210pt;
-            height: 64pt;
+            height: 58pt;
             border: 2.5pt solid #2563eb;
             border-radius: 7pt;
             padding: 7pt 9pt 5pt;
@@ -23,14 +23,14 @@
         table.inner { width: 100%; border-collapse: collapse; table-layout: fixed; }
         table.inner td { padding: 0; vertical-align: middle; }
 
-        .logo-cell { width: 44pt; text-align: left; }
-        .logo-cell img { max-width: 40pt; max-height: 40pt; }
+        .logo-cell { width: 40pt; text-align: left; }
+        .logo-cell img { max-width: 39pt; max-height: 39pt; }
         .logo-fallback { font-size: 6pt; font-weight: bold; color: #475569; line-height: 1.2; }
 
         .codes { padding-left: 8pt; text-align: center; }
 
         .nama {
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: bold;
             text-transform: uppercase;
             line-height: 1.1;
@@ -47,7 +47,7 @@
         .kode-unit {
             margin-top: 2pt;
             font-family: 'Courier New', monospace;
-            font-size: 14pt;
+            font-size: 12pt;
             font-weight: bold;
             letter-spacing: 0.5pt;
             line-height: 1.1;
@@ -56,15 +56,15 @@
         }
 
         .qr-cell { width: 40pt; text-align: right; }
-        .qr-cell img { width: 38pt; height: 38pt; }
+        .qr-cell img { width: 36pt; height: 36pt; }
 
         .divider {
-            margin-top: 10pt;
+            margin-top: 5pt;
             border-top: 1pt solid #a9c4ea;
         }
 
         .footer {
-            margin-top: 4.5pt;
+            margin-top: 1pt;
             font-size: 7.5pt;
             font-weight: bold;
             letter-spacing: 0.6pt;

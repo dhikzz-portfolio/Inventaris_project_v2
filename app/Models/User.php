@@ -127,16 +127,61 @@ class User extends Authenticatable
         return $this->role === Role::SUPER_ADMIN->value;
     }
 
-    /** Admin akun terpisah dari Super Admin utama (least privilege). */
-    public function isSuperAdminPengguna(): bool
+    public function isAdmin(): bool
     {
-        return $this->role === Role::SUPER_ADMIN_PENGGUNA->value;
+        return $this->role === Role::ADMIN->value;
     }
 
-    /** Boleh mengelola akun pengguna: Super Admin utama & Super Admin Pengguna. */
+    public function isEditorValidator(): bool
+    {
+        return $this->role === Role::EDITOR_VALIDATOR->value;
+    }
+
+    public function isOperator(): bool
+    {
+        return $this->role === Role::OPERATOR->value;
+    }
+
+    public function isMember(): bool
+    {
+        return $this->role === Role::MEMBER->value;
+    }
+
+    /**
+     * Alias kompatibilitas dari nama role lama.
+     * Kelompok ini dipertahankan hanya agar penyesuaian view/service/
+     * test dapat dilakukan bertahap; sumber otorisasi aktif sebaiknya
+     * menggunakan nama role baru atau pemeriksaan level kewenangan.
+     */
+    public function isLabLeader(): bool
+    {
+        return $this->role === Role::EDITOR_VALIDATOR->value;
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === Role::OPERATOR->value;
+    }
+
+    public function isBorrower(): bool
+    {
+        return $this->role === Role::MEMBER->value;
+    }
+
+    public function isSuperAdminUser(): bool
+    {
+        return $this->role === Role::SUPER_ADMIN->value;
+    }
+
+    public function isWakasekSarpras(): bool
+    {
+        return $this->role === Role::ADMIN->value;
+    }
+
+    /** Boleh mengelola akun pengguna: hanya Super Admin. */
     public function canManageUsers(): bool
     {
-        return $this->isSuperAdmin() || $this->isSuperAdminPengguna();
+        return $this->isSuperAdmin();
     }
 
     public function isActive(): bool
@@ -151,74 +196,54 @@ class User extends Authenticatable
     }
 
     /**
-     * Super Admin Pengguna hanya mengelola akun. Role ini tidak memperoleh
+     * Super Admin hanya mengelola akun dan pengaturan. Role ini tidak memperoleh
      * transaksi inventaris apa pun meskipun dapat login ke aplikasi.
      */
     public function canUseInventoryOperations(): bool
     {
-        return ! $this->isSuperAdminPengguna();
+        return ! $this->isSuperAdmin();
     }
 
     /**
-     * Super Admin Pengguna tidak memiliki kewenangan operasional inventaris.
-     * Super Admin utama memiliki seluruh kewenangan sesuai jabatannya.
+     * Super Admin tidak memiliki kewenangan operasional inventaris.
+     * Admin dan role operasional lainnya memiliki kewenangan sesuai jabatannya.
      */
     public function hasOperationalInventoryAccess(): bool
     {
         return in_array($this->role, [
-            Role::SUPER_ADMIN->value,
-            Role::KETUA_LABORAN->value,
-            Role::LABORAN->value,
+            Role::ADMIN->value,
+            Role::EDITOR_VALIDATOR->value,
+            Role::OPERATOR->value,
         ], true);
-    }
-
-    public function isAdminSarpras(): bool
-    {
-        return $this->role === Role::KETUA_LABORAN->value;
-    }
-
-    public function isKetuaLaboran(): bool
-    {
-        return $this->role === Role::KETUA_LABORAN->value;
-    }
-
-    public function isLaboran(): bool
-    {
-        return $this->role === Role::LABORAN->value;
-    }
-
-    public function isPeminjam(): bool
-    {
-        return $this->role === Role::PEMINJAM->value;
     }
 
     /** Boleh kelola data barang / mutasi / laporan pada cakupan kewenangannya. */
     public function managesInventory(): bool
     {
-        return in_array($this->role, [Role::SUPER_ADMIN->value, Role::KETUA_LABORAN->value], true);
+        return in_array($this->role, [Role::ADMIN->value, Role::EDITOR_VALIDATOR->value], true);
     }
 
-    /** Boleh menyetujui peminjaman level 1 (laboran) — pengelola juga dianggap boleh. */
+    /** Boleh menyetujui peminjaman level 1 (operator/editor) — pengelola juga dianggap boleh. */
     public function canApproveLoans(): bool
     {
-        return in_array($this->role, [Role::SUPER_ADMIN->value, Role::KETUA_LABORAN->value, Role::LABORAN->value], true);
+        return in_array($this->role, [Role::ADMIN->value, Role::EDITOR_VALIDATOR->value, Role::OPERATOR->value], true);
     }
 
-    /** Laboran/K3 yang ditugaskan pada satu atau lebih laboratorium. */
+    /** Operator yang ditugaskan pada satu atau lebih laboratorium. */
     public function hasRoomScope(int $roomId): bool
     {
         return $this->roomScopes()->where('room_id', $roomId)->exists();
     }
 
-    /** Boleh menyetujui pengadaan/penghapusan & approval level 2 (wakasek). */
+    /** Boleh menyetujui pengadaan/penghapusan & approval level 2 (admin). */
     public function isApproverLevel2(): bool
     {
-        return $this->role === Role::SUPER_ADMIN->value;
+        return $this->role === Role::ADMIN->value;
     }
 
     /**
      * Boleh memutuskan pada level persetujuan tertentu.
-     * Level 2 (barang bernilai tinggi) hanya boleh diputuskan Wakasek Sarpras
+     * Level 2 (barang bernilai tinggi) hanya boleh diputuskan Admin
      * sesuai kebijakan yang terdokumentasi pada DECISIONS.md.
      */
     public function canDecideAt(int $level): bool

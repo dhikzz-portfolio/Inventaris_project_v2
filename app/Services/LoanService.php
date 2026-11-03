@@ -127,7 +127,7 @@ class LoanService
             // kewenangannya sendiri tidak perlu endorsement orang lain. Barang
             // bernilai tinggi tetap harus menunggu persetujuan Wakasek.
             $withinOwnLab = $this->allLinesWithinLaboranScope($requester, $merged, $items);
-            $autoEndorseLevel1 = ! $isWakasek && $requester->isLaboran() && $withinOwnLab;
+            $autoEndorseLevel1 = ! $isWakasek && $requester->isOperator() && $withinOwnLab;
             $selfApproved = $isWakasek || ($autoEndorseLevel1 && ! $hasHighValue);
 
             $loan = Loan::create([
@@ -209,7 +209,7 @@ class LoanService
                     ->causedBy($requester)
                     ->log('Endorsemen otomatis level 1: Laboran/K3 mengajukan barang bernilai tinggi dari laboratorium sendiri');
 
-                NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PERSETUJUAN,
+                NotifyApp::toRoles(['ADMIN'], NotificationType::PERSETUJUAN,
                     "Persetujuan barang bernilai tinggi diperlukan untuk \"{$purpose}\" (peminjam {$identity['name']}).",
                     route('loans.pending'));
 
@@ -236,13 +236,11 @@ class LoanService
     private function resolveBorrowerIdentity(User $requester, ?array $input): array
     {
         $mode = BorrowerMode::tryFrom((string) ($input['borrower_mode'] ?? BorrowerMode::SELF->value))
-            ?? BorrowerMode::SELF;
-
-        if ($mode === BorrowerMode::OTHER && $requester->isPeminjam()) {
-            throw ValidationException::withMessages([
-                'borrower_mode' => 'Peminjam hanya dapat membuat peminjaman untuk dirinya sendiri.',
-            ]);
-        }
+            ?? BorrowerMode::SELF;            if ($mode === BorrowerMode::OTHER && $requester->isMember()) {
+                throw ValidationException::withMessages([
+                    'borrower_mode' => 'Peminjam hanya dapat membuat peminjaman untuk dirinya sendiri.',
+                ]);
+            }
 
         if ($mode === BorrowerMode::SELF) {
             return [
@@ -297,15 +295,15 @@ class LoanService
     }
 
     /**
-     * Semua baris berada pada laboratorium yang ditugaskan ke Laboran/K3.
-     * Laboran tanpa penugasan ruangan tidak memperoleh persetujuan otomatis.
+     * Semua baris berada pada laboratorium yang ditugaskan ke Operator.
+     * Operator tanpa penugasan ruangan tidak memperoleh persetujuan otomatis.
      *
      * @param  array<int, array{item_id: int, qty: int}>  $lines
      * @param  Collection<int, Item>  $items
      */
-    private function allLinesWithinLaboranScope(User $borrower, array $lines, Collection $items): bool
+    private function allLinesWithinOperatorScope(User $borrower, array $lines, Collection $items): bool
     {
-        if (! $borrower->isLaboran()) {
+        if (! $borrower->isOperator()) {
             return false;
         }
 
@@ -360,7 +358,7 @@ class LoanService
             // Laboran/K3 hanya berwenang untuk ruangan laboratorium yang
             // ditugaskan; Ketua Laboran untuk seluruh laboratorium (bukan
             // inventaris nonlaboratorium). Seluruh item harus berada dalam cakupan.
-            if ($approver->isLaboran()) {
+            if ($approver->isOperator()) {
                 $roomIds = $approver->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
                 $outside = $loan->loanItems()
                     ->whereHas('item', fn ($q) => $q->whereNotIn('room_id', $roomIds))
@@ -371,7 +369,7 @@ class LoanService
                 }
             }
 
-            if ($approver->isKetuaLaboran()) {
+            if ($approver->isEditorValidator()) {
                 $outside = $loan->loanItems()
                     ->whereHas('item.room', fn ($q) => $q->where('is_lab', false))
                     ->exists();
@@ -422,11 +420,11 @@ class LoanService
                     }
                 } else {
                     NotifyApp::to($borrower, NotificationType::PERSETUJUAN,
-                        "Peminjaman \"{$loan->purpose}\" disetujui level {$recordedLevel}, menunggu persetujuan Wakasek.",
+                        "Peminjaman \"{$loan->purpose}\" disetujui level {$recordedLevel}, menunggu persetujuan Admin.",
                         route('loans.show', $loan));
 
-                    // Level berikutnya (Wakasek) harus menerima notifikasi tindakan.
-                    NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PERSETUJUAN,
+                    // Level berikutnya (Admin) harus menerima notifikasi tindakan.
+                    NotifyApp::toRoles(['ADMIN'], NotificationType::PERSETUJUAN,
                         "Persetujuan level 2 diperlukan untuk \"{$loan->purpose}\" (peminjam {$borrower->name}, barang bernilai tinggi).",
                         route('loans.pending'));
                 }
@@ -975,19 +973,19 @@ class LoanService
                 route('loans.show', $loan));
 
             if ($hasShortage) {
-                NotifyApp::toRoles(['SUPER_ADMIN', 'KETUA_LABORAN'], NotificationType::PENGEMBALIAN,
+                NotifyApp::toRoles(['ADMIN', 'EDITOR_VALIDATOR'], NotificationType::PENGEMBALIAN,
                     "Selisih kuantitas pada peminjaman \"{$loan->purpose}\" (peminjam: {$loan->borrowerDisplayName()}).",
                     route('loans.show', $loan));
             }
 
             if ($hasDamage) {
-                NotifyApp::toRoles(['SUPER_ADMIN', 'KETUA_LABORAN'], NotificationType::PENGEMBALIAN,
+                NotifyApp::toRoles(['ADMIN', 'EDITOR_VALIDATOR'], NotificationType::PENGEMBALIAN,
                     "Barang rusak dikembalikan pada peminjaman \"{$loan->purpose}\" — periksa foto bukti dan kondisi unit.",
                     route('loans.show', $loan));
             }
 
             if ($misplaced) {
-                NotifyApp::toRoles(['SUPER_ADMIN', 'KETUA_LABORAN'], NotificationType::LAINNYA,
+                NotifyApp::toRoles(['ADMIN', 'EDITOR_VALIDATOR'], NotificationType::LAINNYA,
                     "Barang dari peminjaman \"{$loan->purpose}\" dikembalikan ke ruangan berbeda — periksa mutasi lokasi.",
                     route('movements.index'));
             }

@@ -1,6 +1,6 @@
 @php
     $editing = $user !== null;
-    $currentRole = old('role', $user?->role ?? \App\Enums\Role::PEMINJAM->value);
+    $currentRole = old('role', $user?->role ?? \App\Enums\Role::MEMBER->value);
     $currentType = old('borrower_type', $user?->borrower_type?->value);
     $selectedRooms = old('room_ids', $user?->roomScopes?->pluck('room_id')->all() ?? []);
 @endphp

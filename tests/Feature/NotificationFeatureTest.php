@@ -107,18 +107,18 @@ class NotificationFeatureTest extends TestCase
 
     public function test_notifikasi_hanya_dikirim_ke_role_yang_bertanggung_jawab(): void
     {
-        $ketua = User::factory()->create(['role' => Role::KETUA_LABORAN->value]);
-        $pengguna = User::factory()->create(['role' => Role::SUPER_ADMIN_PENGGUNA->value]);
+        $editor = User::factory()->create(['role' => Role::EDITOR_VALIDATOR->value]);
+        $accountAdmin = User::factory()->create(['role' => Role::SUPER_ADMIN->value]);
 
-        NotifyApp::toRoles([Role::KETUA_LABORAN->value], NotificationType::PENGADAAN, 'Pengajuan baru');
+        NotifyApp::toRoles([Role::EDITOR_VALIDATOR->value], NotificationType::PENGADAAN, 'Pengajuan baru');
 
-        $this->assertSame(1, $ketua->notificationsApp()->count());
-        $this->assertSame(0, $pengguna->notificationsApp()->count());
+        $this->assertSame(1, $editor->notificationsApp()->count());
+        $this->assertSame(0, $accountAdmin->notificationsApp()->count());
     }
 
     public function test_notifikasi_tidak_mengarahkan_ke_halaman_di_luar_kewenangan(): void
     {
-        $laboran = User::factory()->create(['role' => Role::LABORAN->value]);
+        $laboran = User::factory()->create(['role' => Role::OPERATOR->value]);
         $notification = NotifyApp::to($laboran, NotificationType::AKUN, 'Akun diperbarui', route('users.index'));
 
         $this->actingAs($laboran)
@@ -130,7 +130,7 @@ class NotificationFeatureTest extends TestCase
 
     public function test_tautan_tidak_tersedia_ditandai_pada_daftar_notifikasi(): void
     {
-        $laboran = User::factory()->create(['role' => Role::LABORAN->value]);
+        $laboran = User::factory()->create(['role' => Role::OPERATOR->value]);
         NotifyApp::to($laboran, NotificationType::AKUN, 'Tautan tidak relevan', route('users.index'));
 
         $this->actingAs($laboran)

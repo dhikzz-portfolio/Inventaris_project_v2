@@ -57,7 +57,7 @@ class MovementController extends Controller
 
         $rooms = Room::query()
             ->when(! $user->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
-            ->when($user->isLaboran(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
+            ->when($user->isOperator(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
             ->orderBy('code')
             ->get();
 

@@ -156,9 +156,9 @@ class Loan extends Model
 
     /**
      * Batasi query ke data yang boleh dilihat pengguna (mencegah IDOR).
-     * Wakasek melihat semua; Ketua Laboran hanya transaksi yang seluruh
-     * barangnya berada di laboratorium; Laboran/K3 hanya ruangan yang
-     * ditugaskan. Peminjam hanya transaksi miliknya sendiri.
+     * Admin melihat semua; Editor/Validator hanya transaksi yang seluruh
+     * barangnya berada di laboratorium; Operator hanya ruangan yang
+     * ditugaskan. Member hanya transaksi miliknya sendiri.
      */
     public function scopeVisibleTo($query, User $user)
     {
@@ -166,7 +166,7 @@ class Loan extends Model
             return $query;
         }
 
-        if ($user->isKetuaLaboran()) {
+        if ($user->isEditorValidator()) {
             return $query->where(function ($q) use ($user) {
                 $q->where('requested_by', $user->id)
                     ->orWhere(function ($scoped) {
@@ -176,7 +176,7 @@ class Loan extends Model
             });
         }
 
-        if ($user->isLaboran()) {
+        if ($user->isOperator()) {
             $roomIds = $user->roomScopes()->select('room_id');
 
             return $query->where(function ($q) use ($user, $roomIds) {
@@ -197,7 +197,7 @@ class Loan extends Model
 
     /**
      * Boleh memproses serah terima/pengembalian? Berbeda dari canBeViewedBy():
-     * peminjam boleh melihat transaksinya sendiri, tetapi tidak boleh
+     * member boleh melihat transaksinya sendiri, tetapi tidak boleh
      * memvalidasi pengembalian.
      */
     public function canBeManagedBy(User $user): bool
@@ -212,11 +212,11 @@ class Loan extends Model
             return false;
         }
 
-        if ($user->isKetuaLaboran()) {
+        if ($user->isEditorValidator()) {
             return $items->every(fn (LoanItem $line) => (bool) $line->item?->room?->is_lab);
         }
 
-        if ($user->isLaboran()) {
+        if ($user->isOperator()) {
             $roomIds = $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
 
             return $roomIds !== [] && $items->every(
@@ -241,11 +241,11 @@ class Loan extends Model
             return false;
         }
 
-        if ($user->isKetuaLaboran()) {
+        if ($user->isEditorValidator()) {
             return $items->every(fn (LoanItem $line) => (bool) $line->item?->room?->is_lab);
         }
 
-        if ($user->isLaboran()) {
+        if ($user->isOperator()) {
             $roomIds = $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all();
 
             return $items->every(fn (LoanItem $line) => in_array((int) $line->item?->room_id, $roomIds, true));

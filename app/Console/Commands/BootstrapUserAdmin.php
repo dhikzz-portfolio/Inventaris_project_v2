@@ -49,7 +49,7 @@ class BootstrapUserAdmin extends Command
         $existing = User::query()->where('email', $email)->first();
 
         if ($existing !== null) {
-            if (! $existing->isSuperAdminPengguna()) {
+            if (! $existing->isSuperAdmin()) {
                 $this->error("Email {$email} sudah dipakai akun lain (role {$existing->role}). Gunakan email lain.");
 
                 return self::FAILURE;
@@ -68,7 +68,7 @@ class BootstrapUserAdmin extends Command
                 'password_changed_at' => null,
             ])->save();
 
-            $this->reportCredentials($existing, $password, $passwordFromEnv, 'Password akun Super Admin Pengguna disetel ulang.');
+            $this->reportCredentials($existing, $password, $passwordFromEnv, 'Password akun Super Admin disetel ulang.');
 
             return self::SUCCESS;
         }
@@ -76,7 +76,7 @@ class BootstrapUserAdmin extends Command
         $name = trim((string) ($this->option('name') ?: config('auth.bootstrap_user_admin.name', 'Super Admin Pengguna')));
 
         SpatieRole::firstOrCreate([
-            'name' => Role::SUPER_ADMIN_PENGGUNA->value,
+            'name' => Role::SUPER_ADMIN->value,
             'guard_name' => 'web',
         ]);
 
@@ -84,16 +84,16 @@ class BootstrapUserAdmin extends Command
             'name' => $name,
             'email' => $email,
             'password' => $password,
-            'role' => Role::SUPER_ADMIN_PENGGUNA->value,
+            'role' => Role::SUPER_ADMIN->value,
             'is_active' => true,
             'must_change_password' => true,
             'profile_completed' => true,
             'profile_completed_at' => now(),
         ]);
 
-        $user->syncRoles([Role::SUPER_ADMIN_PENGGUNA->value]);
+        $user->syncRoles([Role::SUPER_ADMIN->value]);
 
-        $this->reportCredentials($user, $password, $passwordFromEnv, 'Akun Super Admin Pengguna berhasil dibuat.');
+        $this->reportCredentials($user, $password, $passwordFromEnv, 'Akun Super Admin berhasil dibuat.');
 
         return self::SUCCESS;
     }

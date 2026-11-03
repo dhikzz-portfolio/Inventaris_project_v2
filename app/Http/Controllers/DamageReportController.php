@@ -50,7 +50,7 @@ class DamageReportController extends Controller
             'filters' => $filters,
             'rooms' => Room::query()
                 ->when(! $user->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
-                ->when($user->isLaboran(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
+                ->when($user->isOperator(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
                 ->orderBy('code')
                 ->get(),
             'summary' => [
@@ -84,7 +84,7 @@ class DamageReportController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user->isLaboran() || $user->isSuperAdmin(), 403);
+        abort_unless($user->isOperator() || $user->isSuperAdmin(), 403);
 
         $data = $request->validate([
             'asset_unit_id' => ['required', 'integer'],

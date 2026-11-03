@@ -16,7 +16,7 @@ class ProfileCompletionController extends Controller
     {
         $user = $request->user();
 
-        if ($user->hasCompletedProfile() || ! $user->isPeminjam()) {
+        if ($user->hasCompletedProfile() || ! $user->isMember()) {
             return redirect()->route('dashboard');
         }
 
@@ -30,7 +30,7 @@ class ProfileCompletionController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user->isPeminjam(), 403);
+        abort_unless($user->isMember(), 403);
 
         if ($user->hasCompletedProfile()) {
             return redirect()->route('dashboard');

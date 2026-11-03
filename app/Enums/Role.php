@@ -5,22 +5,19 @@ namespace App\Enums;
 enum Role: string
 {
     case SUPER_ADMIN = 'SUPER_ADMIN';
-
-    /** Administrasi akun pengguna; tidak otomatis memiliki akses inventaris. */
-    case SUPER_ADMIN_PENGGUNA = 'SUPER_ADMIN_PENGGUNA';
-
-    case KETUA_LABORAN = 'KETUA_LABORAN';
-    case LABORAN = 'LABORAN';
-    case PEMINJAM = 'PEMINJAM';
+    case ADMIN = 'ADMIN';
+    case EDITOR_VALIDATOR = 'EDITOR_VALIDATOR';
+    case OPERATOR = 'OPERATOR';
+    case MEMBER = 'MEMBER';
 
     public function label(): string
     {
         return match ($this) {
-            self::SUPER_ADMIN => 'Wakasek Sarpras / Super Admin',
-            self::SUPER_ADMIN_PENGGUNA => 'Super Admin Pengguna',
-            self::KETUA_LABORAN => 'Ketua Laboran',
-            self::LABORAN => 'Laboran / K3',
-            self::PEMINJAM => 'Peminjam (Siswa / Guru / Staf)',
+            self::SUPER_ADMIN => 'Super Admin',
+            self::ADMIN => 'Admin',
+            self::EDITOR_VALIDATOR => 'Editor/Validator',
+            self::OPERATOR => 'Operator',
+            self::MEMBER => 'Member',
         };
     }
 
@@ -28,15 +25,15 @@ enum Role: string
     public function shortLabel(): string
     {
         return match ($this) {
-            self::SUPER_ADMIN => 'Wakasek Sarpras',
-            self::SUPER_ADMIN_PENGGUNA => 'Super Admin Pengguna',
-            self::KETUA_LABORAN => 'Ketua Laboran',
-            self::LABORAN => 'Laboran / K3',
-            self::PEMINJAM => 'Peminjam',
+            self::SUPER_ADMIN => 'Super Admin',
+            self::ADMIN => 'Admin',
+            self::EDITOR_VALIDATOR => 'Editor/Validator',
+            self::OPERATOR => 'Operator',
+            self::MEMBER => 'Member',
         };
     }
 
-    /** Role yang boleh dikelola oleh Super Admin Pengguna (least privilege). */
+    /** Role yang boleh dikelola oleh Super Admin (least privilege). */
     public function isAssignableByAccountAdmin(): bool
     {
         return $this !== self::SUPER_ADMIN;
@@ -45,6 +42,9 @@ enum Role: string
     /** @return list<self> */
     public static function values(): array
     {
-        return array_column(self::cases(), 'value');
+        return array_map(
+            static fn (self $case): string => $case->value,
+            self::cases()
+        );
     }
 }

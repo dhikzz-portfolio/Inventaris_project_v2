@@ -11,14 +11,14 @@ use Spatie\Permission\Models\Role as SpatieRole;
 class SuperAdminSeeder extends Seeder
 {
     /**
-     * Seed akun awal Super Admin / Super Admin Pengguna dari environment configuration.
+     * Seed akun awal Super Admin dari environment configuration.
      * Idempoten: bila akun sudah ada, lengkapi profil dan pastikan role tanpa mereset
      * password yang mungkin sudah diubah secara manual di sistem.
      */
     public function run(): void
     {
-        $roleInput = strtoupper(trim((string) config('auth.super_admin.role', Role::SUPER_ADMIN_PENGGUNA->value)));
-        $role = Role::tryFrom($roleInput) ?? Role::SUPER_ADMIN_PENGGUNA;
+        $roleInput = strtoupper(trim((string) config('auth.super_admin.role', Role::SUPER_ADMIN->value)));
+        $role = Role::tryFrom($roleInput) ?? Role::SUPER_ADMIN;
 
         SpatieRole::firstOrCreate(['name' => $role->value, 'guard_name' => 'web']);
 

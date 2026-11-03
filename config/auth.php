@@ -124,12 +124,12 @@ return [
     |
     */
     'super_admin' => [
-        'name' => env('SUPER_ADMIN_NAME', 'Super Admin Pengguna'),
+        'name' => env('SUPER_ADMIN_NAME', 'Super Admin'),
         'degree' => env('SUPER_ADMIN_DEGREE', 'S.Kom'),
         'email' => env('SUPER_ADMIN_EMAIL', 'superadmin@gmail.com'),
         'password' => env('SUPER_ADMIN_PASSWORD', 'superadmin123'),
         'birth_date' => env('SUPER_ADMIN_BIRTH_DATE', '1980-01-01'),
-        'role' => env('SUPER_ADMIN_ROLE', 'SUPER_ADMIN_PENGGUNA'),
+        'role' => env('SUPER_ADMIN_ROLE', 'SUPER_ADMIN'),
     ],
 
     /*

@@ -47,8 +47,8 @@ class CheckOverdueLoans implements ShouldQueue
                     $link);
             }
 
-            // Admin/wakasek juga diingatkan (sekali per hari per loan).
-            foreach (User::whereIn('role', ['SUPER_ADMIN', 'KETUA_LABORAN'])->pluck('id') as $adminId) {
+            // Admin/editor validator juga diingatkan (sekali per hari per loan).
+            foreach (User::whereIn('role', ['ADMIN', 'EDITOR_VALIDATOR'])->pluck('id') as $adminId) {
                 $exists = AppNotification::where('user_id', $adminId)
                     ->where('type', NotificationType::TERLAMBAT->value)
                     ->where('link', $link)

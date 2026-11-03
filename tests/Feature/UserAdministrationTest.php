@@ -27,9 +27,9 @@ class UserAdministrationTest extends TestCase
         $admin = User::factory()->create([
             'name' => 'Admin Akun Sekolah',
             'email' => 'admin.akun@gmail.com',
-            'role' => Role::SUPER_ADMIN_PENGGUNA->value,
+            'role' => Role::SUPER_ADMIN->value,
         ]);
-        $admin->syncRoles([Role::SUPER_ADMIN_PENGGUNA->value]);
+        $admin->syncRoles([Role::SUPER_ADMIN->value]);
 
         return $admin;
     }
@@ -73,7 +73,7 @@ class UserAdministrationTest extends TestCase
             'role' => Role::SUPER_ADMIN->value,
         ])->assertSessionHasErrors('role');
 
-        $this->assertSame(Role::PEMINJAM->value, $target->refresh()->role);
+        $this->assertSame(Role::MEMBER->value, $target->refresh()->role);
     }
 
     public function test_super_admin_utama_tidak_dapat_dikelola_super_admin_pengguna(): void
@@ -100,7 +100,7 @@ class UserAdministrationTest extends TestCase
     {
         $user = User::factory()->create([
             'email' => 'nonaktif@gmail.com',
-            'role' => Role::LABORAN->value,
+            'role' => Role::OPERATOR->value,
             'is_active' => false,
         ]);
 
@@ -123,7 +123,7 @@ class UserAdministrationTest extends TestCase
         $this->actingAs($accountAdmin)->put(route('users.update', $target), [
             'name' => 'Budi Santoso Baru',
             'email' => $target->email,
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
             'borrower_type' => 'GURU',
             'is_active' => '1',
         ])->assertRedirect()->assertSessionHasNoErrors();

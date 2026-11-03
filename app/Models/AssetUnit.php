@@ -112,8 +112,8 @@ class AssetUnit extends Model
     }
 
     /**
-     * Cakupan data unit per peran. Super Admin melihat semua; Ketua Laboran
-     * hanya ruang laboratorium; Laboran/K3 hanya ruangan yang ditetapkan.
+     * Cakupan data unit per peran. Super Admin melihat semua; Editor/Validator
+     * hanya ruang laboratorium; Operator hanya ruangan yang ditetapkan.
      */
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
@@ -121,11 +121,11 @@ class AssetUnit extends Model
             return $query;
         }
 
-        if ($user->isKetuaLaboran()) {
+        if ($user->isEditorValidator()) {
             return $query->whereHas('room', fn (Builder $room) => $room->where('is_lab', true));
         }
 
-        if ($user->isLaboran()) {
+        if ($user->isOperator()) {
             return $query->whereIn('room_id', $user->roomScopes()->select('room_id'));
         }
 

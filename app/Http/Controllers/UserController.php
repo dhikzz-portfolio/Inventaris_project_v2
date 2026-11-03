@@ -65,7 +65,7 @@ class UserController extends Controller
                 'total' => User::count(),
                 'active' => User::where('is_active', true)->count(),
                 'inactive' => User::where('is_active', false)->count(),
-                'account_admins' => User::where('role', Role::SUPER_ADMIN_PENGGUNA->value)->count(),
+                'account_admins' => User::where('role', Role::SUPER_ADMIN->value)->count(),
             ],
             'majors' => Major::orderBy('name')->get(),
             'roles' => $this->assignableRoles($actor),
@@ -339,8 +339,8 @@ class UserController extends Controller
     }
 
     /**
-     * Role yang boleh ditetapkan oleh aktor. Super Admin Pengguna tidak boleh
-     * membuat atau mengubah akun menjadi Super Admin utama (PENDING DECISION 2).
+     * Role yang boleh ditetapkan oleh aktor. Admin tidak boleh
+     * membuat atau mengubah akun menjadi Super Admin (PENDING DECISION 2).
      *
      * @return list<Role>
      */
@@ -360,7 +360,7 @@ class UserController extends Controller
     {
         if ($role === Role::SUPER_ADMIN->value && ! $actor->isSuperAdmin()) {
             throw ValidationException::withMessages([
-                'role' => 'Hanya Super Admin utama yang dapat menetapkan role Super Admin.',
+                'role' => 'Hanya Super Admin yang dapat menetapkan role Super Admin.',
             ]);
         }
     }
@@ -369,9 +369,9 @@ class UserController extends Controller
     {
         abort_unless($actor->canManageUsers(), 403);
 
-        // Akun Super Admin utama hanya boleh diubah/dihapus oleh Super Admin utama.
+        // Akun Super Admin hanya boleh diubah/dihapus oleh Super Admin.
         if ($target->isSuperAdmin() && ! $actor->isSuperAdmin()) {
-            abort(403, 'Akun Super Admin utama tidak dapat diubah oleh Super Admin Pengguna.');
+            abort(403, 'Akun Super Admin tidak dapat diubah oleh Admin.');
         }
     }
 
@@ -391,7 +391,7 @@ class UserController extends Controller
      */
     private function borrowerContext(Request $request): array
     {
-        $isPeminjam = (string) $request->input('role') === Role::PEMINJAM->value;
+        $isPeminjam = (string) $request->input('role') === Role::MEMBER->value;
         $type = (string) $request->input('borrower_type');
         $isSiswa = $isPeminjam && $type === BorrowerType::SISWA->value;
         $isTeacherOrStaff = $isPeminjam && in_array($type, [BorrowerType::GURU->value, BorrowerType::STAF->value], true);
@@ -412,7 +412,7 @@ class UserController extends Controller
             'class_name.prohibited' => 'Kelas hanya berlaku untuk peminjam kategori Siswa.',
             'role.in' => $actor->isSuperAdmin()
                 ? 'Role yang dipilih tidak valid.'
-                : 'Super Admin Pengguna tidak dapat menetapkan role Super Admin utama.',
+                : 'Admin tidak dapat menetapkan role Super Admin.',
         ];
     }
 
@@ -428,7 +428,7 @@ class UserController extends Controller
     {
         $user->roomScopes()->delete();
 
-        if ($user->role !== Role::LABORAN->value) {
+        if ($user->role !== Role::OPERATOR->value) {
             return;
         }
 

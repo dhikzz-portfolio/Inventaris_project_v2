@@ -17,9 +17,9 @@ class EnsureProfileCompleted
         }
 
         $hasLegacyPrivilegedRole = $user->isSuperAdmin()
-            || $user->isSuperAdminPengguna()
-            || $user->isKetuaLaboran()
-            || $user->isLaboran();
+            || $user->isAdmin()
+            || $user->isEditorValidator()
+            || $user->isOperator();
 
         if (! $user->hasCompletedProfile() && ! $hasLegacyPrivilegedRole) {
             if ($request->routeIs('profile.complete') || $request->routeIs('profile.complete.store') || $request->routeIs('logout')) {

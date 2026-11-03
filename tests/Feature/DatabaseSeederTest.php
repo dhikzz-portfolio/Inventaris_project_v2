@@ -89,7 +89,7 @@ class DatabaseSeederTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'superadmin.prod@gmail.com',
-            'role' => Role::SUPER_ADMIN->value,
+            'role' => Role::SUPER_ADMIN_PENGGUNA->value,
         ]);
 
         // Akun demo tidak di-seed

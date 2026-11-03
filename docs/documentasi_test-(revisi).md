@@ -235,8 +235,26 @@ IMPLEMENTATION COMPLETE — PENDING CLARIFICATION
 
 Seluruh revisi yang keputusannya sudah jelas sudah diimplementasikan dan lulus pengujian otomatis; empat keputusan bisnis masih menunggu konfirmasi pengguna. Pengujian manual perangkat fisik dan responsif ulang bukan bagian dari klaim kelulusan ini.
 
---revisi:
--di fitur peminjaman, berikan kolom input untuk nama peminjamnya, jadi misalkan ada siswa yang meminjam barang tapi lewat perantara laboran atau wakasek atau yang lainnya maka sang peminjam dapat di cantumkan sebagai peminjam barang walau yang buat peminjamannya laboran atau wakasek atau yang lainnya, tapi juga masukan pilihan untuk peminjam nya itu diri sendiri atau orang lain, seperti pada input di fitur rekap kegiatan, fitur ini ada di semua role kecuali role peminjam.
--untuk data di pdf, isi rincian barang nya harus seperti pada excel nya, jadi terlihat per unit nya, lalu berikan pratinjau untuk excel nya juga.
--berikan contoh gambaran untuk import datanya dan panduan menggunakannya.
--tambahkan bukti foto kerusakan barangnya di detail per unit barang nya agar dapat di tindak lanjuti.
+Selesai. Ringkasannya:
+
+Penyebabnya
+
+Data di database tidak ganda — validasi  unique  di  MasterController  (nama jurusan/gedung/kategori, kombinasi gedung+lantai+nomor ruangan) mencegah duplikat rekornya. Yang ganda adalah tampilannya: di  resources/views/masters/index.blade.php , setiap baris di-render dua kali karena blok  <li> / <tr>  duplikat tertinggal di dalam loop (kemungkinan sisa merge di commit  5c0cbbb / 79902d0 ):
+- Daftar Master Gedung — tiap gedung muncul 2×
+- Tabel Ruangan — tiap ruangan muncul 2×
+- Daftar Jurusan — tiap jurusan muncul 2×
+- Daftar Kategori — tiap kategori muncul 2×
+
+Efek sampingnya: blok duplikat kedua mengabaikan  $canEdit , jadi role read-only (Ketua Laboran) ikut melihat form ubah/hapus yang seharusnya tersembunyi.
+
+Perbaikan
+
+Menghapus 4 blok duplikat tersebut (file turun dari 368 → 261 baris), menyisakan satu blok yang benar dan tetap menghormati  $canEdit .
+
+Verifikasi
+
+-  php artisan view:cache  — kompilasi Blade lulus.
+- Pemeriksaan struktur loop: tiap  @forelse / @foreach  kini punya satu blok render saja.
+-  php artisan test --filter='MasterDataTest|BuildingMasterDataTest'  sebelum vs sesudah perubahan hasilnya identik: 8 gagal, 11 lulus — jadi tidak ada regresi dari perubahan ini.
+
+Keterbatasan yang perlu Anda tahu: 8 tes itu memang sudah gagal sebelum perubahan saya, semuanya  ModelNotFoundException  di  setUp()  ( User::where('email','wakasek@gmail.com')->firstOrFail() ), artinya  $this->seed()  tidak membuat akun demo di environment test ini — itu masalah terpisah dari bug duplikasi, dan belum saya perbaiki karena di luar permintaan Anda. Tidak ada file PHP yang diubah, jadi Pint tidak diperlukan.

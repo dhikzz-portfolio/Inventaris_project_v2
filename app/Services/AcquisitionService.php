@@ -128,7 +128,8 @@ class AcquisitionService
                 'acquisition_note' => $reason,
             ],
             $reason,
-        );            if ($this->isLabScoped($rejected)) {
+        );
+        if ($this->isLabScoped($rejected)) {
             NotifyApp::toRoles(['EDITOR_VALIDATOR'], NotificationType::PENGADAAN,
                 "Pengadaan \"{$rejected->name}\" DITOLAK Admin — {$reason}.",
                 route('items.acquisitions'));

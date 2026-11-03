@@ -39,7 +39,7 @@ return new class extends Migration
             $table->unsignedInteger('received_quantity')->nullable();
         });
 
-                // Role baru harus tersedia tanpa menunggu seeder dijalankan ulang.
+        // Role baru harus tersedia tanpa menunggu seeder dijalankan ulang.
         if (Schema::hasTable('roles')) {
             DB::table('roles')->insertOrIgnore([
                 'name' => 'SUPER_ADMIN_PENGGUNA',

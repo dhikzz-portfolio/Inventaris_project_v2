@@ -236,11 +236,12 @@ class LoanService
     private function resolveBorrowerIdentity(User $requester, ?array $input): array
     {
         $mode = BorrowerMode::tryFrom((string) ($input['borrower_mode'] ?? BorrowerMode::SELF->value))
-            ?? BorrowerMode::SELF;            if ($mode === BorrowerMode::OTHER && $requester->isMember()) {
-                throw ValidationException::withMessages([
-                    'borrower_mode' => 'Peminjam hanya dapat membuat peminjaman untuk dirinya sendiri.',
-                ]);
-            }
+            ?? BorrowerMode::SELF;
+        if ($mode === BorrowerMode::OTHER && $requester->isMember()) {
+            throw ValidationException::withMessages([
+                'borrower_mode' => 'Peminjam hanya dapat membuat peminjaman untuk dirinya sendiri.',
+            ]);
+        }
 
         if ($mode === BorrowerMode::SELF) {
             return [

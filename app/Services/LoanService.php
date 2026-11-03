@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\BorrowerMode;
+use App\Enums\BorrowerType;
 use App\Enums\Condition;
 use App\Enums\Decision;
 use App\Enums\DocumentStatus;
@@ -102,12 +104,14 @@ class LoanService
      * Simpan request peminjaman multi-item dalam satu transaksi database.
      *
      * @param  array<int, array{item_id: int, qty: int}>  $lines
+     * @param  array{borrower_mode?: string|null, borrower_user_id?: int|string|null, borrower_name?: string|null, borrower_category?: string|null, borrower_class?: string|null, borrower_work_unit?: string|null}|null  $borrower
      */
-    public function requestLoan(User $borrower, array $lines, string $purpose, string $start, string $due, ?int $eventId = null): Loan
+    public function requestLoan(User $requester, array $lines, string $purpose, string $start, string $due, ?int $eventId = null, ?array $borrower = null): Loan
     {
         $merged = $this->mergeLines($lines);
+        $identity = $this->resolveBorrowerIdentity($requester, $borrower);
 
-        return DB::transaction(function () use ($borrower, $merged, $purpose, $start, $due, $eventId) {
+        return DB::transaction(function () use ($requester, $identity, $merged, $purpose, $start, $due, $eventId) {
             $this->assertAvailable($merged, $start, $due);
 
             /** @var Collection<int, Item> $items */
@@ -117,17 +121,23 @@ class LoanService
             // Wakasek adalah pengelola penuh inventaris sekolah: pengajuannya
             // tidak menunggu persetujuan orang lain. Persetujuannya dicatat atas
             // nama dirinya sendiri — tidak dipalsukan sebagai persetujuan Admin lain.
-            $isWakasek = $borrower->isApproverLevel2();
+            $isWakasek = $requester->isApproverLevel2();
 
             // Laboran/K3 yang mengajukan barang dari laboratorium yang menjadi
             // kewenangannya sendiri tidak perlu endorsement orang lain. Barang
             // bernilai tinggi tetap harus menunggu persetujuan Wakasek.
-            $withinOwnLab = $this->allLinesWithinLaboranScope($borrower, $merged, $items);
-            $autoEndorseLevel1 = ! $isWakasek && $borrower->isLaboran() && $withinOwnLab;
+            $withinOwnLab = $this->allLinesWithinLaboranScope($requester, $merged, $items);
+            $autoEndorseLevel1 = ! $isWakasek && $requester->isLaboran() && $withinOwnLab;
             $selfApproved = $isWakasek || ($autoEndorseLevel1 && ! $hasHighValue);
 
             $loan = Loan::create([
-                'borrower_id' => $borrower->id,
+                'borrower_id' => $identity['user_id'],
+                'requested_by' => $requester->id,
+                'borrower_mode' => $identity['mode'],
+                'borrower_name' => $identity['name'],
+                'borrower_category' => $identity['category'],
+                'borrower_class' => $identity['class'],
+                'borrower_work_unit' => $identity['work_unit'],
                 'event_id' => $eventId,
                 'purpose' => $purpose,
                 'start_date' => $start,
@@ -151,12 +161,12 @@ class LoanService
             // Unit fisik ditugaskan pada saat serah terima (handover).
             activity('peminjaman')
                 ->performedOn($loan)
-                ->causedBy($borrower)
+                ->causedBy($requester)
                 ->log('Mengajukan peminjaman '.count($merged).' barang');
 
             if ($selfApproved) {
                 $loan->approvals()->create([
-                    'approver_id' => $borrower->id,
+                    'approver_id' => $requester->id,
                     'level' => $loan->finalApprovalLevel(),
                     'decision' => Decision::APPROVED->value,
                     'note' => $autoEndorseLevel1
@@ -168,7 +178,7 @@ class LoanService
 
                 activity('peminjaman')
                     ->performedOn($loan)
-                    ->causedBy($borrower)
+                    ->causedBy($requester)
                     ->log($autoEndorseLevel1
                         ? 'Persetujuan otomatis: Laboran/K3 mengajukan barang dari laboratorium sendiri (bukan nilai tinggi)'
                         : 'Persetujuan melekat: pengajuan disetujui atas kewenangan Wakasek (tanpa persetujuan tambahan)');
@@ -186,7 +196,7 @@ class LoanService
             // dirinya sendiri lewat request manual.
             if ($autoEndorseLevel1) {
                 $loan->approvals()->create([
-                    'approver_id' => $borrower->id,
+                    'approver_id' => $requester->id,
                     'level' => 1,
                     'decision' => Decision::APPROVED->value,
                     'note' => 'Endorsemen otomatis Laboran/K3 untuk laboratorium yang ditugaskan; barang bernilai tinggi tetap memerlukan persetujuan Wakasek.',
@@ -196,11 +206,11 @@ class LoanService
 
                 activity('peminjaman')
                     ->performedOn($loan)
-                    ->causedBy($borrower)
+                    ->causedBy($requester)
                     ->log('Endorsemen otomatis level 1: Laboran/K3 mengajukan barang bernilai tinggi dari laboratorium sendiri');
 
                 NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PERSETUJUAN,
-                    "Persetujuan barang bernilai tinggi diperlukan untuk \"{$purpose}\" (peminjam {$borrower->name}).",
+                    "Persetujuan barang bernilai tinggi diperlukan untuk \"{$purpose}\" (peminjam {$identity['name']}).",
                     route('loans.pending'));
 
                 return $loan;
@@ -208,12 +218,82 @@ class LoanService
 
             NotifyApp::toApprovers(
                 NotificationType::PERSETUJUAN,
-                "Request peminjaman baru dari {$borrower->name}: \"{$purpose}\"",
+                "Request peminjaman baru dari {$requester->name}: \"{$purpose}\" (peminjam {$identity['name']})",
                 route('loans.show', $loan)
             );
 
             return $loan;
         });
+    }
+
+    /**
+     * Tentukan identitas peminjam sebenarnya. Role Peminjam tidak boleh
+     * meminjamkan atas nama orang lain meskipun request dimanipulasi.
+     *
+     * @param  array<string, mixed>|null  $input
+     * @return array{mode: string, user_id: int|null, name: string, category: string|null, class: string|null, work_unit: string|null}
+     */
+    private function resolveBorrowerIdentity(User $requester, ?array $input): array
+    {
+        $mode = BorrowerMode::tryFrom((string) ($input['borrower_mode'] ?? BorrowerMode::SELF->value))
+            ?? BorrowerMode::SELF;
+
+        if ($mode === BorrowerMode::OTHER && $requester->isPeminjam()) {
+            throw ValidationException::withMessages([
+                'borrower_mode' => 'Peminjam hanya dapat membuat peminjaman untuk dirinya sendiri.',
+            ]);
+        }
+
+        if ($mode === BorrowerMode::SELF) {
+            return [
+                'mode' => BorrowerMode::SELF->value,
+                'user_id' => (int) $requester->id,
+                'name' => $requester->displayName(),
+                'category' => $requester->borrower_type?->value,
+                'class' => $requester->class_name,
+                'work_unit' => $requester->work_unit,
+            ];
+        }
+
+        $accountId = filled($input['borrower_user_id'] ?? null) ? (int) $input['borrower_user_id'] : null;
+        $account = $accountId !== null ? User::query()->find($accountId) : null;
+
+        if ($accountId !== null && $account === null) {
+            throw ValidationException::withMessages([
+                'borrower_user_id' => 'Akun peminjam tidak ditemukan.',
+            ]);
+        }
+
+        if ($account !== null && ! $account->isActive()) {
+            throw ValidationException::withMessages([
+                'borrower_user_id' => 'Akun peminjam sedang dinonaktifkan.',
+            ]);
+        }
+
+        $name = trim((string) ($input['borrower_name'] ?? '')) ?: (string) $account?->displayName();
+
+        if ($name === '') {
+            throw ValidationException::withMessages([
+                'borrower_name' => 'Nama peminjam wajib diisi.',
+            ]);
+        }
+
+        $category = $input['borrower_category'] ?? $account?->borrower_type?->value;
+
+        if (filled($category) && ! in_array($category, BorrowerType::values(), true)) {
+            throw ValidationException::withMessages([
+                'borrower_category' => 'Kategori peminjam tidak valid.',
+            ]);
+        }
+
+        return [
+            'mode' => BorrowerMode::OTHER->value,
+            'user_id' => $account?->id,
+            'name' => $name,
+            'category' => filled($category) ? $category : null,
+            'class' => $input['borrower_class'] ?? $account?->class_name,
+            'work_unit' => $input['borrower_work_unit'] ?? $account?->work_unit,
+        ];
     }
 
     /**
@@ -316,7 +396,7 @@ class LoanService
                 'decided_at' => now(),
             ]);
 
-            $borrower = $loan->borrower;
+            $borrower = $loan->notifiableBorrower();
 
             if ($decision === Decision::REJECTED) {
                 $loan->update([
@@ -415,7 +495,7 @@ class LoanService
                 ->causedBy($officer)
                 ->log('Menyerahkan barang kepada peminjam'.($note ? ": {$note}" : ''));
 
-            NotifyApp::to($loan->borrower, NotificationType::LAINNYA,
+            NotifyApp::to($loan->notifiableBorrower(), NotificationType::LAINNYA,
                 "Barang untuk peminjaman \"{$loan->purpose}\" telah diserahkan. Harap kembalikan sebelum {$loan->due_date->format('d M Y H:i')}.",
                 route('loans.show', $loan));
 
@@ -634,7 +714,7 @@ class LoanService
             if ($loan->handed_over_at !== null) {
                 throw new \RuntimeException('Barang sudah diserahkan — proses melalui pengembalian, bukan pembatalan.');
             }
-            if ($loan->borrower_id !== $actor->id && ! $actor->managesInventory()) {
+            if (! $loan->canBeCancelledBy($actor) && ! $actor->managesInventory()) {
                 throw new \RuntimeException('Anda tidak berwenang membatalkan peminjaman ini.');
             }
 
@@ -650,8 +730,8 @@ class LoanService
                 ->causedBy($actor)
                 ->log('Membatalkan peminjaman'.($reason ? ": {$reason}" : ''));
 
-            if ($loan->borrower_id !== $actor->id) {
-                NotifyApp::to($loan->borrower, NotificationType::PERSETUJUAN,
+            if (! $loan->canBeCancelledBy($actor)) {
+                NotifyApp::to($loan->notifiableBorrower(), NotificationType::PERSETUJUAN,
                     "Peminjaman \"{$loan->purpose}\" dibatalkan oleh {$actor->name}".($reason ? " — {$reason}" : ''),
                     route('loans.show', $loan));
             } else {
@@ -890,13 +970,13 @@ class LoanService
                 default => "Pengembalian \"{$loan->purpose}\" diproses, TERDAPAT SELISIH kuantitas — menunggu tindak lanjut admin.",
             };
 
-            NotifyApp::to($loan->borrower, NotificationType::PENGEMBALIAN,
+            NotifyApp::to($loan->notifiableBorrower(), NotificationType::PENGEMBALIAN,
                 $notificationMessage,
                 route('loans.show', $loan));
 
             if ($hasShortage) {
                 NotifyApp::toRoles(['SUPER_ADMIN', 'KETUA_LABORAN'], NotificationType::PENGEMBALIAN,
-                    "Selisih kuantitas pada peminjaman \"{$loan->purpose}\" (peminjam: {$loan->borrower->name}).",
+                    "Selisih kuantitas pada peminjaman \"{$loan->purpose}\" (peminjam: {$loan->borrowerDisplayName()}).",
                     route('loans.show', $loan));
             }
 
@@ -1010,7 +1090,7 @@ class LoanService
                 ])
                 ->log('Menyelesaikan pengembalian setelah seluruh unit dikonfirmasi');
 
-            NotifyApp::to($loan->borrower, NotificationType::PENGEMBALIAN,
+            NotifyApp::to($loan->notifiableBorrower(), NotificationType::PENGEMBALIAN,
                 "Pengembalian \"{$loan->purpose}\" selesai. Terima kasih.",
                 route('loans.show', $loan));
 

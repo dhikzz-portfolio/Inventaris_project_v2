@@ -444,6 +444,35 @@ Index: `(asset_unit_id, status)` dan `(classification, status)`. `damage_report_
 
 Boolean default `true`. Akun nonaktif ditolak saat login dan sesi berjalan diputus middleware `EnsureAccountIsActive`. Akun tidak dihapus agar relasi transaksi tidak yatim.
 
+### 2.24 `loans` — identitas pembuat dan peminjam sebenarnya (V7)
+
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| `requested_by` | FK `users` nullable, `nullOnDelete` | Pengguna yang membuat transaksi. Berbeda dari peminjam bila peminjaman dibuat atas nama orang lain. |
+| `borrower_id` | FK `users` nullable | Akun peminjam sebenarnya; `null` bila peminjam tidak memiliki akun. |
+| `borrower_mode` | varchar(10) default `SELF` | `SELF` (diri sendiri) atau `OTHER` (orang lain). |
+| `borrower_name` | varchar nullable | Snapshot nama peminjam saat transaksi dibuat. |
+| `borrower_category` | varchar(20) nullable | Snapshot kategori peminjam (`SISWA`/`GURU`/`STAF`). |
+| `borrower_class` | varchar(50) nullable | Snapshot kelas peminjam. |
+| `borrower_work_unit` | varchar(100) nullable | Snapshot unit kerja peminjam. |
+
+Index `loans_requested_by_index`. Backfill mengisi `requested_by = borrower_id` dan snapshot identitas dari akun lama; tidak ada data yang dihapus. Role `PEMINJAM` selalu dipaksa `SELF` oleh backend.
+
+### 2.25 `damage_report_photos` (V7)
+
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| `id` | bigint PK | |
+| `damage_report_id` | FK `damage_reports` cascade | Laporan kerusakan pemilik foto. |
+| `path` | varchar | Path file pada disk privat `local`. |
+| `original_name` | varchar nullable | Nama file asal. |
+
+`damage_reports.photo_path` tetap menjadi foto utama/kompatibilitas. Setiap baris foto diverifikasi ulang oleh `SecureFileController` terhadap laporan yang terlihat pengguna.
+
+### 2.26 `users.must_change_password` dan `password_changed_at` (V7)
+
+Boolean `must_change_password` default `false` dan timestamp `password_changed_at` nullable. Akun hasil bootstrap atau reset administrator wajib mengganti password; middleware `password.changed` mengarahkan ke halaman profil. Password tidak pernah disimpan pada audit trail.
+
 ## 3. ERD
 
 ```

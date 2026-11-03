@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 30pt 36pt; }
+        @page { margin: 30pt 36pt 40pt; }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #111; }
         .kop { width: 100%; border-bottom: 3px solid #155dfc; padding-bottom: 6px; margin-bottom: 12px; }
@@ -14,13 +14,17 @@
         .periode { text-align: center; font-size: 9pt; margin-bottom: 12px; color: #444; }
         h3 { font-size: 9.5pt; margin: 12px 0 4px; background: #eff6ff; padding: 3px 5px; border-left: 4px solid #155dfc; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-        th, td { border: 1px solid #666; padding: 3px 5px; font-size: 8pt; }
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; }
+        th, td { border: 1px solid #666; padding: 3px 5px; font-size: 7.5pt; vertical-align: top; }
         th { background: #dbeafe; color: #1c398e; text-align: left; }
         .num { text-align: center; }
+        .summary { margin-bottom: 10px; }
         .summary td { width: 16.66%; text-align: center; padding: 5px; }
         .summary .val { font-size: 13pt; font-weight: bold; }
         .summary .lbl { font-size: 7.5pt; color: #555; }
         .footer { margin-top: 14px; font-size: 7.5pt; color: #666; border-top: 1px solid #ccc; padding-top: 4px; }
+        .empty { padding: 8px; text-align: center; color: #666; }
     </style>
 </head>
 <body>
@@ -59,153 +63,45 @@
             <td><div class="val">{{ $summary['selesai'] }}</div><div class="lbl">Pinjam Selesai</div></td>
             <td><div class="val" style="color:red;">{{ $summary['terlambat'] }}</div><div class="lbl">Terlambat</div></td>
         </tr>
-        <tr>
-            <td><div class="val">{{ $summary['pengadaan'] }}</div><div class="lbl">Pengadaan Periode Ini</div></td>
-            <td><div class="val" style="color:green;">{{ $summary['pengadaan_tercatat'] }}</div><div class="lbl">Pengadaan Tercatat</div></td>
-            <td><div class="val" style="color:red;">{{ $summary['pengadaan_ditolak'] }}</div><div class="lbl">Pengadaan Ditolak</div></td>
-            <td><div class="val">{{ $summary['laporan_kerusakan'] }}</div><div class="lbl">Laporan Kerusakan</div></td>
-            <td><div class="val" style="color:#ca8a04;">{{ $summary['laporan_kerusakan_ringan'] }}</div><div class="lbl">Laporan Rusak Ringan</div></td>
-            <td><div class="val" style="color:#ea580c;">{{ $summary['laporan_kerusakan_berat'] }}</div><div class="lbl">Laporan Rusak Berat</div></td>
-        </tr>
     </table>
 
-    <h3>Rincian Barang ({{ $items->count() }})</h3>
-    <table>
-        <thead>
-            <tr>
-                <th width="90">ID Internal</th>
-                <th>Nama</th>
-                <th width="95">Kategori</th>
-                <th width="110">Ruangan</th>
-                <th width="36" class="num">Qty</th>
-                <th width="42">Satuan</th>
-                <th width="70">Status</th>
-                <th width="46" class="num">Thn</th>
-                <th width="52">Dana</th>
-                <th width="105">Nomor Register</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($items as $item)
+    @php($reportTables = $tables ?? \App\Exports\MonthlyReportExport::tables(get_defined_vars()))
+
+    {{-- Tabel yang sama persis dengan sheet Excel: rincian setiap unit fisik,
+         transaksi peminjaman, kerusakan, mutasi, penghapusan, pengadaan, dan
+         laporan kerusakan. Tidak ada ringkasan yang menggantikan detail. --}}
+    @foreach ($reportTables as $table)
+        <h3>{{ $table['title'] }} ({{ count($table['rows']) }})</h3>
+        <table>
+            <thead>
                 <tr>
-                    <td style="font-family: monospace;">{{ $item->internal_id }}</td>
-                    <td>{{ $item->name }}</td>
-                    <td>{{ $item->category?->name }}</td>
-                    <td>{{ $item->room?->code }} — {{ $item->room?->name }}</td>
-                    <td class="num">{{ $item->quantity }}</td>
-                    <td>{{ $item->unit }}</td>
-                    <td>{{ $item->status->label() }}</td>
-                    <td class="num">{{ $item->acquisition_year }}</td>
-                    <td>{{ $item->funding_source }}</td>
-                    <td style="font-family: monospace;">{{ $item->register_no ?: '—' }}</td>
+                    @foreach ($table['headings'] as $heading)
+                        <th>{{ $heading }}</th>
+                    @endforeach
                 </tr>
-            @empty
-                <tr><td colspan="10" class="num">Tidak ada barang pada cakupan ini.</td></tr>
-            @endforelse
-        </tbody>
-    </table>
-
-    @if ($acquisitionRows->isNotEmpty())
-        <h3>Pengadaan Selama Periode ({{ $acquisitionRows->count() }})</h3>
-        <table>
-            <thead><tr><th>Katalog</th><th>Kategori</th><th>Lokasi</th><th class="num">Diajukan</th><th class="num">Diterima</th><th>Status</th><th>Pengaju</th><th>Keputusan</th></tr></thead>
+            </thead>
             <tbody>
-                @foreach ($acquisitionRows as $row)
+                @forelse ($table['rows'] as $row)
                     <tr>
-                        <td>{{ $row->name }}</td>
-                        <td>{{ $row->category?->name }}</td>
-                        <td>{{ $row->room?->code }} — {{ $row->room?->name }}</td>
-                        <td class="num">{{ $row->quantity }}</td>
-                        <td class="num">{{ $row->acquisition_received_quantity ?? '—' }}</td>
-                        <td>{{ $row->acquisitionStatusEnum()?->label() ?? $row->acquisition_status }}</td>
-                        <td>{{ $row->requester?->name }}</td>
-                        <td>{{ $row->approver?->name ?: '—' }}</td>
+                        @foreach ($row as $cell)
+                            <td>{{ $cell === null || $cell === '' ? '—' : $cell }}</td>
+                        @endforeach
                     </tr>
-                @endforeach
+                @empty
+                    <tr><td colspan="{{ count($table['headings']) }}" class="empty">Tidak ada data {{ strtolower($table['title']) }} pada cakupan ini.</td></tr>
+                @endforelse
             </tbody>
         </table>
-    @endif
-
-    @if ($damageReportRows->isNotEmpty())
-        <h3>Laporan Kerusakan Unit ({{ $damageReportRows->count() }})</h3>
-        <table>
-            <thead><tr><th width="90">Kode Unit</th><th>Barang</th><th>Lokasi</th><th>Klasifikasi</th><th>Status Penanganan</th><th>Pelapor</th><th width="60">Tanggal</th></tr></thead>
-            <tbody>
-                @foreach ($damageReportRows as $row)
-                    <tr>
-                        <td style="font-family: monospace;">{{ $row->unit?->inventory_code }}</td>
-                        <td>{{ $row->unit?->catalog?->name }}</td>
-                        <td>{{ $row->unit?->room?->code }}</td>
-                        <td>{{ $row->classification->label() }}</td>
-                        <td>{{ $row->status->label() }}</td>
-                        <td>{{ $row->reporter?->name }}</td>
-                        <td>{{ $row->created_at?->format('d/m/Y') }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-
-    @if ($damageRows->isNotEmpty())
-        <h3>Kerusakan Selama Periode</h3>
-        <table>
-            <thead><tr><th width="100">ID Internal</th><th>Barang</th><th>Kondisi</th><th>Peminjam Terakhir</th><th>Tanggal</th></tr></thead>
-            <tbody>
-                @foreach ($damageRows as $row)
-                    <tr>
-                        <td style="font-family: monospace;">{{ $row->item?->internal_id }}</td>
-                        <td>{{ $row->item?->name }}</td>
-                        <td>{{ $row->condition_in instanceof \App\Enums\Condition ? $row->condition_in->label() : (\App\Enums\Condition::tryFrom((string) $row->condition_in)?->label() ?? $row->condition_in) }}</td>
-                        <td>{{ $row->loan?->borrower?->name }}</td>
-                        <td>{{ $row->loan?->returned_at?->format('d/m/Y') }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-
-    @if ($movements->isNotEmpty())
-        <h3>Mutasi Lokasi Selama Periode</h3>
-        <table>
-            <thead><tr><th width="100">ID Internal</th><th>Barang</th><th>Asal</th><th>Tujuan</th><th>Petugas</th><th>Tanggal</th></tr></thead>
-            <tbody>
-                @foreach ($movements as $m)
-                    <tr>
-                        <td style="font-family: monospace;">{{ $m->item?->internal_id }}</td>
-                        <td>{{ $m->item?->name }}</td>
-                        <td>{{ $m->fromRoom?->code }}</td>
-                        <td>{{ $m->toRoom?->code }}</td>
-                        <td>{{ $m->mover?->name }}</td>
-                        <td>{{ $m->moved_at?->format('d/m/Y') }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-
-    @if ($writeOffRows->isNotEmpty())
-        <h3>Penghapusan (Inventaris Keluar) Selama Periode — {{ $writeOffRows->sum('quantity') }} unit</h3>
-        <table>
-            <thead><tr><th>Katalog</th><th width="80">Kode Unit</th><th>Merek / Tipe</th><th>Lokasi</th><th width="34" class="num">Qty</th><th>Alasan</th><th>Disetujui</th><th width="60">Tanggal</th></tr></thead>
-            <tbody>
-                @foreach ($writeOffRows as $wo)
-                    <tr>
-                        <td>{{ $wo->catalog }}</td>
-                        <td style="font-family: monospace;">{{ $wo->code ?: '—' }}</td>
-                        <td>{{ trim(($wo->brand ?? '') . ' — ' . ($wo->model_type ?? '')) ?: '—' }}</td>
-                        <td>{{ $wo->room ?: '—' }}</td>
-                        <td class="num">{{ $wo->quantity }}</td>
-                        <td>{{ \Illuminate\Support\Str::limit($wo->reason, 70) }}@if ($wo->legacy) <em>(data lama tanpa rincian unit)</em>@endif</td>
-                        <td>{{ $wo->approver }}</td>
-                        <td>{{ $wo->date?->format('d/m/Y') }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
+    @endforeach
 
     <div class="footer">
         Laporan dibuat otomatis oleh Sistem Manajemen Inventaris &amp; Aset Sekolah — {{ $setting->institution_name }}
     </div>
+
+    <script type="text/php">
+        if (isset($pdf)) {
+            $pdf->page_text(680, 560, 'Halaman {PAGE_NUM} dari {PAGE_COUNT}', null, 7, [0.4, 0.4, 0.4]);
+        }
+    </script>
 </body>
 </html>

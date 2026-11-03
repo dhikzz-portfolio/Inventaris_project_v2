@@ -76,7 +76,7 @@ class ReportService
             )
             ->when($scope === 'RUANGAN' && $scopeId, fn ($query) => $query->where('room_id', $scopeId))
             ->when($conditionFilter !== null, fn ($query) => $query->where('condition', $conditionFilter))
-            ->with(['catalog.category', 'room'])
+            ->with(['catalog.category', 'room', 'specification'])
             ->orderBy('inventory_code')
             ->get();
 
@@ -290,6 +290,7 @@ class ReportService
             'units' => $units,
             'loans' => $loansInPeriod->load([
                 'borrower',
+                'requester',
                 'event',
                 'loanItems' => fn ($q) => $q
                     ->when($labOnly, fn ($qq) => $qq->whereHas('item.room', fn ($r) => $r->where('is_lab', true)))

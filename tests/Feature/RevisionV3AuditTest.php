@@ -400,7 +400,7 @@ class RevisionV3AuditTest extends TestCase
             'created_by' => $owner->id,
         ]);
 
-        $this->actingAs($this->wakasek)
+        $this->actingAs($this->accountAdministrator())
             ->delete(route('users.destroy', $owner))
             ->assertStatus(422);
 

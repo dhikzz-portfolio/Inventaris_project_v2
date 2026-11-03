@@ -74,6 +74,12 @@ class AssetUnit extends Model
         return $this->hasMany(MaintenanceRecord::class);
     }
 
+    /** Laporan kerusakan unit — sumber dokumentasi foto pada detail unit. */
+    public function damageReports(): HasMany
+    {
+        return $this->hasMany(DamageReport::class, 'asset_unit_id');
+    }
+
     /** Baris pengajuan penghapusan yang pernah memuat unit ini. */
     public function writeOffUnits(): HasMany
     {

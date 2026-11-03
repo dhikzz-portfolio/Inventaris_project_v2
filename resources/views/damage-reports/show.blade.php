@@ -39,11 +39,22 @@
                     {{ $report->description }}
                 </div>
 
-                @if ($report->photo_path)
-                    <a href="{{ route('files.show', ['path' => $report->photo_path]) }}" target="_blank" rel="noopener"
-                       class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300">
-                        <span class="material-icons-round text-base">photo</span> Lihat dokumentasi foto
-                    </a>
+                @if ($report->photos->isNotEmpty() || $report->photo_path)
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        @foreach ($report->photos as $photo)
+                            <a href="{{ route('files.show', ['path' => $photo->path]) }}" target="_blank" rel="noopener" title="Buka foto bukti">
+                                <img src="{{ route('files.show', ['path' => $photo->path]) }}"
+                                     alt="Dokumentasi kerusakan {{ $report->unit?->inventory_code }} tanggal {{ $report->created_at?->format('d/m/Y') }}"
+                                     class="h-24 w-24 rounded-lg border border-slate-200 object-cover dark:border-slate-700">
+                            </a>
+                        @endforeach
+                        @if ($report->photos->isEmpty())
+                            <a href="{{ route('files.show', ['path' => $report->photo_path]) }}" target="_blank" rel="noopener"
+                               class="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300">
+                                <span class="material-icons-round text-base">photo</span> Lihat dokumentasi foto
+                            </a>
+                        @endif
+                    </div>
                 @endif
 
                 @if ($report->resolution_note)

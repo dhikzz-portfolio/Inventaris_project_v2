@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\BorrowerMode;
+use App\Enums\BorrowerType;
 use App\Enums\Decision;
 use App\Enums\DocumentStatus;
 use App\Enums\LoanStatus;
@@ -16,7 +18,9 @@ class Loan extends Model
     use HasFactory;
 
     protected $fillable = [
-        'borrower_id', 'event_id', 'purpose', 'start_date', 'due_date',
+        'borrower_id', 'requested_by', 'borrower_mode', 'borrower_name',
+        'borrower_category', 'borrower_class', 'borrower_work_unit',
+        'event_id', 'purpose', 'start_date', 'due_date',
         'returned_at', 'returned_by', 'status', 'needs_high_value_approval',
         'handed_over_at', 'handed_over_by', 'cancelled_at', 'cancelled_by',
         'cancel_reason', 'bast_path', 'letter_path', 'reject_reason',
@@ -32,14 +36,80 @@ class Loan extends Model
             'handed_over_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'status' => LoanStatus::class,
+            'borrower_mode' => BorrowerMode::class,
             'needs_high_value_approval' => 'boolean',
             'document_status' => DocumentStatus::class,
         ];
     }
 
+    /** Akun peminjam sebenarnya; null bila peminjam tidak memiliki akun. */
     public function borrower(): BelongsTo
     {
         return $this->belongsTo(User::class, 'borrower_id');
+    }
+
+    /** Pengguna yang membuat transaksi (bisa berbeda dari peminjam). */
+    public function requester(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    /** Nama peminjam yang tercatat pada transaksi (snapshot saat dibuat). */
+    public function borrowerDisplayName(): string
+    {
+        $name = trim((string) $this->borrower_name);
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        return trim((string) ($this->borrower?->displayName() ?: $this->requester?->displayName() ?: 'Peminjam'));
+    }
+
+    /** Nama pengguna yang membuat transaksi. */
+    public function requesterDisplayName(): string
+    {
+        return trim((string) ($this->requester?->displayName() ?: $this->borrower?->displayName() ?: 'Peminjam'));
+    }
+
+    /** Peminjaman dilakukan atas nama diri sendiri. */
+    public function isSelfBorrower(): bool
+    {
+        return $this->borrower_mode === null || $this->borrower_mode === BorrowerMode::SELF;
+    }
+
+    /** Penerima notifikasi peminjam: akun peminjam, atau pembuat transaksi. */
+    public function notifiableBorrower(): ?User
+    {
+        return $this->borrower ?? $this->requester;
+    }
+
+    /** Keterangan identitas peminjam untuk tampilan & dokumen. */
+    public function borrowerIdentityLabel(): string
+    {
+        $parts = [];
+
+        if (filled($this->borrower_category)) {
+            $parts[] = BorrowerType::tryFrom((string) $this->borrower_category)?->label()
+                ?? (string) $this->borrower_category;
+        }
+
+        if (filled($this->borrower_class)) {
+            $parts[] = 'Kelas '.$this->borrower_class;
+        }
+
+        if (filled($this->borrower_work_unit)) {
+            $parts[] = (string) $this->borrower_work_unit;
+        }
+
+        return implode(' • ', $parts);
+    }
+
+    /** Pembuat transaksi atau peminjam sendiri boleh membatalkan pengajuan. */
+    public function canBeCancelledBy(User $user): bool
+    {
+        return ((int) $this->borrower_id === (int) $user->id)
+            || ((int) $this->requested_by === (int) $user->id);
     }
 
     public function event(): BelongsTo
@@ -97,9 +167,12 @@ class Loan extends Model
         }
 
         if ($user->isKetuaLaboran()) {
-            return $query->where(function ($q) {
-                $q->whereDoesntHave('loanItems.item.room', fn ($room) => $room->where('is_lab', false))
-                    ->whereHas('loanItems');
+            return $query->where(function ($q) use ($user) {
+                $q->where('requested_by', $user->id)
+                    ->orWhere(function ($scoped) {
+                        $scoped->whereDoesntHave('loanItems.item.room', fn ($room) => $room->where('is_lab', false))
+                            ->whereHas('loanItems');
+                    });
             });
         }
 
@@ -108,6 +181,7 @@ class Loan extends Model
 
             return $query->where(function ($q) use ($user, $roomIds) {
                 $q->where('borrower_id', $user->id)
+                    ->orWhere('requested_by', $user->id)
                     ->orWhere(function ($scoped) use ($roomIds) {
                         $scoped->whereHas('loanItems')
                             ->whereDoesntHave('loanItems.item', fn ($item) => $item->whereNotIn('room_id', $roomIds));
@@ -115,7 +189,10 @@ class Loan extends Model
             });
         }
 
-        return $query->where('borrower_id', $user->id);
+        return $query->where(function ($q) use ($user) {
+            $q->where('borrower_id', $user->id)
+                ->orWhere('requested_by', $user->id);
+        });
     }
 
     /**
@@ -152,7 +229,9 @@ class Loan extends Model
 
     public function canBeViewedBy(User $user): bool
     {
-        if ($user->isSuperAdmin() || $this->borrower_id === $user->id) {
+        if ($user->isSuperAdmin()
+            || (int) $this->borrower_id === (int) $user->id
+            || (int) $this->requested_by === (int) $user->id) {
             return true;
         }
 

@@ -62,6 +62,12 @@ class DamageReport extends Model
         return $this->hasMany(DamageReportLog::class)->latest();
     }
 
+    /** Beberapa foto bukti per laporan; laporan lama tetap memakai photo_path. */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(DamageReportPhoto::class)->orderBy('id');
+    }
+
     /**
      * Cakupan laporan mengikuti cakupan unit: Super Admin seluruh sekolah,
      * Ketua Laboran seluruh laboratorium, Laboran/K3 ruangan yang ditugaskan.

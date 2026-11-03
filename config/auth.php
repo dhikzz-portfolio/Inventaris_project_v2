@@ -142,4 +142,23 @@ return [
     */
     'seed_demo_data' => env('SEED_DEMO_DATA', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Bootstrap Super Admin Pengguna
+    |--------------------------------------------------------------------------
+    |
+    | Email wajib diisi administrator saat menjalankan
+    | `php artisan user:bootstrap-admin`. Password awal diambil dari
+    | BOOTSTRAP_USER_ADMIN_PASSWORD bila diisi (agar administrator dapat
+    | membacanya kembali); jika kosong password dibuat acak. Nilainya hanya
+    | dipakai sekali saat akun dibuat, tidak pernah ditulis ke log, dan akun
+    | tetap wajib mengganti password pada login pertama.
+    |
+    */
+    'bootstrap_user_admin' => [
+        'name' => env('BOOTSTRAP_USER_ADMIN_NAME', 'Super Admin Pengguna'),
+        'email' => env('BOOTSTRAP_USER_ADMIN_EMAIL'),
+        'password' => env('BOOTSTRAP_USER_ADMIN_PASSWORD'),
+    ],
+
 ];

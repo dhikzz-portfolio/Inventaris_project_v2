@@ -45,6 +45,8 @@ Halaman Master Data (`/master`, `masters.index`) berisi empat kelompok data yang
 
 Role `SUPER_ADMIN_PENGGUNA` ditambahkan terpisah dari `SUPER_ADMIN`. Role ini dapat membuka `/pengguna` dan mengelola akun, tetapi tidak memiliki akses operasional inventaris (katalog, pengadaan, mutasi, peminjaman, pengembalian, penghapusan, laporan, kegiatan).
 
+**Revisi V7 (3 November 2026):** akses halaman dan endpoint administrasi akun dibatasi **hanya** untuk `SUPER_ADMIN_PENGGUNA`. Super Admin Sarpras tidak lagi memperoleh menu maupun akses `/pengguna`; pemisahan ini disengaja dan diuji di backend. Keputusan yang masih PENDING hanya menyangkut kemampuan Super Admin Pengguna atas akun Super Admin utama.
+
 ### Matriks permission (diusulkan, status PENDING)
 
 | Tindakan | Super Admin utama | Super Admin Pengguna | Status |

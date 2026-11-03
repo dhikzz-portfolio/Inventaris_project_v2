@@ -24,16 +24,14 @@ class UserAdministrationTest extends TestCase
 
     private function makeAccountAdmin(): User
     {
-        $this->actingAs($this->wakasek)->post(route('users.store'), [
+        $admin = User::factory()->create([
             'name' => 'Admin Akun Sekolah',
             'email' => 'admin.akun@gmail.com',
-            'password' => 'rahasia123',
-            'password_confirmation' => 'rahasia123',
             'role' => Role::SUPER_ADMIN_PENGGUNA->value,
-            'is_active' => '1',
-        ])->assertRedirect()->assertSessionHasNoErrors();
+        ]);
+        $admin->syncRoles([Role::SUPER_ADMIN_PENGGUNA->value]);
 
-        return User::where('email', 'admin.akun@gmail.com')->firstOrFail();
+        return $admin;
     }
 
     public function test_super_admin_pengguna_mengelola_akun_tanpa_akses_operasional(): void
@@ -78,9 +76,12 @@ class UserAdministrationTest extends TestCase
         $this->assertSame(Role::PEMINJAM->value, $target->refresh()->role);
     }
 
-    public function test_akun_super_admin_utama_terlindungi(): void
+    public function test_super_admin_utama_tidak_dapat_dikelola_super_admin_pengguna(): void
     {
         $accountAdmin = $this->makeAccountAdmin();
+
+        // Wakasek Sarpras tidak memperoleh pengecualian untuk administrasi akun.
+        $this->actingAs($this->wakasek)->get(route('users.index'))->assertForbidden();
 
         // Super Admin Pengguna tidak dapat mengubah akun Super Admin utama.
         $this->actingAs($accountAdmin)->put(route('users.update', $this->wakasek), [
@@ -90,14 +91,6 @@ class UserAdministrationTest extends TestCase
         ])->assertForbidden();
 
         $this->actingAs($accountAdmin)->delete(route('users.destroy', $this->wakasek))->assertForbidden();
-
-        // Super Admin utama tidak dapat menonaktifkan/menurunkan akunnya sendiri.
-        $this->actingAs($this->wakasek)->put(route('users.update', $this->wakasek), [
-            'name' => $this->wakasek->name,
-            'email' => $this->wakasek->email,
-            'role' => Role::SUPER_ADMIN->value,
-            'is_active' => '0',
-        ])->assertSessionHasErrors('is_active');
 
         $this->assertSame(Role::SUPER_ADMIN->value, $this->wakasek->refresh()->role);
         $this->assertTrue($this->wakasek->isActive());
@@ -124,9 +117,10 @@ class UserAdministrationTest extends TestCase
 
     public function test_perubahan_akun_dicatat_dengan_nilai_sebelum_dan_sesudah(): void
     {
+        $accountAdmin = $this->makeAccountAdmin();
         $target = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
 
-        $this->actingAs($this->wakasek)->put(route('users.update', $target), [
+        $this->actingAs($accountAdmin)->put(route('users.update', $target), [
             'name' => 'Budi Santoso Baru',
             'email' => $target->email,
             'role' => Role::PEMINJAM->value,

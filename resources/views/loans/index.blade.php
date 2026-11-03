@@ -80,8 +80,9 @@
                         <tr class="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
                             @unless ($isSelfServiceBorrower)
                                 <td class="px-5 py-4">
-                                    <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $loan->borrower?->name ?? 'Peminjam' }}</div>
-                                    <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower?->major?->name ?: 'Peminjam' }}</div>
+                                    <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $loan->borrowerDisplayName() }}</div>
+                                    <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower?->major?->name ?: ($loan->borrowerIdentityLabel() ?: 'Peminjam') }}</div>
+                                    <div class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">Dibuat oleh {{ $loan->requesterDisplayName() }}</div>
                                 </td>
                             @endunless
                             <td class="max-w-[260px] px-5 py-4">
@@ -144,7 +145,8 @@
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         @unless ($isSelfServiceBorrower)
-                            <p class="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{{ $loan->borrower?->name ?? 'Peminjam' }}</p>
+                            <p class="truncate text-xs font-medium text-slate-500 dark:text-slate-400">Dipinjam oleh {{ $loan->borrowerDisplayName() }}</p>
+                            <p class="truncate text-[11px] text-slate-400 dark:text-slate-500">Dibuat oleh {{ $loan->requesterDisplayName() }}</p>
                         @endunless
                         <h3 class="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-slate-900 dark:text-white">{{ $loan->purpose }}</h3>
                     </div>

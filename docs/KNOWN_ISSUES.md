@@ -1,7 +1,9 @@
 # Known Issues & Limitations
 
-Diperbarui: 2 November 2026
-Berlaku untuk: aplikasi v2 + revisi 2.1 + revisi role/seeder/peminjaman 24 Oktober 2026 + revisi besar V2 26 Oktober 2026 (`REVISION_V2.md`) + revisi V3 dan V4 2 November 2026 (`REVISION_V3.md`)
+Diperbarui: 3 November 2026
+Berlaku untuk: aplikasi v2 + revisi 2.1 + revisi role/seeder/peminjaman 24 Oktober 2026 + revisi besar V2 26 Oktober 2026 (`REVISION_V2.md`) + revisi V3 dan V4 2 November 2026 (`REVISION_V3.md`) + revisi V7 3 November 2026 (`REVISION_V7.md`)
+
+Catatan V7: akses administrasi akun kini hanya untuk `SUPER_ADMIN_PENGGUNA`, foto kerusakan multi-laporan dapat diakses sesuai cakupan, dan pratinjau Excel memakai dataset yang sama dengan file ekspor. Batasan yang tersisa tidak berubah: impor hanya memulihkan baris unit berkode stabil (bukan pengganti backup database), dan cetak/pemindaian fisik belum diverifikasi.
 
 ## A. Gap implementasi yang masih tersisa
 

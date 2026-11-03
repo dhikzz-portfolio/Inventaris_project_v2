@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BorrowerMode;
+use App\Enums\BorrowerType;
 use App\Enums\Condition;
 use App\Enums\Decision;
 use App\Enums\DocumentStatus;
@@ -21,6 +23,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -58,6 +61,12 @@ class LoanController extends Controller
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.item_id' => ['required', 'exists:item_catalogs,id'],
             'lines.*.qty' => ['required', 'integer', 'min:1'],
+            'borrower_mode' => ['nullable', Rule::in(BorrowerMode::values())],
+            'borrower_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'borrower_name' => ['nullable', 'string', 'max:255'],
+            'borrower_category' => ['nullable', Rule::in(BorrowerType::values())],
+            'borrower_class' => ['nullable', 'string', 'max:50'],
+            'borrower_work_unit' => ['nullable', 'string', 'max:100'],
         ]);
 
         try {
@@ -67,7 +76,15 @@ class LoanController extends Controller
                 $data['purpose'],
                 $data['start_date'],
                 $data['due_date'],
-                $data['event_id'] ?? null
+                $data['event_id'] ?? null,
+                [
+                    'borrower_mode' => $data['borrower_mode'] ?? BorrowerMode::SELF->value,
+                    'borrower_user_id' => $data['borrower_user_id'] ?? null,
+                    'borrower_name' => $data['borrower_name'] ?? null,
+                    'borrower_category' => $data['borrower_category'] ?? null,
+                    'borrower_class' => $data['borrower_class'] ?? null,
+                    'borrower_work_unit' => $data['borrower_work_unit'] ?? null,
+                ]
             );
         } catch (AvailabilityException $e) {
             return back()->withErrors(['lines' => $e->getMessage()])->withInput();
@@ -90,7 +107,7 @@ class LoanController extends Controller
 
         return view('loans.index', [
             'loans' => $this->scopeFor($request)
-                ->with(['borrower', 'event', 'loanItems.item'])
+                ->with(['borrower', 'requester', 'event', 'loanItems.item'])
                 ->when($status, fn ($q) => $q->where('status', $status))
                 ->latest()
                 ->paginate(12),
@@ -112,7 +129,7 @@ class LoanController extends Controller
 
         $loan->load([
             'loanItems.item.category', 'loanItems.item.room', 'loanItems.unitAssignments',
-            'borrower.major', 'event',
+            'borrower.major', 'requester', 'event',
             'approvals.approver', 'returner', 'handoverOfficer', 'canceller',
         ]);
 
@@ -130,7 +147,7 @@ class LoanController extends Controller
             'nextLevel' => $nextLevel,
             'canAct' => $loan->isPending() && $canManage && $nextLevel !== null,
             'canManage' => $canManage,
-            'canCancel' => $loan->borrower_id === $request->user()->id
+            'canCancel' => $loan->canBeCancelledBy($request->user())
                 && in_array($loan->status, [LoanStatus::PENDING, LoanStatus::APPROVED], true)
                 && $loan->handed_over_at === null,
             'hasShortage' => $loan->loanItems->contains(fn ($li) => $li->hasShortage()),
@@ -258,7 +275,7 @@ class LoanController extends Controller
         return view('loans.pending', [
             'loans' => $this->scopeFor($request)
                 ->where('status', LoanStatus::PENDING->value)
-                ->with(['borrower.major', 'event', 'loanItems.item.room.major'])
+                ->with(['borrower.major', 'requester', 'event', 'loanItems.item.room.major'])
                 ->latest()
                 ->get(),
         ]);
@@ -354,7 +371,7 @@ class LoanController extends Controller
         return view('loans.returns', [
             'loans' => $this->scopeFor($request)
                 ->whereIn('status', [LoanStatus::APPROVED->value, LoanStatus::DIPINJAM->value])
-                ->with(['borrower', 'event', 'loanItems.item'])
+                ->with(['borrower', 'requester', 'event', 'loanItems.item'])
                 ->orderBy('due_date')
                 ->paginate(12),
         ]);

@@ -291,8 +291,9 @@ class InventoryCoreTest extends TestCase
     public function test_scope_laboratorium_dapat_ditetapkan_lewat_form_pengguna(): void
     {
         $lab = Room::where('code', 'G1-01')->firstOrFail();
+        $accountAdmin = $this->accountAdministrator();
 
-        $this->actingAs($this->superAdmin)->post(route('users.store'), [
+        $this->actingAs($accountAdmin)->post(route('users.store'), [
             'name' => 'Laboran Baru',
             'email' => 'laboran.baru@gmail.com',
             'password' => 'rahasia123',
@@ -309,7 +310,7 @@ class InventoryCoreTest extends TestCase
         // Perubahan cakupan akses wajib tercatat di audit log.
         $otherLab = Room::where('code', 'G2-02')->firstOrFail();
 
-        $this->actingAs($this->superAdmin)->put(route('users.update', $user), [
+        $this->actingAs($accountAdmin)->put(route('users.update', $user), [
             'name' => 'Laboran Baru',
             'email' => 'laboran.baru@gmail.com',
             'role' => 'LABORAN',

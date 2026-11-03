@@ -240,3 +240,136 @@ Seluruh revisi yang keputusannya sudah jelas sudah diimplementasikan dan lulus p
 -untuk data di pdf, isi rincian barang nya harus seperti pada excel nya, jadi terlihat per unit nya, lalu berikan pratinjau untuk excel nya juga.
 -berikan contoh gambaran untuk import datanya dan panduan menggunakannya.
 -tambahkan bukti foto kerusakan barangnya di detail per unit barang nya agar dapat di tindak lanjuti.
+
+
+Laporan Akhir — Revisi Lanjutan Inventaris Sekolah
+
+A. Ringkasan implementasi
+
+Repository sudah mengandung implementasi sebagian besar revisi; saya mengaudit kode aktual, menutup celah yang tersisa, menambah tes regresi, menjalankan suite penuh, dan memperbarui dokumentasi. Perbaikan yang saya terapkan pada sesi ini:
+1. Akses multi-foto kerusakan —  SecureFileController  sebelumnya hanya mengizinkan  damage_reports.photo_path , sehingga foto kedua/ketiga pada  damage_report_photos  menghasilkan 403. Sekarang setiap path diverifikasi terhadap laporan yang terlihat pengguna.
+2. Route pratinjau Excel — sebelumnya hanya untuk Super Admin/Ketua Laboran, padahal tombolnya tampil juga untuk Laboran/K3. Route dipindah ke grup laporan yang sama sehingga tidak ada tombol 403.
+3. Menu Akun Pengguna — sebelumnya tetap tampil untuk Super Admin Sarpras meski endpoint-nya ditolak. Sekarang hanya dirender untuk Super Admin Pengguna.
+4. Panduan impor — ditambahkan tombol Unduh Contoh File (route sudah ada) beserta panduan format nilai, relasi katalog/ruangan, pola kode, dan arti hasil validasi.
+5. Konfigurasi bootstrap —  BOOTSTRAP_USER_ADMIN_NAME/EMAIL  ditambahkan ke  .env.example  dan  .env.docker.example  (email sengaja kosong agar administrator mengisinya).
+
+B. Status setiap revisi
+
+┌─────┬──────────┬───────────┬───────────────────────────────┬──────────────┐
+│ No. │ Modul    │ Status    │ File terdampak                │ Hasil        │
+│     │          │           │                               │ pengujian    │
+├─────┼──────────┼───────────┼───────────────────────────────┼──────────────┤
+│ 1   │ Peminjam │ Selesai   │ LoanRequest.php,              │ Lulus — 13   │
+│     │ an atas  │           │ LoanService.php, Loan.php,    │ tes          │
+│     │ nama     │           │ loan-request.blade.php,       │ RevisionV5   │
+│     │ orang    │           │ loans/show.blade.php,         │              │
+│     │ lain     │           │ migration ...000002...        │              │
+│ 2   │ Rincian  │ Selesai   │ MonthlyReportExport.php,      │ Lulus —      │
+│     │ unit PDF │           │ ReportService.php,            │ baris unit   │
+│     │ /Excel   │           │ pdf/report.blade.php          │ identik PDF/ │
+│     │          │           │                               │ pratinjau    │
+│ 3   │ Pratinja │ Selesai ( │ ReportController.php, reports │ Lulus        │
+│     │ u Excel  │ diperbaik │ /preview-excel.blade.php,     │              │
+│     │          │ i akses   │ routes/web.php                │              │
+│     │          │ Laboran)  │                               │              │
+│ 4   │ Contoh & │ Selesai   │ ReportController.php,         │ Lulus —      │
+│     │ panduan  │ (tombol d │ reports/import.blade.php,     │ template     │
+│     │ impor    │ itambahka │ ReportImportService.php       │ terunduh,    │
+│     │          │ n)        │                               │ header salah │
+│     │          │           │                               │ ditolak      │
+│ 5   │ Foto ker │ Selesai   │ UnitController.php,           │ Lulus —      │
+│     │ usakan   │ (akses mu │ units/show.blade.php,         │ setiap foto  │
+│     │ di       │ lti-foto  │ DamageReportPhoto.php,        │ diuji        │
+│     │ detail   │ diperbaik │ SecureFileController.php,     │ 200/403      │
+│     │ unit     │ i)        │ migration ...000004...        │              │
+│ 6   │ Halaman  │ Selesai   │ UserController.php,           │ Lulus — role │
+│     │ Super    │ (menu dip │ users/index.blade.php,        │ lain 403     │
+│     │ Admin    │ erketat)  │ users/show.blade.php,         │              │
+│     │ Pengguna │           │ menu.blade.php,               │              │
+│     │          │           │ routes/web.php                │              │
+│ 7   │ Bootstra │ Selesai   │ BootstrapUserAdmin.php,       │ Lulus —      │
+│     │ p akun   │           │ config/auth.php,              │ hash, wajib  │
+│     │ awal     │           │ EnsurePasswordChanged.php,    │ ganti        │
+│     │          │           │ migration ...000003...        │ password,    │
+│     │          │           │                               │ idempoten    │
+└─────┴──────────┴───────────┴───────────────────────────────┴──────────────┘
+
+C. Perubahan database
+
+-  2026_11_03_000002_add_borrower_identity_to_loans_table.php  —  loans.requested_by  (+ index, FK  nullOnDelete ),  borrower_mode ,  borrower_name ,  borrower_category ,  borrower_class ,  borrower_work_unit ;  borrower_id  dibuat nullable; backfill data lama tanpa penghapusan.
+-  2026_11_03_000003_add_password_change_requirement_to_users_table.php  —  users.must_change_password ,  users.password_changed_at .
+-  2026_11_03_000004_create_damage_report_photos_table.php  — tabel  damage_report_photos  (FK cascade ke  damage_reports ).
+
+D. Hasil pengujian
+
+-  php artisan test --compact  → 378 passed, 0 failed, 0 skipped, 2053 assertions (~413 detik, SQLite in-memory).
+-  tests/Feature/RevisionV5Test.php  → 13 passed, 108 assertions (termasuk 3 tes regresi baru).
+- Suite terkait (akun, kerusakan, impor, laporan, peminjaman, notifikasi) → 61 passed, 340 assertions.
+-  vendor/bin/pint --dirty --format agent  → PASS.
+-  php artisan view:cache  → PASS.
+- Belum dijalankan: Playwright E2E ulang, audit responsif ulang, uji konkurensi MySQL, cetak fisik, dan pemindai QR fisik. Ini tidak diklaim lulus.
+
+E. Akun Super Admin Pengguna
+
+Akun belum dibuat karena belum ada alamat email resmi yang disepakati, dan saya tidak mengarang email. Mekanisme aman sudah tersedia:
+
+// bash
+# isi dulu: BOOTSTRAP_USER_ADMIN_EMAIL=email.resmi@sekolah.sch.id
+php artisan user:bootstrap-admin
+# atau eksplisit:
+php artisan user:bootstrap-admin --email=email.resmi@sekolah.sch.id
+
+Command mencetak email dan password awal sekali (tidak masuk log/repo), menyimpan hash Laravel, menetapkan  must_change_password = true , dan bersifat idempoten. Halaman administrasi:  /pengguna ; login:  /login .
+
+F. Known issues & pending decisions
+
+- PENDING: batas kewenangan Super Admin Pengguna atas akun Super Admin utama (lihat  docs/PENDING_DECISIONS.md  §2). Implementasi aman saat ini: tidak boleh menetapkan role  SUPER_ADMIN , tidak boleh mengubah/menonaktifkan Super Admin utama, dan akun Super Admin aktif terakhir dilindungi.
+- Akses  /pengguna  kini hanya Super Admin Pengguna; Super Admin Sarpras tidak lagi memiliki akses akun (sesuai revisi).
+- Impor tetap bukan pengganti backup database; hanya memulihkan baris unit berkode stabil.
+- E2E, responsif ulang, cetak fisik, dan beban produksi belum diverifikasi pada revisi ini.
+
+G. Status akhir
+
+IMPLEMENTATION COMPLETE dan TESTING COMPLETE (otomatis). Verifikasi manual (E2E, responsif, cetak fisik) masih BELUM DIVERIFIKASI. Dokumentasi diperbarui di  docs/REVISION_V7.md ,  DATABASE.md ,  PROJECT_STATUS.md ,  TESTING.md ,  PENDING_DECISIONS.md , dan  KNOWN_ISSUES.md .
+
+Sudah diterapkan: password awal bisa dibaca dari  .env 
+
+Sebelumnya command hanya menerima  --password  atau membuat acak, jadi tidak ada cara melihatnya lagi. Sekarang ada  BOOTSTRAP_USER_ADMIN_PASSWORD .
+
+Urutan sumber password:  --password  →  BOOTSTRAP_USER_ADMIN_PASSWORD  → acak ( Str::password(20) ). Minimal 12 karakter, tetap di-hash bcrypt, dan  must_change_password  tetap aktif.
+
+Saya juga menambahkan  --reset-password  supaya akun yang sudah ada bisa disetel ulang dari nilai  .env  (tanpa flag ini command tetap idempoten dan tidak menyentuh password lama).
+
+Kredensial aktif sekarang
+
+┌───────────────┬─────────────────────────────────────────────────────┐
+│ Item          │ Nilai                                               │
+├───────────────┼─────────────────────────────────────────────────────┤
+│ Email         │ superadmin@gmail.com                                │
+│ Password      │ JvDv93RVrHinB3HqdFvh                                │
+│ Lokasi        │ BOOTSTRAP_USER_ADMIN_PASSWORD di .env (git-ignored) │
+│ Role / status │ SUPER_ADMIN_PENGGUNA, aktif, wajib ganti password   │
+│ Halaman       │ http://127.0.0.1:8000/pengguna                      │
+└───────────────┴─────────────────────────────────────────────────────┘
+
+Diverifikasi dengan  Hash::check()  → true, jadi password di  .env  benar-benar password login saat ini.
+
+Perubahan file
+
+-  config/auth.php  —  bootstrap_user_admin.password  dari env.
+-  app/Console/Commands/BootstrapUserAdmin.php  — dukungan env password, validasi min. 12 karakter, opsi  --reset-password .
+-  .env  —  BOOTSTRAP_USER_ADMIN_PASSWORD  diisi;  SUPER_ADMIN_EMAIL  dikembalikan ke  wakasek@gmail.com  (sebelumnya  superadmin@gmail.com , bentrok dengan email akun bootstrap dan membuat seeder tes gagal).
+-  .env.example  — variabel baru;  BOOTSTRAP_USER_ADMIN_EMAIL  dikosongkan agar administrator tidak memakai alamat contoh.
+-  .env.docker.example  — variabel baru.
+-  phpunit.xml  —  SEED_DEMO_DATA=true  agar suite tidak bergantung  .env  lokal (sebelumnya tes gagal di  setUp  karena  .env  berisi  false ).
+-  tests/Feature/RevisionV5Test.php  — tes baru: password dari env, tanpa  --reset-password  tidak berubah, reset mengaktifkan lagi kewajiban ganti, password pendek ditolak.
+-  docs/REVISION_V7.md  — dokumentasi bootstrap diperbarui.
+
+Verifikasi
+
+-  php artisan test --compact  → 379 passed, 0 failed, 2065 assertions.
+-  vendor/bin/pint --dirty --format agent  → passed.
+
+Catatan keamanan
+
+ .env  sudah di-ignore git ( .gitignore:3 ), jadi nilainya tidak masuk repository. Tapi siapa pun yang bisa membaca file server, backup, atau dump  .env  bisa membaca password ini — karena itu statusnya hanya "password awal": kosongkan variabel setelah login pertama (akun tetap diarahkan ke halaman profil untuk mengganti). Nilai  .env  hanya dibaca saat command bootstrap dijalankan, tidak dipakai saat login, jadi mengubahnya belakangan tidak mengubah password akun.

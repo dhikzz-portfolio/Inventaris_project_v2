@@ -269,6 +269,93 @@
             @endif
 
             <div class="space-y-4">
+                @if ($canChooseBorrower)
+                    <div class="rounded-xl border border-sky-200 bg-sky-50/60 p-3 dark:border-sky-900 dark:bg-sky-950/30">
+                        <p class="text-xs font-bold text-slate-800 dark:text-slate-100">Siapa yang meminjam barang? *</p>
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                            <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950">
+                                <input type="radio" name="borrower_mode" value="SELF" wire:model.live="borrower_mode" class="text-brand-600 focus:ring-brand-500">
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">Diri sendiri</span>
+                            </label>
+                            <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950">
+                                <input type="radio" name="borrower_mode" value="OTHER" wire:model.live="borrower_mode" class="text-brand-600 focus:ring-brand-500">
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">Orang lain</span>
+                            </label>
+                        </div>
+
+                        @if ($borrower_mode === 'SELF')
+                            <p class="mt-2 text-[11px] text-slate-600 dark:text-slate-300">
+                                Peminjam: <strong>{{ auth()->user()->displayName() }}</strong> — identitas diambil otomatis dari akun Anda.
+                            </p>
+                        @else
+                            <div class="mt-3 space-y-2">
+                                <div>
+                                    <label for="borrower-search" class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Cari akun peminjam (opsional)</label>
+                                    <input id="borrower-search" type="text" wire:model.live.debounce.300ms="borrower_search"
+                                           placeholder="Nama, email, kelas, atau unit kerja"
+                                           class="mt-1 w-full rounded-lg border-slate-300 bg-white text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                </div>
+
+                                @if ($borrowerAccounts->isNotEmpty())
+                                    <div class="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-1 dark:border-slate-700">
+                                        @foreach ($borrowerAccounts as $account)
+                                            <button type="button" wire:key="borrower-{{ $account->id }}" wire:click="selectBorrower({{ $account->id }})"
+                                                    class="flex w-full items-start justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[11px] transition hover:bg-brand-50 dark:hover:bg-slate-800">
+                                                <span class="min-w-0">
+                                                    <span class="block truncate font-semibold text-slate-700 dark:text-slate-200">{{ $account->displayName() }}</span>
+                                                    <span class="block truncate text-slate-500 dark:text-slate-400">{{ $account->email ?: \App\Enums\Role::tryFrom($account->role)?->label() }}</span>
+                                                </span>
+                                                <span class="material-icons-round shrink-0 text-sm text-brand-600">person_add</span>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endif
+
+                                <div>
+                                    <label for="borrower-name" class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Nama peminjam *</label>
+                                    <input id="borrower-name" type="text" wire:model.live="borrower_name" maxlength="255"
+                                           placeholder="Nama siswa/guru/pihak yang meminjam"
+                                           class="mt-1 w-full rounded-lg border-slate-300 bg-white text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                </div>
+
+                                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    <div>
+                                        <label for="borrower-category" class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Kategori</label>
+                                        <select id="borrower-category" wire:model.live="borrower_category" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                                            <option value="">— tidak ditentukan —</option>
+                                            @foreach ($borrowerCategories as $categoryOption)
+                                                <option value="{{ $categoryOption->value }}">{{ $categoryOption->label() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="borrower-class" class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Kelas (siswa)</label>
+                                        <input id="borrower-class" type="text" wire:model.live="borrower_class" maxlength="50" placeholder="Contoh: X RPL 1"
+                                               class="mt-1 w-full rounded-lg border-slate-300 bg-white text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label for="borrower-work-unit" class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Unit kerja (guru/staf)</label>
+                                        <input id="borrower-work-unit" type="text" wire:model.live="borrower_work_unit" maxlength="100" placeholder="Contoh: Tata Usaha"
+                                               class="mt-1 w-full rounded-lg border-slate-300 bg-white text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    </div>
+                                </div>
+
+                                @if ($borrower_user_id !== '')
+                                    <div class="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[11px] dark:bg-slate-950">
+                                        <span class="text-slate-600 dark:text-slate-300">Terhubung ke akun #{{ $borrower_user_id }}</span>
+                                        <button type="button" wire:click="clearBorrower" class="font-semibold text-red-600 hover:underline">Lepas</button>
+                                    </div>
+                                @endif
+                                <p class="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">Peminjam tanpa akun tetap dapat dicatat. Data identitas disimpan sebagai snapshot pada transaksi.</p>
+                            </div>
+                        @endif
+                    </div>
+                @else
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                        Peminjam: <strong>{{ auth()->user()->displayName() }}</strong>. Akun peminjam hanya dapat mengajukan untuk dirinya sendiri.
+                    </div>
+                @endif
+
                 <div>
                     <x-input-label value="Tujuan peminjaman *" />
                     <textarea wire:model.live="purpose" rows="2"

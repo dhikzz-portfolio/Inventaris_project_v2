@@ -30,8 +30,9 @@ class DamageReportService
         DamageClassification $classification,
         string $description,
         ?string $photoPath = null,
+        array $photoPaths = [],
     ): DamageReport {
-        return DB::transaction(function () use ($actor, $unit, $classification, $description, $photoPath): DamageReport {
+        return DB::transaction(function () use ($actor, $unit, $classification, $description, $photoPath, $photoPaths): DamageReport {
             $locked = AssetUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
             $locked->loadMissing(['room', 'catalog']);
             $previous = $locked->condition;
@@ -57,6 +58,10 @@ class DamageReportService
                 'photo_path' => $photoPath,
                 'status' => DamageReportStatus::DILAPORKAN->value,
             ]);
+
+            foreach (array_values(array_unique(array_filter($photoPaths))) as $path) {
+                $report->photos()->create(['path' => $path]);
+            }
 
             // Kondisi unit mengikuti klasifikasi laporan dan tetap dapat
             // ditelusuri karena kondisi sebelumnya disimpan pada laporan.

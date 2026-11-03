@@ -74,6 +74,78 @@ class ReportController extends Controller
         );
     }
 
+    /**
+     * Pratinjau Excel memakai definisi tabel yang sama dengan file ekspor.
+     * Tidak ada query atau transformasi terpisah agar isi pratinjau identik
+     * dengan hasil unduhan.
+     */
+    public function previewExcel(Request $request, ReportService $service, string $period): View
+    {
+        abort_unless(preg_match('/^\d{4}-\d{2}$/', $period) === 1, 404);
+
+        $scope = (string) $request->query('scope', 'SEMUA');
+        abort_unless(in_array($scope, ['SEMUA', 'KATEGORI', 'RUANGAN', 'JURUSAN'], true), 404);
+
+        $scopeId = $request->query('scope_id') ? (int) $request->query('scope_id') : null;
+        $condition = $request->query('condition');
+        $condition = is_string($condition) && Condition::tryFrom($condition) !== null ? $condition : null;
+
+        $data = $service->data($period, $scope, $scopeId, $request->user(), $condition);
+        $tables = MonthlyReportExport::tables($data);
+
+        $sheetIndex = max(0, min((int) $request->query('sheet', 0), count($tables) - 1));
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = 50;
+        $allRows = $tables[$sheetIndex]['rows'];
+
+        return view('reports.preview-excel', [
+            'period' => $period,
+            'periodLabel' => $data['periodLabel'],
+            'scope' => $scope,
+            'scopeId' => $scopeId,
+            'scopeLabel' => $data['scopeLabel'],
+            'condition' => $condition,
+            'tables' => $tables,
+            'sheetIndex' => $sheetIndex,
+            'rows' => array_slice($allRows, ($page - 1) * $perPage, $perPage),
+            'totalRows' => count($allRows),
+            'page' => $page,
+            'perPage' => $perPage,
+            'summary' => $data['summary'],
+        ]);
+    }
+
+    /**
+     * Contoh file impor sesuai kolom yang benar-benar dibaca
+     * ReportImportService. Dua baris contoh wajib diganti pengguna.
+     */
+    public function importTemplate()
+    {
+        $headings = [
+            'kode_inventaris', 'nama_barang', 'kategori', 'gedung', 'lantai', 'no_ruangan',
+            'kondisi', 'status', 'tahun', 'sumber_dana', 'no_register',
+        ];
+
+        $examples = [
+            ['G1-01-01', 'Komputer Lab (contoh)', 'Elektronik', 'G', '1', '1', 'Baik', 'Aktif', '2024', 'BOS', 'REG-001'],
+            ['G1-01-02', 'Komputer Lab (contoh)', 'Elektronik', 'G', '1', '1', 'Rusak Ringan', 'Aktif', '2024', 'BOS', 'REG-002'],
+        ];
+
+        return response()->streamDownload(function () use ($headings, $examples): void {
+            $out = fopen('php://output', 'w');
+
+            // BOM agar Excel membaca UTF-8 dengan benar.
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, $headings);
+
+            foreach ($examples as $row) {
+                fputcsv($out, $row);
+            }
+
+            fclose($out);
+        }, 'contoh-impor-unit.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
     /** Simpan snapshot laporan bulanan. */
     public function generate(Request $request, ReportService $service): RedirectResponse
     {

@@ -21,7 +21,8 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'degree', 'email', 'email_verified_at', 'password',
-        'role', 'is_active', 'borrower_type', 'major_id', 'class_name', 'last_login_at',
+        'role', 'is_active', 'must_change_password', 'password_changed_at',
+        'borrower_type', 'major_id', 'class_name', 'last_login_at',
         'birth_date', 'profile_completed_at', 'profile_completed', 'work_unit',
     ];
 
@@ -39,6 +40,8 @@ class User extends Authenticatable
             'profile_completed_at' => 'datetime',
             'profile_completed' => 'boolean',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
+            'password_changed_at' => 'datetime',
         ];
     }
 
@@ -139,6 +142,21 @@ class User extends Authenticatable
     public function isActive(): bool
     {
         return (bool) ($this->is_active ?? true);
+    }
+
+    /** Akun wajib mengganti password awal sebelum memakai aplikasi. */
+    public function mustChangePassword(): bool
+    {
+        return (bool) $this->must_change_password;
+    }
+
+    /**
+     * Super Admin Pengguna hanya mengelola akun. Role ini tidak memperoleh
+     * transaksi inventaris apa pun meskipun dapat login ke aplikasi.
+     */
+    public function canUseInventoryOperations(): bool
+    {
+        return ! $this->isSuperAdminPengguna();
     }
 
     /**

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Spatie\Activitylog\Models\Activity;
 
 /**
  * Administrasi akun pengguna.
@@ -34,8 +35,38 @@ class UserController extends Controller
         $actor = $request->user();
         $editId = $request->query('edit');
 
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'role' => trim((string) $request->query('role', '')),
+            'status' => trim((string) $request->query('status', '')),
+        ];
+
+        $users = User::with(['major', 'roomScopes.room'])
+            ->when($filters['search'] !== '', function ($query) use ($filters): void {
+                $term = '%'.$filters['search'].'%';
+                $query->where(fn ($q) => $q
+                    ->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('class_name', 'like', $term)
+                    ->orWhere('work_unit', 'like', $term));
+            })
+            ->when(in_array($filters['role'], Role::values(), true), fn ($query) => $query->where('role', $filters['role']))
+            ->when($filters['status'] === 'active', fn ($query) => $query->where('is_active', true))
+            ->when($filters['status'] === 'inactive', fn ($query) => $query->where('is_active', false))
+            ->orderBy('role')
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
+
         return view('users.index', [
-            'users' => User::with(['major', 'roomScopes.room'])->orderBy('role')->orderBy('name')->paginate(15)->withQueryString(),
+            'users' => $users,
+            'filters' => $filters,
+            'stats' => [
+                'total' => User::count(),
+                'active' => User::where('is_active', true)->count(),
+                'inactive' => User::where('is_active', false)->count(),
+                'account_admins' => User::where('role', Role::SUPER_ADMIN_PENGGUNA->value)->count(),
+            ],
             'majors' => Major::orderBy('name')->get(),
             'roles' => $this->assignableRoles($actor),
             'borrowerTypes' => BorrowerType::cases(),
@@ -43,7 +74,7 @@ class UserController extends Controller
             'editUser' => $editId !== null
                 ? User::with(['major', 'roomScopes'])->find($editId)
                 : null,
-            'canManageSuperAdmin' => $actor->isSuperAdmin(),
+            'canManageSuperAdmin' => false,
         ]);
     }
 
@@ -65,6 +96,7 @@ class UserController extends Controller
             'room_ids' => ['nullable', 'array'],
             'room_ids.*' => ['integer', Rule::exists('rooms', 'id')->where('is_lab', true)],
             'is_active' => ['nullable', 'boolean'],
+            'must_change_password' => ['nullable', 'boolean'],
         ], $this->categoryMessages($actor));
 
         $this->assertMayAssignRole($actor, $data['role']);
@@ -76,6 +108,7 @@ class UserController extends Controller
             'password' => Hash::make($data['password']),
             'role' => $data['role'],
             'is_active' => $request->boolean('is_active', true),
+            'must_change_password' => $request->boolean('must_change_password'),
             'borrower_type' => $category['is_peminjam'] ? ($data['borrower_type'] ?? null) : null,
             'class_name' => $category['is_siswa'] ? ($data['class_name'] ?? null) : null,
             'major_id' => $category['is_teacher_or_staff'] ? null : ($data['major_id'] ?? null),
@@ -114,13 +147,14 @@ class UserController extends Controller
             'degree' => $category['is_siswa'] ? ['prohibited'] : ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'string', 'email', 'max:255', new GmailAddress, Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', Rule::in(Role::values())],
+            'role' => ['required', Rule::in(array_column($this->assignableRoles($actor), 'value'))],
             'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
             'class_name' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'string', 'max:50'],
             'major_id' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'exists:majors,id'],
             'room_ids' => ['nullable', 'array'],
             'room_ids.*' => ['integer', Rule::exists('rooms', 'id')->where('is_lab', true)],
             'is_active' => ['nullable', 'boolean'],
+            'must_change_password' => ['nullable', 'boolean'],
         ], $this->categoryMessages($actor));
 
         $this->assertMayAssignRole($actor, $data['role']);
@@ -169,6 +203,10 @@ class UserController extends Controller
         $user->major_id = $category['is_teacher_or_staff'] ? null : ($data['major_id'] ?? null);
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
+            $user->must_change_password = true;
+            $user->password_changed_at = null;
+        } elseif ($request->has('must_change_password')) {
+            $user->must_change_password = $request->boolean('must_change_password');
         }
         $user->save();
 
@@ -241,6 +279,63 @@ class UserController extends Controller
         $user->delete();
 
         return back()->with('success', 'Pengguna dihapus.');
+    }
+
+    /** Detail akun + riwayat perubahan (audit trail tanpa password). */
+    public function show(Request $request, User $user): View
+    {
+        $this->assertCanManageTarget($request->user(), $user);
+
+        $user->load(['major', 'roomScopes.room']);
+
+        $history = Activity::query()
+            ->where('subject_type', User::class)
+            ->where('subject_id', $user->id)
+            ->with('causer')
+            ->latest()
+            ->limit(50)
+            ->get();
+
+        return view('users.show', [
+            'user' => $user,
+            'history' => $history,
+            'loanCount' => $user->loans()->count(),
+            'isLastActiveSuperAdmin' => $user->isSuperAdmin() && $this->activeSuperAdminCount() <= 1,
+        ]);
+    }
+
+    /** Aktifkan/nonaktifkan akun tanpa menghapus riwayatnya. */
+    public function toggleStatus(Request $request, User $user): RedirectResponse
+    {
+        $actor = $request->user();
+        $this->assertCanManageTarget($actor, $user);
+
+        if ((int) $actor->id === (int) $user->id) {
+            return back()->withErrors(['status' => 'Anda tidak dapat menonaktifkan akun sendiri.']);
+        }
+
+        if ($user->isSuperAdmin() && $user->isActive() && $this->activeSuperAdminCount() <= 1) {
+            return back()->withErrors(['status' => 'Akun Super Admin utama terakhir yang aktif tidak boleh dinonaktifkan.']);
+        }
+
+        $active = ! $user->isActive();
+        $user->forceFill(['is_active' => $active])->save();
+
+        activity('pengguna')
+            ->performedOn($user)
+            ->causedBy($actor)
+            ->withProperties([
+                'aksi' => $active ? 'AKTIFKAN' : 'NONAKTIFKAN',
+                'akun_target' => $user->id,
+                'aktif_sesudah' => $active,
+            ])
+            ->log(($active ? 'Mengaktifkan' : 'Menonaktifkan')." pengguna {$user->name}");
+
+        NotifyApp::toAccountAdmins(NotificationType::AKUN,
+            "Status akun {$user->displayName()} diubah menjadi ".($active ? 'AKTIF' : 'NONAKTIF')." oleh {$actor->displayName()}.",
+            route('users.index'), $actor->id);
+
+        return back()->with('success', "Akun \"{$user->displayName()}\" ".($active ? 'diaktifkan' : 'dinonaktifkan').'.');
     }
 
     /**

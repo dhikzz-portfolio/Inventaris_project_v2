@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\Condition;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
+use App\Models\LoanItemUnit;
 use App\Models\Room;
 use App\Services\InventoryCodeService;
 use App\Services\LabelService;
@@ -31,7 +32,29 @@ class UnitController extends Controller
             'movements.toRoom',
             'movements.mover',
             'maintenanceRecords' => fn ($query) => $query->orderByDesc('performed_at'),
+            'damageReports' => fn ($query) => $query
+                ->with(['reporter', 'handler', 'logs.user', 'photos'])
+                ->latest('created_at'),
         ]);
+
+        $canViewDamageEvidence = auth()->user()->canApproveLoans();
+
+        // Foto bukti dari pengembalian melekat pada unit fisik (bukan katalog),
+        // sehingga unit yang sama dapat memiliki riwayat dari beberapa transaksi.
+        $returnDamageRows = $canViewDamageEvidence
+            ? LoanItemUnit::query()
+                ->where('asset_unit_id', $unit->id)
+                ->where(fn ($query) => $query
+                    ->whereNotNull('damage_photo_path')
+                    ->orWhereIn('condition_in', [Condition::RUSAK_RINGAN->value, Condition::RUSAK_BERAT->value]))
+                ->with([
+                    'loanItem.loan.borrower',
+                    'loanItem.loan.requester',
+                    'confirmer',
+                ])
+                ->latest('returned_at')
+                ->get()
+            : collect();
 
         $rooms = Room::query()
             ->when(! auth()->user()->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
@@ -44,6 +67,8 @@ class UnitController extends Controller
             'destinationRooms' => $rooms,
             'conditions' => Condition::cases(),
             'statuses' => [UnitStatus::AKTIF, UnitStatus::HILANG],
+            'canViewDamageEvidence' => $canViewDamageEvidence,
+            'returnDamageRows' => $returnDamageRows,
         ]);
     }
 

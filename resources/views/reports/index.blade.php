@@ -86,9 +86,13 @@
                    class="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <span class="material-icons-round text-lg" aria-hidden="true">print</span> Cetak
                 </button>
+                <a :href="previewExcelUrl()"
+                   class="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <span class="material-icons-round text-lg" aria-hidden="true">grid_on</span> Pratinjau Excel
+                </a>
                 <a :href="exportUrl('excel')" target="_blank" rel="noopener"
                    class="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    <span class="material-icons-round text-lg" aria-hidden="true">table_view</span> Excel
+                    <span class="material-icons-round text-lg" aria-hidden="true">table_view</span> Unduh Excel
                 </a>
             </div>
         </div>
@@ -226,10 +230,17 @@
                 scopeId: '',
                 condition: '',
                 exportUrl(type) {
+                    const params = this.filterParams();
+                    return `{{ url('laporan/export') }}/` + type + '/' + this.period + '?' + params.toString();
+                },
+                previewExcelUrl() {
+                    return `{{ url('laporan/pratinjau-excel') }}/` + this.period + '?' + this.filterParams().toString();
+                },
+                filterParams() {
                     const params = new URLSearchParams({ scope: this.scope });
                     if (this.scope !== 'SEMUA' && this.scopeId) params.set('scope_id', this.scopeId);
                     if (this.condition) params.set('condition', this.condition);
-                    return `{{ url('laporan/export') }}/` + type + '/' + this.period + '?' + params.toString();
+                    return params;
                 },
                 printReport() {
                     const win = window.open(this.exportUrl('pdf'), '_blank', 'noopener');

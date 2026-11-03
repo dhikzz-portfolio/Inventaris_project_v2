@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Loan;
 
+use App\Enums\BorrowerMode;
+use App\Enums\BorrowerType;
 use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
@@ -13,7 +15,9 @@ use App\Models\Event;
 use App\Models\Item;
 use App\Models\Loan;
 use App\Models\Room;
+use App\Models\User;
 use App\Services\LoanService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
 
@@ -40,6 +44,21 @@ class LoanRequest extends Component
     public string $start_date = '';
 
     public string $due_date = '';
+
+    // Peminjam: diri sendiri atau orang lain (role operasional saja).
+    public string $borrower_mode = 'SELF';
+
+    public string $borrower_user_id = '';
+
+    public string $borrower_name = '';
+
+    public string $borrower_category = '';
+
+    public string $borrower_class = '';
+
+    public string $borrower_work_unit = '';
+
+    public string $borrower_search = '';
 
     // Kalender
     public int $calYear;
@@ -132,6 +151,36 @@ class LoanRequest extends Component
         $this->reset(['search', 'category', 'building', 'room', 'availability']);
     }
 
+    /** Pilih akun peminjam yang sudah terdaftar dan isi identitasnya. */
+    public function selectBorrower(int $userId): void
+    {
+        $user = User::query()->whereKey($userId)->where('is_active', true)->first();
+
+        if ($user === null) {
+            $this->error = 'Akun peminjam tidak ditemukan atau sedang dinonaktifkan.';
+
+            return;
+        }
+
+        $this->borrower_user_id = (string) $user->id;
+        $this->borrower_name = $user->displayName();
+        $this->borrower_category = $user->borrower_type?->value ?? '';
+        $this->borrower_class = (string) ($user->class_name ?? '');
+        $this->borrower_work_unit = (string) ($user->work_unit ?? '');
+        $this->error = '';
+    }
+
+    /** Lepaskan tautan akun dan isi identitas peminjam secara manual. */
+    public function clearBorrower(): void
+    {
+        $this->borrower_user_id = '';
+        $this->borrower_name = '';
+        $this->borrower_category = '';
+        $this->borrower_class = '';
+        $this->borrower_work_unit = '';
+        $this->error = '';
+    }
+
     public function prevMonth(): void
     {
         $this->calMonth--;
@@ -200,6 +249,10 @@ class LoanRequest extends Component
         return view('livewire.loan.loan-request', [
             'items' => $items,
             'events' => Event::where('end_date', '>=', now()->subMonth())->orderByDesc('start_date')->get(),
+            'canChooseBorrower' => ! $user->isPeminjam(),
+            'borrowerModes' => BorrowerMode::cases(),
+            'borrowerCategories' => BorrowerType::cases(),
+            'borrowerAccounts' => $this->borrowerAccountOptions($user),
             'lineStatus' => $this->lineStatuses(),
             'calendar' => $this->calendarData(),
             'categories' => Category::orderBy('name')->get(),
@@ -211,6 +264,32 @@ class LoanRequest extends Component
             'activeFilters' => collect(['search', 'category', 'building', 'room', 'availability'])
                 ->filter(fn ($field) => $this->$field !== '')->count(),
         ]);
+    }
+
+    /**
+     * Akun yang dapat dikaitkan sebagai peminjam pada pencarian sederhana.
+     * Pengguna tetap boleh mengisi nama peminjam tanpa akun.
+     *
+     * @return Collection<int, User>
+     */
+    private function borrowerAccountOptions(User $actor)
+    {
+        $term = trim($this->borrower_search);
+
+        return User::query()
+            ->whereKeyNot($actor->id)
+            ->where('is_active', true)
+            ->when($term !== '', function ($query) use ($term) {
+                $like = '%'.$term.'%';
+                $query->where(fn ($q) => $q
+                    ->where('name', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('class_name', 'like', $like)
+                    ->orWhere('work_unit', 'like', $like));
+            })
+            ->orderBy('name')
+            ->limit(15)
+            ->get();
     }
 
     /** Validasi rentang tanggal dasar. */
@@ -335,6 +414,31 @@ class LoanRequest extends Component
             return;
         }
 
+        // Role Peminjam tidak memperoleh pilihan: backend tetap memaksa SELF.
+        $mode = auth()->user()->isPeminjam()
+            ? BorrowerMode::SELF->value
+            : $this->borrower_mode;
+
+        if (! in_array($mode, BorrowerMode::values(), true)) {
+            $this->error = 'Pilihan peminjam tidak valid.';
+
+            return;
+        }
+
+        if ($mode === BorrowerMode::OTHER->value) {
+            if (trim($this->borrower_name) === '') {
+                $this->error = 'Nama peminjam wajib diisi bila meminjamkan atas nama orang lain.';
+
+                return;
+            }
+
+            if ($this->borrower_category !== '' && ! in_array($this->borrower_category, BorrowerType::values(), true)) {
+                $this->error = 'Kategori peminjam tidak valid.';
+
+                return;
+            }
+        }
+
         try {
             $loan = app(LoanService::class)->requestLoan(
                 auth()->user(),
@@ -342,7 +446,15 @@ class LoanRequest extends Component
                 trim($this->purpose),
                 $this->start_date,
                 $this->due_date,
-                $this->event_id !== '' ? (int) $this->event_id : null
+                $this->event_id !== '' ? (int) $this->event_id : null,
+                [
+                    'borrower_mode' => $mode,
+                    'borrower_user_id' => $this->borrower_user_id !== '' ? (int) $this->borrower_user_id : null,
+                    'borrower_name' => trim($this->borrower_name),
+                    'borrower_category' => $this->borrower_category !== '' ? $this->borrower_category : null,
+                    'borrower_class' => trim($this->borrower_class) ?: null,
+                    'borrower_work_unit' => trim($this->borrower_work_unit) ?: null,
+                ]
             );
         } catch (AvailabilityException $e) {
             $this->error = $e->getMessage();
@@ -352,6 +464,11 @@ class LoanRequest extends Component
 
         $this->cart = [];
         $this->purpose = '';
+        $this->borrower_user_id = '';
+        $this->borrower_name = '';
+        $this->borrower_category = '';
+        $this->borrower_class = '';
+        $this->borrower_work_unit = '';
 
         session()->flash('success', $this->resultMessage($loan));
         $this->redirectRoute('loans.show', ['loan' => $loan->id]);

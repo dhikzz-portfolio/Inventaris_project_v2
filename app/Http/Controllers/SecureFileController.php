@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DamageReport;
+use App\Models\DamageReportPhoto;
 use App\Models\Loan;
 use App\Models\Report;
 use Illuminate\Http\Request;
@@ -50,6 +52,31 @@ class SecureFileController extends Controller
 
         if (str_starts_with($path, 'write-offs/')) {
             return $user->managesInventory();
+        }
+
+        if (str_starts_with($path, 'damage-reports/')) {
+            if (! $user->canApproveLoans()) {
+                return false;
+            }
+
+            // Path harus benar-benar milik laporan kerusakan yang terlihat oleh
+            // pengguna; bukan sekadar tebakan nama file.
+            $report = DamageReport::query()
+                ->visibleTo($user)
+                ->where('photo_path', $path)
+                ->first();
+
+            if ($report !== null) {
+                return true;
+            }
+
+            // Laporan dapat memiliki beberapa foto pada `damage_report_photos`;
+            // setiap foto harus lolos pemeriksaan cakupan yang sama, bukan hanya
+            // foto utama (photo_path).
+            return DamageReportPhoto::query()
+                ->where('path', $path)
+                ->whereHas('report', fn ($query) => $query->visibleTo($user))
+                ->exists();
         }
 
         if (str_starts_with($path, 'damage/') || str_starts_with($path, 'signatures/')) {

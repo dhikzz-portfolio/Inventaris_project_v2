@@ -22,7 +22,6 @@ class DemoAccountSeeder extends Seeder
         $majors = Major::query()->pluck('id', 'code');
 
         $accounts = [
-            ['name' => 'Drs. H. Wakasek Sarpras', 'role' => Role::SUPER_ADMIN, 'major' => null, 'type' => null, 'password' => 'wakasek123', 'email' => 'wakasek@gmail.com', 'birth_date' => '1975-06-15'],
             ['name' => 'Ketua Laboran Sekolah', 'role' => Role::KETUA_LABORAN, 'major' => null, 'type' => null, 'password' => 'ketua123', 'email' => 'ketualaboran@gmail.com', 'birth_date' => '1978-02-10'],
             ['name' => 'Laboran RPL (Demo)', 'role' => Role::LABORAN, 'major' => 'RPL', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.rpl@gmail.com', 'birth_date' => '1982-04-18'],
             ['name' => 'Laboran DKV (Demo)', 'role' => Role::LABORAN, 'major' => 'DKV', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.dkv@gmail.com', 'birth_date' => '1983-08-25'],
@@ -97,7 +96,8 @@ class DemoAccountSeeder extends Seeder
             $user->syncRoles([$account['role']->value]);
         }
 
-        $wakasek = User::where('email', 'wakasek@gmail.com')->first();
+        $wakasek = User::where('role', Role::SUPER_ADMIN->value)->first()
+            ?? User::where('email', 'wakasek@gmail.com')->first();
         $scopes = [
             'laboran.rpl' => ['H1-01', 'H1-02'],
             'laboran.dkv' => ['G2-01', 'G2-02', 'H2-02'],

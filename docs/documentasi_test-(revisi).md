@@ -239,22 +239,23 @@ Selesai. Ringkasannya:
 
 Penyebabnya
 
-Data di database tidak ganda — validasi  unique  di  MasterController  (nama jurusan/gedung/kategori, kombinasi gedung+lantai+nomor ruangan) mencegah duplikat rekornya. Yang ganda adalah tampilannya: di  resources/views/masters/index.blade.php , setiap baris di-render dua kali karena blok  <li> / <tr>  duplikat tertinggal di dalam loop (kemungkinan sisa merge di commit  5c0cbbb / 79902d0 ):
+Data di database tidak ganda — validasi unique di MasterController (nama jurusan/gedung/kategori, kombinasi gedung+lantai+nomor ruangan) mencegah duplikat rekornya. Yang ganda adalah tampilannya: di resources/views/masters/index.blade.php , setiap baris di-render dua kali karena blok <li> / <tr> duplikat tertinggal di dalam loop (kemungkinan sisa merge di commit 5c0cbbb / 79902d0 ):
+
 - Daftar Master Gedung — tiap gedung muncul 2×
 - Tabel Ruangan — tiap ruangan muncul 2×
 - Daftar Jurusan — tiap jurusan muncul 2×
 - Daftar Kategori — tiap kategori muncul 2×
 
-Efek sampingnya: blok duplikat kedua mengabaikan  $canEdit , jadi role read-only (Ketua Laboran) ikut melihat form ubah/hapus yang seharusnya tersembunyi.
+Efek sampingnya: blok duplikat kedua mengabaikan $canEdit , jadi role read-only (Ketua Laboran) ikut melihat form ubah/hapus yang seharusnya tersembunyi.
 
 Perbaikan
 
-Menghapus 4 blok duplikat tersebut (file turun dari 368 → 261 baris), menyisakan satu blok yang benar dan tetap menghormati  $canEdit .
+Menghapus 4 blok duplikat tersebut (file turun dari 368 → 261 baris), menyisakan satu blok yang benar dan tetap menghormati $canEdit .
 
 Verifikasi
 
--  php artisan view:cache  — kompilasi Blade lulus.
-- Pemeriksaan struktur loop: tiap  @forelse / @foreach  kini punya satu blok render saja.
--  php artisan test --filter='MasterDataTest|BuildingMasterDataTest'  sebelum vs sesudah perubahan hasilnya identik: 8 gagal, 11 lulus — jadi tidak ada regresi dari perubahan ini.
+- php artisan view:cache — kompilasi Blade lulus.
+- Pemeriksaan struktur loop: tiap @forelse / @foreach kini punya satu blok render saja.
+- php artisan test --filter='MasterDataTest|BuildingMasterDataTest' sebelum vs sesudah perubahan hasilnya identik: 8 gagal, 11 lulus — jadi tidak ada regresi dari perubahan ini.
 
-Keterbatasan yang perlu Anda tahu: 8 tes itu memang sudah gagal sebelum perubahan saya, semuanya  ModelNotFoundException  di  setUp()  ( User::where('email','wakasek@gmail.com')->firstOrFail() ), artinya  $this->seed()  tidak membuat akun demo di environment test ini — itu masalah terpisah dari bug duplikasi, dan belum saya perbaiki karena di luar permintaan Anda. Tidak ada file PHP yang diubah, jadi Pint tidak diperlukan.
+Keterbatasan yang perlu Anda tahu: 8 tes itu memang sudah gagal sebelum perubahan saya, semuanya ModelNotFoundException di setUp() ( User::where('email','wakasek@gmail.com')->firstOrFail() ), artinya $this->seed() tidak membuat akun demo di environment test ini — itu masalah terpisah dari bug duplikasi, dan belum saya perbaiki karena di luar permintaan Anda. Tidak ada file PHP yang diubah, jadi Pint tidak diperlukan.

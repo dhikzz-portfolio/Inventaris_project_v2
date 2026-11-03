@@ -263,3 +263,23 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 - **Rincian barang**: kartu per unit pada detail peminjaman, filter berbasis kolom nyata, pagination 24 unit, dan popup foto. Foto unit disimpan pada `loan_item_units.damage_photo_path` sehingga tidak dapat tertukar dengan unit lain; baris katalog legacy tetap memakai `loan_items.damage_photo_path`.
 - **Rasional**: memilih banyak unit secara manual rawan salah pilih, sedangkan isi QR tidak dapat dipercaya sebagai penentu transaksi. Bukti kerusakan harus melekat pada unit yang benar untuk audit.
 - **Konsekuensi**: unit yang sudah dipilih tetap tersimpan saat filter berubah; unit tersembunyi tetap terkirim melalui checkbox. Data foto lama tidak di-backfill ke unit tertentu. Akses file tetap melalui `files.show` dan hanya untuk petugas yang berwenang atas transaksi tersebut.
+
+## 40. Mutasi Multi-Lokasi dalam Satu Transaksi (Revisi 3 November 2026)
+
+- **Keputusan**: Satu transaksi mutasi dapat memuat beberapa kelompok tujuan. Payload `destinations[]` berisi `room_id` dan `unit_ids[]`; setiap detail tetap disimpan pada baris `asset_unit_movements` per unit sehingga lokasi asal/tujuan tiap unit tidak bergantung pada satu tujuan global. Kolom `movement_no` mengelompokkan seluruh baris satu transaksi tanpa membuat tabel header duplikat.
+- **Validasi**: unit harus terlihat oleh pengguna, tidak dihapus/diarsipkan, tidak sedang dipinjam, tidak berada di ruangan tujuan, dan hanya muncul pada satu kelompok. Ruangan tujuan harus valid dan berada dalam cakupan laboratorium untuk role non-Super Admin. Unit dikunci dengan `lockForUpdate` dan seluruh mutasi berjalan dalam satu transaksi database.
+- **Kompatibilitas**: payload lama (`to_room_id` + `unit_ids[]`) tetap diterima dan memakai kunci error `unit_ids`.
+- **Konsekuensi**: riwayat tetap menampilkan baris per unit beserta nomor mutasi; label setiap unit wajib dicetak ulang karena kode diterbitkan ulang.
+
+## 41. Penerima Notifikasi Berbasis Kewenangan dan Penjaga Tautan (Revisi 3 November 2026)
+
+- **Keputusan**: Penerima notifikasi ditentukan di backend berdasarkan role dan cakupan: Ketua Laboran untuk laporan/pengajuan laboratorium, Super Admin untuk keputusan tingkat sekolah/laporan rusak berat, Laboran pelapor untuk perubahan status laporannya sendiri, dan administrator akun hanya untuk aktivitas akun. `NotifyApp::toRoles()` melewati akun nonaktif.
+- **Penjaga tautan**: `NotificationLinkGuard` mencocokkan URL notifikasi ke route dan memeriksa middleware `role:*` serta `inventory.access`. Bila tautan tidak lagi dapat diakses penerima, notifikasi tetap ditandai dibaca dan pengguna diarahkan ke daftar notifikasi dengan keterangan — bukan halaman 403. Daftar notifikasi juga menandai tautan yang tidak tersedia.
+- **Rasional**: Notifikasi adalah pemberitahuan tindak lanjut, bukan jalur otorisasi. Otorisasi backend tidak dilonggarkan; yang diperbaiki adalah penentuan penerima dan navigasinya.
+- **Konsekuensi**: Riwayat notifikasi lama dipertahankan; tautan yang sudah tidak relevan tidak ditawarkan lagi.
+
+## 42. Pencarian Nama Barang pada Cetak Label (Revisi 3 November 2026)
+
+- **Keputusan**: Input pencarian halaman cetak label menerima kode unit (prefix) maupun nama barang, spesifikasi katalog, serta merek/tipe unit. Hasil tetap satu baris per unit dengan kode, spesifikasi, dan lokasi masing-masing.
+- **Rasional**: Pengguna mengenali barang dari namanya, bukan hanya kode; pencarian kode yang sudah ada tetap dipertahankan.
+- **Konsekuensi**: Pencarian nama tidak membuat katalog/unit baru dan tetap dibatasi cakupan akses serta filter aktif.

@@ -9,7 +9,7 @@ class AssetUnitMovement extends Model
 {
     protected $fillable = [
         'asset_unit_id', 'from_room_id', 'to_room_id',
-        'old_code', 'new_code', 'moved_by', 'moved_at', 'reason', 'note',
+        'old_code', 'new_code', 'movement_no', 'moved_by', 'moved_at', 'reason', 'note',
     ];
 
     protected function casts(): array

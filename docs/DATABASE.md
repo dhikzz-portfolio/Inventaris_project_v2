@@ -28,7 +28,9 @@ Seluruh skema dibuat melalui migration Laravel (`database/migrations`). Jangan m
 | `user_room_scopes`                                                                                | Penetapan cakupan laboratorium/ruangan untuk Laboran/K3.                                                     | Baru           |
 | `loan_item_units`                                                                                 | Penugasan unit fisik pada baris peminjaman (saat serah terima).                                              | Baru           |
 | `events`                                                                                          | Kegiatan untuk mengikat peminjaman dan BAST gabungan + status pelaksanaan tersimpan.                         | Berubah        |
-| `acquisition_allocations`                                                                         | **Alokasi pengadaan multi-lokasi**: jumlah unit per ruangan untuk satu spesifikasi pengadaan.                | Berubah        |
+| `acquisition_allocations`                                                                         | **Alokasi pengadaan multi-lokasi**: jumlah unit per ruangan untuk satu spesifikasi pengadaan + jumlah diterima. | Berubah        |
+| `damage_reports`                                                                                  | **Laporan kondisi barang rusak** per unit (rusak ringan/berat) + status penanganan.                          | Baru           |
+| `damage_report_logs`                                                                              | Riwayat perubahan status/penanganan laporan kerusakan.                                                       | Baru           |
 | `loans`                                                                                           | Header peminjaman (peminjam, periode, status transaksi, status dokumen).                                     | Berubah        |
 | `loan_items`                                                                                      | Baris barang dalam peminjaman + kuantitas kembali/rusak/hilang.                                              | Berubah        |
 | `loan_approvals`                                                                                  | Jejak approval berjenjang + tanda tangan gambar.                                                             | Ada            |
@@ -136,13 +138,16 @@ Konsekuensi yang disengaja: kapasitas satu ruangan adalah 99 nomor **seumur hidu
 | `to_room_id`               | FK `rooms`       | Ruangan tujuan.                     |
 | `old_code`                 | varchar(12)      | Kode sebelum mutasi (kode pensiun). |
 | `new_code`                 | varchar(12)      | Kode setelah mutasi.                |
+| `movement_no`              | varchar(40) nullable | Nomor transaksi mutasi; baris dengan nomor sama berasal dari satu transaksi multi-lokasi (V6). |
 | `moved_by`                 | FK `users`       | Petugas.                            |
 | `moved_at`                 | timestamp        | Waktu perpindahan.                  |
 | `reason`                   | string nullable  | Alasan mutasi.                      |
 | `note`                     | text nullable    | Catatan tambahan.                   |
 | `created_at`, `updated_at` | timestamp        |                                     |
 
-Index: `index(asset_unit_id, moved_at)`, `index(from_room_id)`, `index(to_room_id)`.
+Index: `index(asset_unit_id, moved_at)`, `index(from_room_id)`, `index(to_room_id)`, `index(movement_no)`.
+
+> **V6 (3 November 2026)**: `movement_no` ditambahkan agar beberapa unit yang dipindahkan ke beberapa tujuan dalam satu transaksi dapat dikelompokkan. Tidak ada tabel header mutasi baru; detail tujuan tetap per unit pada `to_room_id`.
 
 ### 2.5 `maintenance_records`
 
@@ -390,6 +395,54 @@ Aturan stok distribusi (`DistributionService` + `Specification::distributableQue
 ### 2.18 `item_catalogs.asset_code` dihapus
 
 Kolom `asset_code` dan unique index `(asset_code, register_no)` dihapus melalui migration `2026_10_26_202332_drop_asset_code_from_item_catalogs.php` setelah seluruh tampilan, label, QR, laporan, ekspor, dan seeder berhenti memakainya. `register_no` tetap ada sebagai nomor register administratif opsional, bukan kode identitas kedua. Identitas unit adalah `asset_units.inventory_code` (mis. `G1-01-R12-01`) yang juga tercatat di `asset_unit_codes`. Migration memeriksa keberadaan kolom/index sehingga aman dijalankan pada database yang sudah bersih.
+
+### 2.21 Alur pengadaan tiga tahap — `item_catalogs` dan `acquisition_allocations`
+
+Kolom baru pada `item_catalogs` (migration `2026_11_02_152627_add_acquisition_workflow_columns`):
+
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| `acquisition_submitted_at` | timestamp nullable | Waktu pengajuan dikirim Laboran. |
+| `acquisition_confirmed_by` | FK `users` nullable | Ketua Laboran yang mengonfirmasi (bukan menyetujui); `nullOnDelete`. |
+| `acquisition_confirmed_at` | timestamp nullable | Waktu konfirmasi Ketua Laboran. |
+| `acquisition_started_at` | timestamp nullable | Waktu proses pengadaan dimulai. |
+| `acquisition_received_by` | FK `users` nullable | Petugas yang mencatat penerimaan barang. |
+| `acquisition_received_at` | timestamp nullable | Waktu penerimaan dicatat. |
+| `acquisition_received_quantity` | unsignedInteger nullable | Jumlah aktual yang diterima (boleh berbeda dari `quantity`). |
+| `acquisition_received_condition` | varchar nullable | Kondisi saat diterima (`App\Enums\Condition`). |
+| `acquisition_received_note` | text nullable | Keterangan penerimaan / selisih. |
+
+`acquisition_allocations.received_quantity` (unsignedInteger nullable) menyimpan jumlah aktual per lokasi. Null = belum diterima; unit fisik hanya dibuat dari nilai ini (atau `quantity` untuk transaksi lama).
+
+**Nilai `acquisition_status`:** `DRAFT`, `MENUNGGU_KONFIRMASI`, `MENUNGGU_PERSETUJUAN`, `DISETUJUI`, `DALAM_PROSES`, `BARANG_DITERIMA`, `INVENTARIS_TERCATAT`, `DITOLAK`. Nilai lama dipertahankan aman:
+
+- `PENDING` dimigrasikan ke `MENUNGGU_PERSETUJUAN` (alur lama langsung ke Wakasek).
+- `APPROVED` tetap dipakai sebagai alias kompatibilitas untuk "sudah tercatat sebagai inventaris"; scope `Item::approved()` menerima `APPROVED` dan `INVENTARIS_TERCATAT`.
+- `REJECTED` diganti `DITOLAK` untuk transaksi baru; data lama tidak diubah karena tidak ada lagi pengajuan berstatus `REJECTED` yang aktif.
+
+### 2.22 `damage_reports` dan `damage_report_logs`
+
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| `id` | bigint PK | |
+| `asset_unit_id` | FK `asset_units` restrict | Unit yang dilaporkan; relasi langsung, bukan kode/nama. |
+| `reported_by` | FK `users` restrict | Pelapor. |
+| `classification` | varchar | `RUSAK_RINGAN` / `RUSAK_BERAT` (`App\Enums\DamageClassification`). |
+| `previous_condition` | varchar | Kondisi unit sebelum laporan (riwayat tidak ditimpa). |
+| `reported_condition` | varchar | Kondisi sesuai klasifikasi laporan. |
+| `description` | text | Deskripsi kerusakan. |
+| `photo_path` | varchar nullable | Dokumentasi foto (disk privat). |
+| `status` | varchar default `DILAPORKAN` | `DILAPORKAN`, `DIPERIKSA`, `DALAM_PERBAIKAN`, `SELESAI`, `MENUNGGU_PENGHAPUSAN`. |
+| `handled_by` | FK `users` nullable | Petugas terakhir yang memperbarui penanganan. |
+| `handled_at` | timestamp nullable | Waktu pembaruan penanganan. |
+| `resolution_note` | text nullable | Catatan penanganan. |
+| `deleted_at` | timestamp nullable | Soft delete arsip. |
+
+Index: `(asset_unit_id, status)` dan `(classification, status)`. `damage_report_logs` menyimpan `damage_report_id`, `user_id`, `action`, `status_before`, `status_after`, `note`, dan timestamp. Tidak ada foreign key dari laporan kerusakan ke `write_offs`; penghapusan tetap transaksi terpisah.
+
+### 2.23 `users.is_active`
+
+Boolean default `true`. Akun nonaktif ditolak saat login dan sesi berjalan diputus middleware `EnsureAccountIsActive`. Akun tidak dihapus agar relasi transaksi tidak yatim.
 
 ## 3. ERD
 

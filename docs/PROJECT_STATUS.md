@@ -1,7 +1,11 @@
 # Project Status
 
-Tanggal: **2 November 2026**
-Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026**, **revisi besar V2 26 Oktober 2026**, **revisi validasi pengembalian per unit 28 Oktober 2026**, **revisi serah terima/validasi/rincian barang 29 Oktober 2026**, **revisi V3 2 November 2026** (sinkronisasi label/QR ke spesifikasi unit, pengadaan dari katalog lama, field pengguna per kategori, password dua tahap, PIC kegiatan, hapus kegiatan terbatas, ringkasan peminjaman adaptif), dan **revisi V4 2 November 2026** (laporan penghapusan lintas katalog, anti-duplikasi unit, sinkronisasi stok, backfill CSV, invalidasi sesi, otorisasi Super Admin, QR aman, konkurensi MySQL, Playwright E2E, responsif 8 breakpoint). Rincian: `REVISION_V2.md`, `REVISION_V3.md`, `DECISIONS.md` butir 38–39, dan `TESTING.md` bagian 12–15.
+Tanggal: **3 November 2026**
+Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026**, **revisi besar V2 26 Oktober 2026**, **revisi validasi pengembalian per unit 28 Oktober 2026**, **revisi serah terima/validasi/rincian barang 29 Oktober 2026**, **revisi V3 2 November 2026** (sinkronisasi label/QR ke spesifikasi unit, pengadaan dari katalog lama, field pengguna per kategori, password dua tahap, PIC kegiatan, hapus kegiatan terbatas, ringkasan peminjaman adaptif), **revisi V4 2 November 2026** (laporan penghapusan lintas katalog, anti-duplikasi unit, sinkronisasi stok, backfill CSV, invalidasi sesi, otorisasi Super Admin, QR aman, konkurensi MySQL, Playwright E2E, responsif 8 breakpoint), dan **revisi V5 2 November 2026** (alur pengadaan tiga tahap Laboran → Ketua Laboran → Wakasek, penerimaan barang sebelum inventaris, laporan bulanan ber-cakupan role + pengadaan/kerusakan, pelaporan kerusakan rusak ringan/berat, Master Data Ketua Laboran read-only, role Super Admin Pengguna). Rincian: `REVISION_V2.md`, `REVISION_V3.md`, `DECISIONS.md` butir 38–42, `PENDING_DECISIONS.md`, dan `TESTING.md` bagian 12–16.
+
+Revisi V6 (3 November 2026): mutasi multi-lokasi dalam satu transaksi (`asset_unit_movements.movement_no`), pencarian nama/spesifikasi pada cetak label, notifikasi berbasis role/cakupan dengan penjaga tautan, serta notifikasi laporan kerusakan dan administrasi akun. Rincian: `DECISIONS.md` butir 40–42 dan `TESTING.md` bagian "Revisi V6".
+
+> **Status keputusan:** empat kebijakan bisnis masih **PENDING CLARIFICATION** — lihat `docs/PENDING_DECISIONS.md`. Implementasi memakai opsi paling aman dan tidak mengaktifkan alur persetujuan yang belum disepakati.
 Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 
 ## 1. Ringkasan status
@@ -65,7 +69,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Verifikasi email (SMTP)                                      | **BELUM** — kolom & event siap; SMTP/MustVerifyEmail belum dikonfigurasi                                                    |
 | Deployment produksi                                          | **BLOCKED** — tidak ada akses server/domain pada lingkungan ini                            |
 
-Pengujian terakhir (2 November 2026): **330 passed, 0 skipped, 1682 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`). `vendor/bin/pint` dijalankan pada file yang diubah. Playwright E2E penuh dan audit responsif dijalankan pada MySQL 8.4.3 dengan database uji terpisah (`inventaris_e2e`); cetak fisik tetap **BLOCKED**.
+Pengujian terakhir sebelum revisi V5: **330 passed, 0 skipped, 1682 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`). Revisi V5 menambahkan 21 tes baru (alur pengadaan, laporan kerusakan, Super Admin Pengguna, cakupan laporan, dropdown pencarian) dan memperbarui tes lama yang terdampak; hasil suite lengkap ada pada `TESTING.md` §16. `vendor/bin/pint` dijalankan pada file yang diubah dan `npm run build` berhasil. Playwright E2E penuh dan audit responsif dijalankan pada MySQL 8.4.3 dengan database uji terpisah (`inventaris_e2e`); **cetak fisik tetap BLOCKED** dan E2E tidak diulang pada revisi V5.
 
 ## 2. Status per modul
 
@@ -85,7 +89,10 @@ Pengujian terakhir (2 November 2026): **330 passed, 0 skipped, 1682 assertions**
 | Scan universal                          | VERIFIED    | Kamera + manual, hasil di halaman scan, masking data internal, unit di luar cakupan dibatasi |
 | Pengadaan multi-lokasi                  | VERIFIED    | Alokasi banyak ruangan, total wajib sama, unit & kode dibuat per lokasi |
 | Pengguna & cakupan laboratorium         | VERIFIED    | `user_room_scopes`; perubahan cakupan dicatat di audit log dengan ruangan sebelum/sesudah          |
-| Pengadaan                               | VERIFIED    | Unit baru diterbitkan saat pengadaan disetujui; pengajuan ditolak tidak memakai kode               |
+| Pengadaan (V5)                          | VERIFIED    | Alur tiga tahap: draft Laboran → konfirmasi Ketua Laboran → keputusan Wakasek; unit baru terbit setelah barang diterima & dicatat; penolakan wajib alasan; audit trail status sebelum/sesudah |
+| Laporan kerusakan (V5)                  | VERIFIED    | `damage_reports` + `damage_report_logs`; rusak ringan/berat; cakupan per role; tidak menghapus unit/mengurangi stok; status penanganan tanpa alur persetujuan yang belum disepakati |
+| Super Admin Pengguna (V5)               | VERIFIED    | Role terpisah; hanya administrasi akun; akses operasional inventaris ditolak backend; proteksi akun Super Admin utama & akun terakhir |
+| Master Data Ketua Laboran (V5)          | VERIFIED (PENDING) | Read-only: lihat `/master` diperbolehkan, semua mutasi khusus Super Admin. Daftar menu final menunggu keputusan |
 | Peminjaman multi-item                   | VERIFIED    | Multi-item; ketersediaan katalog dikurangi pinjaman aktif; status transaksi menutup rantai persetujuan (PENDING → APPROVED) |
 | Serah terima & pembatalan               | VERIFIED    | Timestamp petugas, pembebasan jadwal, penugasan unit fisik, penjagaan serah terima ganda           |
 | Pengembalian                            | VERIFIED    | Per unit: konfirmasi individual, validasi massal ≥11 unit per katalog, foto bukti per unit, pencarian/filter/QR fokus, mutasi unit, penyelesaian eksplisit; legacy kuantitas akumulatif |
@@ -116,6 +123,8 @@ Pengujian terakhir (2 November 2026): **330 passed, 0 skipped, 1682 assertions**
 
 ## 5. Pekerjaan tersisa
 
+0. **Keputusan bisnis PENDING** — Master Data Ketua Laboran, batas Super Admin Pengguna atas Super Admin utama, persetujuan perbaikan rusak ringan, dan konfirmasi Ketua Laboran untuk rusak berat. Lihat `PENDING_DECISIONS.md`. Sampai keputusan tersedia, pembatasan aman sudah aktif di backend.
+
 1. **Peminjaman per unit**: `loan_item_units` sudah dibuat dan unit ditugaskan saat serah terima (status `DIPINJAM` → `AKTIF` + kondisi saat kembali). Peminjam memilih katalog + jumlah; pemilihan unit fisik oleh peminjam pada saat pengajuan belum didukung (tetap di serah terima sesuai keputusan 28). Yang tersisa: migrasikan katalog lama ke unit fisik lalu menghapus pembukuan kuantitas warisan. (Lihat `KNOWN_ISSUES.md` butir 1 & 8.)
 2. **Penugasan unit pada pengembalian/mutasi katalog lama**: transisi dari `item_movements` ke `asset_unit_movements`.
 3. **Konfirmasi daftar gedung resmi** (nama & identitas kode satu huruf) dan daftar laboratorium sebelum go-live; master gedung A–G sudah tersedia, data demo masih memakai H/I.
@@ -132,3 +141,18 @@ Pengujian terakhir (2 November 2026): **330 passed, 0 skipped, 1682 assertions**
 - Data demo tidak boleh dipakai di produksi.
 - Konkurensi diuji dengan 6 proses lokal dan 3 penghapusan paralel; belum load test produksi. Unique index, `lockForUpdate`, dan validasi ulang dalam transaksi sudah diterapkan.
 - Docker Compose belum dijalankan di host ber-Docker; deployment belum dilakukan.
+
+## 7. Revisi V6 (3 November 2026)
+
+| Perubahan | Status | Bukti |
+|---|---|---|
+| Mutasi beberapa lokasi tujuan dalam satu transaksi | **IMPLEMENTED & TESTED** | `MovementAndWriteOffTest` (2 tes baru), `asset_unit_movements.movement_no`, `MovementController::store` + form kelompok tujuan |
+| Pencarian nama barang/merek pada cetak label | **IMPLEMENTED & TESTED** | `LabelAndQrTest` (2 tes baru), `LabelController::filteredUnits` |
+| Notifikasi berbasis role/cakupan + penjaga tautan | **IMPLEMENTED & TESTED** | `NotificationFeatureTest` (3 tes baru), `DamageReportTest` (1 tes baru), `NotificationLinkGuard`, `NotifyApp` |
+| Laporan kerusakan & perubahan akun mengirim notifikasi ke pihak berwenang | **IMPLEMENTED** | `DamageReportService`, `UserController` |
+| Perbaikan halaman detail barang yang tidak merender konten | **FIXED** | `resources/views/items/show.blade.php` diselaraskan dengan layout komponen |
+| Scope `notArchived()` pada katalog | **FIXED** | `Item::scopeNotArchived()`; dipakai pencarian katalog Livewire |
+| Metode pinjaman pada model Item | **FIXED** | `pendingLostQuery()`, `isAvailableStatus()`, `effectiveStatus()`, `availableQuantity()`, `stockSummary()`, `canBeDeletedPermanently()` dipulihkan |
+| Regresi suite Feature | **PASS** | 352 tes, 1919 assertions, 0 gagal (dijalankan bertahap); `npm run build` + `view:cache` berhasil |
+
+Keputusan bisnis di `PENDING_DECISIONS.md` **tidak berubah**: pembatasan aman tetap aktif, alur persetujuan yang belum disepakati tidak diaktifkan. Cetak fisik label dan verifikasi email tetap **BELUM DIVERIFIKASI**.

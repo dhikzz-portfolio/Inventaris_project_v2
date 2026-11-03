@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div>
             <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Akun Pengguna</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400">Empat role: Wakasek Sarpras, Ketua Laboran, Laboran/K3, Peminjam</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Kelola akun dan hak akses. Super Admin Pengguna tidak memiliki akses operasional inventaris.</p>
         </div>
     </x-slot>
 
@@ -55,7 +55,12 @@
                         @foreach ($users as $user)
                             <tr class="{{ $editUser && $editUser->id === $user->id ? 'bg-blue-50 dark:bg-blue-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60' }}">
                                 <td class="px-4 py-3">
-                                    <div class="font-medium text-slate-800 dark:text-slate-100">{{ $user->displayName() }}</div>
+                                    <div class="flex flex-wrap items-center gap-1.5 font-medium text-slate-800 dark:text-slate-100">
+                                        {{ $user->displayName() }}
+                                        @unless ($user->isActive())
+                                            <span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">NONAKTIF</span>
+                                        @endunless
+                                    </div>
                                     <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $user->email }}</div>
                                     @if ($user->email)
                                         <div class="text-[10px] text-gray-400">{{ $user->email }}</div>
@@ -65,6 +70,7 @@
                                     <span @class([
                                         'text-[10px] font-bold px-2 py-1 rounded-full',
                                         'bg-purple-100 text-purple-700' => $user->role === 'SUPER_ADMIN',
+                                        'bg-fuchsia-100 text-fuchsia-700' => $user->role === 'SUPER_ADMIN_PENGGUNA',
                                         'bg-blue-100 text-blue-700' => $user->role === 'KETUA_LABORAN',
                                         'bg-teal-100 text-teal-700' => $user->role === 'LABORAN',
                                         'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => $user->role === 'PEMINJAM',
@@ -81,8 +87,12 @@
                                 </td>
                                 <td class="px-4 py-3 text-center text-xs text-gray-400">{{ $user->last_login_at?->format('d M Y H:i') ?: 'belum pernah' }}</td>
                                 <td class="px-4 py-3 text-center">
-                                    <a href="{{ route('users.index', ['edit' => $user->id]) }}"
-                                       class="text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">Ubah</a>
+                                    @if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin())
+                                        <span class="text-[11px] text-slate-400" title="Akun Super Admin utama tidak dapat diubah Super Admin Pengguna">terkunci</span>
+                                    @else
+                                        <a href="{{ route('users.index', ['edit' => $user->id]) }}"
+                                           class="text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">Ubah</a>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

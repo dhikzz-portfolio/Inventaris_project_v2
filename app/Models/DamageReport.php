@@ -1,0 +1,89 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\Condition;
+use App\Enums\DamageClassification;
+use App\Enums\DamageReportStatus;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+
+class DamageReport extends Model
+{
+    use LogsActivity, SoftDeletes;
+
+    protected $fillable = [
+        'asset_unit_id', 'reported_by', 'classification', 'previous_condition',
+        'reported_condition', 'description', 'photo_path', 'status',
+        'handled_by', 'handled_at', 'resolution_note',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'classification' => DamageClassification::class,
+            'previous_condition' => Condition::class,
+            'reported_condition' => Condition::class,
+            'status' => DamageReportStatus::class,
+            'handled_at' => 'datetime',
+        ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['classification', 'status', 'description', 'resolution_note'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(AssetUnit::class, 'asset_unit_id');
+    }
+
+    public function reporter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reported_by');
+    }
+
+    public function handler(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'handled_by');
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(DamageReportLog::class)->latest();
+    }
+
+    /**
+     * Cakupan laporan mengikuti cakupan unit: Super Admin seluruh sekolah,
+     * Ketua Laboran seluruh laboratorium, Laboran/K3 ruangan yang ditugaskan.
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user === null || $user->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->whereHas('unit', fn (Builder $unit) => $unit->visibleTo($user));
+    }
+
+    public function scopeOfClassification(Builder $query, ?string $classification): Builder
+    {
+        return $classification === null || $classification === ''
+            ? $query
+            : $query->where('classification', $classification);
+    }
+
+    public function isHeavy(): bool
+    {
+        return $this->classification === DamageClassification::RUSAK_BERAT;
+    }
+}

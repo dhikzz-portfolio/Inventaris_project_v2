@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AcquisitionStatus;
+use App\Enums\Condition;
 use App\Enums\ItemStatus;
-use App\Enums\NotificationType;
 use App\Models\AcquisitionAllocation;
 use App\Models\Building;
 use App\Models\Category;
@@ -12,12 +13,12 @@ use App\Models\Item;
 use App\Models\Room;
 use App\Models\Specification;
 use App\Models\User;
+use App\Services\AcquisitionService;
 use App\Services\AssetUnitService;
 use App\Services\IdGenerator;
 use App\Services\InventoryCodeService;
 use App\Services\LabelService;
 use App\Services\LoanService;
-use App\Services\NotifyApp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -98,7 +99,7 @@ class ItemController extends Controller
 
         $catalogs = Item::query()
             ->whereNull('archived_at')
-            ->where('acquisition_status', 'APPROVED')
+            ->approved()
             ->with(['category:id,name', 'specifications:id,item_catalog_id,brand,model_type'])
             ->orderBy('name')
             ->get(['id', 'name', 'category_id']);
@@ -166,7 +167,7 @@ class ItemController extends Controller
             $existingCatalog = Item::query()->with('category')->whereKey($data['catalog_id'])->first();
 
             if ($existingCatalog === null || $existingCatalog->archived_at !== null
-                || $existingCatalog->acquisition_status !== 'APPROVED') {
+                || ! $existingCatalog->isRecordedInInventory()) {
                 throw ValidationException::withMessages([
                     'catalog_id' => 'Katalog yang dipilih tidak tersedia atau sudah diarsipkan.',
                 ]);
@@ -198,6 +199,12 @@ class ItemController extends Controller
             $isWakasek = $request->user()->isApproverLevel2();
             $isNewCatalog = $existingCatalog === null;
 
+            // Pengadaan oleh pihak selain Wakasek selalu dimulai sebagai draft;
+            // unit baru hanya terbit setelah barang benar-benar diterima.
+            $initialStatus = $isWakasek
+                ? AcquisitionStatus::INVENTARIS_TERCATAT->value
+                : AcquisitionStatus::DRAFT->value;
+
             $item = $existingCatalog ?? Item::create([
                 'internal_id' => IdGenerator::internalId($firstRoom),
                 'location_code' => InstitutionSetting::current()->location_code,
@@ -215,10 +222,14 @@ class ItemController extends Controller
                 'is_high_value' => $request->boolean('is_high_value'),
                 'status' => ItemStatus::BAIK->value,
                 'photo_path' => $request->hasFile('photo') ? $request->file('photo')->store('items', 'public') : null,
-                'acquisition_status' => $isWakasek ? 'APPROVED' : 'PENDING',
+                'acquisition_status' => $initialStatus,
                 'acquisition_requested_by' => $request->user()->id,
                 'acquisition_approved_by' => $isWakasek ? $request->user()->id : null,
                 'acquisition_decided_at' => $isWakasek ? now() : null,
+                'acquisition_received_by' => $isWakasek ? $request->user()->id : null,
+                'acquisition_received_at' => $isWakasek ? now() : null,
+                'acquisition_received_quantity' => $isWakasek ? $total : null,
+                'acquisition_received_condition' => $isWakasek ? Condition::BAIK->value : null,
             ]);
 
             // Merek + tipe/model menjadi spesifikasi katalog, bukan sekadar
@@ -250,26 +261,21 @@ class ItemController extends Controller
                 ->log($isNewCatalog
                     ? ($isWakasek
                         ? 'Menambah barang via pengadaan multi-lokasi (disetujui langsung oleh Wakasek)'
-                        : 'Mengajukan pengadaan barang baru (menunggu approval Wakasek)')
+                        : 'Menyimpan draft pengajuan pengadaan barang baru (belum dikirim)')
                     : 'Menambah stok spesifikasi pada katalog yang sudah ada');
 
-            if ($item->acquisition_status === 'APPROVED' && $isWakasek) {
+            if ($isWakasek && $item->isRecordedInInventory()) {
                 $this->provisionAllocations($item->fresh(), $createdAllocations, $request->user());
-            } elseif ($isNewCatalog) {
-                NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
-                    "Pengadaan baru: \"{$item->name}\" ({$total} {$item->unit}) menunggu persetujuan.",
-                    route('items.acquisitions'));
-            } else {
-                NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
-                    "Penambahan stok \"{$item->name}\" ({$specification->displayName()}) menunggu persetujuan.",
-                    route('items.acquisitions'));
             }
         });
 
-        return redirect()->route('catalogs.index')
-            ->with('success', 'Barang berhasil ditambahkan.'.($request->user()->isApproverLevel2()
-                ? ' Kode inventaris unit diterbitkan otomatis sesuai alokasi lokasi.'
-                : ' Menunggu persetujuan Wakasek Sarpras sebelum kode unit diterbitkan.'));
+        if ($request->user()->isApproverLevel2()) {
+            return redirect()->route('catalogs.index')
+                ->with('success', 'Barang berhasil ditambahkan. Kode inventaris unit diterbitkan otomatis sesuai alokasi lokasi.');
+        }
+
+        return redirect()->route('items.acquisitions')
+            ->with('success', 'Pengajuan tersimpan sebagai draft. Kirim pengajuan kepada Ketua Laboran untuk diproses.');
     }
 
     /**
@@ -410,80 +416,144 @@ class ItemController extends Controller
         return redirect()->route('catalogs.show', $item)->with('success', 'Data katalog diperbarui.');
     }
 
-    /** Approval pengadaan (Wakasek). */
-    public function acquisitions(): View
+    /**
+     * Ruang kerja pengadaan. Wakasek melihat seluruh pengajuan, Ketua Laboran
+     * seluruh laboratorium, dan Laboran hanya pengajuan pada ruang lingkupnya.
+     */
+    public function acquisitions(Request $request): View
     {
+        $user = $request->user();
+
+        $requests = Item::query()
+            ->with(['room', 'category', 'requester', 'confirmer', 'approver', 'receiver'])
+            ->whereIn('acquisition_status', AcquisitionStatus::values())
+            ->when($user->isLaboran(), fn ($query) => $query->where(function ($scope) use ($user) {
+                $scope->where('acquisition_requested_by', $user->id)
+                    ->orWhereHas('allocations.room', fn ($room) => $room->whereIn('id', $user->roomScopes()->select('room_id')));
+            }))
+            ->when(! $user->isSuperAdmin() && ! $user->isLaboran(), fn ($query) => $query->where(function ($scope) {
+                $scope->whereHas('room', fn ($room) => $room->where('is_lab', true))
+                    ->orWhereHas('allocations.room', fn ($room) => $room->where('is_lab', true));
+            }))
+            ->latest('updated_at')
+            ->limit(200)
+            ->get();
+
         return view('items.acquisitions', [
-            'pending' => Item::with(['room', 'category', 'requester'])
-                ->where('acquisition_status', 'PENDING')
-                ->latest()
-                ->get(),
-            'decided' => Item::with(['room', 'requester', 'approver'])
-                ->whereIn('acquisition_status', ['APPROVED', 'REJECTED'])
-                ->whereNotNull('acquisition_decided_at')
-                ->latest('acquisition_decided_at')
-                ->limit(20)
-                ->get(),
+            'groups' => $requests->groupBy('acquisition_status'),
+            'statuses' => AcquisitionStatus::cases(),
+            'user' => $user,
         ]);
     }
 
-    public function approveAcquisition(Request $request, Item $item): RedirectResponse
+    /** Tahap 1 — kirim draft kepada Ketua Laboran. */
+    public function submitAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
     {
-        abort_unless($item->isAcquisitionPending(), 404);
+        $this->ensureVisible($item);
+        $acquisitions->submit($item, $request->user());
 
-        DB::transaction(function () use ($request, $item) {
-            // Kunci katalog agar dua approval bersamaan tidak menggandakan unit.
-            $item = Item::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
-
-            abort_unless($item->isAcquisitionPending(), 404);
-
-            $item->update([
-                'acquisition_status' => 'APPROVED',
-                'acquisition_approved_by' => $request->user()->id,
-                'acquisition_decided_at' => now(),
-            ]);
-
-            // Unit fisik baru diterbitkan setelah pengadaan disetujui agar kode
-            // inventaris tidak terpakai untuk pengajuan yang ditolak.
-            $this->provisionUnits($item, $request->user());
-        });
-
-        activity('pengadaan')->performedOn($item)->causedBy($request->user())->log('Menyetujui pengadaan barang');
-
-        if ($request->user()->id !== (int) $item->acquisition_requested_by) {
-            NotifyApp::toRoles(['KETUA_LABORAN'], NotificationType::PENGADAAN,
-                "Pengadaan \"{$item->name}\" DISETUJUI Wakasek Sarpras.", route('items.show', $item));
-        }
-
-        return back()->with('success', "Pengadaan \"{$item->name}\" disetujui dan masuk katalog.");
+        return back()->with('success', "Pengajuan \"{$item->name}\" dikirim ke Ketua Laboran.");
     }
 
-    public function rejectAcquisition(Request $request, Item $item): RedirectResponse
+    /** Tahap 2 — konfirmasi Ketua Laboran (bukan persetujuan akhir). */
+    public function confirmAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
     {
-        abort_unless($item->isAcquisitionPending(), 404);
+        abort_unless($request->user()->isKetuaLaboran(), 403);
 
-        $note = $request->validate(['note' => ['nullable', 'string', 'max:500']])['note'] ?? null;
+        $acquisitions->confirm($item, $request->user());
 
-        $item->update([
-            'acquisition_status' => 'REJECTED',
-            'acquisition_approved_by' => $request->user()->id,
-            'acquisition_decided_at' => now(),
-            'acquisition_note' => $note,
-        ]);
+        return back()->with('success', "Pengajuan \"{$item->name}\" dikonfirmasi dan diteruskan ke Wakasek Sarpras.");
+    }
 
-        activity('pengadaan')->performedOn($item)->causedBy($request->user())->log('Menolak pengadaan barang'.($note ? ": {$note}" : ''));
+    /** Tahap 3 — persetujuan akhir Wakasek Sarpras. */
+    public function approveAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
+    {
+        abort_unless($request->user()->isApproverLevel2(), 403);
 
-        NotifyApp::toRoles(['KETUA_LABORAN'], NotificationType::PENGADAAN,
-            "Pengadaan \"{$item->name}\" DITOLAK".($note ? " — {$note}" : ''), route('items.acquisitions'));
+        $acquisitions->approve($item, $request->user());
+
+        return back()->with('success', "Pengadaan \"{$item->name}\" disetujui. Barang belum menjadi inventaris sampai diterima dan dicatat.");
+    }
+
+    public function rejectAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
+    {
+        abort_unless($request->user()->isApproverLevel2(), 403);
+
+        $note = (string) $request->validate(['note' => ['required', 'string', 'max:500']])['note'];
+        $acquisitions->reject($item, $request->user(), $note);
 
         return back()->with('success', "Pengadaan \"{$item->name}\" ditolak.");
     }
 
-    /** Ruangan yang boleh dipilih: Super Admin semua, Ketua Laboran hanya lab. */
+    /** Laboran memulai proses pengadaan setelah disetujui. */
+    public function startAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
+    {
+        $this->ensureVisible($item);
+        $acquisitions->start($item, $request->user());
+
+        return back()->with('success', "Proses pengadaan \"{$item->name}\" dimulai.");
+    }
+
+    /** Form penerimaan barang: jumlah aktual, kondisi, dan catatan. */
+    public function receiveForm(Request $request, Item $item): View
+    {
+        $this->ensureVisible($item);
+
+        abort_unless(in_array($item->acquisition_status, [
+            AcquisitionStatus::DISETUJUI->value,
+            AcquisitionStatus::DALAM_PROSES->value,
+        ], true), 404);
+
+        return view('items.receive', [
+            'item' => $item->load(['room', 'category', 'allocations.room', 'allocations.specification']),
+            'conditions' => Condition::cases(),
+        ]);
+    }
+
+    public function receiveAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
+    {
+        $this->ensureVisible($item);
+
+        $data = $request->validate([
+            'received' => ['required', 'array'],
+            'received.*' => ['nullable', 'integer', 'min:0'],
+            'condition' => ['required', Rule::in(array_column(Condition::cases(), 'value'))],
+            'note' => ['nullable', 'string', 'max:500'],
+        ], [
+            'received.required' => 'Isi jumlah aktual barang yang diterima untuk setiap lokasi.',
+        ]);
+
+        $acquisitions->receive(
+            $item,
+            $request->user(),
+            array_map('intval', $data['received']),
+            $data['condition'],
+            $data['note'] ?? null,
+        );
+
+        return redirect()->route('items.acquisitions')
+            ->with('success', "Penerimaan \"{$item->name}\" dicatat. Lanjutkan dengan pencatatan inventaris.");
+    }
+
+    /** Menerbitkan unit inventaris dari barang yang sudah diterima. */
+    public function recordInventory(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
+    {
+        $this->ensureVisible($item);
+
+        $result = $acquisitions->recordInventory($item, $request->user());
+
+        return back()->with('success', "Barang \"{$result->name}\" tercatat sebagai inventaris resmi.");
+    }
+
+    /**
+     * Ruangan yang boleh dipilih: Super Admin semua, Ketua Laboran seluruh
+     * laboratorium, Laboran/K3 hanya laboratorium yang menjadi tanggung jawabnya.
+     */
     private function availableRooms(?User $user)
     {
         return Room::with('major')
             ->when(! $user?->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
+            ->when($user?->isLaboran(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
             ->orderBy('code')
             ->get();
     }
@@ -492,7 +562,17 @@ class ItemController extends Controller
     {
         $rule = Rule::exists('rooms', 'id');
 
-        return $user->isSuperAdmin() ? $rule : $rule->where('is_lab', true);
+        if ($user->isSuperAdmin()) {
+            return $rule;
+        }
+
+        $rule = $rule->where('is_lab', true);
+
+        if ($user->isLaboran()) {
+            $rule = $rule->whereIn('id', $user->roomScopes()->select('room_id'));
+        }
+
+        return $rule;
     }
 
     /** Katalog di luar cakupan tidak boleh dibuka lewat URL langsung. */
@@ -502,32 +582,6 @@ class ItemController extends Controller
             Item::query()->visibleTo(auth()->user())->whereKey($item->id)->exists(),
             404
         );
-    }
-
-    /**
-     * Terbitkan unit fisik sesuai alokasi lokasi. Dipanggil di dalam
-     * transaksi approval/pengadaan langsung. Jumlah unit yang dibuat harus
-     * sama dengan total alokasi; kegagalan satu ruangan membatalkan semuanya.
-     */
-    private function provisionUnits(Item $item, ?User $actor = null): void
-    {
-        $allocations = $item->allocations()->whereNull('provisioned_at')->with(['room', 'specification'])->get();
-
-        // Katalog legacy tanpa alokasi tetap memakai ruangan katalognya.
-        if ($item->allocations()->count() === 0) {
-            if ($item->units()->exists()) {
-                return;
-            }
-
-            $allocations = collect([
-                new AcquisitionAllocation([
-                    'room_id' => $item->room_id,
-                    'quantity' => (int) $item->quantity,
-                ]),
-            ]);
-        }
-
-        $this->provisionAllocations($item, $allocations, $actor);
     }
 
     /**

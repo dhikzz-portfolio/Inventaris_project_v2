@@ -92,17 +92,19 @@ class InventoryCatalogTest extends TestCase
             'is_high_value' => true,
             'location_code' => InstitutionSetting::current()->location_code,
             'photo' => $photo,
-        ])->assertRedirect(route('catalogs.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('items.acquisitions'))->assertSessionHasNoErrors();
 
         $item = Item::where('name', 'Laptop Asus ROG Strix')->firstOrFail();
-        $this->assertSame('PENDING', $item->acquisition_status);
+        $this->assertSame('DRAFT', $item->acquisition_status);
         $this->assertNotNull($item->photo_path);
         Storage::disk('public')->assertExists($item->photo_path);
 
-        // Approval oleh Wakasek
+        // Alur tiga tahap sebelum keputusan akhir Wakasek.
+        $this->actingAs($this->admin)->post(route('items.acquisitions.submit', $item))->assertRedirect();
+        $this->actingAs($this->admin)->post(route('items.acquisitions.confirm', $item))->assertRedirect();
         $this->actingAs($this->wakasek)->post(route('items.approve', $item))
             ->assertRedirect();
-        $this->assertSame('APPROVED', $item->refresh()->acquisition_status);
+        $this->assertSame('DISETUJUI', $item->refresh()->acquisition_status);
     }
 
     public function test_unique_constraint_internal_id(): void

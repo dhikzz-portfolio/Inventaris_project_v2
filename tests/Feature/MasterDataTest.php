@@ -41,13 +41,19 @@ class MasterDataTest extends TestCase
         $this->actingAs($this->laboran)->get(route('masters.index'))->assertForbidden();
     }
 
-    public function test_admin_sarpras_dan_wakasek_dapat_mengakses_dan_menambah_master_data(): void
+    public function test_ketua_laboran_hanya_melihat_dan_wakasek_mengubah_master_data(): void
     {
+        // Ketua Laboran tetap membutuhkan data untuk pemantauan (read-only).
         $this->actingAs($this->admin)->get(route('masters.index'))->assertOk();
+        $this->actingAs($this->admin)->post(route('masters.store-major'), [
+            'name' => 'Tidak Boleh',
+            'code' => 'X1',
+        ])->assertForbidden();
+
         $this->actingAs($this->wakasek)->get(route('masters.index'))->assertOk();
 
         // Tambah Jurusan
-        $this->actingAs($this->admin)->post(route('masters.store-major'), [
+        $this->actingAs($this->wakasek)->post(route('masters.store-major'), [
             'name' => 'Akuntansi dan Keuangan Lembaga',
             'code' => 'AKL',
         ])->assertRedirect()->assertSessionHasNoErrors();
@@ -58,7 +64,7 @@ class MasterDataTest extends TestCase
         // Tambah Ruangan (formulir sederhana: gedung dari master + lantai + nomor ruang)
         $building = Building::where('code', 'I')->firstOrFail();
 
-        $this->actingAs($this->admin)->post(route('masters.store-room'), [
+        $this->actingAs($this->wakasek)->post(route('masters.store-room'), [
             'major_id' => $major->id,
             'building_id' => $building->id,
             'floor' => 2,
@@ -72,7 +78,7 @@ class MasterDataTest extends TestCase
         ]);
 
         // Tambah Kategori
-        $this->actingAs($this->admin)->post(route('masters.store-category'), [
+        $this->actingAs($this->wakasek)->post(route('masters.store-category'), [
             'name' => 'Perangkat Jaringan Nirkabel',
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('categories', ['name' => 'Perangkat Jaringan Nirkabel']);

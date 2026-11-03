@@ -37,7 +37,7 @@ class BuildingMasterDataTest extends TestCase
         $this->seed();
 
         $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
-        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->admin = $this->wakasek; // Mutasi master data = kewenangan Super Admin.
         $this->category = Category::firstOrFail();
     }
 

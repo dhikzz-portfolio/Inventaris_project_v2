@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureOperationalInventoryAccess;
 use App\Http\Middleware\EnsureProfileCompleted;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,12 +26,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'profile.completed' => EnsureProfileCompleted::class,
+            'inventory.access' => EnsureOperationalInventoryAccess::class,
         ]);
 
         // Semua sesi memverifikasi hash password terbaru pada setiap request.
         // Setelah password berubah, sesi lain otomatis diputus.
         $middleware->web(append: [
             AuthenticateSession::class,
+            EnsureAccountIsActive::class,
         ]);
 
         $middleware->redirectGuestsTo('/login');

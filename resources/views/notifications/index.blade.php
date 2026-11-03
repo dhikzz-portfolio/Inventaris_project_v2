@@ -39,7 +39,8 @@
                         'bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300' => $notification->type->value === 'PERSETUJUAN',
                         'bg-green-100 text-green-600 dark:bg-green-950/50 dark:text-green-300' => $notification->type->value === 'PENGEMBALIAN',
                         'bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300' => $notification->type->value === 'PENGADAAN',
-                        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => in_array($notification->type->value, ['PENGHAPUSAN', 'LAINNYA']),
+                        'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' => $notification->type->value === 'KERUSAKAN',
+                        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => in_array($notification->type->value, ['PENGHAPUSAN', 'AKUN', 'LAINNYA']),
                     ])>
                         <span class="material-icons-round text-lg" aria-hidden="true">
                             @switch($notification->type->value)
@@ -48,6 +49,8 @@
                                 @case('PENGEMBALIAN') assignment_return @break
                                 @case('PENGADAAN') add_box @break
                                 @case('PENGHAPUSAN') delete_forever @break
+                                @case('KERUSAKAN') report_problem @break
+                                @case('AKUN') manage_accounts @break
                                 @default info
                             @endswitch
                         </span>
@@ -61,11 +64,19 @@
                             <span class="ms-auto text-[11px] text-slate-500 dark:text-slate-400">{{ $notification->created_at->diffForHumans() }}</span>
                         </div>
                         <p class="mt-1 text-sm leading-relaxed text-slate-700 dark:text-slate-200">{{ $notification->message }}</p>
-                        @if ($notification->link)
+                        @if ($notification->link && $notification->link_accessible)
                             <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
                                 @csrf
                                 <button class="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 hover:underline dark:text-blue-300 dark:hover:bg-slate-800">Buka detail →</button>
                             </form>
+                        @elseif ($notification->link && ! $notification->isRead())
+                            <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
+                                @csrf
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400">Tautan tujuan tidak lagi tersedia untuk akun Anda.</span>
+                                <button class="ms-1 inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 hover:underline dark:text-blue-300 dark:hover:bg-slate-800">Tandai sudah dibaca</button>
+                            </form>
+                        @elseif ($notification->link)
+                            <span class="mt-1 inline-block text-[11px] text-slate-500 dark:text-slate-400">Tautan tujuan tidak lagi tersedia untuk akun Anda.</span>
                         @elseif (! $notification->isRead())
                             <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
                                 @csrf

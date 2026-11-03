@@ -60,6 +60,16 @@ class LoginRequest extends FormRequest
 
         /** @var User $user */
         $user = Auth::user();
+
+        // Akun yang dinonaktifkan admin tidak boleh memiliki sesi aktif.
+        if (! $user->isActive()) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun ini sedang dinonaktifkan. Hubungi administrator sekolah.',
+            ]);
+        }
+
         $user->forceFill(['last_login_at' => now()])->saveQuietly();
     }
 

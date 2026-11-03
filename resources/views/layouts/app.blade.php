@@ -81,7 +81,9 @@
                 @endisset
 
                 <main class="flex-1 bg-brand-50/30 p-4 pb-24 sm:p-5 sm:pb-24 md:p-6 dark:bg-slate-950">
+                    @isset($slot)
                     {{ $slot }}
+                    @endisset
                 </main>
             </div>
 

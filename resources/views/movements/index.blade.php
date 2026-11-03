@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div>
             <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Mutasi &amp; Pindah Barang</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400">Pilih satu atau beberapa unit fisik, lalu pindahkan bersama ke ruangan tujuan</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Satu transaksi dapat memindahkan unit ke beberapa lokasi tujuan sekaligus</p>
         </div>
     </x-slot>
 
@@ -79,7 +79,8 @@
         </div>
     </form>
 
-    <form method="POST" action="{{ route('movements.store') }}" x-data="movementSelection({ unitIds: {{ \Illuminate\Support\Js::from($units->getCollection()->pluck('id')->values()) }} })">
+    <form method="POST" action="{{ route('movements.store') }}"
+          x-data="movementSelection({ unitOptions: {{ \Illuminate\Support\Js::from($unitOptions) }}, roomLabels: {{ \Illuminate\Support\Js::from($roomLabels) }} })">
         @csrf
 
         <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
@@ -92,9 +93,9 @@
                                 class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
                             Pilih semua di halaman
                         </button>
-                        <button type="button" @click="selected = []" :disabled="selected.length === 0"
+                        <button type="button" @click="clearSelection()" :disabled="selected.length === 0"
                                 class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
-                            Kosongkan
+                            Kosongkan pilihan
                         </button>
                         <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><strong x-text="selected.length"></strong> unit dipilih</span>
                     </div>
@@ -115,7 +116,8 @@
                             @forelse ($units as $unit)
                                 <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
                                     <td class="px-3 py-2.5">
-                                        <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" x-model="selected"
+                                        <input type="checkbox" value="{{ $unit->id }}" x-model="selected"
+                                               aria-label="Pilih unit {{ $unit->inventory_code }}"
                                                class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600">
                                     </td>
                                     <td class="px-3 py-2.5 font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
@@ -143,28 +145,66 @@
             {{-- Panel tujuan: menempel saat halaman di-scroll --}}
             <div class="space-y-4 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm lg:sticky lg:top-20 dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-brand-600"> move_to_inbox</span> Tujuan perpindahan
+                    <span class="material-icons-round text-brand-600">move_to_inbox</span> Tujuan perpindahan
                 </h3>
 
                 <div>
                     <x-input-label value="Ringkasan unit terpilih" />
                     <div class="mt-1 min-h-[42px] rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
-                        <span x-show="selected.length === 0">Belum ada unit dipilih.</span>
-                        <span x-show="selected.length > 0"><strong x-text="selected.length"></strong> unit akan dipindahkan. Lokasi asal tiap unit tercantum pada tabel.</span>
+                        <span x-show="selected.length === 0">Belum ada unit yang belum ditetapkan.</span>
+                        <span x-show="selected.length > 0"><strong x-text="selected.length"></strong> unit belum ditetapkan ke tujuan.</span>
+                        <span class="mt-1 block" x-show="destinations.length > 0"><strong x-text="assignedCount"></strong> unit sudah masuk <span x-text="destinations.length"></span> kelompok tujuan.</span>
                     </div>
                 </div>
 
                 <div>
-                    <x-input-label for="to_room_id" value="Ruangan Tujuan *" />
-                    <select id="to_room_id" name="to_room_id" required class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <x-input-label for="destination_room" value="Ruangan Tujuan *" />
+                    <select id="destination_room" x-model="draftRoom"
+                            class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">— pilih ruangan tujuan —</option>
                         @foreach ($rooms as $room)
-                            <option value="{{ $room->id }}" @selected(old('to_room_id') == $room->id)>
-                                {{ $room->code }} — {{ $room->name }} (Lt.{{ $room->floor }})
-                            </option>
+                            <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }} (Lt.{{ $room->floor }})</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-[11px] text-slate-400 dark:text-slate-500">Unit yang sedang dipinjam, sudah dihapus, atau sudah berada di ruangan tujuan akan ditolak.</p>
+                    <button type="button" @click="assign()" :disabled="selected.length === 0 || draftRoom === ''"
+                            class="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700">
+                        <span class="material-icons-round text-base">playlist_add</span> Tetapkan unit terpilih ke tujuan ini
+                    </button>
+                    <p class="mt-1 text-[11px] text-slate-400 dark:text-slate-500">Tambahkan kelompok tujuan lain dengan memilih unit berbeda lalu menetapkan ruangan lain.</p>
+                </div>
+
+                <div>
+                    <x-input-label value="Kelompok tujuan" />
+                    <div class="mt-1 space-y-2">
+                        <p x-show="destinations.length === 0" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
+                            Belum ada kelompok tujuan. Unit yang dipilih belum akan dipindahkan.
+                        </p>
+
+                        <template x-for="(group, groupIndex) in destinations" :key="group.roomId">
+                            <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                                <div class="mb-1.5 flex items-start justify-between gap-2">
+                                    <p class="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                        Tujuan: <span x-text="roomLabels[group.roomId] || group.roomId"></span>
+                                    </p>
+                                    <button type="button" @click="removeGroup(groupIndex)" class="text-[11px] font-semibold text-red-600 hover:underline dark:text-red-400">Hapus</button>
+                                </div>
+                                <div class="flex flex-wrap gap-1">
+                                    <template x-for="unitId in group.unitIds" :key="`${group.roomId}-${unitId}`">
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-200">
+                                            <span x-text="unitOptions[unitId]?.code || unitId"></span>
+                                            <button type="button" @click="removeUnit(groupIndex, unitId)" class="text-slate-400 hover:text-red-600" aria-label="Keluarkan unit dari tujuan">×</button>
+                                        </span>
+                                    </template>
+                                </div>
+
+                                {{-- Detail mutasi per unit dengan lokasi tujuan masing-masing. --}}
+                                <input type="hidden" :name="`destinations[${groupIndex}][room_id]`" :value="group.roomId">
+                                <template x-for="unitId in group.unitIds" :key="`input-${group.roomId}-${unitId}`">
+                                    <input type="hidden" :name="`destinations[${groupIndex}][unit_ids][]`" :value="unitId">
+                                </template>
+                            </div>
+                        </template>
+                    </div>
                 </div>
 
                 <div>
@@ -176,22 +216,26 @@
                     Setiap perpindahan menerbitkan kode inventaris baru sesuai ruangan tujuan. Kode lama disimpan sebagai riwayat dan tetap dapat ditelusuri. Cetak ulang label setelah pindah.
                 </div>
 
-                <button type="submit" :disabled="selected.length === 0"
+                <button type="submit" :disabled="selected.length > 0 || destinations.length === 0"
                         class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:disabled:bg-slate-700">
-                    <span class="material-icons-round text-lg"> swap_horiz</span> Simpan perpindahan
+                    <span class="material-icons-round text-lg">swap_horiz</span> Simpan perpindahan
                 </button>
+                <p x-show="selected.length > 0" class="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                    Tetapkan dulu semua unit yang dipilih ke salah satu kelompok tujuan.
+                </p>
             </div>
         </div>
     </form>
 
     <div class="mt-6 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <h3 class="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
-            <span class="material-icons-round text-brand-600"> route</span> Riwayat perpindahan barang ({{ $movements->total() }})
+            <span class="material-icons-round text-brand-600">route</span> Riwayat perpindahan barang ({{ $movements->total() }})
         </h3>
         <div class="max-h-[45vh] overflow-auto">
-            <table class="w-full text-sm">
+            <table class="w-full min-w-[900px] text-sm">
                 <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                     <tr>
+                        <th class="px-3 py-2.5 text-left">No. Mutasi</th>
                         <th class="px-3 py-2.5 text-left">Unit</th>
                         <th class="px-3 py-2.5 text-left">Kode Lama → Baru</th>
                         <th class="px-3 py-2.5 text-left">Asal → Tujuan</th>
@@ -203,6 +247,7 @@
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     @forelse ($movements as $movement)
                         <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                            <td class="px-3 py-2.5 font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $movement->movement_no ?: '—' }}</td>
                             <td class="px-3 py-2.5">
                                 <a href="{{ route('units.show', $movement->unit) }}" class="font-medium text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $movement->unit?->catalog?->name }}</a>
                                 <div class="font-mono text-[11px] text-slate-400 dark:text-slate-500">{{ $movement->unit?->inventory_code }}</div>
@@ -214,7 +259,7 @@
                             <td class="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">{{ $movement->note ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-3 py-8 text-center text-sm text-slate-400">Belum ada perpindahan yang tercatat.</td></tr>
+                        <tr><td colspan="7" class="px-3 py-8 text-center text-sm text-slate-400">Belum ada perpindahan yang tercatat.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -226,11 +271,91 @@
     <script>
         function movementSelection(config) {
             return {
-                pageUnitIds: (config.unitIds || []).map(String),
+                unitOptions: config.unitOptions || {},
+                roomLabels: config.roomLabels || {},
                 selected: [],
+                destinations: [],
+                draftRoom: '',
+
+                get pageUnitIds() {
+                    return Object.keys(this.unitOptions);
+                },
+
+                get assignedCount() {
+                    return this.destinations.reduce((total, group) => total + group.unitIds.length, 0);
+                },
 
                 selectAll() {
                     this.selected = [...this.pageUnitIds];
+                },
+
+                clearSelection() {
+                    this.selected = [];
+                },
+
+                assign() {
+                    const roomId = String(this.draftRoom || '');
+
+                    if (roomId === '' || this.selected.length === 0) {
+                        return;
+                    }
+
+                    const ids = this.selected.map(String);
+
+                    // Unit yang dipindah ke tujuan baru tidak boleh tersisa di kelompok lama.
+                    this.destinations.forEach((group) => {
+                        group.unitIds = group.unitIds.filter((unitId) => !ids.includes(String(unitId)));
+                    });
+                    this.destinations = this.destinations.filter((group) => group.unitIds.length > 0);
+
+                    let group = this.destinations.find((item) => String(item.roomId) === roomId);
+
+                    if (!group) {
+                        group = { roomId: roomId, unitIds: [] };
+                        this.destinations.push(group);
+                    }
+
+                    ids.forEach((unitId) => {
+                        if (!group.unitIds.map(String).includes(unitId)) {
+                            group.unitIds.push(unitId);
+                        }
+                    });
+
+                    this.selected = [];
+                },
+
+                removeUnit(groupIndex, unitId) {
+                    const group = this.destinations[groupIndex];
+
+                    if (!group) {
+                        return;
+                    }
+
+                    group.unitIds = group.unitIds.filter((id) => String(id) !== String(unitId));
+
+                    if (group.unitIds.length === 0) {
+                        this.destinations.splice(groupIndex, 1);
+                    }
+
+                    if (!this.selected.map(String).includes(String(unitId))) {
+                        this.selected.push(String(unitId));
+                    }
+                },
+
+                removeGroup(groupIndex) {
+                    const group = this.destinations[groupIndex];
+
+                    if (!group) {
+                        return;
+                    }
+
+                    group.unitIds.forEach((unitId) => {
+                        if (!this.selected.map(String).includes(String(unitId))) {
+                            this.selected.push(String(unitId));
+                        }
+                    });
+
+                    this.destinations.splice(groupIndex, 1);
                 },
             };
         }

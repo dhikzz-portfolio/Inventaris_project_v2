@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\NotificationType;
+use App\Enums\Role;
 use App\Models\User;
 use App\Services\NotifyApp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -102,5 +103,39 @@ class NotificationFeatureTest extends TestCase
             ->assertOk()
             ->assertDontSee('Tandai sudah dibaca')
             ->assertDontSee('Buka detail');
+    }
+
+    public function test_notifikasi_hanya_dikirim_ke_role_yang_bertanggung_jawab(): void
+    {
+        $ketua = User::factory()->create(['role' => Role::KETUA_LABORAN->value]);
+        $pengguna = User::factory()->create(['role' => Role::SUPER_ADMIN_PENGGUNA->value]);
+
+        NotifyApp::toRoles([Role::KETUA_LABORAN->value], NotificationType::PENGADAAN, 'Pengajuan baru');
+
+        $this->assertSame(1, $ketua->notificationsApp()->count());
+        $this->assertSame(0, $pengguna->notificationsApp()->count());
+    }
+
+    public function test_notifikasi_tidak_mengarahkan_ke_halaman_di_luar_kewenangan(): void
+    {
+        $laboran = User::factory()->create(['role' => Role::LABORAN->value]);
+        $notification = NotifyApp::to($laboran, NotificationType::AKUN, 'Akun diperbarui', route('users.index'));
+
+        $this->actingAs($laboran)
+            ->post(route('notifications.read', $notification))
+            ->assertRedirect(route('notifications.index'));
+
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
+    public function test_tautan_tidak_tersedia_ditandai_pada_daftar_notifikasi(): void
+    {
+        $laboran = User::factory()->create(['role' => Role::LABORAN->value]);
+        NotifyApp::to($laboran, NotificationType::AKUN, 'Tautan tidak relevan', route('users.index'));
+
+        $this->actingAs($laboran)
+            ->get(route('notifications.index'))
+            ->assertOk()
+            ->assertSee('Tautan tujuan tidak lagi tersedia untuk akun Anda.');
     }
 }

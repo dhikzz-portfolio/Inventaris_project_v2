@@ -32,7 +32,8 @@
     {{-- Filter --}}
     <div class="mb-2 rounded-2xl border border-sky-100 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <form method="GET" action="{{ route('labels.index') }}" class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari kode unit (G1-02-12)"
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama barang atau kode unit"
+                   aria-label="Cari nama barang atau kode unit"
                    class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             <select name="catalog" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 <option value="">Semua katalog</option>
@@ -109,12 +110,13 @@
             </div>
 
             <div class="overflow-x-auto max-h-[60vh] overflow-y-auto">
-                <table class="w-full min-w-[820px] text-sm">
+                <table class="w-full min-w-[980px] text-sm">
                     <thead class="sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
                             <th class="px-4 py-2.5 w-10"></th>
                             <th class="text-left px-4 py-2.5">Kode Inventaris</th>
                             <th class="text-left px-4 py-2.5">Nama Barang</th>
+                            <th class="text-left px-4 py-2.5">Spesifikasi</th>
                             <th class="text-left px-4 py-2.5">Lokasi</th>
                             <th class="text-left px-4 py-2.5">Kondisi</th>
                             <th class="text-left px-4 py-2.5">Status</th>
@@ -134,6 +136,9 @@
                                 <td class="px-4 py-2">
                                     <a href="{{ route('units.show', $unit) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $unit->catalog?->name }}</a>
                                     <div class="text-[11px] text-gray-400">{{ $unit->catalog?->category?->name }}</div>
+                                </td>
+                                <td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">
+                                    {{ $unit->specification?->displayName() ?: (trim(($unit->catalog?->brand ?? '').' '.($unit->catalog?->model_type ?? '')) ?: '—') }}
                                 </td>
                                 <td class="px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400">
                                     Gedung {{ $unit->room?->building_letter }}, Lantai {{ $unit->room?->floor }}, Ruang {{ str_pad((string) $unit->room?->room_no, 2, '0', STR_PAD_LEFT) }}
@@ -156,7 +161,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="8" class="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">Tidak ada unit yang sesuai filter dalam cakupan akses Anda.</td></tr>
+                            <tr><td colspan="9" class="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">Tidak ada unit yang sesuai filter dalam cakupan akses Anda.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

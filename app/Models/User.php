@@ -21,7 +21,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'degree', 'email', 'email_verified_at', 'password',
-        'role', 'borrower_type', 'major_id', 'class_name', 'last_login_at',
+        'role', 'is_active', 'borrower_type', 'major_id', 'class_name', 'last_login_at',
         'birth_date', 'profile_completed_at', 'profile_completed', 'work_unit',
     ];
 
@@ -38,6 +38,7 @@ class User extends Authenticatable
             'birth_date' => 'date',
             'profile_completed_at' => 'datetime',
             'profile_completed' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -121,6 +122,36 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->role === Role::SUPER_ADMIN->value;
+    }
+
+    /** Admin akun terpisah dari Super Admin utama (least privilege). */
+    public function isSuperAdminPengguna(): bool
+    {
+        return $this->role === Role::SUPER_ADMIN_PENGGUNA->value;
+    }
+
+    /** Boleh mengelola akun pengguna: Super Admin utama & Super Admin Pengguna. */
+    public function canManageUsers(): bool
+    {
+        return $this->isSuperAdmin() || $this->isSuperAdminPengguna();
+    }
+
+    public function isActive(): bool
+    {
+        return (bool) ($this->is_active ?? true);
+    }
+
+    /**
+     * Super Admin Pengguna tidak memiliki kewenangan operasional inventaris.
+     * Super Admin utama memiliki seluruh kewenangan sesuai jabatannya.
+     */
+    public function hasOperationalInventoryAccess(): bool
+    {
+        return in_array($this->role, [
+            Role::SUPER_ADMIN->value,
+            Role::KETUA_LABORAN->value,
+            Role::LABORAN->value,
+        ], true);
     }
 
     public function isAdminSarpras(): bool

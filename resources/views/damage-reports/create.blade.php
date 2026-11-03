@@ -60,10 +60,10 @@
             </div>
 
             <div>
-                <x-input-label for="photo" value="Dokumentasi foto (opsional)" />
-                <input id="photo" name="photo" type="file" accept="image/*"
+                <x-input-label for="photos" value="Dokumentasi foto (opsional, maks. 5)" />
+                <input id="photos" name="photos[]" type="file" accept="image/*" multiple
                        class="mt-1 block w-full rounded-xl border border-slate-300 bg-white p-2 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-blue-700 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Maksimal 2 MB. Foto disimpan privat dan diakses sesuai peran.</p>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Pilih beberapa foto sekaligus. Maksimal 2 MB per foto; foto disimpan privat dan diakses sesuai peran.</p>
             </div>
         </div>
 

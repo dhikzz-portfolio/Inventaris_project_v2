@@ -112,16 +112,18 @@ class MasterDataTest extends TestCase
         Storage::disk('public')->assertExists($setting->logo_path);
     }
 
-    public function test_hanya_wakasek_yang_dapat_mengelola_pengguna(): void
+    public function test_hanya_super_admin_pengguna_yang_dapat_mengelola_pengguna(): void
     {
-        $this->actingAs($this->admin)->get(route('users.index'))->assertForbidden();
-        $this->actingAs($this->laboran)->get(route('users.index'))->assertForbidden();
-        $this->actingAs($this->peminjam)->get(route('users.index'))->assertForbidden();
+        $accountAdmin = $this->accountAdministrator();
 
-        $this->actingAs($this->wakasek)->get(route('users.index'))->assertOk();
+        foreach ([$this->wakasek, $this->admin, $this->laboran, $this->peminjam] as $other) {
+            $this->actingAs($other)->get(route('users.index'))->assertForbidden();
+        }
+
+        $this->actingAs($accountAdmin)->get(route('users.index'))->assertOk();
 
         // Buat user baru
-        $this->actingAs($this->wakasek)->post(route('users.store'), [
+        $this->actingAs($accountAdmin)->post(route('users.store'), [
             'name' => 'Laboran Baru',
             'email' => 'laboran.baru@gmail.com',
             'password' => 'password123',
@@ -134,7 +136,7 @@ class MasterDataTest extends TestCase
         $this->assertTrue($newUser->hasRole('LABORAN'));
 
         // Update user
-        $this->actingAs($this->wakasek)->put(route('users.update', $newUser), [
+        $this->actingAs($accountAdmin)->put(route('users.update', $newUser), [
             'name' => 'Laboran Baru Updated',
             'email' => 'laboran.baru@gmail.com',
             'role' => 'PEMINJAM',
@@ -145,7 +147,7 @@ class MasterDataTest extends TestCase
         $this->assertTrue($newUser->hasRole('PEMINJAM'));
 
         // Hapus user
-        $this->actingAs($this->wakasek)->delete(route('users.destroy', $newUser))
+        $this->actingAs($accountAdmin)->delete(route('users.destroy', $newUser))
             ->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertDatabaseMissing('users', ['id' => $newUser->id]);
@@ -153,8 +155,10 @@ class MasterDataTest extends TestCase
 
     public function test_tidak_bisa_menghapus_akun_sendiri(): void
     {
-        $this->actingAs($this->wakasek)
-            ->delete(route('users.destroy', $this->wakasek))
+        $accountAdmin = $this->accountAdministrator();
+
+        $this->actingAs($accountAdmin)
+            ->delete(route('users.destroy', $accountAdmin))
             ->assertStatus(422);
     }
 }

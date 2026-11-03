@@ -87,7 +87,7 @@
                     <input type="password" name="password_confirmation" @required(! $editing) class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
                 </div>
             </div>
-            <p class="text-[11px] text-gray-400">Minimal 8 karakter. Role Super Admin utama hanya dapat ditetapkan oleh Super Admin utama.</p>
+            <p class="text-[11px] text-gray-400">Minimal 8 karakter. Role Super Admin utama tidak dapat ditetapkan dari halaman administrasi akun.</p>
         </fieldset>
 
         {{-- Status akun --}}
@@ -101,6 +101,14 @@
                 <span>Aktif — akun nonaktif tidak dapat login dan sesi aktifnya diputus.</span>
             </label>
             @error('is_active') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+
+            <label class="flex items-center gap-2 text-xs text-gray-700">
+                <input type="checkbox" name="must_change_password" value="1"
+                       class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                       @checked(old('must_change_password', $user?->mustChangePassword() ?? ! $editing))>
+                <span>Wajib mengganti password pada login berikutnya (otomatis aktif saat administrator mengisi password baru).</span>
+            </label>
+            @error('must_change_password') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </fieldset>
 
         {{-- Role --}}

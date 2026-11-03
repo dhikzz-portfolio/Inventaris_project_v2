@@ -482,3 +482,31 @@ php artisan test --compact tests/Feature/MovementAndWriteOffTest.php tests/Featu
 Hasil suite Feature lengkap (dijalankan bertahap karena batas waktu terminal 10 menit): **352 passed, 0 failed, 1919 assertions**. Rincian batch: 6 file modul terdampak = 52 tes; 16 file = 124 tes; 6 file = 45 tes; 19 file = 131 tes. `npm run build` berhasil dan `php artisan view:cache` berhasil.
 
 Catatan: pengujian manual cetak fisik, pemindai QR, uji responsif ulang, dan uji beban produksi tetap **BELUM DIVERIFIKASI** dan tidak diklaim lulus.
+
+## Revisi V7 (3 November 2026) — peminjaman perantara, ekspor/pratinjau, impor, foto, akun
+
+Suite penuh:
+
+```
+php artisan test --compact
+Tests:    378 passed (2053 assertions)
+Duration: ~413s
+```
+
+SQLite in-memory, locale `id`, timezone `Asia/Jakarta`, tanpa skip. `vendor/bin/pint --dirty --format agent`: **PASS**.
+
+`tests/Feature/RevisionV5Test.php` (13 tes) mencakup:
+
+| Kelompok | Bukti |
+| --- | --- |
+| Peminjaman diri/orang lain | Laboran `SELF`; Laboran/Wakasek/Ketua membuat transaksi untuk siswa/guru; `borrower_id` sesuai akun atau `null`, `requested_by` tetap pembuat |
+| Penolakan manipulasi | Peminjam yang mengirim `borrower_mode=OTHER` + `borrower_user_id` ditolak dan tidak membuat baris `loans` |
+| Detail transaksi | Halaman detail menampilkan "Dibuat oleh" dan "Dipinjam oleh" dengan identitas berbeda |
+| PDF/Excel/pratinjau | `MonthlyReportExport::tables()` menghasilkan satu baris per unit; HTML PDF memuat kode unit yang sama; pratinjau memuat kode unit & header yang sama |
+| Template & validasi impor | CSV contoh dapat diunduh dan berisi `kode_inventaris`; berkas berheader salah ditolak sebelum dianalisis |
+| Multi-foto kerusakan | Dua foto tersimpan; halaman detail unit menampilkan keduanya; setiap path foto dapat diakses Wakasek dan ditolak (403) untuk Peminjam; laporan lama tidak tertimpa |
+| Akses akun | Hanya `SUPER_ADMIN_PENGGUNA` yang mendapat `/pengguna`; Wakasek/Ketua/Laboran/Peminjam 403; Super Admin Pengguna 403 pada route inventaris |
+| Bootstrap & password | Password acak/eksplisit di-hash, `must_change_password` aktif, command idempoten, halaman lain dialihkan ke profil sampai password diganti |
+| Menu & panduan | Menu "Akun Pengguna" tidak tampil untuk Super Admin Sarpras; halaman impor menampilkan tautan unduh contoh |
+
+Tidak dijalankan ulang pada revisi ini: Playwright E2E, audit responsif, uji MySQL konkuren, cetak fisik, dan pemindai QR fisik. Status tersebut tetap **BELUM DIVERIFIKASI**.

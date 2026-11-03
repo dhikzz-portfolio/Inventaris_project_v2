@@ -755,20 +755,28 @@
                     <span class="material-icons-round text-base text-brand-600" aria-hidden="true">info</span> Ringkasan
                 </h3>
                 <div class="space-y-3 p-4 sm:p-5">
-                @unless (auth()->user()->isPeminjam())
-                    @if ($loan->borrower?->displayName())
-                        <div class="border-b border-slate-100 pb-3 dark:border-slate-800">
-                            <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">Peminjam</p>
-                            <p class="mt-1 font-semibold text-slate-800 dark:text-slate-100">{{ $loan->borrower->displayName() }}</p>
+                    <div class="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+                        <div class="text-slate-700 dark:text-slate-200">
+                            <span class="text-slate-500 dark:text-slate-400">Dibuat oleh:</span>
+                            <strong>{{ $loan->requesterDisplayName() }}</strong>
+                        </div>
+                        <div class="mt-1 text-slate-700 dark:text-slate-200">
+                            <span class="text-slate-500 dark:text-slate-400">Dipinjam oleh:</span>
+                            <strong>{{ $loan->borrowerDisplayName() }}</strong>
+                            <span class="ms-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">{{ $loan->isSelfBorrower() ? 'Diri sendiri' : 'Orang lain' }}</span>
+                        </div>
+                        @if ($loan->borrowerIdentityLabel())
+                            <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrowerIdentityLabel() }}</div>
+                        @endif
+                        @unless (auth()->user()->isPeminjam())
                             @if ($loan->borrower?->email)
-                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower->email }}</p>
+                                <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Email peminjam: {{ $loan->borrower->email }}</div>
                             @endif
                             @if ($loan->borrower?->major?->name)
-                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrower->major->name }}</p>
+                                <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Jurusan: {{ $loan->borrower->major->name }}</div>
                             @endif
-                        </div>
-                    @endif
-                @endunless
+                        @endunless
+                    </div>
                 <div>
                     <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ auth()->user()->isPeminjam() ? 'Mulai pinjam' : 'Pinjam' }}</p>
                     <p class="mt-1 font-semibold text-slate-800 dark:text-slate-100">{{ $loan->start_date->format('d M Y · H:i') }}</p>

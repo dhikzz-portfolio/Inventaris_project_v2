@@ -5,6 +5,8 @@ Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 
 
 Revisi V6 (3 November 2026): mutasi multi-lokasi dalam satu transaksi (`asset_unit_movements.movement_no`), pencarian nama/spesifikasi pada cetak label, notifikasi berbasis role/cakupan dengan penjaga tautan, serta notifikasi laporan kerusakan dan administrasi akun. Rincian: `DECISIONS.md` butir 40–42 dan `TESTING.md` bagian "Revisi V6".
 
+Revisi V7 (3 November 2026): peminjaman atas nama diri sendiri/orang lain dengan pemisahan `requested_by` dan identitas peminjam, rincian unit konsisten pada PDF/Excel dan pratinjau Excel, contoh file + panduan impor, galeri multi-foto kerusakan pada detail unit, serta administrasi akun yang hanya dapat diakses Super Admin Pengguna beserta bootstrap akun awal yang aman. Rincian: `REVISION_V7.md` dan `TESTING.md` bagian "Revisi V7".
+
 > **Status keputusan:** empat kebijakan bisnis masih **PENDING CLARIFICATION** — lihat `docs/PENDING_DECISIONS.md`. Implementasi memakai opsi paling aman dan tidak mengaktifkan alur persetujuan yang belum disepakati.
 Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 
@@ -69,7 +71,7 @@ Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 | Verifikasi email (SMTP)                                      | **BELUM** — kolom & event siap; SMTP/MustVerifyEmail belum dikonfigurasi                                                    |
 | Deployment produksi                                          | **BLOCKED** — tidak ada akses server/domain pada lingkungan ini                            |
 
-Pengujian terakhir sebelum revisi V5: **330 passed, 0 skipped, 1682 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`). Revisi V5 menambahkan 21 tes baru (alur pengadaan, laporan kerusakan, Super Admin Pengguna, cakupan laporan, dropdown pencarian) dan memperbarui tes lama yang terdampak; hasil suite lengkap ada pada `TESTING.md` §16. `vendor/bin/pint` dijalankan pada file yang diubah dan `npm run build` berhasil. Playwright E2E penuh dan audit responsif dijalankan pada MySQL 8.4.3 dengan database uji terpisah (`inventaris_e2e`); **cetak fisik tetap BLOCKED** dan E2E tidak diulang pada revisi V5.
+Pengujian suite penuh per revisi V7: **378 passed, 0 skipped, 2053 assertions** (SQLite in-memory). Riwayat sebelum revisi V5: **330 passed, 0 skipped, 1682 assertions** (SQLite in-memory, locale `id`, timezone `Asia/Jakarta`). Revisi V5 menambahkan 21 tes baru (alur pengadaan, laporan kerusakan, Super Admin Pengguna, cakupan laporan, dropdown pencarian) dan memperbarui tes lama yang terdampak; hasil suite lengkap ada pada `TESTING.md` §16. `vendor/bin/pint` dijalankan pada file yang diubah dan `npm run build` berhasil. Playwright E2E penuh dan audit responsif dijalankan pada MySQL 8.4.3 dengan database uji terpisah (`inventaris_e2e`); **cetak fisik tetap BLOCKED** dan E2E tidak diulang pada revisi V5.
 
 ## 2. Status per modul
 
@@ -91,7 +93,11 @@ Pengujian terakhir sebelum revisi V5: **330 passed, 0 skipped, 1682 assertions**
 | Pengguna & cakupan laboratorium         | VERIFIED    | `user_room_scopes`; perubahan cakupan dicatat di audit log dengan ruangan sebelum/sesudah          |
 | Pengadaan (V5)                          | VERIFIED    | Alur tiga tahap: draft Laboran → konfirmasi Ketua Laboran → keputusan Wakasek; unit baru terbit setelah barang diterima & dicatat; penolakan wajib alasan; audit trail status sebelum/sesudah |
 | Laporan kerusakan (V5)                  | VERIFIED    | `damage_reports` + `damage_report_logs`; rusak ringan/berat; cakupan per role; tidak menghapus unit/mengurangi stok; status penanganan tanpa alur persetujuan yang belum disepakati |
-| Super Admin Pengguna (V5)               | VERIFIED    | Role terpisah; hanya administrasi akun; akses operasional inventaris ditolak backend; proteksi akun Super Admin utama & akun terakhir |
+| Super Admin Pengguna (V5/V7)            | VERIFIED    | Satu-satunya role dengan akses `/pengguna`; menu disembunyikan dari role lain; akses operasional inventaris ditolak backend; proteksi akun Super Admin utama & akun terakhir; bootstrap aman + wajib ganti password |
+| Peminjaman atas nama orang lain (V7)    | VERIFIED    | `requested_by` dan peminjam sebenarnya terpisah; snapshot identitas; Peminjam dipaksa `SELF` di backend |
+| Rincian unit PDF/Excel + pratinjau (V7) | VERIFIED    | Satu sumber `MonthlyReportExport::tables()`; pratinjau pagination tidak mengubah isi file |
+| Panduan & template impor (V7)           | VERIFIED    | CSV contoh sesuai kolom aktual; header salah ditolak; impor atomik dua tahap |
+| Foto kerusakan pada detail unit (V7)    | VERIFIED    | Multi-foto per laporan, riwayat kronologis, akses file per cakupan laporan |
 | Master Data Ketua Laboran (V5)          | VERIFIED (PENDING) | Read-only: lihat `/master` diperbolehkan, semua mutasi khusus Super Admin. Daftar menu final menunggu keputusan |
 | Peminjaman multi-item                   | VERIFIED    | Multi-item; ketersediaan katalog dikurangi pinjaman aktif; status transaksi menutup rantai persetujuan (PENDING → APPROVED) |
 | Serah terima & pembatalan               | VERIFIED    | Timestamp petugas, pembebasan jadwal, penugasan unit fisik, penjagaan serah terima ganda           |

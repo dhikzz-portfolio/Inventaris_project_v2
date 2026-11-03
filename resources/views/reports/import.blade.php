@@ -1,14 +1,19 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
+    <x-slot name="header">            <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Impor Data Unit</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Tambahkan atau perbarui data unit dari file Excel/CSV — diperiksa dulu sebelum disimpan</p>
             </div>
-            <a href="{{ route('reports.index') }}"
-               class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-                <span class="material-icons-round text-lg">arrow_back</span> Kembali ke Laporan
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('reports.import.template') }}"
+                   class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <span class="material-icons-round text-lg" aria-hidden="true">download</span> Unduh Contoh File
+                </a>
+                <a href="{{ route('reports.index') }}"
+                   class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                    <span class="material-icons-round text-lg">arrow_back</span> Kembali ke Laporan
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -93,6 +98,9 @@
                     <p><strong class="text-slate-800 dark:text-slate-100">Opsional:</strong> tahun, sumber dana, no. register.</p>
                     <p class="pt-1">Judul kolom dari ekspor Excel (Kode Inventaris, Nama Barang, Gedung, Lantai, No. Ruangan, Kondisi, Status) juga dikenali.</p>
                     <p class="break-words rounded-lg bg-white px-2 py-1.5 font-mono text-[10px] text-slate-500 dark:bg-slate-950 dark:text-slate-400">kode_inventaris, nama_barang, gedung, lantai, no_ruangan, kondisi, status, tahun, sumber_dana, no_register</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Format nilai:</strong> kondisi <em>Baik</em>, <em>Rusak Ringan</em>, atau <em>Rusak Berat</em>; status <em>Aktif</em> atau <em>Hilang</em>; tahun berupa angka 4 digit (contoh 2024); gedung berupa huruf kode gedung; lantai dan no. ruangan berupa angka.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Relasi master data:</strong> menambah unit baru memerlukan nama katalog yang sudah ada dan ruangan yang cocok dengan gedung/lantai/no. ruangan. Kode unit harus mengikuti pola lokasi, misalnya <span class="font-mono">G1-02-12</span> untuk Gedung G, lantai 1, ruang 02, unit 12.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Hasil validasi:</strong> setiap baris ditandai siap, perlu diperbaiki, atau ditolak; kode duplikat dan relasi yang tidak ditemukan diblokir. Impor hanya dijalankan bila seluruh baris valid, dalam satu transaksi — bila terjadi kegagalan seluruh perubahan dibatalkan.</p>
                 </div>
             </details>
 

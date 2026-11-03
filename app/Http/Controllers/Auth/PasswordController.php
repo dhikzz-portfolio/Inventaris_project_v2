@@ -25,6 +25,8 @@ class PasswordController extends Controller
         $user = $request->user();
         $user->update([
             'password' => Hash::make($validated['password']),
+            'must_change_password' => false,
+            'password_changed_at' => now(),
         ]);
 
         // Sesi aktif tetap boleh melanjutkan; hash baru disimpan agar

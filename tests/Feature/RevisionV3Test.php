@@ -184,7 +184,7 @@ class RevisionV3Test extends TestCase
     {
         $before = $this->siswa->degree;
 
-        $this->actingAs($this->wakasek)->put(route('users.update', $this->siswa), [
+        $this->actingAs($this->accountAdministrator())->put(route('users.update', $this->siswa), [
             'name' => $this->siswa->name,
             'degree' => 'S.Pd Palsu',
             'email' => $this->siswa->email,
@@ -202,7 +202,7 @@ class RevisionV3Test extends TestCase
         $before = $this->guru->major_id;
         $otherMajor = Major::query()->whereKeyNot($this->guru->major_id)->firstOrFail();
 
-        $this->actingAs($this->wakasek)->put(route('users.update', $this->guru), [
+        $this->actingAs($this->accountAdministrator())->put(route('users.update', $this->guru), [
             'name' => $this->guru->name,
             'degree' => $this->guru->degree,
             'email' => $this->guru->email,

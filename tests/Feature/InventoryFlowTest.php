@@ -310,9 +310,9 @@ class InventoryFlowTest extends TestCase
         Storage::disk('local')->assertExists($loan->bast_path);
     }
 
-    public function test_wakasek_dapat_membuat_pengguna_baru(): void
+    public function test_super_admin_pengguna_dapat_membuat_pengguna_baru(): void
     {
-        $this->actingAs($this->wakasek)
+        $this->actingAs($this->accountAdministrator())
             ->post(route('users.store'), [
                 'name' => 'Guru Baru',
                 'email' => 'guru.baru@gmail.com',

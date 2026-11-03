@@ -30,7 +30,7 @@ Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.service
 
 Route::redirect('/', '/dashboard');
 
-Route::middleware(['auth', 'profile.completed'])->group(function () use ($managers, $approvers) {
+Route::middleware(['auth', 'profile.completed', 'password.changed'])->group(function () use ($managers, $approvers) {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // File internal (foto bukti, BA, TTD, BAST, laporan) — akses diperiksa per peran.
@@ -117,6 +117,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
         Route::delete('/laporan/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
 
         // Impor laporan = pemulihan data unit, bukan pengganti backup database.
+        Route::get('/laporan/impor/contoh', [ReportController::class, 'importTemplate'])->name('reports.import.template');
         Route::get('/laporan/impor', [ReportController::class, 'importForm'])->name('reports.import.form');
         Route::post('/laporan/impor/pratinjau', [ReportController::class, 'importPreview'])->name('reports.import.preview');
         Route::post('/laporan/impor', [ReportController::class, 'importConfirm'])->name('reports.import.confirm');
@@ -153,6 +154,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
         // Laporan: pratinjau/ekspor dibatasi cakupan pengguna di backend.
         Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/laporan/export/{type}/{period}', [ReportController::class, 'export'])->name('reports.export');
+        Route::get('/laporan/pratinjau-excel/{period}', [ReportController::class, 'previewExcel'])->name('reports.preview-excel');
 
         // ============ PENGAADAAN (Laboran/K3, Ketua Laboran, Wakasek) ============
         Route::get('/pengadaan', [ItemController::class, 'acquisitions'])->name('items.acquisitions');
@@ -204,10 +206,14 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
     // ============ ADMINISTRASI AKUN PENGGUNA ============
     // Super Admin Pengguna hanya mengelola akun; tidak memperoleh akses
     // transaksi inventaris mana pun.
-    Route::middleware('role:SUPER_ADMIN|SUPER_ADMIN_PENGGUNA')->group(function () {
+    // HANYA role Super Admin Pengguna. Super Admin Sarpras tidak memperoleh
+    // pengecualian dan ditolak oleh middleware role di backend.
+    Route::middleware('role:SUPER_ADMIN_PENGGUNA')->group(function () {
         Route::get('/pengguna', [UserController::class, 'index'])->name('users.index');
         Route::post('/pengguna', [UserController::class, 'store'])->name('users.store');
+        Route::get('/pengguna/{user}', [UserController::class, 'show'])->name('users.show');
         Route::put('/pengguna/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::post('/pengguna/{user}/status', [UserController::class, 'toggleStatus'])->name('users.status');
         Route::delete('/pengguna/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 });

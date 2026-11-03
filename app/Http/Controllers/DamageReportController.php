@@ -91,6 +91,8 @@ class DamageReportController extends Controller
             'classification' => ['required', Rule::in(DamageClassification::values())],
             'description' => ['required', 'string', 'min:5', 'max:2000'],
             'photo' => ['nullable', 'image', 'max:2048'],
+            'photos' => ['nullable', 'array', 'max:5'],
+            'photos.*' => ['image', 'max:2048'],
         ], [
             'description.required' => 'Deskripsi kerusakan wajib diisi.',
             'description.min' => 'Jelaskan kerusakan minimal 5 karakter.',
@@ -108,16 +110,23 @@ class DamageReportController extends Controller
             return back()->withErrors(['asset_unit_id' => 'Unit inventaris tidak ditemukan pada ruang lingkup Anda.'])->withInput();
         }
 
-        $photoPath = $request->hasFile('photo')
-            ? $request->file('photo')->store('damage-reports', 'public')
-            : null;
+        $photoPaths = [];
+
+        foreach ((array) $request->file('photos', []) as $photo) {
+            $photoPaths[] = $photo->store('damage-reports', 'local');
+        }
+
+        if ($request->hasFile('photo')) {
+            array_unshift($photoPaths, $request->file('photo')->store('damage-reports', 'local'));
+        }
 
         $report = $service->report(
             $user,
             $unit,
             DamageClassification::from($data['classification']),
             $data['description'],
-            $photoPath,
+            $photoPaths[0] ?? null,
+            $photoPaths,
         );
 
         return redirect()->route('damage-reports.show', $report)
@@ -133,7 +142,7 @@ class DamageReportController extends Controller
             404
         );
 
-        $damageReport->load(['unit.catalog.category', 'unit.room.building', 'unit.specification', 'reporter', 'handler']);
+        $damageReport->load(['unit.catalog.category', 'unit.room.building', 'unit.specification', 'reporter', 'handler', 'photos']);
 
         return view('damage-reports.show', [
             'report' => $damageReport,

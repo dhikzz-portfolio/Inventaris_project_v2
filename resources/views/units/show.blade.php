@@ -61,6 +61,100 @@
                 </dl>
             </div>
 
+            @if ($canViewDamageEvidence)
+                <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                    <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
+                        <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                            <span class="material-icons-round text-brand-600">photo_camera</span> Riwayat Kerusakan dan Dokumentasi
+                        </h3>
+                        <a href="{{ route('damage-reports.create', ['unit' => $unit->id]) }}"
+                           class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200">
+                            <span class="material-icons-round text-base" aria-hidden="true">add_a_photo</span> Buat laporan kerusakan
+                        </a>
+                    </div>
+
+                    @if ($unit->damageReports->isEmpty() && $returnDamageRows->isEmpty())
+                        <p class="rounded-xl bg-slate-50 px-3 py-5 text-sm text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
+                            Belum ada laporan kerusakan atau foto bukti untuk unit ini. Empty state ini bukan dokumentasi kerusakan.
+                        </p>
+                    @else
+                        <div class="space-y-3">
+                            @foreach ($unit->damageReports as $report)
+                                <article class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $report->classification->badgeClass() }}">{{ $report->classification->label() }}</span>
+                                        <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $report->status->badgeClass() }}">{{ $report->status->label() }}</span>
+                                        <span class="ms-auto text-[11px] text-slate-500 dark:text-slate-400">{{ $report->created_at?->format('d M Y H:i') }}</span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-slate-700 dark:text-slate-200">{{ $report->description }}</p>
+                                    <div class="mt-2 grid gap-1 text-[11px] text-slate-500 dark:text-slate-400 sm:grid-cols-2">
+                                        <p>Pelapor: <span class="font-medium text-slate-700 dark:text-slate-200">{{ $report->reporter?->name ?? '—' }}</span></p>
+                                        <p>Penangan: <span class="font-medium text-slate-700 dark:text-slate-200">{{ $report->handler?->name ?? 'Belum ditangani' }}</span>{{ $report->handled_at ? ' • '.$report->handled_at->format('d M Y H:i') : '' }}</p>
+                                    </div>
+                                    @if ($report->resolution_note)
+                                        <p class="mt-2 rounded-lg bg-slate-50 px-2.5 py-2 text-[11px] text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
+                                            <strong>Tindak lanjut:</strong> {{ $report->resolution_note }}
+                                        </p>
+                                    @endif
+                                    <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                        {{ $report->isHeavy() ? 'Rekomendasi: ajukan perbaikan atau usulan pemutihan sebelum penghapusan.' : 'Rekomendasi: ajukan perbaikan melalui alur tindak lanjut kondisi barang.' }}
+                                    </p>
+                                    @if ($report->photos->isNotEmpty() || $report->photo_path)
+                                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                                            @foreach ($report->photos as $photo)
+                                                <a href="{{ route('files.show', ['path' => $photo->path]) }}" target="_blank" rel="noopener" title="Buka foto bukti kerusakan">
+                                                    <img src="{{ route('files.show', ['path' => $photo->path]) }}"
+                                                         alt="Foto bukti kerusakan {{ $report->unit?->inventory_code }} tanggal {{ $report->created_at?->format('d/m/Y') }}"
+                                                         class="h-20 w-20 rounded-lg border border-slate-200 object-cover dark:border-slate-700">
+                                                </a>
+                                            @endforeach
+                                            @if ($report->photos->isEmpty())
+                                                <a href="{{ route('files.show', ['path' => $report->photo_path]) }}" target="_blank" rel="noopener" title="Buka foto bukti kerusakan">
+                                                    <img src="{{ route('files.show', ['path' => $report->photo_path]) }}"
+                                                         alt="Foto bukti kerusakan {{ $report->unit?->inventory_code }} tanggal {{ $report->created_at?->format('d/m/Y') }}"
+                                                         class="h-20 w-20 rounded-lg border border-slate-200 object-cover dark:border-slate-700">
+                                                </a>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </article>
+                            @endforeach
+
+                            @foreach ($returnDamageRows as $row)
+                                <article class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">Bukti pengembalian</span>
+                                        @if ($row->condition_in)
+                                            <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">{{ $row->condition_in->label() }}</span>
+                                        @endif
+                                        <span class="ms-auto text-[11px] text-slate-500 dark:text-slate-400">{{ ($row->returned_at ?? $row->confirmed_at ?? $row->assigned_at)?->format('d M Y H:i') }}</span>
+                                    </div>
+                                    <div class="mt-2 grid gap-1 text-[11px] text-slate-500 dark:text-slate-400 sm:grid-cols-2">
+                                        <p>Transaksi: <span class="font-medium text-slate-700 dark:text-slate-200">#{{ $row->loanItem?->loan?->id }}</span></p>
+                                        <p>Peminjam: <span class="font-medium text-slate-700 dark:text-slate-200">{{ $row->loanItem?->loan?->borrowerDisplayName() }}</span></p>
+                                        <p>Petugas validasi: <span class="font-medium text-slate-700 dark:text-slate-200">{{ $row->confirmer?->name ?? '—' }}</span></p>
+                                    </div>
+                                    @if ($row->return_notes)
+                                        <p class="mt-2 text-[11px] text-slate-600 dark:text-slate-300">{{ $row->return_notes }}</p>
+                                    @endif
+                                    @if ($row->damage_photo_path)
+                                        <div class="mt-2 flex items-center gap-2">
+                                            <a href="{{ route('files.show', ['path' => $row->damage_photo_path]) }}" target="_blank" rel="noopener">
+                                                <img src="{{ route('files.show', ['path' => $row->damage_photo_path]) }}"
+                                                     alt="Foto kerusakan unit {{ $unit->inventory_code }} dari pengembalian peminjaman #{{ $row->loanItem?->loan?->id }}"
+                                                     class="h-20 w-20 rounded-lg border border-slate-200 object-cover dark:border-slate-700">
+                                            </a>
+                                            <a href="{{ route('files.show', ['path' => $row->damage_photo_path]) }}" target="_blank" rel="noopener"
+                                               class="text-[11px] font-semibold text-brand-700 underline dark:text-brand-300">Buka foto bukti</a>
+                                        </div>
+                                    @endif
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             @unless (auth()->user()->isPeminjam())
             <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                 <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">

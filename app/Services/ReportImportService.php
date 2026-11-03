@@ -49,11 +49,38 @@ class ReportImportService
 
         $rows = collect($sheets)->first() ?? [];
 
+        $this->assertHeaders(collect($rows)->first());
+
         return collect($rows)
             ->filter(fn ($row) => is_array($row) && collect($row)->filter(fn ($value) => filled($value))->isNotEmpty())
             ->map(fn (array $row) => $this->normalizeRow($row))
             ->values()
             ->all();
+    }
+
+    /**
+     * Tolak berkas dengan header yang tidak sesuai template sebelum satu baris
+     * pun dianalisis. Pesan menyebut kolom wajib yang hilang.
+     *
+     * @param  array<string, mixed>|null  $row
+     */
+    private function assertHeaders(?array $row): void
+    {
+        $available = $row !== null ? array_keys($row) : [];
+
+        $required = [
+            'kode_inventaris' => ['kode_inventaris', 'kode', 'inventory_code', 'kode_unit'],
+            'kondisi' => ['kondisi', 'condition'],
+            'status' => ['status'],
+        ];
+
+        foreach ($required as $label => $aliases) {
+            if (array_intersect($aliases, $available) === []) {
+                throw ValidationException::withMessages([
+                    'file' => "Header kolom tidak sesuai template: kolom \"{$label}\" tidak ditemukan. Unduh Contoh File dan Panduan Impor, lalu gunakan header yang sama.",
+                ]);
+            }
+        }
     }
 
     /**

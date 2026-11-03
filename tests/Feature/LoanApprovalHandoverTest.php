@@ -493,7 +493,6 @@ class LoanApprovalHandoverTest extends TestCase
             'items.acquisitions',
             'loans.pending',
             'loans.returns',
-            'users.index',
             'settings.edit',
         ];
 
@@ -502,6 +501,10 @@ class LoanApprovalHandoverTest extends TestCase
                 ->get(route($routeName))
                 ->assertOk();
         }
+
+        // Administrasi akun terpisah: hanya Super Admin Pengguna.
+        $this->actingAs($this->wakasek)->get(route('users.index'))->assertForbidden();
+        $this->actingAs($this->accountAdministrator())->get(route('users.index'))->assertOk();
     }
 
     public function test_role_bukan_wakasek_tidak_dapat_membuka_halaman_khusus_wakasek(): void

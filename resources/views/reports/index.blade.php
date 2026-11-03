@@ -95,6 +95,10 @@
                        class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                         <span class="material-icons-round text-base text-slate-500" aria-hidden="true">print</span> Cetak
                     </button>
+                    <a :href="previewExcelUrl()" target="_blank" rel="noopener"
+                       class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                        <span class="material-icons-round text-base text-emerald-700" aria-hidden="true">grid_on</span> Pratinjau Excel
+                    </a>
                     <a :href="exportUrl('excel')" target="_blank" rel="noopener"
                        class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                         <span class="material-icons-round text-base text-green-600" aria-hidden="true">table_view</span> Excel
@@ -231,10 +235,17 @@
                 scopeId: '',
                 condition: '',
                 exportUrl(type) {
+                    const params = this.filterParams();
+                    return `{{ url('laporan/export') }}/` + type + '/' + this.period + '?' + params.toString();
+                },
+                previewExcelUrl() {
+                    return `{{ url('laporan/pratinjau-excel') }}/` + this.period + '?' + this.filterParams().toString();
+                },
+                filterParams() {
                     const params = new URLSearchParams({ scope: this.scope });
                     if (this.scope !== 'SEMUA' && this.scopeId) params.set('scope_id', this.scopeId);
                     if (this.condition) params.set('condition', this.condition);
-                    return `{{ url('laporan/export') }}/` + type + '/' + this.period + '?' + params.toString();
+                    return params;
                 },
                 printReport() {
                     const win = window.open(this.exportUrl('pdf'), '_blank', 'noopener');

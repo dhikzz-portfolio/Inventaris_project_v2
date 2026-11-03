@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureOperationalInventoryAccess;
+use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureProfileCompleted;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'profile.completed' => EnsureProfileCompleted::class,
             'inventory.access' => EnsureOperationalInventoryAccess::class,
+            'password.changed' => EnsurePasswordChanged::class,
         ]);
 
         // Semua sesi memverifikasi hash password terbaru pada setiap request.

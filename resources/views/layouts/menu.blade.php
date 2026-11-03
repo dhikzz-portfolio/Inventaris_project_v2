@@ -64,7 +64,9 @@
     <x-menu-link :href="route('settings.edit')" :active="request()->routeIs('settings.*')" icon="settings" label="Pengaturan Sekolah" />
 @endif
 
-@if ($canManageUsers)
-    <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Administrasi Akun</div>
+{{-- Revisi V5: administrasi seluruh akun hanya untuk Super Admin Pengguna.
+     Super Admin Sarpras tidak memperoleh menu ini (backend juga menolak). --}}
+@if ($isAccountAdmin)
+    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Administrasi Akun</div>
     <x-menu-link :href="route('users.index')" :active="request()->routeIs('users.*')" icon="manage_accounts" label="Akun Pengguna" />
 @endif

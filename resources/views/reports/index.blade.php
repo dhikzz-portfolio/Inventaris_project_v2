@@ -113,7 +113,7 @@
                         <input type="hidden" name="condition" :value="condition">
                         <button :disabled="submitting" class="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60 dark:focus:ring-offset-slate-900 sm:w-auto">
                             <span class="material-icons-round text-lg" aria-hidden="true">archive</span>
-                            <span x-text="submitting ? 'Menyimpan...' : 'Simpan ke arsip'"></span>
+                            <span x-text="submitting ? 'Menyimpan...' : 'Simpan ke Arsip'"></span>
                         </button>
                     </form>
                 @endif

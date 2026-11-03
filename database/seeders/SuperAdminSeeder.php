@@ -17,7 +17,7 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        SpatieRole::firstOrCreate(['name' => Role::SUPER_ADMIN->value, 'guard_name' => 'web']);
+        SpatieRole::firstOrCreate(['name' => Role::SUPER_ADMIN_PENGGUNA->value, 'guard_name' => 'web']);
 
         $name = (string) config('auth.super_admin.name', 'Wakasek Sarpras');
         $degree = config('auth.super_admin.degree', 'S.Kom');
@@ -33,7 +33,7 @@ class SuperAdminSeeder extends Seeder
                 'degree' => $degree,
                 'email' => $email,
                 'password' => Hash::make($password),
-                'role' => Role::SUPER_ADMIN->value,
+                'role' => Role::SUPER_ADMIN_PENGGUNA->value,
                 'birth_date' => $birthDate,
                 'profile_completed' => true,
                 'profile_completed_at' => now(),
@@ -42,13 +42,13 @@ class SuperAdminSeeder extends Seeder
             $user->forceFill([
                 'name' => $name ?: $user->name,
                 'degree' => $degree ?? $user->degree,
-                'role' => Role::SUPER_ADMIN->value,
+                'role' => Role::SUPER_ADMIN_PENGGUNA->value,
                 'birth_date' => $user->birth_date ?? $birthDate,
                 'profile_completed' => true,
                 'profile_completed_at' => $user->profile_completed_at ?? now(),
             ])->save();
         }
 
-        $user->syncRoles([Role::SUPER_ADMIN->value]);
+        $user->syncRoles([Role::SUPER_ADMIN_PENGGUNA->value]);
     }
 }

@@ -59,6 +59,14 @@
             <td><div class="val">{{ $summary['selesai'] }}</div><div class="lbl">Pinjam Selesai</div></td>
             <td><div class="val" style="color:red;">{{ $summary['terlambat'] }}</div><div class="lbl">Terlambat</div></td>
         </tr>
+        <tr>
+            <td><div class="val">{{ $summary['pengadaan'] }}</div><div class="lbl">Pengadaan Periode Ini</div></td>
+            <td><div class="val" style="color:green;">{{ $summary['pengadaan_tercatat'] }}</div><div class="lbl">Pengadaan Tercatat</div></td>
+            <td><div class="val" style="color:red;">{{ $summary['pengadaan_ditolak'] }}</div><div class="lbl">Pengadaan Ditolak</div></td>
+            <td><div class="val">{{ $summary['laporan_kerusakan'] }}</div><div class="lbl">Laporan Kerusakan</div></td>
+            <td><div class="val" style="color:#ca8a04;">{{ $summary['laporan_kerusakan_ringan'] }}</div><div class="lbl">Laporan Rusak Ringan</div></td>
+            <td><div class="val" style="color:#ea580c;">{{ $summary['laporan_kerusakan_berat'] }}</div><div class="lbl">Laporan Rusak Berat</div></td>
+        </tr>
     </table>
 
     <h3>Rincian Barang ({{ $items->count() }})</h3>
@@ -96,6 +104,47 @@
             @endforelse
         </tbody>
     </table>
+
+    @if ($acquisitionRows->isNotEmpty())
+        <h3>Pengadaan Selama Periode ({{ $acquisitionRows->count() }})</h3>
+        <table>
+            <thead><tr><th>Katalog</th><th>Kategori</th><th>Lokasi</th><th class="num">Diajukan</th><th class="num">Diterima</th><th>Status</th><th>Pengaju</th><th>Keputusan</th></tr></thead>
+            <tbody>
+                @foreach ($acquisitionRows as $row)
+                    <tr>
+                        <td>{{ $row->name }}</td>
+                        <td>{{ $row->category?->name }}</td>
+                        <td>{{ $row->room?->code }} — {{ $row->room?->name }}</td>
+                        <td class="num">{{ $row->quantity }}</td>
+                        <td class="num">{{ $row->acquisition_received_quantity ?? '—' }}</td>
+                        <td>{{ $row->acquisitionStatusEnum()?->label() ?? $row->acquisition_status }}</td>
+                        <td>{{ $row->requester?->name }}</td>
+                        <td>{{ $row->approver?->name ?: '—' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    @if ($damageReportRows->isNotEmpty())
+        <h3>Laporan Kerusakan Unit ({{ $damageReportRows->count() }})</h3>
+        <table>
+            <thead><tr><th width="90">Kode Unit</th><th>Barang</th><th>Lokasi</th><th>Klasifikasi</th><th>Status Penanganan</th><th>Pelapor</th><th width="60">Tanggal</th></tr></thead>
+            <tbody>
+                @foreach ($damageReportRows as $row)
+                    <tr>
+                        <td style="font-family: monospace;">{{ $row->unit?->inventory_code }}</td>
+                        <td>{{ $row->unit?->catalog?->name }}</td>
+                        <td>{{ $row->unit?->room?->code }}</td>
+                        <td>{{ $row->classification->label() }}</td>
+                        <td>{{ $row->status->label() }}</td>
+                        <td>{{ $row->reporter?->name }}</td>
+                        <td>{{ $row->created_at?->format('d/m/Y') }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 
     @if ($damageRows->isNotEmpty())
         <h3>Kerusakan Selama Periode</h3>

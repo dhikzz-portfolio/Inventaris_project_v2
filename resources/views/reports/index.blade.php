@@ -5,10 +5,12 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporan Bulanan</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per kategori, ruangan, atau jurusan</p>
             </div>
-            <a href="{{ route('reports.import.form') }}"
-               class="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 sm:w-auto">
-                <span class="material-icons-round text-lg" aria-hidden="true">upload_file</span> Impor Laporan
-            </a>
+            @if (auth()->user()->managesInventory())
+                <a href="{{ route('reports.import.form') }}"
+                   class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500">
+                    <span class="material-icons-round text-lg" aria-hidden="true">upload_file</span> Impor Laporan
+                </a>
+            @endif
         </div>
     </x-slot>
 
@@ -66,6 +68,15 @@
                     </template>
                 </select>
             </div>
+            <div>
+                <x-input-label for="report-condition" value="Kondisi unit" />
+                <select id="report-condition" x-model="condition" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <option value="">Semua kondisi</option>
+                    @foreach ($conditions as $condition)
+                        <option value="{{ $condition->value }}">{{ $condition->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="flex items-end gap-2 flex-wrap">
                 <a :href="exportUrl('pdf')" target="_blank" rel="noopener"
                    class="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
@@ -82,20 +93,24 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('reports.generate') }}" x-data="{ submitting: false }" @submit="submitting = true" class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-end dark:border-slate-700">
-            @csrf
-            <input type="hidden" name="period" :value="period">
-            <input type="hidden" name="scope" :value="scope">
-            <input type="hidden" name="scope_id" :value="scope === 'SEMUA' ? '' : scopeId">
-            <p class="flex-1 text-xs text-slate-500 dark:text-slate-400">Simpan snapshot laporan (PDF + Excel) ke arsip — laporan bulanan juga dibuat otomatis oleh scheduler setiap tanggal 1.</p>
-            <button :disabled="submitting" class="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-wait disabled:opacity-60 sm:w-auto">
-                <span class="material-icons-round text-lg" aria-hidden="true">archive</span>
-                <span x-text="submitting ? 'Menyimpan...' : 'Simpan ke Arsip'"></span>
-            </button>
-        </form>
+        @if (auth()->user()->managesInventory())
+            <form method="POST" action="{{ route('reports.generate') }}" x-data="{ submitting: false }" @submit="submitting = true" class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-end dark:border-slate-700">
+                @csrf
+                <input type="hidden" name="period" :value="period">
+                <input type="hidden" name="scope" :value="scope">
+                <input type="hidden" name="scope_id" :value="scope === 'SEMUA' ? '' : scopeId">
+                <input type="hidden" name="condition" :value="condition">
+                <p class="flex-1 text-xs text-slate-500 dark:text-slate-400">Simpan snapshot laporan (PDF + Excel) ke arsip — laporan bulanan juga dibuat otomatis oleh scheduler setiap tanggal 1.</p>
+                <button :disabled="submitting" class="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-wait disabled:opacity-60 sm:w-auto">
+                    <span class="material-icons-round text-lg" aria-hidden="true">archive</span>
+                    <span x-text="submitting ? 'Menyimpan...' : 'Simpan ke Arsip'"></span>
+                </button>
+            </form>
+        @endif
 
         <p class="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-            Ringkasan laporan: jumlah barang &amp; unit, kondisi (baik/rusak/hilang), pengajuan-pinjam, kerusakan, mutasi, penghapusan, terlambat.
+            Ringkasan laporan: jumlah barang &amp; unit, kondisi (baik/rusak/hilang), pengajuan-pinjam, kerusakan, mutasi, penghapusan,
+            pengadaan, laporan kerusakan, dan keterlambatan. Data mengikuti cakupan kewenangan pengguna.
         </p>
     </div>
 
@@ -209,9 +224,11 @@
                 period: '{{ $currentPeriod }}',
                 scope: 'SEMUA',
                 scopeId: '',
+                condition: '',
                 exportUrl(type) {
                     const params = new URLSearchParams({ scope: this.scope });
                     if (this.scope !== 'SEMUA' && this.scopeId) params.set('scope_id', this.scopeId);
+                    if (this.condition) params.set('condition', this.condition);
                     return `{{ url('laporan/export') }}/` + type + '/' + this.period + '?' + params.toString();
                 },
                 printReport() {

@@ -195,4 +195,35 @@ class LabelAndQrTest extends TestCase
         $response->assertOk();
         $response->assertSee('tidak ditemukan', false);
     }
+
+    public function test_cetak_label_dapat_dicari_berdasarkan_nama_barang(): void
+    {
+        $unit = AssetUnit::query()
+            ->visibleTo($this->laboran)
+            ->with('catalog')
+            ->firstOrFail();
+
+        $response = $this->actingAs($this->laboran)
+            ->get(route('labels.index', ['search' => $unit->catalog->name]));
+
+        $response->assertOk();
+
+        // Pencarian nama menemukan unit katalog terkait, bukan "tidak ada hasil".
+        $response->assertViewHas('units', function ($units) use ($unit): bool {
+            return $units->total() > 0
+                && $units->getCollection()->every(
+                    fn ($result) => mb_strtoupper($result->catalog->name) === mb_strtoupper($unit->catalog->name)
+                );
+        });
+    }
+
+    public function test_cetak_label_tetap_dapat_dicari_berdasarkan_kode_unit(): void
+    {
+        $unit = AssetUnit::query()->visibleTo($this->laboran)->firstOrFail();
+
+        $this->actingAs($this->laboran)
+            ->get(route('labels.index', ['search' => $unit->inventory_code]))
+            ->assertOk()
+            ->assertSee($unit->inventory_code);
+    }
 }

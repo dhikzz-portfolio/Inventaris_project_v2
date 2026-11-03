@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ItemStatus;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
+use App\Models\AssetUnitMovement;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Room;
@@ -220,5 +221,68 @@ class MovementAndWriteOffTest extends TestCase
         ])->assertNotFound();
 
         $this->assertDatabaseMissing('write_offs', ['item_id' => $nonLabItem->id]);
+    }
+
+    public function test_satu_transaksi_mutasi_dapat_memiliki_beberapa_lokasi_tujuan(): void
+    {
+        $service = app(AssetUnitService::class);
+        $first = $service->create($this->item, $this->room1);
+        $second = $service->create($this->item, $this->room1);
+        $third = $service->create($this->item, $this->room1);
+
+        $room3 = Room::query()
+            ->where('is_lab', true)
+            ->whereNotIn('id', [$this->room1->id, $this->room2->id])
+            ->firstOrFail();
+
+        $response = $this->actingAs($this->admin)->post(route('movements.store'), [
+            'destinations' => [
+                ['room_id' => $this->room2->id, 'unit_ids' => [$first->id, $second->id]],
+                ['room_id' => $room3->id, 'unit_ids' => [$third->id]],
+            ],
+            'note' => 'Satu transaksi dua tujuan',
+        ]);
+
+        $response->assertRedirect(route('movements.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertSame($this->room2->id, $first->refresh()->room_id);
+        $this->assertSame($this->room2->id, $second->refresh()->room_id);
+        $this->assertSame($room3->id, $third->refresh()->room_id);
+
+        $movements = AssetUnitMovement::query()
+            ->whereIn('asset_unit_id', [$first->id, $second->id, $third->id])
+            ->get();
+
+        $this->assertCount(3, $movements);
+        $this->assertNotNull($movements->first()->movement_no);
+        $this->assertCount(1, $movements->pluck('movement_no')->unique());
+
+        $this->assertDatabaseHas('asset_unit_movements', [
+            'asset_unit_id' => $third->id,
+            'from_room_id' => $this->room1->id,
+            'to_room_id' => $room3->id,
+            'movement_no' => $movements->first()->movement_no,
+        ]);
+    }
+
+    public function test_unit_yang_sama_tidak_boleh_masuk_dua_lokasi_tujuan(): void
+    {
+        $unit = app(AssetUnitService::class)->create($this->item, $this->room1);
+
+        $room3 = Room::query()
+            ->where('is_lab', true)
+            ->whereNotIn('id', [$this->room1->id, $this->room2->id])
+            ->firstOrFail();
+
+        $this->actingAs($this->admin)->post(route('movements.store'), [
+            'destinations' => [
+                ['room_id' => $this->room2->id, 'unit_ids' => [$unit->id]],
+                ['room_id' => $room3->id, 'unit_ids' => [$unit->id]],
+            ],
+        ])->assertSessionHasErrors('destinations');
+
+        $this->assertSame($this->room1->id, $unit->refresh()->room_id);
+        $this->assertDatabaseMissing('asset_unit_movements', ['asset_unit_id' => $unit->id]);
     }
 }

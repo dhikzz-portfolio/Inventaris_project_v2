@@ -7,12 +7,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AcquisitionAllocation extends Model
 {
-    protected $fillable = ['item_catalog_id', 'specification_id', 'room_id', 'quantity', 'provisioned_at'];
+    protected $fillable = [
+        'item_catalog_id', 'specification_id', 'room_id',
+        'quantity', 'received_quantity', 'provisioned_at',
+    ];
 
     protected function casts(): array
     {
         return [
             'quantity' => 'integer',
+            'received_quantity' => 'integer',
             'provisioned_at' => 'datetime',
         ];
     }

@@ -29,6 +29,55 @@
         </div>
     @endif
 
+    {{-- Filter --}}
+    <div class="mb-2 rounded-2xl border border-sky-100 bg-white px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <form method="GET" action="{{ route('labels.index') }}" class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama barang atau kode unit"
+                   aria-label="Cari nama barang atau kode unit"
+                   class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+            <select name="catalog" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                <option value="">Semua katalog</option>
+                @foreach ($catalogs as $catalogId => $catalogName)
+                    <option value="{{ $catalogId }}" @selected(request('catalog') == $catalogId)>{{ $catalogName }}</option>
+                @endforeach
+            </select>
+            <select name="room" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                <option value="">Semua ruangan</option>
+                @foreach ($rooms as $room)
+                    <option value="{{ $room->id }}" @selected(request('room') == $room->id)>{{ $room->code }} — {{ $room->name }}</option>
+                @endforeach
+            </select>
+            <select name="category" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                <option value="">Semua kategori</option>
+                @foreach ($categories as $category)
+                    <option value="{{ $category->id }}" @selected(request('category') == $category->id)>{{ $category->name }}</option>
+                @endforeach
+            </select>
+            <select name="condition" class="min-h-8 rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                <option value="">Semua kondisi</option>
+                @foreach ($conditions as $conditionOption)
+                    <option value="{{ $conditionOption->value }}" @selected(request('condition') == $conditionOption->value)>{{ $conditionOption->label() }}</option>
+                @endforeach
+            </select>
+            <div class="flex flex-wrap items-center gap-2 xl:col-span-2">
+                <select name="status" class="min-h-8 grow rounded-lg border-slate-300 bg-white py-1 text-xs text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <option value="">Semua status</option>
+                    @foreach ($statuses as $statusOption)
+                        <option value="{{ $statusOption->value }}" @selected(request('status') == $statusOption->value)>{{ $statusOption->label() }}</option>
+                    @endforeach
+                </select>
+                <button class="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <span class="material-icons-round text-base" aria-hidden="true">filter_alt</span> Terapkan
+                </button>
+                @if (! empty(array_filter($filters)))
+                    <a href="{{ route('labels.index') }}" title="Hapus filter" aria-label="Hapus filter"
+                       class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <span class="material-icons-round text-base" aria-hidden="true">restart_alt</span>
+                    </a>
+                @endif
+            </div>
+        </form>
+    </div>
     <div class="space-y-3">
         {{-- Filter --}}
         <div class="rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -135,6 +184,63 @@
                     </div>
                 </div>
 
+            <div class="overflow-x-auto max-h-[60vh] overflow-y-auto">
+                <table class="w-full min-w-[980px] text-sm">
+                    <thead class="sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        <tr>
+                            <th class="px-4 py-2.5 w-10"></th>
+                            <th class="text-left px-4 py-2.5">Kode Inventaris</th>
+                            <th class="text-left px-4 py-2.5">Nama Barang</th>
+                            <th class="text-left px-4 py-2.5">Spesifikasi</th>
+                            <th class="text-left px-4 py-2.5">Lokasi</th>
+                            <th class="text-left px-4 py-2.5">Kondisi</th>
+                            <th class="text-left px-4 py-2.5">Status</th>
+                            <th class="text-center px-4 py-2.5">Cetak Terakhir</th>
+                            <th class="text-center px-4 py-2.5">Satuan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        @forelse ($units as $unit)
+                            <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                <td class="px-4 py-1.5 text-center">
+                                    <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" aria-label="Pilih unit {{ $unit->inventory_code }}" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950"
+                                           onchange="updateLabelCount()"
+                                           @checked(in_array($unit->id, old('unit_ids', [])))>
+                                </td>
+                                <td class="px-4 py-2 font-mono font-semibold text-gray-800">{{ $unit->inventory_code }}</td>
+                                <td class="px-4 py-2">
+                                    <a href="{{ route('units.show', $unit) }}" class="font-medium text-gray-800 hover:text-blue-700">{{ $unit->catalog?->name }}</a>
+                                    <div class="text-[11px] text-gray-400">{{ $unit->catalog?->category?->name }}</div>
+                                </td>
+                                <td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">
+                                    {{ $unit->specification?->displayName() ?: (trim(($unit->catalog?->brand ?? '').' '.($unit->catalog?->model_type ?? '')) ?: '—') }}
+                                </td>
+                                <td class="px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                    Gedung {{ $unit->room?->building_letter }}, Lantai {{ $unit->room?->floor }}, Ruang {{ str_pad((string) $unit->room?->room_no, 2, '0', STR_PAD_LEFT) }}
+                                    <div class="text-slate-400 dark:text-slate-500">{{ $unit->room?->name }}</div>
+                                </td>
+                                <td class="px-4 py-1.5">
+                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : ($unit->condition === \App\Enums\Condition::RUSAK_RINGAN ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' : 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300') }}">
+                                        {{ $unit->condition->label() }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-1.5">
+                                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
+                                </td>
+                                <td class="px-4 py-2 text-center text-xs text-slate-400 dark:text-slate-500">{{ $unit->last_label_printed_at?->format('d/m/Y') ?: '—' }}</td>
+                                <td class="px-4 py-1.5 text-center">
+                                    <a href="{{ route('units.label', $unit) }}" target="_blank" title="Cetak label satuan / re-print"
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-brand-50 hover:text-brand-700 dark:text-slate-400 dark:hover:bg-brand-900/40 dark:hover:text-brand-300">
+                                        <span class="material-icons-round text-lg">print</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="9" class="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">Tidak ada unit yang sesuai filter dalam cakupan akses Anda.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
                 <div class="max-h-[60vh] overflow-auto">
                     <table class="w-full min-w-[860px] text-sm">
                         <thead class="sticky top-0 z-10 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 shadow-[inset_0_-1px_0_0_#e2e8f0] dark:bg-slate-800 dark:text-slate-400 dark:shadow-[inset_0_-1px_0_0_#334155]">

@@ -98,7 +98,12 @@
                             </li>
                         </template>
                         <li x-show="filteredCatalogs.length === 0" class="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
-                            Tidak ada katalog yang cocok.
+                            <span class="block font-semibold text-slate-700 dark:text-slate-200">Tidak ada katalog yang cocok.</span>
+                            <span class="mt-1 block">Kata kunci pencarian bukan pembuatan barang. Barang baru harus diajukan
+                                melalui pengadaan dengan nama &amp; kategori yang sah — bukan dibuat otomatis dari teks pencarian.</span>
+                            @if (auth()->user()->isSuperAdmin())
+                                <a href="{{ route('masters.index') }}" class="mt-1 inline-block font-semibold text-blue-700 hover:underline dark:text-blue-300">Kelola kategori di Data Sekolah →</a>
+                            @endif
                         </li>
                     </ul>
                 </div>

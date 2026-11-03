@@ -87,7 +87,20 @@
                     <input type="password" name="password_confirmation" @required(! $editing) class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
                 </div>
             </div>
-            <p class="text-[11px] text-gray-400">Minimal 8 karakter. Role istimewa hanya dapat ditetapkan dari halaman ini oleh Wakasek.</p>
+            <p class="text-[11px] text-gray-400">Minimal 8 karakter. Role Super Admin utama hanya dapat ditetapkan oleh Super Admin utama.</p>
+        </fieldset>
+
+        {{-- Status akun --}}
+        <fieldset class="border-t border-gray-100 pt-4">
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Status Akun</legend>
+            <input type="hidden" name="is_active" value="0">
+            <label class="flex items-center gap-2 text-xs text-gray-700">
+                <input type="checkbox" name="is_active" value="1"
+                       class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                       @checked(old('is_active', $user?->isActive() ?? true))>
+                <span>Aktif — akun nonaktif tidak dapat login dan sesi aktifnya diputus.</span>
+            </label>
+            @error('is_active') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </fieldset>
 
         {{-- Role --}}

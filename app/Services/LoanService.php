@@ -60,7 +60,7 @@ class LoanService
             if ($item->status === ItemStatus::DIHAPUS) {
                 throw new AvailabilityException("Barang \"{$item->name}\" sudah dihapus dari inventaris.");
             }
-            if ($item->acquisition_status !== 'APPROVED') {
+            if (! $item->isRecordedInInventory()) {
                 throw new AvailabilityException("Barang \"{$item->name}\" belum disetujui pada proses pengadaan.");
             }
             if ($item->isArchived()) {

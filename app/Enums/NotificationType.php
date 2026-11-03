@@ -9,6 +9,8 @@ enum NotificationType: string
     case PENGEMBALIAN = 'PENGEMBALIAN';
     case PENGADAAN = 'PENGADAAN';
     case PENGHAPUSAN = 'PENGHAPUSAN';
+    case KERUSAKAN = 'KERUSAKAN';
+    case AKUN = 'AKUN';
     case LAINNYA = 'LAINNYA';
 
     public function label(): string
@@ -19,6 +21,8 @@ enum NotificationType: string
             self::PENGEMBALIAN => 'Pengembalian',
             self::PENGADAAN => 'Pengadaan',
             self::PENGHAPUSAN => 'Penghapusan',
+            self::KERUSAKAN => 'Kerusakan',
+            self::AKUN => 'Akun Pengguna',
             self::LAINNYA => 'Lainnya',
         };
     }

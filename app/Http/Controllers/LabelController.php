@@ -27,7 +27,7 @@ class LabelController extends Controller
     {
         return view('labels.index', [
             'units' => $this->filteredUnits($request)
-                ->with(['catalog.category', 'room'])
+                ->with(['catalog.category', 'specification', 'room'])
                 ->orderBy('inventory_code')
                 ->paginate(25)
                 ->withQueryString(),
@@ -244,8 +244,9 @@ class LabelController extends Controller
 
     /**
      * Unit yang boleh dicetak: dalam cakupan akses pengguna, katalog sudah
-     * disetujui, dan bukan unit yang sudah dihapus. Pencarian kode memakai
-     * normalisasi yang sama dengan halaman detail katalog.
+     * disetujui, dan bukan unit yang sudah dihapus. Pencarian menerima kode
+     * unit (prefix) maupun nama barang/merek/tipe agar label dapat dicari
+     * tanpa menghafal kode inventaris.
      */
     private function filteredUnits(Request $request)
     {
@@ -261,13 +262,27 @@ class LabelController extends Controller
             ->when($filters['condition'] !== '', fn ($query) => $query->where('condition', $filters['condition']))
             ->when($filters['status'] !== '', fn ($query) => $query->where('status', $filters['status']))
             ->when($filters['search'] !== '', function ($query) use ($filters) {
-                $code = app(InventoryCodeService::class)->normalize($filters['search']);
+                $raw = trim($filters['search']);
+                $code = app(InventoryCodeService::class)->normalize($raw);
+                $term = '%'.mb_strtoupper($raw).'%';
 
                 if ($this->isCodeLike($code)) {
-                    $query->where('inventory_code', 'like', $code.'%');
-                } else {
-                    $query->whereRaw('1 = 0');
+                    $query->whereRaw('UPPER(inventory_code) LIKE ?', [$code.'%']);
+
+                    return;
                 }
+
+                // Nama barang, spesifikasi katalog, atau merek/tipe pada
+                // spesifikasi unit — hasil tetap menampilkan kode tiap unit.
+                $query->where(function ($nested) use ($term): void {
+                    $nested->whereRaw('UPPER(inventory_code) LIKE ?', [$term])
+                        ->orWhereHas('catalog', fn ($catalog) => $catalog
+                            ->whereRaw('UPPER(name) LIKE ?', [$term])
+                            ->orWhereRaw('UPPER(specification) LIKE ?', [$term]))
+                        ->orWhereHas('specification', fn ($specification) => $specification
+                            ->whereRaw('UPPER(brand) LIKE ?', [$term])
+                            ->orWhereRaw('UPPER(model_type) LIKE ?', [$term]));
+                });
             });
     }
 

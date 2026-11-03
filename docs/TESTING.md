@@ -461,3 +461,24 @@ Checklist yang harus dijalankan saat perangkat tersedia:
 4. Pindai dengan minimal dua perangkat/aplikasi berbeda; hasil harus membuka unit yang sama di database.
 5. Mutasikan unit, cetak ulang label, lalu pindai lagi: lokasi terbaru tampil, merek/tipe tidak berubah.
 6. Catat printer, jenis media, pengaturan skala/margin, hasil pindai, dan simpan bukti foto.
+
+## Revisi V6 (3 November 2026) — mutasi multi-lokasi, pencarian label, notifikasi
+
+Cakupan tes baru:
+
+- `MovementAndWriteOffTest` — satu transaksi dengan dua lokasi tujuan memindahkan setiap unit ke tujuan yang benar dan berbagi satu `movement_no`; unit yang sama pada dua tujuan ditolak tanpa mengubah lokasi.
+- `LabelAndQrTest` — pencarian halaman cetak label berdasarkan nama barang menemukan unit katalog terkait; pencarian kode unit tetap berfungsi.
+- `NotificationFeatureTest` — notifikasi hanya dikirim ke role yang bertanggung jawab dan akun aktif; tautan ke halaman di luar kewenangan tidak menghasilkan 403 dan tetap menandai notifikasi dibaca; tautan tidak tersedia ditandai di daftar.
+- `DamageReportTest` — laporan kerusakan mengirim notifikasi ke Ketua Laboran dan Wakasek (rusak berat), tanpa kebocoran ke Laboran lain atau pelapor.
+
+Perintah terarah:
+
+```bash
+php artisan test --compact tests/Feature/MovementAndWriteOffTest.php tests/Feature/LabelAndQrTest.php \
+  tests/Feature/NotificationFeatureTest.php tests/Feature/DamageReportTest.php \
+  tests/Feature/InventoryCatalogTest.php tests/Feature/RevisionV3Test.php
+```
+
+Hasil suite Feature lengkap (dijalankan bertahap karena batas waktu terminal 10 menit): **352 passed, 0 failed, 1919 assertions**. Rincian batch: 6 file modul terdampak = 52 tes; 16 file = 124 tes; 6 file = 45 tes; 19 file = 131 tes. `npm run build` berhasil dan `php artisan view:cache` berhasil.
+
+Catatan: pengujian manual cetak fisik, pemindai QR, uji responsif ulang, dan uji beban produksi tetap **BELUM DIVERIFIKASI** dan tidak diklaim lulus.

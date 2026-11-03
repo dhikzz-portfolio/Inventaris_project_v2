@@ -12,8 +12,9 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
- * Ekspor laporan bulanan multi-sheet: barang, peminjaman, kerusakan,
- * mutasi lokasi, dan penghapusan — agar isi Excel setara dengan PDF.
+ * Ekspor laporan bulanan multi-sheet: unit, peminjaman, kerusakan pengembalian,
+ * mutasi, penghapusan, pengadaan, dan laporan kerusakan — agar isi Excel
+ * setara dengan PDF dan halaman laporan.
  */
 class MonthlyReportExport implements Export, WithMultipleSheets
 {
@@ -222,6 +223,86 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                 public function headings(): array
                 {
                     return ['Tanggal', 'ID Transaksi', 'Katalog', 'Kode Unit', 'Merek', 'Tipe/Model', 'Spesifikasi', 'Lokasi', 'Jumlah', 'Alasan', 'Pengaju', 'Penyetuju', 'Catatan'];
+                }
+            },
+            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
+            {
+                public function __construct(private readonly array $data) {}
+
+                public function styles(Worksheet $sheet): ?array
+                {
+                    return [
+                        1 => [
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
+                        ],
+                    ];
+                }
+
+                public function title(): string
+                {
+                    return 'Pengadaan';
+                }
+
+                public function array(): array
+                {
+                    return $this->data['acquisitionRows']->map(fn ($row) => [
+                        $row->created_at?->format('d/m/Y H:i'),
+                        $row->name,
+                        $row->category?->name,
+                        $row->room?->code,
+                        $row->quantity,
+                        $row->acquisition_received_quantity,
+                        $row->acquisitionStatusEnum()?->label() ?? $row->acquisition_status,
+                        $row->requester?->name,
+                        $row->approver?->name,
+                        $row->acquisition_note,
+                    ])->all();
+                }
+
+                public function headings(): array
+                {
+                    return ['Tanggal', 'Katalog', 'Kategori', 'Lokasi', 'Jumlah Diajukan', 'Jumlah Diterima', 'Status', 'Pengaju', 'Penyetuju', 'Catatan'];
+                }
+            },
+            new class($this->data) implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
+            {
+                public function __construct(private readonly array $data) {}
+
+                public function styles(Worksheet $sheet): ?array
+                {
+                    return [
+                        1 => [
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
+                        ],
+                    ];
+                }
+
+                public function title(): string
+                {
+                    return 'Laporan Kerusakan';
+                }
+
+                public function array(): array
+                {
+                    return $this->data['damageReportRows']->map(fn ($row) => [
+                        $row->created_at?->format('d/m/Y H:i'),
+                        $row->unit?->inventory_code,
+                        $row->unit?->catalog?->name,
+                        $row->unit?->room?->code,
+                        $row->classification->label(),
+                        $row->status->label(),
+                        $row->description,
+                        $row->reporter?->name,
+                        $row->handler?->name,
+                        $row->resolution_note,
+                    ])->all();
+                }
+
+                public function headings(): array
+                {
+                    return ['Tanggal Lapor', 'Kode Unit', 'Barang', 'Lokasi', 'Klasifikasi', 'Status Penanganan', 'Deskripsi', 'Pelapor', 'Penangan', 'Catatan'];
                 }
             },
         ];

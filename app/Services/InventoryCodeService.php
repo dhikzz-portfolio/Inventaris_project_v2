@@ -215,8 +215,11 @@ class InventoryCodeService
 
     /**
      * Mutasi unit: tutup kode lama, terbitkan kode baru, simpan riwayat.
+     *
+     * `$movementNo` mengelompokkan beberapa unit yang dipindahkan dalam satu
+     * transaksi mutasi multi-lokasi; detail tujuan tetap per unit.
      */
-    public function move(AssetUnit $unit, Room $toRoom, User $actor, ?string $note = null): AssetUnit
+    public function move(AssetUnit $unit, Room $toRoom, User $actor, ?string $note = null, ?string $movementNo = null): AssetUnit
     {
         if ($unit->status === UnitStatus::DIHAPUS) {
             throw ValidationException::withMessages([
@@ -236,8 +239,8 @@ class InventoryCodeService
             ]);
         }
 
-        return $this->withRetry(function () use ($unit, $toRoom, $actor, $note) {
-            return DB::transaction(function () use ($unit, $toRoom, $actor, $note) {
+        return $this->withRetry(function () use ($unit, $toRoom, $actor, $note, $movementNo) {
+            return DB::transaction(function () use ($unit, $toRoom, $actor, $note, $movementNo) {
                 $locked = AssetUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
                 $locked->loadMissing('catalog');
                 $fromRoom = $locked->room;
@@ -277,6 +280,7 @@ class InventoryCodeService
                     'to_room_id' => $toRoom->id,
                     'old_code' => $oldCode,
                     'new_code' => $newCode,
+                    'movement_no' => $movementNo,
                     'moved_by' => $actor->id,
                     'moved_at' => now(),
                     'reason' => 'MUTASI',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Condition;
 use App\Exports\MonthlyReportExport;
 use App\Models\Category;
 use App\Models\Major;
@@ -31,9 +32,11 @@ class ReportController extends Controller
             'categories' => Category::orderBy('name')->get(),
             'rooms' => Room::query()
                 ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('is_lab', true))
+                ->when($user->isLaboran(), fn ($q) => $q->whereIn('id', $user->roomScopes()->select('room_id')))
                 ->orderBy('code')
                 ->get(),
             'majors' => Major::orderBy('name')->get(),
+            'conditions' => Condition::cases(),
             'reports' => $reports,
             'currentPeriod' => now()->format('Y-m'),
             'lastPeriod' => now()->subMonth()->format('Y-m'),
@@ -45,11 +48,16 @@ class ReportController extends Controller
     {
         abort_unless(in_array($type, ['pdf', 'excel'], true), 404);
 
+        abort_unless(preg_match('/^\d{4}-\d{2}$/', $period) === 1, 404);
+
         $scope = $request->query('scope', 'SEMUA');
         $scopeId = $request->query('scope_id') ? (int) $request->query('scope_id') : null;
         abort_unless(in_array($scope, ['SEMUA', 'KATEGORI', 'RUANGAN', 'JURUSAN'], true), 404);
 
-        $data = $service->data($period, $scope, $scopeId, $request->user());
+        $condition = $request->query('condition');
+        $condition = is_string($condition) && Condition::tryFrom($condition) !== null ? $condition : null;
+
+        $data = $service->data($period, $scope, $scopeId, $request->user(), $condition);
         $suffix = $period.'-'.strtolower($scope).($scopeId ? '-'.$scopeId : '');
 
         if ($type === 'pdf') {
@@ -73,6 +81,7 @@ class ReportController extends Controller
             'period' => ['required', 'date_format:Y-m'],
             'scope' => ['required', 'in:SEMUA,KATEGORI,RUANGAN,JURUSAN'],
             'scope_id' => ['nullable', 'integer'],
+            'condition' => ['nullable', 'in:'.implode(',', array_column(Condition::cases(), 'value'))],
         ]);
 
         $report = $service->generateMonthly(
@@ -80,7 +89,8 @@ class ReportController extends Controller
             $data['scope'],
             ! empty($data['scope_id']) ? (int) $data['scope_id'] : null,
             $request->user()->id,
-            $request->user()
+            $request->user(),
+            $data['condition'] ?? null,
         );
 
         return back()->with('success', "Laporan {$data['period']} tersimpan (PDF & Excel).");

@@ -350,6 +350,10 @@ class InventoryCoreTest extends TestCase
         $this->assertSame(1, $catalog->units()->where('condition', 'RUSAK_BERAT')->count());
         $this->assertSame(2, $catalog->units()->where('status', 'AKTIF')->where('condition', 'BAIK')->count());
         $this->assertSame(4, UnitCodeModel::where('room_id', $room->id)->count());
+        // Kode jenis barang diterbitkan saat unit dibuat; segarkan model agar
+        // nilai yang dibandingkan berasal dari database, bukan instance lama.
+        $catalog->refresh();
+
         $this->assertSame('T3-03-'.$catalog->item_type_code.'-01', $catalog->units()->orderBy('unit_no')->first()->inventory_code);
     }
 

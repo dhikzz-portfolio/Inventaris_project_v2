@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
+use App\Enums\AcquisitionStatus;
 use App\Enums\Condition;
+use App\Enums\DamageClassification;
 use App\Enums\LoanStatus;
 use App\Enums\UnitStatus;
 use App\Exports\MonthlyReportExport;
 use App\Models\AssetUnit;
 use App\Models\Category;
+use App\Models\DamageReport;
 use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\ItemMovement;
@@ -31,18 +34,31 @@ class ReportService
      * @param  string  $scope  SEMUA | KATEGORI | RUANGAN | JURUSAN
      * @param  User|null  $user  Pengguna yang meminta laporan; menentukan cakupan data.
      */
-    public function data(string $period, string $scope = 'SEMUA', ?int $scopeId = null, ?User $user = null): array
-    {
+    public function data(
+        string $period,
+        string $scope = 'SEMUA',
+        ?int $scopeId = null,
+        ?User $user = null,
+        ?string $condition = null,
+    ): array {
         $start = Carbon::parse($period.'-01')->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
-        // Ketua Laboran mengelola seluruh laboratorium, tetapi bukan inventaris umum
-        // sekolah. Super Admin (dan pembuatan laporan oleh sistem) mencakup semua ruangan.
+        // Ketua Laboran mencakup seluruh laboratorium, Laboran/K3 hanya ruangan
+        // yang ditugaskan, dan bukan inventaris umum sekolah.
         $labOnly = $user !== null && ! $user->isSuperAdmin();
+        $roomScopedIds = $user?->isLaboran()
+            ? $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all()
+            : null;
+
+        $conditionFilter = filled($condition) && Condition::tryFrom((string) $condition) !== null
+            ? (string) $condition
+            : null;
 
         $items = Item::approved()
             ->with(['room.major', 'category'])
             ->when($labOnly, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('is_lab', true)))
+            ->when($roomScopedIds !== null, fn ($q) => $q->whereIn('room_id', $roomScopedIds))
             ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->where('category_id', $scopeId))
             ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
             ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
@@ -59,6 +75,7 @@ class ReportService
                 ->when($scope === 'JURUSAN' && $scopeId, fn ($qq) => $qq->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
             )
             ->when($scope === 'RUANGAN' && $scopeId, fn ($query) => $query->where('room_id', $scopeId))
+            ->when($conditionFilter !== null, fn ($query) => $query->where('condition', $conditionFilter))
             ->with(['catalog.category', 'room'])
             ->orderBy('inventory_code')
             ->get();
@@ -74,7 +91,8 @@ class ReportService
         });
 
         $loansInPeriod = Loan::whereBetween('created_at', [$start, $end])
-            ->when($labOnly, fn ($q) => $q->whereHas('loanItems.item.room', fn ($r) => $r->where('is_lab', true)));
+            ->when($labOnly, fn ($q) => $q->whereHas('loanItems.item.room', fn ($r) => $r->where('is_lab', true)))
+            ->when($roomScopedIds !== null, fn ($q) => $q->whereHas('loanItems.item', fn ($i) => $i->whereIn('room_id', $roomScopedIds)));
 
         if ($scope !== 'SEMUA' && $scopeId) {
             $loansInPeriod->whereHas('loanItems.item', function ($q) use ($scope, $scopeId) {
@@ -91,6 +109,7 @@ class ReportService
             ->where('condition_in', '!=', 'BAIK')
             ->whereHas('loan', fn ($q) => $q->whereNotNull('returned_at')->whereBetween('returned_at', [$start, $end]))
             ->when($labOnly, fn ($q) => $q->whereHas('item.room', fn ($r) => $r->where('is_lab', true)))
+            ->when($roomScopedIds !== null, fn ($q) => $q->whereHas('item', fn ($i) => $i->whereIn('room_id', $roomScopedIds)))
             ->when($scope !== 'SEMUA' && $scopeId, fn ($q) => $q->whereHas('item', function ($qq) use ($scope, $scopeId) {
                 $qq->when($scope === 'KATEGORI', fn ($q3) => $q3->where('category_id', $scopeId))
                     ->when($scope === 'RUANGAN', fn ($q3) => $q3->where('room_id', $scopeId))
@@ -101,6 +120,7 @@ class ReportService
 
         $movements = ItemMovement::whereBetween('moved_at', [$start, $end])
             ->when($labOnly, fn ($q) => $q->whereHas('item.room', fn ($r) => $r->where('is_lab', true)))
+            ->when($roomScopedIds !== null, fn ($q) => $q->whereHas('item', fn ($i) => $i->whereIn('room_id', $roomScopedIds)))
             ->when($scope !== 'SEMUA' && $scopeId, fn ($q) => $q->whereHas('item', function ($qq) use ($scope, $scopeId) {
                 $qq->when($scope === 'KATEGORI', fn ($q3) => $q3->where('category_id', $scopeId))
                     ->when($scope === 'RUANGAN', fn ($q3) => $q3->where('room_id', $scopeId))
@@ -112,15 +132,17 @@ class ReportService
         // Cakupan penghapusan mengikuti unit yang benar-benar tercatat pada
         // `write_off_units`; `write_offs.item_id` hanya dipakai untuk transaksi
         // lama yang belum memiliki rincian unit.
-        $unitScope = function ($query) use ($scope, $scopeId, $labOnly): void {
+        $unitScope = function ($query) use ($scope, $scopeId, $labOnly, $roomScopedIds): void {
             $query->when($labOnly, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('is_lab', true)))
+                ->when($roomScopedIds !== null, fn ($q) => $q->whereIn('room_id', $roomScopedIds))
                 ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->whereHas('catalog', fn ($c) => $c->where('category_id', $scopeId)))
                 ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
                 ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('catalog.room', fn ($r) => $r->where('major_id', $scopeId)));
         };
 
-        $legacyScope = function ($query) use ($scope, $scopeId, $labOnly): void {
+        $legacyScope = function ($query) use ($scope, $scopeId, $labOnly, $roomScopedIds): void {
             $query->when($labOnly, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('is_lab', true)))
+                ->when($roomScopedIds !== null, fn ($q) => $q->whereIn('room_id', $roomScopedIds))
                 ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->where('category_id', $scopeId))
                 ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
                 ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)));
@@ -157,6 +179,10 @@ class ReportService
                     // Transaksi boleh lintas katalog, tetapi baris yang keluar
                     // dari cakupan peran tidak boleh ikut tampil.
                     if ($labOnly && ! $row->room?->is_lab) {
+                        continue;
+                    }
+
+                    if ($roomScopedIds !== null && ! in_array((int) $row->room_id, $roomScopedIds, true)) {
                         continue;
                     }
 
@@ -215,17 +241,51 @@ class ReportService
             ]);
         }
 
+        // Pengadaan pada periode: diajukan, diputuskan, atau diterima pada bulan ini.
+        $acquisitionRows = Item::query()
+            ->with(['room', 'category', 'requester', 'approver'])
+            ->where(function ($query) use ($start, $end): void {
+                $query->whereBetween('created_at', [$start, $end])
+                    ->orWhereBetween('acquisition_decided_at', [$start, $end])
+                    ->orWhereBetween('acquisition_received_at', [$start, $end]);
+            })
+            ->when($labOnly, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('is_lab', true)))
+            ->when($roomScopedIds !== null, fn ($q) => $q->whereIn('room_id', $roomScopedIds))
+            ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->where('category_id', $scopeId))
+            ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
+            ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
+            ->orderBy('created_at')
+            ->get();
+
+        // Laporan kerusakan unit (bukan sekadar kerusakan saat pengembalian).
+        $damageReportRows = DamageReport::query()
+            ->visibleTo($user)
+            ->whereBetween('created_at', [$start, $end])
+            ->when($conditionFilter !== null, fn ($q) => $q->where('reported_condition', $conditionFilter))
+            ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->whereHas('unit.catalog', fn ($c) => $c->where('category_id', $scopeId)))
+            ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->whereHas('unit', fn ($u) => $u->where('room_id', $scopeId)))
+            ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('unit.room', fn ($r) => $r->where('major_id', $scopeId)))
+            ->with(['unit.catalog.category', 'unit.room', 'unit.specification', 'reporter'])
+            ->orderBy('created_at')
+            ->get();
+
         return [
             'setting' => InstitutionSetting::current(),
             'period' => $period,
             'periodLabel' => $start->translatedFormat('F Y'),
             'scope' => $scope,
-            'scopeLabel' => match ($scope) {
-                'KATEGORI' => 'Kategori: '.(Category::find($scopeId)?->name ?? '-'),
-                'RUANGAN' => 'Ruangan: '.(Room::find($scopeId)?->name ?? '-'),
-                'JURUSAN' => 'Jurusan: '.(Major::find($scopeId)?->name ?? '-'),
-                default => $labOnly ? 'Seluruh laboratorium' : 'Seluruh sekolah',
-            },
+            'scopeLabel' => collect([
+                match ($scope) {
+                    'KATEGORI' => 'Kategori: '.(Category::find($scopeId)?->name ?? '-'),
+                    'RUANGAN' => 'Ruangan: '.(Room::find($scopeId)?->name ?? '-'),
+                    'JURUSAN' => 'Jurusan: '.(Major::find($scopeId)?->name ?? '-'),
+                    default => $labOnly ? 'Seluruh laboratorium' : 'Seluruh sekolah',
+                },
+                $conditionFilter !== null
+                    ? 'Kondisi: '.(Condition::tryFrom($conditionFilter)?->label() ?? $conditionFilter)
+                    : null,
+            ])->filter()->implode(' • '),
+            'condition' => $conditionFilter,
             'items' => $items,
             'units' => $units,
             'loans' => $loansInPeriod->load([
@@ -259,8 +319,19 @@ class ReportService
                 'mutasi' => $movements->count(),
                 'penghapusan' => (int) $writeOffRows->sum('quantity'),
                 'penghapusan_transaksi' => $writeOffs->count(),
+                'pengadaan' => $acquisitionRows->count(),
+                'pengadaan_tercatat' => $acquisitionRows->filter(fn (Item $item) => $item->isRecordedInInventory())->count(),
+                'pengadaan_ditolak' => $acquisitionRows
+                    ->where('acquisition_status', AcquisitionStatus::DITOLAK->value)->count(),
+                'laporan_kerusakan' => $damageReportRows->count(),
+                'laporan_kerusakan_ringan' => $damageReportRows
+                    ->where('classification', DamageClassification::RUSAK_RINGAN)->count(),
+                'laporan_kerusakan_berat' => $damageReportRows
+                    ->where('classification', DamageClassification::RUSAK_BERAT)->count(),
             ],
             'damageRows' => $damageRows,
+            'damageReportRows' => $damageReportRows,
+            'acquisitionRows' => $acquisitionRows,
             'movements' => $movements,
             'writeOffs' => $writeOffs,
             'writeOffRows' => $writeOffRows,
@@ -268,9 +339,15 @@ class ReportService
     }
 
     /** Simpan file PDF & Excel laporan bulanan (dipakai scheduler + tombol manual). */
-    public function generateMonthly(string $period, string $scope = 'SEMUA', ?int $scopeId = null, ?int $userId = null, ?User $user = null): Report
-    {
-        $data = $this->data($period, $scope, $scopeId, $user);
+    public function generateMonthly(
+        string $period,
+        string $scope = 'SEMUA',
+        ?int $scopeId = null,
+        ?int $userId = null,
+        ?User $user = null,
+        ?string $condition = null,
+    ): Report {
+        $data = $this->data($period, $scope, $scopeId, $user, $condition);
 
         $pdfPath = 'reports/'.sprintf('laporan-%s-%s-%d.pdf', $period, strtolower($scope), $scopeId ?? 0);
         $xlsxPath = 'reports/'.sprintf('laporan-%s-%s-%d.xlsx', $period, strtolower($scope), $scopeId ?? 0);

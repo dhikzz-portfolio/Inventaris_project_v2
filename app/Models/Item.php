@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\AcquisitionStatus;
 use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
 use App\Enums\UnitStatus;
-use App\Services\ItemTypeCodeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +31,9 @@ class Item extends Model
         'archived_at', 'archive_reason',
         'acquisition_status', 'acquisition_requested_by', 'acquisition_approved_by',
         'acquisition_decided_at', 'acquisition_note',
+        'acquisition_submitted_at', 'acquisition_confirmed_by', 'acquisition_confirmed_at',
+        'acquisition_started_at', 'acquisition_received_by', 'acquisition_received_at',
+        'acquisition_received_quantity', 'acquisition_received_condition', 'acquisition_received_note',
     ];
 
     protected function casts(): array
@@ -45,22 +48,12 @@ class Item extends Model
             'last_label_printed_at' => 'datetime',
             'archived_at' => 'datetime',
             'acquisition_decided_at' => 'datetime',
+            'acquisition_submitted_at' => 'datetime',
+            'acquisition_confirmed_at' => 'datetime',
+            'acquisition_started_at' => 'datetime',
+            'acquisition_received_at' => 'datetime',
+            'acquisition_received_quantity' => 'integer',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $catalog): void {
-            if (blank($catalog->item_type_code)) {
-                $catalog->item_type_code = app(ItemTypeCodeService::class)->generate((string) $catalog->name);
-            }
-        });
-
-        static::updating(function (self $catalog): void {
-            if ($catalog->isDirty('item_type_code')) {
-                throw new \LogicException('Kode jenis barang tidak dapat diubah setelah dibuat.');
-            }
-        });
     }
 
     public function getActivitylogOptions(): LogOptions
@@ -69,6 +62,11 @@ class Item extends Model
             ->logOnly(['name', 'status', 'room_id', 'quantity', 'internal_id'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
     }
 
     public function category(): BelongsTo
@@ -135,6 +133,49 @@ class Item extends Model
     }
 
     /**
+     * ID Ketua Laboran yang berwenang melihat katalog ini.
+     * Digunakan untuk menentukan penerima notifikasi yang tepat.
+     *
+     * @return list<int>
+     */
+    public function visibleKetuaLaboranIds(): array
+    {
+        $ketuaLaboranIds = User::where('role', 'KETUA_LABORAN')->pluck('id');
+
+        return $ketuaLaboranIds->filter(function ($id) {
+            $user = User::find($id);
+
+            return $user && $this->isVisibleTo($user);
+        })->values()->all();
+    }
+
+    /**
+     * Tentukan apakah katalog ini terlihat oleh pengguna tertentu.
+     */
+    public function isVisibleTo(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->units->isNotEmpty()) {
+            return $this->units->some(function ($unit) use ($user) {
+                return $unit->visibleTo($user);
+            });
+        }
+
+        if ($user->isKetuaLaboran()) {
+            return $this->room && $this->room->is_lab;
+        }
+
+        if ($user->isLaboran()) {
+            return $this->room && $user->hasRoomScope($this->room_id);
+        }
+
+        return false;
+    }
+
+    /**
      * Katalog yang dapat dilihat pengguna. Katalog tanpa unit dalam cakupan
      * hanya ditampilkan untuk Super Admin sebagai arsip.
      */
@@ -147,8 +188,6 @@ class Item extends Model
         return $query->where(function ($visible) use ($user) {
             $visible->whereHas('units', fn ($unit) => $unit->visibleTo($user));
 
-            // Katalog lama/pengadaan yang belum memiliki unit tetap mengikuti
-            // lokasi katalognya agar data pra-migrasi tidak hilang dari tampilan.
             $visible->orWhere(function ($legacy) use ($user) {
                 $legacy->whereDoesntHave('units');
 
@@ -181,37 +220,41 @@ class Item extends Model
         return $this->belongsTo(User::class, 'acquisition_approved_by');
     }
 
-    /** Hanya item yang sudah disetujui pengadaan yang tampil di katalog. */
-    public function scopeApproved($query)
+    public function confirmer(): BelongsTo
     {
-        return $query->where('acquisition_status', 'APPROVED');
+        return $this->belongsTo(User::class, 'acquisition_confirmed_by');
     }
 
-    /** Katalog yang diarsipkan tidak ditawarkan lagi untuk peminjaman baru. */
-    public function scopeNotArchived($query)
+    public function receiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'acquisition_received_by');
+    }
+
+    /**
+     * Hanya katalog yang sudah tercatat sebagai inventaris yang dapat dipinjam.
+     */
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->whereIn('acquisition_status', AcquisitionStatus::recordedValues());
+    }
+
+    /** Katalog yang belum diarsipkan masih ditawarkan pada transaksi baru. */
+    public function scopeNotArchived(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
     }
 
-    public function isArchived(): bool
-    {
-        return $this->archived_at !== null;
-    }
-
     /**
-     * Katalog hanya boleh dihapus permanen bila belum pernah dipakai unit
-     * maupun transaksi. Selain itu data harus diarsipkan agar audit tetap utuh.
+     * Hanya katalog yang sudah tercatat sebagai inventaris.
      */
-    public function canBeDeletedPermanently(): bool
+    public function isRecordedInInventory(): bool
     {
-        return ! $this->units()->exists()
-            && ! $this->loanItems()->exists()
-            && ! $this->writeOffs()->exists();
+        return in_array($this->acquisition_status, AcquisitionStatus::recordedValues(), true);
     }
 
-    public function isAcquisitionPending(): bool
+    public function acquisitionStatusEnum(): ?AcquisitionStatus
     {
-        return $this->acquisition_status === 'PENDING';
+        return AcquisitionStatus::tryFrom((string) $this->acquisition_status);
     }
 
     /** Peminjaman terakhir barang ini. */
@@ -262,8 +305,7 @@ class Item extends Model
      *
      * Selisih yang belum ditutup (sementara) TIDAK boleh dikurangi lagi di
      * sini: unit yang hilang pada pinjaman aktif sudah tercakup pada
-     * `activeLoanRemainingQuantity()` (qty_borrowed - qty_returned), sehingga
-     * menghitungnya dua kali membuat stok tersedia terlihat kurang.
+     * `activeLoanRemainingQuantity()`.
      */
     public function availableQuantity(): int
     {
@@ -280,11 +322,8 @@ class Item extends Model
     }
 
     /**
-     * Query dasar selisih yang belum ditutup.
-     *
-     * Status yang difilter adalah status PEMINJAMAN (tabel `loans`), bukan
-     * `loan_items` — tabel `loan_items` tidak punya kolom `status`, sehingga
-     * memfilter kolom itu akan menggagalkan query ("Unknown column") di MySQL.
+     * Query dasar selisih yang belum ditutup. Status yang difilter adalah
+     * status PEMINJAMAN (tabel `loans`), bukan `loan_items`.
      */
     public function pendingLostQuery(): Builder
     {
@@ -335,7 +374,23 @@ class Item extends Model
     public function isAvailableStatus(): bool
     {
         return $this->status !== ItemStatus::DIHAPUS
-            && $this->acquisition_status === 'APPROVED'
+            && $this->isRecordedInInventory()
             && $this->availableQuantity() > 0;
+    }
+
+    /**
+     * Katalog hanya boleh dihapus permanen bila belum pernah dipakai unit
+     * maupun transaksi. Selain itu data harus diarsipkan agar audit tetap utuh.
+     */
+    public function canBeDeletedPermanently(): bool
+    {
+        return ! $this->units()->exists()
+            && ! $this->loanItems()->exists()
+            && ! $this->writeOffs()->exists();
+    }
+
+    public function isAcquisitionPending(): bool
+    {
+        return ! $this->isRecordedInInventory();
     }
 }

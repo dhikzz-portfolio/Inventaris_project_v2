@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CatalogController;
+use App\Http\Controllers\DamageReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DistributionController;
 use App\Http\Controllers\EventController;
@@ -35,39 +36,44 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
     // File internal (foto bukti, BA, TTD, BAST, laporan) — akses diperiksa per peran.
     Route::get('/files', SecureFileController::class)->name('files.show');
 
-    // ================= KATALOG & UNIT (semua role melihat, dibatasi scope) =================
-    Route::get('/catalogs', [CatalogController::class, 'index'])->name('catalogs.index');
-    Route::get('/catalogs/{catalog}', [CatalogController::class, 'show'])->name('catalogs.show');
-    Route::get('/spesifikasi/{specification}', [SpecificationController::class, 'show'])->name('specifications.show');
-    Route::get('/units/{unit}', [UnitController::class, 'show'])->name('units.show');
-    Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:SUPER_ADMIN|KETUA_LABORAN|LABORAN')->name('units.label');
+    // Super Admin Pengguna tidak memiliki akses operasional inventaris.
+    Route::middleware('inventory.access')->group(function () {
 
-    // Scan universal: semua pengguna yang sudah login boleh memindai, tetapi
-    // detail internal tetap dibatasi cakupan akses di backend.
-    Route::get('/scan', [LabelController::class, 'scan'])->name('scan');
-    Route::get('/scan/{internalId}', [LabelController::class, 'scanResolve'])->name('scan.resolve')->where('internalId', '.*');
+        // ================= KATALOG & UNIT (semua role melihat, dibatasi scope) =================
+        Route::get('/catalogs', [CatalogController::class, 'index'])->name('catalogs.index');
+        Route::get('/catalogs/{catalog}', [CatalogController::class, 'show'])->name('catalogs.show');
+        Route::get('/spesifikasi/{specification}', [SpecificationController::class, 'show'])->name('specifications.show');
+        Route::get('/units/{unit}', [UnitController::class, 'show'])->name('units.show');
+        Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:SUPER_ADMIN|KETUA_LABORAN|LABORAN')->name('units.label');
 
-    // Rute lama dipertahankan selama masa transisi.
-    Route::get('/items', [ItemController::class, 'index'])->name('items.index');
-    Route::get('/items/{item}', [ItemController::class, 'show'])->name('items.show');
-    Route::get('/items/{item}/label', [ItemController::class, 'printLabel'])->name('items.label');
+        // Scan universal: semua pengguna yang sudah login boleh memindai, tetapi
+        // detail internal tetap dibatasi cakupan akses di backend.
+        Route::get('/scan', [LabelController::class, 'scan'])->name('scan');
+        Route::get('/scan/{internalId}', [LabelController::class, 'scanResolve'])->name('scan.resolve')->where('internalId', '.*');
 
-    // ================= PEMINJAMAN (semua role dapat mengajukan) =================
-    Route::get('/loans/create', [LoanController::class, 'create'])->name('loans.create');
-    Route::post('/loans', [LoanController::class, 'store'])->name('loans.store');
-    Route::get('/loans', [LoanController::class, 'index'])->name('loans.index');
-    Route::get('/loans/{loan}', [LoanController::class, 'show'])->name('loans.show');
-    Route::get('/loans/{loan}/surat', [LoanController::class, 'previewLetter'])->name('loans.letter.preview');
-    Route::get('/loans/{loan}/bast', [LoanController::class, 'downloadBast'])->name('loans.bast');
-    Route::post('/loans/{loan}/cancel', [LoanController::class, 'cancel'])->name('loans.cancel');
+        // Rute lama dipertahankan selama masa transisi.
+        Route::get('/items', [ItemController::class, 'index'])->name('items.index');
+        Route::get('/items/{item}', [ItemController::class, 'show'])->name('items.show');
+        Route::get('/items/{item}/label', [ItemController::class, 'printLabel'])->name('items.label');
 
-    // ================= EVENT / KEGIATAN =================
-    // Semua pengguna melihat rekap; guru & staf boleh mencatat kegiatannya sendiri.
-    Route::get('/kegiatan', [EventController::class, 'index'])->name('events.index');
-    Route::post('/kegiatan', [EventController::class, 'store'])->name('events.store');
-    Route::patch('/kegiatan/{event}', [EventController::class, 'update'])->name('events.update');
-    Route::delete('/kegiatan/{event}', [EventController::class, 'destroy'])->name('events.destroy');
-    Route::get('/kegiatan/{event}', [EventController::class, 'show'])->name('events.show');
+        // ================= PEMINJAMAN (semua role dapat mengajukan) =================
+        Route::get('/loans/create', [LoanController::class, 'create'])->name('loans.create');
+        Route::post('/loans', [LoanController::class, 'store'])->name('loans.store');
+        Route::get('/loans', [LoanController::class, 'index'])->name('loans.index');
+        Route::get('/loans/{loan}', [LoanController::class, 'show'])->name('loans.show');
+        Route::get('/loans/{loan}/surat', [LoanController::class, 'previewLetter'])->name('loans.letter.preview');
+        Route::get('/loans/{loan}/bast', [LoanController::class, 'downloadBast'])->name('loans.bast');
+        Route::post('/loans/{loan}/cancel', [LoanController::class, 'cancel'])->name('loans.cancel');
+
+        // ================= EVENT / KEGIATAN =================
+        // Semua pengguna melihat rekap; guru & staf boleh mencatat kegiatannya sendiri.
+        Route::get('/kegiatan', [EventController::class, 'index'])->name('events.index');
+        Route::post('/kegiatan', [EventController::class, 'store'])->name('events.store');
+        Route::patch('/kegiatan/{event}', [EventController::class, 'update'])->name('events.update');
+        Route::delete('/kegiatan/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+        Route::get('/kegiatan/{event}', [EventController::class, 'show'])->name('events.show');
+
+    }); // akhir grup akses operasional inventaris
 
     // ================= NOTIFIKASI =================
     Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifications.index');
@@ -105,9 +111,8 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
 
     // ============ ADMIN SARPRAS / WAKASEK ============
     Route::middleware('role:'.$managers)->group(function () {
-        // Laporan (hanya pengelola — mencegah laboran mengekspor data seluruh sekolah)
-        Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
-        Route::get('/laporan/export/{type}/{period}', [ReportController::class, 'export'])->name('reports.export');
+        // Arsip & snapshot laporan (pengelola). Pratinjau/ekspor tersedia untuk
+        // semua pengelola inventaris dan dibatasi cakupan di backend.
         Route::post('/laporan/generate', [ReportController::class, 'generate'])->name('reports.generate');
         Route::delete('/laporan/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
 
@@ -116,9 +121,6 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
         Route::post('/laporan/impor/pratinjau', [ReportController::class, 'importPreview'])->name('reports.import.preview');
         Route::post('/laporan/impor', [ReportController::class, 'importConfirm'])->name('reports.import.confirm');
 
-        // Pengadaan
-        Route::get('/pengadaan/create', [ItemController::class, 'create'])->name('items.create');
-        Route::post('/pengadaan', [ItemController::class, 'store'])->name('items.store');
         Route::get('/items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
         Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');
 
@@ -141,8 +143,47 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
         Route::delete('/catalogs/{catalog}', [CatalogController::class, 'destroy'])
             ->name('catalogs.destroy');
 
-        // Master data
+        // Master data — Ketua Laboran hanya MELIHAT (read-only). Perubahan
+        // menu final masih PENDING; mutasi data dibatasi ke Super Admin.
         Route::get('/master', [MasterController::class, 'index'])->name('masters.index');
+    });
+
+    // ============ LABORAN / KETUA LABORAN / WAKASEK ============
+    Route::middleware('role:'.$approvers)->group(function () {
+        // Laporan: pratinjau/ekspor dibatasi cakupan pengguna di backend.
+        Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/laporan/export/{type}/{period}', [ReportController::class, 'export'])->name('reports.export');
+
+        // ============ PENGAADAAN (Laboran/K3, Ketua Laboran, Wakasek) ============
+        Route::get('/pengadaan', [ItemController::class, 'acquisitions'])->name('items.acquisitions');
+        Route::get('/pengadaan/create', [ItemController::class, 'create'])->name('items.create');
+        Route::post('/pengadaan', [ItemController::class, 'store'])->name('items.store');
+        Route::post('/pengadaan/{item}/ajukan', [ItemController::class, 'submitAcquisition'])->name('items.acquisitions.submit');
+        Route::post('/pengadaan/{item}/konfirmasi', [ItemController::class, 'confirmAcquisition'])->name('items.acquisitions.confirm');
+        Route::post('/pengadaan/{item}/setujui', [ItemController::class, 'approveAcquisition'])->name('items.approve');
+        Route::post('/pengadaan/{item}/tolak', [ItemController::class, 'rejectAcquisition'])->name('items.reject');
+        Route::post('/pengadaan/{item}/proses', [ItemController::class, 'startAcquisition'])->name('items.acquisitions.start');
+        Route::get('/pengadaan/{item}/terima', [ItemController::class, 'receiveForm'])->name('items.acquisitions.receive-form');
+        Route::post('/pengadaan/{item}/terima', [ItemController::class, 'receiveAcquisition'])->name('items.acquisitions.receive');
+        Route::post('/pengadaan/{item}/catat', [ItemController::class, 'recordInventory'])->name('items.acquisitions.record');
+
+        // ============ LAPORAN KERUSAKAN ============
+        Route::get('/kerusakan', [DamageReportController::class, 'index'])->name('damage-reports.index');
+        Route::get('/kerusakan/create', [DamageReportController::class, 'create'])->name('damage-reports.create');
+        Route::post('/kerusakan', [DamageReportController::class, 'store'])->name('damage-reports.store');
+        Route::get('/kerusakan/{damageReport}', [DamageReportController::class, 'show'])->name('damage-reports.show');
+        Route::patch('/kerusakan/{damageReport}', [DamageReportController::class, 'update'])->name('damage-reports.update');
+    });
+
+    // ============ WAKASEK SARPRAS / SUPER ADMIN ============
+    Route::middleware('role:SUPER_ADMIN')->group(function () {
+        Route::post('/loans/{loan}/close-shortage', [LoanController::class, 'closeShortage'])->name('loans.close-shortage');
+
+        Route::get('/inventaris-keluar/persetujuan', [WriteOffController::class, 'pending'])->name('write-offs.pending');
+        Route::post('/inventaris-keluar/{writeOff}/approve', [WriteOffController::class, 'approve'])->name('write-offs.approve');
+        Route::post('/inventaris-keluar/{writeOff}/reject', [WriteOffController::class, 'reject'])->name('write-offs.reject');
+
+        // Mutasi Master Data memerlukan kewenangan administratif penuh.
         Route::post('/master/majors', [MasterController::class, 'storeMajor'])->name('masters.store-major');
         Route::put('/master/majors/{major}', [MasterController::class, 'updateMajor'])->name('masters.update-major');
         Route::delete('/master/majors/{major}', [MasterController::class, 'destroyMajor'])->name('masters.destroy-major');
@@ -155,27 +196,19 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($manage
         Route::post('/master/categories', [MasterController::class, 'storeCategory'])->name('masters.store-category');
         Route::put('/master/categories/{category}', [MasterController::class, 'updateCategory'])->name('masters.update-category');
         Route::delete('/master/categories/{category}', [MasterController::class, 'destroyCategory'])->name('masters.destroy-category');
+
+        Route::get('/pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::post('/pengaturan', [SettingController::class, 'update'])->name('settings.update');
     });
 
-    // ============ WAKASEK SARPRAS / SUPER ADMIN ============
-    Route::middleware('role:SUPER_ADMIN')->group(function () {
-        Route::post('/loans/{loan}/close-shortage', [LoanController::class, 'closeShortage'])->name('loans.close-shortage');
-
-        Route::get('/pengadaan', [ItemController::class, 'acquisitions'])->name('items.acquisitions');
-        Route::post('/pengadaan/{item}/approve', [ItemController::class, 'approveAcquisition'])->name('items.approve');
-        Route::post('/pengadaan/{item}/reject', [ItemController::class, 'rejectAcquisition'])->name('items.reject');
-
-        Route::get('/inventaris-keluar/persetujuan', [WriteOffController::class, 'pending'])->name('write-offs.pending');
-        Route::post('/inventaris-keluar/{writeOff}/approve', [WriteOffController::class, 'approve'])->name('write-offs.approve');
-        Route::post('/inventaris-keluar/{writeOff}/reject', [WriteOffController::class, 'reject'])->name('write-offs.reject');
-
+    // ============ ADMINISTRASI AKUN PENGGUNA ============
+    // Super Admin Pengguna hanya mengelola akun; tidak memperoleh akses
+    // transaksi inventaris mana pun.
+    Route::middleware('role:SUPER_ADMIN|SUPER_ADMIN_PENGGUNA')->group(function () {
         Route::get('/pengguna', [UserController::class, 'index'])->name('users.index');
         Route::post('/pengguna', [UserController::class, 'store'])->name('users.store');
         Route::put('/pengguna/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/pengguna/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-
-        Route::get('/pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
-        Route::post('/pengaturan', [SettingController::class, 'update'])->name('settings.update');
     });
 });
 

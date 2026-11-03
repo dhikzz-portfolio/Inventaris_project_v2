@@ -508,10 +508,15 @@ class LoanApprovalHandoverTest extends TestCase
     {
         $adminSarpras = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
 
-        foreach (['users.index', 'settings.edit', 'write-offs.pending', 'items.acquisitions'] as $routeName) {
+        foreach (['users.index', 'settings.edit', 'write-offs.pending'] as $routeName) {
             $this->actingAs($adminSarpras)
                 ->get(route($routeName))
                 ->assertForbidden();
         }
+
+        // Ketua Laboran ikut memantau alur pengadaan, tetapi tidak memutuskan.
+        $this->actingAs($adminSarpras)
+            ->get(route('items.acquisitions'))
+            ->assertOk();
     }
 }

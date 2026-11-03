@@ -12,6 +12,7 @@ use App\Models\Major;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\LoanService;
+use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -78,13 +79,31 @@ class SecurityAccessTest extends TestCase
         $this->actingAs($wakasek)->get(route('files.show', ['path' => '../../.env']))->assertNotFound();
     }
 
-    public function test_laboran_tidak_dapat_mengakses_laporan_seluruh_sekolah(): void
+    public function test_laboran_hanya_mendapat_laporan_ruang_lingkupnya(): void
     {
         $this->seed();
         $laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
 
-        $this->actingAs($laboran)->get(route('reports.index'))->assertForbidden();
-        $this->actingAs($laboran)->get(route('reports.export', ['type' => 'pdf', 'period' => now()->format('Y-m')]))->assertForbidden();
+        // Laboran/K3 boleh melihat laporan, tetapi cakupannya dibatasi backend.
+        $this->actingAs($laboran)->get(route('reports.index'))->assertOk();
+        $this->actingAs($laboran)->get(route('reports.export', ['type' => 'pdf', 'period' => now()->format('Y-m')]))->assertOk();
+
+        // Parameter URL tidak dapat menembus cakupan laboratorium lain.
+        $otherLab = Room::where('is_lab', true)
+            ->whereNotIn('id', $laboran->roomScopes()->select('room_id'))
+            ->firstOrFail();
+
+        $response = $this->actingAs($laboran)->get(route('reports.export', [
+            'type' => 'pdf',
+            'period' => now()->format('Y-m'),
+            'scope' => 'RUANGAN',
+            'scope_id' => $otherLab->id,
+        ]));
+
+        $response->assertOk();
+        $service = app(ReportService::class);
+        $data = $service->data(now()->format('Y-m'), 'RUANGAN', $otherLab->id, $laboran);
+        $this->assertCount(0, $data['units']);
     }
 
     public function test_katalog_di_luar_cakupan_tidak_dapat_dibuka_lewat_url_legacy(): void

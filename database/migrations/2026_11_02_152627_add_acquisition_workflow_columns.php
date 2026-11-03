@@ -42,7 +42,7 @@ return new class extends Migration
         // Role baru harus tersedia tanpa menunggu seeder dijalankan ulang.
         if (Schema::hasTable('roles')) {
             DB::table('roles')->insertOrIgnore([
-                'name' => 'SUPER_ADMIN_PENGGUNA',
+                'name' => 'SUPER_ADMIN',
                 'guard_name' => 'web',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
@@ -67,7 +67,7 @@ return new class extends Migration
     public function down(): void
     {
         if (Schema::hasTable('roles')) {
-            DB::table('roles')->where('name', 'SUPER_ADMIN_PENGGUNA')->delete();
+            DB::table('roles')->where('name', 'SUPER_ADMIN')->delete();
         }
 
         DB::table('item_catalogs')

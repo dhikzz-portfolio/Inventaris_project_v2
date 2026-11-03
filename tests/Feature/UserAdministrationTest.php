@@ -38,7 +38,7 @@ class UserAdministrationTest extends TestCase
     {
         $accountAdmin = $this->makeAccountAdmin();
 
-        $this->assertTrue($accountAdmin->isSuperAdminPengguna());
+        $this->assertTrue($accountAdmin->isSuperAdmin());
         $this->assertTrue($accountAdmin->canManageUsers());
         $this->assertFalse($accountAdmin->isSuperAdmin());
         $this->assertFalse($accountAdmin->managesInventory());

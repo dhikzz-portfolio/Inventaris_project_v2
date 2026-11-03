@@ -1,5 +1,5 @@
 <x-app-layout>
-    @php($isSelfServiceBorrower = auth()->user()->isPeminjam() && ! auth()->user()->canApproveLoans())
+    @php($isSelfServiceBorrower = auth()->user()->isMember() && ! auth()->user()->canApproveLoans())
 
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -26,9 +26,7 @@ class User extends Authenticatable
         'birth_date', 'profile_completed_at', 'profile_completed', 'work_unit',
     ];
 
-    /**
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return [
@@ -127,6 +125,11 @@ class User extends Authenticatable
         return $this->role === Role::SUPER_ADMIN->value;
     }
 
+    public function isSuperAdminUser(): bool
+    {
+        return $this->role === Role::SUPER_ADMIN->value;
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === Role::ADMIN->value;
@@ -168,11 +171,6 @@ class User extends Authenticatable
         return $this->role === Role::MEMBER->value;
     }
 
-    public function isSuperAdminUser(): bool
-    {
-        return $this->role === Role::SUPER_ADMIN->value;
-    }
-
     public function isWakasekSarpras(): bool
     {
         return $this->role === Role::ADMIN->value;
@@ -196,12 +194,23 @@ class User extends Authenticatable
     }
 
     /**
+     * Cakupan tingkatnya dipakai middleware EnsureProfileCompleted.
+     */
+    public function hasLegacyPrivilegedRole(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->isAdmin()
+            || $this->isEditorValidator()
+            || $this->isOperator();
+    }
+
+    /**
      * Super Admin hanya mengelola akun dan pengaturan. Role ini tidak memperoleh
      * transaksi inventaris apa pun meskipun dapat login ke aplikasi.
      */
     public function canUseInventoryOperations(): bool
     {
-        return ! $this->isSuperAdmin();
+        return $this->hasOperationalInventoryAccess();
     }
 
     /**
@@ -210,23 +219,48 @@ class User extends Authenticatable
      */
     public function hasOperationalInventoryAccess(): bool
     {
-        return in_array($this->role, [
+        return in_array($this->role, self::operationalRoleValues(), true);
+    }
+
+    /** @return list<string> */
+    public static function operationalRoleValues(): array
+    {
+        return [
             Role::ADMIN->value,
             Role::EDITOR_VALIDATOR->value,
             Role::OPERATOR->value,
-        ], true);
+        ];
     }
 
     /** Boleh kelola data barang / mutasi / laporan pada cakupan kewenangannya. */
     public function managesInventory(): bool
     {
-        return in_array($this->role, [Role::ADMIN->value, Role::EDITOR_VALIDATOR->value], true);
+        return in_array($this->role, self::inventoryManagerRoleValues(), true);
+    }
+
+    /** @return list<string> */
+    public static function inventoryManagerRoleValues(): array
+    {
+        return [
+            Role::ADMIN->value,
+            Role::EDITOR_VALIDATOR->value,
+        ];
     }
 
     /** Boleh menyetujui peminjaman level 1 (operator/editor) — pengelola juga dianggap boleh. */
     public function canApproveLoans(): bool
     {
-        return in_array($this->role, [Role::ADMIN->value, Role::EDITOR_VALIDATOR->value, Role::OPERATOR->value], true);
+        return in_array($this->role, self::approvalRoleValues(), true);
+    }
+
+    /** @return list<string> */
+    public static function approvalRoleValues(): array
+    {
+        return [
+            Role::ADMIN->value,
+            Role::EDITOR_VALIDATOR->value,
+            Role::OPERATOR->value,
+        ];
     }
 
     /** Operator yang ditugaskan pada satu atau lebih laboratorium. */

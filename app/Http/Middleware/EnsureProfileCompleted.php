@@ -16,10 +16,7 @@ class EnsureProfileCompleted
             return $next($request);
         }
 
-        $hasLegacyPrivilegedRole = $user->isSuperAdmin()
-            || $user->isAdmin()
-            || $user->isEditorValidator()
-            || $user->isOperator();
+        $hasLegacyPrivilegedRole = $user->hasLegacyPrivilegedRole();
 
         if (! $user->hasCompletedProfile() && ! $hasLegacyPrivilegedRole) {
             if ($request->routeIs('profile.complete') || $request->routeIs('profile.complete.store') || $request->routeIs('logout')) {

@@ -119,7 +119,7 @@
                                 </form>
                             @endif
 
-                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value && $user->isKetuaLaboran())
+                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value && $user->isEditorValidator())
                                 <form method="POST" action="{{ route('items.acquisitions.confirm', $item) }}" x-data="{ submitting: false }" @submit="submitting = true">
                                     @csrf
                                     <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60">

@@ -394,7 +394,7 @@
                 </button>
 
                 <p class="text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                    @if (auth()->user()->isPeminjam())
+                    @if (auth()->user()->isMember())
                         Permintaan akan ditinjau oleh petugas. Barang bernilai tinggi memerlukan persetujuan berjenjang dari Laboran lalu Wakasek. Dokumen dapat dicetak untuk ditandatangani secara fisik.
                     @else
                         Barang bernilai tinggi melewati persetujuan Laboran lalu Wakasek. Tanda tangan digital opsional — dokumen dapat ditandatangani secara fisik.

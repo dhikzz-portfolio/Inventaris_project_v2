@@ -7,7 +7,7 @@
                     <span class="shrink-0 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">{{ $loans->count() }} MENUNGGU</span>
                 </div>
                 <p class="mt-1 max-w-3xl text-xs leading-5 text-slate-500 dark:text-slate-400 sm:text-sm sm:leading-relaxed">
-                    @if (auth()->user()->isKetuaLaboran())
+                    @if (auth()->user()->isEditorValidator())
                         Tinjau permintaan dari seluruh laboratorium. Barang bernilai tinggi perlu persetujuan Ketua Laboran lalu Wakasek.
                     @elseif (auth()->user()->isSuperAdmin())
                         Tinjau permintaan yang menunggu persetujuan. Barang bernilai tinggi memerlukan persetujuan akhir Wakasek.

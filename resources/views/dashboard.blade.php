@@ -46,8 +46,7 @@
                         @if ($mode !== 'operational')
                             Ajukan peminjaman barang
                         @elseif ($dashboardUser->isSuperAdmin())
-                            Pantau barang sekolah
-                        @elseif ($dashboardUser->isKetuaLaboran())
+                            Pantau barang sekolah                         @elseif ($dashboardUser->isEditorValidator())
                             Kelola barang laboratorium
                         @else
                             Barang laboratorium Anda
@@ -57,8 +56,7 @@
                         @if ($mode !== 'operational')
                             Ajukan peminjaman dan pantau statusnya di sini.
                         @elseif ($dashboardUser->isSuperAdmin())
-                            Lihat kondisi barang, permintaan pinjam, dan kegiatan terbaru di {{ $scopeLabel }}.
-                        @elseif ($dashboardUser->isKetuaLaboran())
+                            Lihat kondisi barang, permintaan pinjam, dan kegiatan terbaru di {{ $scopeLabel }}.                         @elseif ($dashboardUser->isEditorValidator())
                             Kelola barang dan permintaan pinjam dari {{ $scopeLabel }}.
                         @else
                             Tinjau barang dan permintaan pinjam di {{ $scopeLabel }}.

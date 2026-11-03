@@ -42,7 +42,7 @@
             <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                 <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600">badge</span>
-                    {{ auth()->user()->isPeminjam() ? 'Informasi Unit' : 'Identitas & Perolehan' }}
+                    {{ auth()->user()->isMember() ? 'Informasi Unit' : 'Identitas & Perolehan' }}
                 </h3>
                 <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm text-slate-700 dark:text-slate-200 sm:grid-cols-2">
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Kode inventaris</dt><dd class="font-mono font-semibold">{{ $unit->inventory_code }}</dd></div>
@@ -53,7 +53,7 @@
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Nomor register</dt><dd>{{ $unit->register_no ?: '—' }}</dd></div>
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Tanggal perolehan</dt><dd>{{ $unit->acquisition_date?->format('d/m/Y') ?: '—' }}</dd></div>
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Tahun perolehan</dt><dd>{{ $unit->acquisition_year ?: '—' }}</dd></div>
-                    @unless (auth()->user()->isPeminjam())
+                    @unless (auth()->user()->isMember())
                         <div><dt class="text-xs text-slate-400">Nilai perolehan</dt><dd>{{ $unit->acquisition_value ? 'Rp '.number_format((float) $unit->acquisition_value, 0, ',', '.') : '—' }}</dd></div>
                         <div><dt class="text-xs text-slate-400">Sumber dana / perolehan</dt><dd>{{ $unit->funding_source ?: '—' }}{{ $unit->acquisition_source ? ' • '.$unit->acquisition_source : '' }}</dd></div>
                         <div class="sm:col-span-2"><dt class="text-xs text-slate-400">Catatan</dt><dd>{{ $unit->notes ?: '—' }}</dd></div>
@@ -155,7 +155,7 @@
                 </div>
             @endif
 
-            @unless (auth()->user()->isPeminjam())
+            @unless (auth()->user()->isMember())
             <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                 <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600">swap_horiz</span> Riwayat Perpindahan
@@ -208,7 +208,7 @@
         </div>
 
         <div class="space-y-5">
-            @unless (auth()->user()->isPeminjam())
+            @unless (auth()->user()->isMember())
             <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                 <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600">history</span> Riwayat Kode

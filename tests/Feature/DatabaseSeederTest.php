@@ -74,7 +74,7 @@ class DatabaseSeederTest extends TestCase
                 ->all();
 
             $this->assertSame($expectedCodes, $codes);
-            $this->assertTrue($user->isLaboran());
+            $this->assertTrue($user->isOperator());
         }
     }
 

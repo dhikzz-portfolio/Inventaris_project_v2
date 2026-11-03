@@ -13,7 +13,7 @@
     <x-menu-link :href="route('catalogs.index')" :active="request()->routeIs('catalogs.*') || request()->routeIs('units.*')" icon="inventory_2" label="Katalog Barang" />
 
 {{-- Peminjaman --}}
-<x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isPeminjam() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
+<x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isMember() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
 <x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" :label="$isAdmin ? 'Daftar Peminjaman' : 'Peminjaman Saya'" />
 
     {{-- Scan universal: semua pengguna operasional boleh memindai. --}}

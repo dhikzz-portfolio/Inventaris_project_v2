@@ -74,8 +74,8 @@ class RegistrationTest extends TestCase
         $this->assertSame(BorrowerType::GURU, $user->borrower_type);
         $this->assertTrue(Hash::check('rahasia-aman-123', $user->password));
         $this->assertNotSame('rahasia-aman-123', $user->password);
-        $this->assertTrue($user->hasRole(Role::MEMBER->value));
         $this->assertFalse($user->hasRole(Role::SUPER_ADMIN->value));
+        $this->assertTrue($user->hasRole(Role::MEMBER->value));
         $this->assertFalse(Schema::hasColumn('users', 'username'));
     }
 

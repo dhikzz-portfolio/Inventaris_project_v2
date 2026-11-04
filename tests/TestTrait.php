@@ -2,10 +2,10 @@
 
 namespace Tests;
 
+use App\Enums\BorrowerType;
 use App\Enums\Role;
+use App\Models\Major;
 use App\Models\User;
-use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use RuntimeException;
 
 trait TestTrait
 {
@@ -33,8 +33,8 @@ trait TestTrait
             ];
 
             foreach ($requiredEmails as $email) {
-                if (!User::where('email', $email)->exists()) {
-                    throw new \Exception('User ' . $email . ' not found after seeding');
+                if (! User::where('email', $email)->exists()) {
+                    throw new \Exception('User '.$email.' not found after seeding');
                 }
             }
 
@@ -64,9 +64,9 @@ trait TestTrait
 
         $majorCodes = ['RPL', 'DKV', 'TP', 'TKP', 'KLN'];
         foreach ($majorCodes as $code) {
-            \App\Models\Major::firstOrCreate(['code' => $code], ['name' => $code]);
+            Major::firstOrCreate(['code' => $code], ['name' => $code]);
         }
-        $majorMap = \App\Models\Major::pluck('id', 'code')->toArray();
+        $majorMap = Major::pluck('id', 'code')->toArray();
 
         // Role enum values
         $roleAdmin = Role::ADMIN->value;
@@ -76,9 +76,9 @@ trait TestTrait
         $roleSuperAdmin = Role::SUPER_ADMIN->value;
 
         // BorrowerType enum values
-        $borrowerGuru = \App\Enums\BorrowerType::GURU->value;
-        $borrowerSiswa = \App\Enums\BorrowerType::SISWA->value;
-        $borrowerStaf = \App\Enums\BorrowerType::STAF->value;
+        $borrowerGuru = BorrowerType::GURU->value;
+        $borrowerSiswa = BorrowerType::SISWA->value;
+        $borrowerStaf = BorrowerType::STAF->value;
 
         // Super Admin
         $superAdmin = User::firstOrCreate(

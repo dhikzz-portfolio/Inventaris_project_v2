@@ -259,3 +259,46 @@ Verifikasi
 - php artisan test --filter='MasterDataTest|BuildingMasterDataTest' sebelum vs sesudah perubahan hasilnya identik: 8 gagal, 11 lulus — jadi tidak ada regresi dari perubahan ini.
 
 Keterbatasan yang perlu Anda tahu: 8 tes itu memang sudah gagal sebelum perubahan saya, semuanya ModelNotFoundException di setUp() ( User::where('email','wakasek@gmail.com')->firstOrFail() ), artinya $this->seed() tidak membuat akun demo di environment test ini — itu masalah terpisah dari bug duplikasi, dan belum saya perbaiki karena di luar permintaan Anda. Tidak ada file PHP yang diubah, jadi Pint tidak diperlukan.
+
+
+Sudah diterapkan: password awal bisa dibaca dari  .env 
+
+Sebelumnya command hanya menerima  --password  atau membuat acak, jadi tidak ada cara melihatnya lagi. Sekarang ada  BOOTSTRAP_USER_ADMIN_PASSWORD .
+
+Urutan sumber password:  --password  →  BOOTSTRAP_USER_ADMIN_PASSWORD  → acak ( Str::password(20) ). Minimal 12 karakter, tetap di-hash bcrypt, dan  must_change_password  tetap aktif.
+
+Saya juga menambahkan  --reset-password  supaya akun yang sudah ada bisa disetel ulang dari nilai  .env  (tanpa flag ini command tetap idempoten dan tidak menyentuh password lama).
+
+Kredensial aktif sekarang
+
+┌───────────────┬─────────────────────────────────────────────────────┐
+│ Item          │ Nilai                                               │
+├───────────────┼─────────────────────────────────────────────────────┤
+│ Email         │ superadmin@gmail.com                                │
+│ Password      │ JvDv93RVrHinB3HqdFvh                                │
+│ Lokasi        │ BOOTSTRAP_USER_ADMIN_PASSWORD di .env (git-ignored) │
+│ Role / status │ SUPER_ADMIN_PENGGUNA, aktif, wajib ganti password   │
+│ Halaman       │ http://127.0.0.1:8000/pengguna                      │
+└───────────────┴─────────────────────────────────────────────────────┘
+
+Diverifikasi dengan  Hash::check()  → true, jadi password di  .env  benar-benar password login saat ini.
+
+Perubahan file
+
+-  config/auth.php  —  bootstrap_user_admin.password  dari env.
+-  app/Console/Commands/BootstrapUserAdmin.php  — dukungan env password, validasi min. 12 karakter, opsi  --reset-password .
+-  .env  —  BOOTSTRAP_USER_ADMIN_PASSWORD  diisi;  SUPER_ADMIN_EMAIL  dikembalikan ke  wakasek@gmail.com  (sebelumnya  superadmin@gmail.com , bentrok dengan email akun bootstrap dan membuat seeder tes gagal).
+-  .env.example  — variabel baru;  BOOTSTRAP_USER_ADMIN_EMAIL  dikosongkan agar administrator tidak memakai alamat contoh.
+-  .env.docker.example  — variabel baru.
+-  phpunit.xml  —  SEED_DEMO_DATA=true  agar suite tidak bergantung  .env  lokal (sebelumnya tes gagal di  setUp  karena  .env  berisi  false ).
+-  tests/Feature/RevisionV5Test.php  — tes baru: password dari env, tanpa  --reset-password  tidak berubah, reset mengaktifkan lagi kewajiban ganti, password pendek ditolak.
+-  docs/REVISION_V7.md  — dokumentasi bootstrap diperbarui.
+
+Verifikasi
+
+-  php artisan test --compact  → 379 passed, 0 failed, 2065 assertions.
+-  vendor/bin/pint --dirty --format agent  → passed.
+
+Catatan keamanan
+
+ .env  sudah di-ignore git ( .gitignore:3 ), jadi nilainya tidak masuk repository. Tapi siapa pun yang bisa membaca file server, backup, atau dump  .env  bisa membaca password ini — karena itu statusnya hanya "password awal": kosongkan variabel setelah login pertama (akun tetap diarahkan ke halaman profil untuk mengganti). Nilai  .env  hanya dibaca saat command bootstrap dijalankan, tidak dipakai saat login, jadi mengubahnya belakangan tidak mengubah password akun.

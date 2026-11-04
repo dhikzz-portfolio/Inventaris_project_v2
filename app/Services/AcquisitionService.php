@@ -44,13 +44,13 @@ class AcquisitionService
             ['acquisition_submitted_at' => now()],
         );
 
-        // Ketua Laboran hanya menerima pengajuan yang berada dalam cakupan
-        // laboratorium; pengajuan barang umum menjadi kewenangan Wakasek.
+        // Editor/Validator hanya menerima pengajuan yang berada dalam cakupan
+        // laboratorium; pengajuan barang umum menjadi kewenangan Admin.
         if ($this->isLabScoped($submitted)) {
-            NotifyApp::toRoles(['KETUA_LABORAN'], NotificationType::PENGADAAN,
+            NotifyApp::toRoles(['EDITOR_VALIDATOR'], NotificationType::PENGADAAN,
                 "Pengajuan pengadaan \"{$submitted->name}\" menunggu konfirmasi Anda.", route('items.acquisitions'));
         } else {
-            NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
+            NotifyApp::toRoles(['ADMIN'], NotificationType::PENGADAAN,
                 "Pengajuan pengadaan \"{$submitted->name}\" di luar cakupan laboratorium dan menunggu keputusan Anda.", route('items.acquisitions'));
         }
 
@@ -60,7 +60,7 @@ class AcquisitionService
     /** Tahap 2 — Ketua Laboran mengonfirmasi (bukan menyetujui). */
     public function confirm(Item $item, User $actor): Item
     {
-        $this->assert($actor->isKetuaLaboran(), 'Hanya Ketua Laboran yang dapat mengonfirmasi pengajuan ini.');
+        $this->assert($actor->isEditorValidator(), 'Hanya Editor/Validator yang dapat mengonfirmasi pengajuan ini.');
 
         $confirmed = $this->transition(
             $item,
@@ -74,20 +74,20 @@ class AcquisitionService
             ],
         );
 
-        NotifyApp::toRoles(['SUPER_ADMIN'], NotificationType::PENGADAAN,
-            "Pengajuan \"{$item->name}\" telah dikonfirmasi Ketua Laboran dan menunggu keputusan Wakasek Sarpras.",
+        NotifyApp::toRoles(['ADMIN'], NotificationType::PENGADAAN,
+            "Pengajuan \"{$item->name}\" telah dikonfirmasi Editor/Validator dan menunggu keputusan Admin.",
             route('items.acquisitions'));
 
         $this->notifyRequester($confirmed,
-            "Pengajuan \"{$confirmed->name}\" telah dikonfirmasi Ketua Laboran; menunggu keputusan Wakasek Sarpras.");
+            "Pengajuan \"{$confirmed->name}\" telah dikonfirmasi Editor/Validator; menunggu keputusan Admin.");
 
         return $confirmed;
     }
 
-    /** Tahap 3 — Wakasek Sarpras menyetujui. */
+    /** Tahap 3 — Admin menyetujui. */
     public function approve(Item $item, User $actor): Item
     {
-        $this->assert($actor->isApproverLevel2(), 'Hanya Wakasek Sarpras yang dapat menyetujui pengadaan.');
+        $this->assert($actor->isApproverLevel2(), 'Hanya Admin yang dapat menyetujui pengadaan.');
 
         $approved = $this->transition(
             $item,
@@ -108,10 +108,10 @@ class AcquisitionService
         return $approved;
     }
 
-    /** Tahap 3 — Wakasek Sarpras menolak; alasan wajib tersimpan. */
+    /** Tahap 3 — Admin menolak; alasan wajib tersimpan. */
     public function reject(Item $item, User $actor, ?string $note): Item
     {
-        $this->assert($actor->isApproverLevel2(), 'Hanya Wakasek Sarpras yang dapat menolak pengadaan.');
+        $this->assert($actor->isApproverLevel2(), 'Hanya Admin yang dapat menolak pengadaan.');
 
         $reason = trim((string) $note);
         $this->assert($reason !== '', 'Alasan penolakan wajib diisi.');
@@ -129,10 +129,9 @@ class AcquisitionService
             ],
             $reason,
         );
-
         if ($this->isLabScoped($rejected)) {
-            NotifyApp::toRoles(['KETUA_LABORAN'], NotificationType::PENGADAAN,
-                "Pengadaan \"{$rejected->name}\" DITOLAK Wakasek Sarpras — {$reason}.",
+            NotifyApp::toRoles(['EDITOR_VALIDATOR'], NotificationType::PENGADAAN,
+                "Pengadaan \"{$rejected->name}\" DITOLAK Admin — {$reason}.",
                 route('items.acquisitions'));
         }
 
@@ -309,7 +308,7 @@ class AcquisitionService
                 'unit_dibuat' => $created,
             ]);
 
-            $roles = $this->isLabScoped($locked) ? ['KETUA_LABORAN', 'SUPER_ADMIN'] : ['SUPER_ADMIN'];
+            $roles = $this->isLabScoped($locked) ? ['EDITOR_VALIDATOR', 'ADMIN'] : ['ADMIN'];
 
             NotifyApp::toRoles($roles, NotificationType::PENGADAAN,
                 "Pengadaan \"{$locked->name}\" telah tercatat sebagai inventaris ({$created} unit).",

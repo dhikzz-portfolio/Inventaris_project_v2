@@ -118,9 +118,9 @@ class RevisionV5Test extends TestCase
         $admin = User::factory()->create([
             'name' => 'Admin Akun Uji',
             'email' => 'admin.akun.uji@gmail.com',
-            'role' => Role::SUPER_ADMIN_PENGGUNA->value,
+            'role' => Role::SUPER_ADMIN->value,
         ]);
-        $admin->syncRoles([Role::SUPER_ADMIN_PENGGUNA->value]);
+        $admin->syncRoles([Role::SUPER_ADMIN->value]);
 
         return $admin;
     }
@@ -406,7 +406,7 @@ class RevisionV5Test extends TestCase
 
         $admin = User::where('email', 'bootstrap.admin@example.test')->firstOrFail();
 
-        $this->assertSame(Role::SUPER_ADMIN_PENGGUNA->value, $admin->role);
+        $this->assertSame(Role::SUPER_ADMIN->value, $admin->role);
         $this->assertTrue(Hash::check('AwalKuat12345!', $admin->password));
         $this->assertTrue($admin->mustChangePassword());
         $this->assertTrue($admin->isActive());

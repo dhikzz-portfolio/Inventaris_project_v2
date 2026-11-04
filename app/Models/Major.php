@@ -19,7 +19,7 @@ class Major extends Model
 
     public function laborans(): HasMany
     {
-        return $this->hasMany(User::class)->where('role', 'LABORAN');
+        return $this->hasMany(User::class)->where('role', Role::OPERATOR->value);
     }
 
     public function users(): HasMany

@@ -73,7 +73,7 @@ ini hanya mencatat perubahan dan batas verifikasi yang benar-benar dilakukan.
 - Seluruh route `/pengguna` hanya berada dalam middleware
   `role:SUPER_ADMIN_PENGGUNA`. Super Admin Sarpras, Ketua Laboran, Laboran/K3,
   dan Peminjam ditolak backend.
-- Menu **Akun Pengguna** hanya dirender untuk `isSuperAdminPengguna()`.
+- Menu **Akun Pengguna** hanya dirender untuk `isSuperAdmin()`.
 - Halaman menyediakan ringkasan akun, daftar, pencarian, filter role/status,
   detail, tambah, ubah, aktif/nonaktif, kelola role & cakupan ruangan, serta
   riwayat perubahan dari activity log (tanpa password).

@@ -388,7 +388,7 @@ class RevisionV3AuditTest extends TestCase
             'name' => 'Pembuat Kegiatan',
             'email' => 'pembuat.kegiatan@gmail.com',
             'password' => 'password123',
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
             'borrower_type' => BorrowerType::STAF->value,
         ]);
 

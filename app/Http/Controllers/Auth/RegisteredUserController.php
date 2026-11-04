@@ -72,14 +72,14 @@ class RegisteredUserController extends Controller
                 'birth_date' => $birthDate,
                 'email' => $data['email'],
                 'password' => $data['password'],
-                'role' => Role::PEMINJAM->value,
+                'role' => Role::MEMBER->value,
                 'borrower_type' => $initialBorrowerType,
                 'profile_completed' => false,
                 'profile_completed_at' => null,
             ]);
 
-            SpatieRole::findOrCreate(Role::PEMINJAM->value, 'web');
-            $user->syncRoles([Role::PEMINJAM->value]);
+            SpatieRole::findOrCreate(Role::MEMBER->value, 'web');
+            $user->syncRoles([Role::MEMBER->value]);
 
             return $user;
         });

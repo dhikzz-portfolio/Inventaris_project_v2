@@ -5,7 +5,7 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporan Kerusakan</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Pemantauan kondisi barang. Laporan tidak menghapus unit maupun mengurangi stok.</p>
             </div>
-            @if (auth()->user()->isLaboran() || auth()->user()->isSuperAdmin())
+            @if (auth()->user()->isOperator() || auth()->user()->isSuperAdmin())
                 <a href="{{ route('damage-reports.create') }}" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
                     <span class="material-icons-round text-lg" aria-hidden="true">report</span> Laporkan Kerusakan
                 </a>

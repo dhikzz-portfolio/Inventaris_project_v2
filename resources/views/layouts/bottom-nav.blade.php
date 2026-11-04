@@ -1,7 +1,7 @@
 @php
     $user = auth()->user();
     $canApprove = $user?->canApproveLoans();
-    $isPeminjam = $user?->isPeminjam();
+    $isPeminjam = $user?->isMember();
     $unread = $user?->unreadNotifications()->count() ?? 0;
 @endphp
 

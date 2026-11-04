@@ -45,21 +45,21 @@ class NotifyApp
      */
     public static function toApprovers(NotificationType $type, string $message, ?string $link = null): void
     {
-        self::toRoles([Role::SUPER_ADMIN->value, Role::KETUA_LABORAN->value], $type, $message, $link);
+        self::toRoles([Role::ADMIN->value, Role::EDITOR_VALIDATOR->value], $type, $message, $link);
     }
 
     /**
-     * Pengelola inventaris tingkat sekolah/ketua laboran — dipakai untuk
+     * Pengelola inventaris tingkat sekolah/editor validator — dipakai untuk
      * aktivitas yang hanya dapat ditindaklanjuti role tersebut.
      */
     public static function toInventoryManagers(NotificationType $type, string $message, ?string $link = null): void
     {
-        self::toRoles([Role::SUPER_ADMIN->value, Role::KETUA_LABORAN->value], $type, $message, $link);
+        self::toRoles([Role::ADMIN->value, Role::EDITOR_VALIDATOR->value], $type, $message, $link);
     }
 
     /**
-     * Administrator akun (Super Admin utama & Super Admin Pengguna).
-     * Super Admin Pengguna tidak memperoleh notifikasi transaksi inventaris.
+     * Administrator akun (Super Admin).
+     * Super Admin tidak memperoleh notifikasi transaksi inventaris.
      */
     public static function toAccountAdmins(
         NotificationType $type,
@@ -68,7 +68,7 @@ class NotifyApp
         ?int $exceptUserId = null,
     ): void {
         User::query()
-            ->whereIn('role', [Role::SUPER_ADMIN->value, Role::SUPER_ADMIN_PENGGUNA->value])
+            ->where('role', Role::SUPER_ADMIN->value)
             ->where('is_active', true)
             ->when($exceptUserId !== null, fn ($query) => $query->where('id', '!=', $exceptUserId))
             ->get()

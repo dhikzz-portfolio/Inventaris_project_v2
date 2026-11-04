@@ -29,7 +29,7 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
             // Profil contoh sudah lengkap agar tes tidak dialihkan ke
             // halaman pelengkapan profil.
             'borrower_type' => BorrowerType::GURU->value,

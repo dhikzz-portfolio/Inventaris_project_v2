@@ -249,7 +249,7 @@ class LoanRequest extends Component
         return view('livewire.loan.loan-request', [
             'items' => $items,
             'events' => Event::where('end_date', '>=', now()->subMonth())->orderByDesc('start_date')->get(),
-            'canChooseBorrower' => ! $user->isPeminjam(),
+            'canChooseBorrower' => ! $user->isMember(),
             'borrowerModes' => BorrowerMode::cases(),
             'borrowerCategories' => BorrowerType::cases(),
             'borrowerAccounts' => $this->borrowerAccountOptions($user),
@@ -414,8 +414,8 @@ class LoanRequest extends Component
             return;
         }
 
-        // Role Peminjam tidak memperoleh pilihan: backend tetap memaksa SELF.
-        $mode = auth()->user()->isPeminjam()
+        // Role Member tidak memperoleh pilihan: backend tetap memaksa SELF.
+        $mode = auth()->user()->isMember()
             ? BorrowerMode::SELF->value
             : $this->borrower_mode;
 

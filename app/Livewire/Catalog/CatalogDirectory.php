@@ -146,7 +146,7 @@ class CatalogDirectory extends Component
                 ->select('floor')->distinct()->orderBy('floor')->pluck('floor'),
             'activeFilters' => collect(['search', 'category', 'building', 'floor', 'room', 'availability'])
                 ->filter(fn ($field) => $this->$field !== '')->count(),
-            'scopeMissing' => $user->isLaboran() && ! $user->roomScopes()->exists(),
+            'scopeMissing' => $user->isOperator() && ! $user->roomScopes()->exists(),
         ]);
     }
 }

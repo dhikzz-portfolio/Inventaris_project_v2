@@ -443,11 +443,11 @@ class ItemController extends Controller
                     ->orWhereHas('allocations.room', fn ($room) => $room->where('code', 'like', $like)->orWhere('name', 'like', $like))
                     ->orWhereHas('requester', fn ($requester) => $requester->where('name', 'like', $like));
             }))
-            ->when($user->isLaboran(), fn ($query) => $query->where(function ($scope) use ($user) {
+            ->when($user->isOperator(), fn ($query) => $query->where(function ($scope) use ($user) {
                 $scope->where('acquisition_requested_by', $user->id)
                     ->orWhereHas('allocations.room', fn ($room) => $room->whereIn('id', $user->roomScopes()->select('room_id')));
             }))
-            ->when(! $user->isSuperAdmin() && ! $user->isLaboran(), fn ($query) => $query->where(function ($scope) {
+            ->when(! $user->isSuperAdmin() && ! $user->isOperator(), fn ($query) => $query->where(function ($scope) {
                 $scope->whereHas('room', fn ($room) => $room->where('is_lab', true))
                     ->orWhereHas('allocations.room', fn ($room) => $room->where('is_lab', true));
             }))
@@ -475,7 +475,7 @@ class ItemController extends Controller
     /** Tahap 2 — konfirmasi Ketua Laboran (bukan persetujuan akhir). */
     public function confirmAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
     {
-        abort_unless($request->user()->isKetuaLaboran(), 403);
+        abort_unless($request->user()->isEditorValidator(), 403);
 
         $acquisitions->confirm($item, $request->user());
 
@@ -570,7 +570,7 @@ class ItemController extends Controller
     {
         return Room::with('major')
             ->when(! $user?->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
-            ->when($user?->isLaboran(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
+            ->when($user?->isOperator(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
             ->orderBy('code')
             ->get();
     }
@@ -585,7 +585,7 @@ class ItemController extends Controller
 
         $rule = $rule->where('is_lab', true);
 
-        if ($user->isLaboran()) {
+        if ($user->isOperator()) {
             $rule = $rule->whereIn('id', $user->roomScopes()->select('room_id'));
         }
 

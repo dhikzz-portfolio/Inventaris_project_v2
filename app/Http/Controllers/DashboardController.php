@@ -23,9 +23,9 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        // Tampilan baru hanya ditampilkan untuk role peminjam.
+        // Tampilan baru hanya ditampilkan untuk role member (peminjam).
         // Role lain tetap mengikuti dashboard operasional yang sudah ada pada branch sebelumnya.
-        if ($user->isPeminjam()) {
+        if ($user->isMember()) {
             return view('dashboard', $this->personalData($user));
         }
 
@@ -117,7 +117,7 @@ class DashboardController extends Controller
             'mode' => 'operational',
             'scopeLabel' => match (true) {
                 $user->isSuperAdmin() => 'seluruh sekolah',
-                $user->isKetuaLaboran() => 'semua laboratorium',
+                $user->isEditorValidator() => 'semua laboratorium',
                 default => 'laboratorium Anda',
             },
             'stats' => [

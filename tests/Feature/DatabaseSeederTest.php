@@ -74,7 +74,7 @@ class DatabaseSeederTest extends TestCase
                 ->all();
 
             $this->assertSame($expectedCodes, $codes);
-            $this->assertTrue($user->isLaboran());
+            $this->assertTrue($user->isOperator());
         }
     }
 
@@ -89,7 +89,7 @@ class DatabaseSeederTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'superadmin.prod@gmail.com',
-            'role' => Role::SUPER_ADMIN_PENGGUNA->value,
+            'role' => Role::SUPER_ADMIN->value,
         ]);
 
         // Akun demo tidak di-seed

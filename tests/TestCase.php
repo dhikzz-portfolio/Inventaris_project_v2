@@ -36,9 +36,9 @@ abstract class TestCase extends BaseTestCase
         $admin = User::factory()->create([
             'name' => 'Admin Akun Tes',
             'email' => 'admin.akun.'.uniqid().'@example.test',
-            'role' => Role::SUPER_ADMIN_PENGGUNA->value,
+            'role' => Role::SUPER_ADMIN->value,
         ]);
-        $admin->syncRoles([Role::SUPER_ADMIN_PENGGUNA->value]);
+        $admin->syncRoles([Role::SUPER_ADMIN->value]);
 
         return $admin;
     }

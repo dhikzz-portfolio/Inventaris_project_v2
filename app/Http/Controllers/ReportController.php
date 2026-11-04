@@ -32,7 +32,7 @@ class ReportController extends Controller
             'categories' => Category::orderBy('name')->get(),
             'rooms' => Room::query()
                 ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('is_lab', true))
-                ->when($user->isLaboran(), fn ($q) => $q->whereIn('id', $user->roomScopes()->select('room_id')))
+                ->when($user->isOperator(), fn ($q) => $q->whereIn('id', $user->roomScopes()->select('room_id')))
                 ->orderBy('code')
                 ->get(),
             'majors' => Major::orderBy('name')->get(),

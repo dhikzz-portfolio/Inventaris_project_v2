@@ -768,7 +768,7 @@
                         @if ($loan->borrowerIdentityLabel())
                             <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $loan->borrowerIdentityLabel() }}</div>
                         @endif
-                        @unless (auth()->user()->isPeminjam())
+                        @unless (auth()->user()->isMember())
                             @if ($loan->borrower?->email)
                                 <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Email peminjam: {{ $loan->borrower->email }}</div>
                             @endif
@@ -778,11 +778,11 @@
                         @endunless
                     </div>
                 <div>
-                    <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ auth()->user()->isPeminjam() ? 'Mulai pinjam' : 'Pinjam' }}</p>
+                    <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ auth()->user()->isMember() ? 'Mulai pinjam' : 'Pinjam' }}</p>
                     <p class="mt-1 font-semibold text-slate-800 dark:text-slate-100">{{ $loan->start_date->format('d M Y · H:i') }}</p>
                 </div>
                 <div class="border-t border-slate-100 pt-3 dark:border-slate-800">
-                    <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ auth()->user()->isPeminjam() ? 'Batas pengembalian' : 'Batas kembali' }}</p>
+                    <p class="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ auth()->user()->isMember() ? 'Batas pengembalian' : 'Batas kembali' }}</p>
                     <p class="mt-1 font-semibold {{ $loan->isOverdue() ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-100' }}">{{ $loan->due_date->format('d M Y · H:i') }}</p>
                 </div>
                 @if ($loan->event)

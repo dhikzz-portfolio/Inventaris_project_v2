@@ -133,16 +133,16 @@ class Item extends Model
     }
 
     /**
-     * ID Ketua Laboran yang berwenang melihat katalog ini.
+     * ID Editor/Validator yang berwenang melihat katalog ini.
      * Digunakan untuk menentukan penerima notifikasi yang tepat.
      *
      * @return list<int>
      */
-    public function visibleKetuaLaboranIds(): array
+    public function visibleEditorValidatorIds(): array
     {
-        $ketuaLaboranIds = User::where('role', 'KETUA_LABORAN')->pluck('id');
+        $editorValidatorIds = User::where('role', 'EDITOR_VALIDATOR')->pluck('id');
 
-        return $ketuaLaboranIds->filter(function ($id) {
+        return $editorValidatorIds->filter(function ($id) {
             $user = User::find($id);
 
             return $user && $this->isVisibleTo($user);
@@ -164,11 +164,11 @@ class Item extends Model
             });
         }
 
-        if ($user->isKetuaLaboran()) {
+        if ($user->isEditorValidator()) {
             return $this->room && $this->room->is_lab;
         }
 
-        if ($user->isLaboran()) {
+        if ($user->isOperator()) {
             return $this->room && $user->hasRoomScope($this->room_id);
         }
 
@@ -191,9 +191,9 @@ class Item extends Model
             $visible->orWhere(function ($legacy) use ($user) {
                 $legacy->whereDoesntHave('units');
 
-                if ($user->isKetuaLaboran()) {
+                if ($user->isEditorValidator()) {
                     $legacy->whereHas('room', fn ($room) => $room->where('is_lab', true));
-                } elseif ($user->isLaboran()) {
+                } elseif ($user->isOperator()) {
                     $legacy->whereIn('room_id', $user->roomScopes()->select('room_id'));
                 }
             });

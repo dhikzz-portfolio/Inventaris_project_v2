@@ -95,7 +95,7 @@
                 </div>
             @else
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                    Akun Super Admin utama dilindungi. Role ini tidak dapat diubah atau dinonaktifkan dari halaman administrasi akun{{ $isLastActiveSuperAdmin ? ' dan merupakan satu-satunya Super Admin utama yang aktif' : '' }}.
+                    Akun Super Admin dilindungi. Role ini tidak dapat diubah atau dinonaktifkan dari halaman administrasi akun{{ $isLastActiveSuperAdmin ? ' dan merupakan satu-satunya Super Admin yang aktif' : '' }}.
                 </div>
             @endif
         </div>

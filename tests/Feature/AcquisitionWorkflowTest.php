@@ -121,7 +121,7 @@ class AcquisitionWorkflowTest extends TestCase
 
         $this->assertSame('DRAFT', $item->acquisition_status);
         $this->assertSame(0, $item->units()->count());
-        $this->assertSame(Role::LABORAN->value, $item->requester->role);
+        $this->assertSame(Role::OPERATOR->value, $item->requester->role);
 
         // Tahap 1 — kirim ke Ketua Laboran.
         $this->actingAs($this->laboran)

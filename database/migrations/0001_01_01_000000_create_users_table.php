@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('name');
             $table->string('password');
-            $table->string('role')->default('PEMINJAM'); // SUPER_ADMIN, KETUA_LABORAN, LABORAN, PEMINJAM
+            $table->string('role')->default('MEMBER'); // SUPER_ADMIN, ADMIN, EDITOR_VALIDATOR, OPERATOR, MEMBER
             $table->foreignId('major_id')->nullable()->constrained(); // jurusan Laboran/Ketua Kompetensi
             $table->timestamp('last_login_at')->nullable();
             $table->rememberToken();

@@ -47,7 +47,7 @@ class ReportService
         // Ketua Laboran mencakup seluruh laboratorium, Laboran/K3 hanya ruangan
         // yang ditugaskan, dan bukan inventaris umum sekolah.
         $labOnly = $user !== null && ! $user->isSuperAdmin();
-        $roomScopedIds = $user?->isLaboran()
+        $roomScopedIds = $user?->isOperator()
             ? $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all()
             : null;
 

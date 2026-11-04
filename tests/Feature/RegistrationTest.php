@@ -70,12 +70,12 @@ class RegistrationTest extends TestCase
 
         $user = User::where('email', 'andhika@gmail.com')->firstOrFail();
 
-        $this->assertSame(Role::PEMINJAM->value, $user->role);
+        $this->assertSame(Role::MEMBER->value, $user->role);
         $this->assertSame(BorrowerType::GURU, $user->borrower_type);
         $this->assertTrue(Hash::check('rahasia-aman-123', $user->password));
         $this->assertNotSame('rahasia-aman-123', $user->password);
-        $this->assertTrue($user->hasRole(Role::PEMINJAM->value));
         $this->assertFalse($user->hasRole(Role::SUPER_ADMIN->value));
+        $this->assertTrue($user->hasRole(Role::MEMBER->value));
         $this->assertFalse(Schema::hasColumn('users', 'username'));
     }
 
@@ -123,7 +123,7 @@ class RegistrationTest extends TestCase
             'name' => 'Akun Lama',
             'email' => 'lama@gmail.com',
             'password' => 'password-lama',
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
             'borrower_type' => BorrowerType::GURU->value,
         ]);
 
@@ -165,7 +165,7 @@ class RegistrationTest extends TestCase
             'name' => 'Pengguna Biasa',
             'email' => 'biasa@gmail.com',
             'password' => 'password-uji',
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
             'borrower_type' => BorrowerType::GURU->value,
             'birth_date' => now()->subYears(30)->toDateString(),
             'profile_completed' => true,
@@ -178,7 +178,7 @@ class RegistrationTest extends TestCase
             'role' => Role::SUPER_ADMIN->value,
         ])->assertRedirect(route('profile.edit'));
 
-        $this->assertSame(Role::PEMINJAM->value, $user->refresh()->role);
+        $this->assertSame(Role::MEMBER->value, $user->refresh()->role);
         $this->assertFalse($user->hasRole(Role::SUPER_ADMIN->value));
     }
 
@@ -190,7 +190,7 @@ class RegistrationTest extends TestCase
             'name' => 'Pengguna Siswa',
             'email' => 'siswa.profil@gmail.com',
             'password' => 'password-uji',
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
             'borrower_type' => BorrowerType::SISWA->value,
             'class_name' => 'X RPL 1',
             'major_id' => $major->id,
@@ -216,7 +216,7 @@ class RegistrationTest extends TestCase
             'name' => 'Akun Lama',
             'email' => 'guru@sekolah.id',
             'password' => 'password-uji',
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
             'borrower_type' => BorrowerType::GURU->value,
             'birth_date' => now()->subYears(40)->toDateString(),
             'profile_completed' => true,
@@ -238,7 +238,7 @@ class RegistrationTest extends TestCase
             'name' => 'Akun Lama',
             'email' => 'guru@sekolah.id',
             'password' => 'password-uji',
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
             'borrower_type' => BorrowerType::GURU->value,
             'birth_date' => now()->subYears(40)->toDateString(),
             'profile_completed' => true,

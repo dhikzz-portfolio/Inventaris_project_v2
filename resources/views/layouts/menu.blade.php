@@ -2,8 +2,8 @@
     $user = auth()->user();
     $canManage = $user?->managesInventory();
     $canApprove = $user?->canApproveLoans();
-    $isWakasek = $user?->isApproverLevel2();
-    $isAccountAdmin = $user?->isSuperAdminPengguna();
+    $isAdmin = $user?->isApproverLevel2();
+    $isAccountAdmin = $user?->isSuperAdmin();
     $canManageUsers = $user?->canManageUsers();
 @endphp
 
@@ -13,8 +13,8 @@
     <x-menu-link :href="route('catalogs.index')" :active="request()->routeIs('catalogs.*') || request()->routeIs('units.*')" icon="inventory_2" label="Katalog Barang" />
 
 {{-- Peminjaman --}}
-<x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isPeminjam() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
-<x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" :label="$isWakasek ? 'Daftar Peminjaman' : 'Peminjaman Saya'" />
+<x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isMember() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
+<x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" :label="$isAdmin ? 'Daftar Peminjaman' : 'Peminjaman Saya'" />
 
     {{-- Scan universal: semua pengguna operasional boleh memindai. --}}
     <x-menu-link :href="route('scan')" :active="request()->routeIs('scan') || request()->routeIs('scan.resolve')" icon="qr_code_scanner" label="Scan Inventaris" />
@@ -50,7 +50,7 @@
 
     @if ($canManage)
         {{-- Ketua Laboran dapat melihat master data, perubahan data khusus Super Admin. --}}
-        <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" :label="$isWakasek ? 'Data Sekolah' : 'Data Sekolah (lihat)'" />
+        <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" :label="$isAdmin ? 'Data Sekolah' : 'Data Sekolah (lihat)'" />
     @endif
 @endunless
 
@@ -58,14 +58,14 @@
 <x-menu-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" icon="notifications" label="Pemberitahuan"
              :badge="$user?->unreadNotifications()->count() ?? 0" />
 
-@if ($isWakasek)
+@if ($isAdmin)
     <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengelolaan Sekolah</div>
     <x-menu-link :href="route('write-offs.pending')" :active="request()->routeIs('write-offs.pending')" icon="verified_user" label="Setujui Penghapusan" />
     <x-menu-link :href="route('settings.edit')" :active="request()->routeIs('settings.*')" icon="settings" label="Pengaturan Sekolah" />
 @endif
 
-{{-- Revisi V5: administrasi seluruh akun hanya untuk Super Admin Pengguna.
-     Super Admin Sarpras tidak memperoleh menu ini (backend juga menolak). --}}
+{{-- Revisi V7+: administrasi seluruh akun hanya untuk Super Admin.
+     Admin tidak memperoleh menu ini (backend juga menolak). --}}
 @if ($isAccountAdmin)
     <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Administrasi Akun</div>
     <x-menu-link :href="route('users.index')" :active="request()->routeIs('users.*')" icon="manage_accounts" label="Akun Pengguna" />

@@ -131,8 +131,8 @@ class DamageReportService
 
     /**
      * Penerima ditentukan oleh cakupan unit dan klasifikasi kerusakan:
-     * Ketua Laboran untuk unit laboratorium, Wakasek Sarpras untuk laporan
-     * rusak berat yang memerlukan tindak lanjut. Admin akun tidak menerima
+     * Editor/Validator untuk unit laboratorium, Admin untuk laporan
+     * rusak berat yang memerlukan tindak lanjut. Super Admin tidak menerima
      * notifikasi transaksi inventaris.
      */
     private function notifyNewReport(AssetUnit $unit, DamageReport $report, DamageClassification $classification): void
@@ -141,12 +141,12 @@ class DamageReportService
         $label = $unit->inventory_code.' — '.($unit->catalog?->name ?? 'unit inventaris');
 
         if ($unit->room?->is_lab) {
-            NotifyApp::toRoles([Role::KETUA_LABORAN->value], NotificationType::KERUSAKAN,
+            NotifyApp::toRoles([Role::EDITOR_VALIDATOR->value], NotificationType::KERUSAKAN,
                 "Laporan kerusakan baru ({$classification->label()}): {$label}.", $link);
         }
 
         if ($classification === DamageClassification::RUSAK_BERAT) {
-            NotifyApp::toRoles([Role::SUPER_ADMIN->value], NotificationType::KERUSAKAN,
+            NotifyApp::toRoles([Role::ADMIN->value], NotificationType::KERUSAKAN,
                 "Laporan rusak berat: {$label} memerlukan peninjauan tindak lanjut.", $link);
         }
     }
@@ -166,7 +166,7 @@ class DamageReportService
         }
 
         if ($after === DamageReportStatus::MENUNGGU_PENGHAPUSAN) {
-            NotifyApp::toRoles([Role::SUPER_ADMIN->value], NotificationType::KERUSAKAN,
+            NotifyApp::toRoles([Role::ADMIN->value], NotificationType::KERUSAKAN,
                 "Laporan kerusakan {$label} menunggu tindak lanjut penghapusan.", $link);
         }
     }

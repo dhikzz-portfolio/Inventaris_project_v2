@@ -25,9 +25,9 @@ class UserManagementUiTest extends TestCase
         $this->accountAdmin = User::factory()->create([
             'name' => 'Admin Akun UI',
             'email' => 'admin.ui@gmail.com',
-            'role' => Role::SUPER_ADMIN_PENGGUNA->value,
+            'role' => Role::SUPER_ADMIN->value,
         ]);
-        $this->accountAdmin->syncRoles([Role::SUPER_ADMIN_PENGGUNA->value]);
+        $this->accountAdmin->syncRoles([Role::SUPER_ADMIN->value]);
     }
 
     public function test_form_edit_pengguna_memakai_card_dan_radio_role(): void
@@ -52,7 +52,7 @@ class UserManagementUiTest extends TestCase
             'name' => 'Staf Tata Usaha Baru',
             'degree' => 'S.Pd',
             'email' => 'tata.baru@gmail.com',
-            'role' => Role::LABORAN->value,
+            'role' => Role::OPERATOR->value,
             'borrower_type' => BorrowerType::STAF->value,
             'room_ids' => [],
         ])->assertRedirect()->assertSessionHasNoErrors();
@@ -62,9 +62,9 @@ class UserManagementUiTest extends TestCase
         $this->assertSame('Staf Tata Usaha Baru', $user->name);
         $this->assertSame('S.Pd', $user->degree);
         $this->assertSame('tata.baru@gmail.com', $user->email);
-        $this->assertSame(Role::LABORAN->value, $user->role);
+        $this->assertSame(Role::OPERATOR->value, $user->role);
         $this->assertNull($user->borrower_type);
-        $this->assertTrue($user->hasRole(Role::LABORAN->value));
+        $this->assertTrue($user->hasRole(Role::OPERATOR->value));
     }
 
     public function test_super_admin_pengguna_tidak_dapat_menurunkan_role_akun_sendiri(): void
@@ -72,10 +72,10 @@ class UserManagementUiTest extends TestCase
         $this->actingAs($this->accountAdmin)->put(route('users.update', $this->accountAdmin), [
             'name' => $this->accountAdmin->name,
             'email' => $this->accountAdmin->email,
-            'role' => Role::PEMINJAM->value,
+            'role' => Role::MEMBER->value,
         ])->assertSessionHasErrors('role');
 
-        $this->assertSame(Role::SUPER_ADMIN_PENGGUNA->value, $this->accountAdmin->refresh()->role);
+        $this->assertSame(Role::SUPER_ADMIN->value, $this->accountAdmin->refresh()->role);
 
         // Wakasek Sarpras tidak memiliki akses administrasi akun.
         $this->actingAs($this->wakasek)->get(route('users.index'))->assertForbidden();
@@ -91,6 +91,6 @@ class UserManagementUiTest extends TestCase
             'role' => Role::SUPER_ADMIN->value,
         ])->assertRedirect(route('profile.edit'));
 
-        $this->assertSame(Role::PEMINJAM->value, $user->refresh()->role);
+        $this->assertSame(Role::MEMBER->value, $user->refresh()->role);
     }
 }

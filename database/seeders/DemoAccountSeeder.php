@@ -22,20 +22,20 @@ class DemoAccountSeeder extends Seeder
         $majors = Major::query()->pluck('id', 'code');
 
         $accounts = [
-            ['name' => 'Drs. H. Wakasek Sarpras', 'role' => Role::SUPER_ADMIN, 'major' => null, 'type' => null, 'password' => 'wakasek123', 'email' => 'wakasek@gmail.com', 'birth_date' => '1975-06-15'],
-            ['name' => 'Ketua Laboran Sekolah', 'role' => Role::KETUA_LABORAN, 'major' => null, 'type' => null, 'password' => 'ketua123', 'email' => 'ketualaboran@gmail.com', 'birth_date' => '1978-02-10'],
-            ['name' => 'Laboran RPL (Demo)', 'role' => Role::LABORAN, 'major' => 'RPL', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.rpl@gmail.com', 'birth_date' => '1982-04-18'],
-            ['name' => 'Laboran DKV (Demo)', 'role' => Role::LABORAN, 'major' => 'DKV', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.dkv@gmail.com', 'birth_date' => '1983-08-25'],
-            ['name' => 'Laboran Kuliner (Demo)', 'role' => Role::LABORAN, 'major' => 'KLN', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.kln@gmail.com', 'birth_date' => '1984-11-30'],
-            ['name' => 'Laboran Teknik Pengelasan (Demo)', 'role' => Role::LABORAN, 'major' => 'TP', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.tp@gmail.com', 'birth_date' => '1981-01-12'],
-            ['name' => 'Laboran TKP (Demo)', 'role' => Role::LABORAN, 'major' => 'TKP', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.tkp@gmail.com', 'birth_date' => '1985-09-05'],
+            ['name' => 'Drs. H. Wakasek Sarpras', 'role' => Role::ADMIN, 'major' => null, 'type' => null, 'password' => 'wakasek123', 'email' => 'wakasek@gmail.com', 'birth_date' => '1975-06-15'],
+            ['name' => 'Editor/Validator Sekolah', 'role' => Role::EDITOR_VALIDATOR, 'major' => null, 'type' => null, 'password' => 'ketua123', 'email' => 'ketualaboran@gmail.com', 'birth_date' => '1978-02-10'],
+            ['name' => 'Operator RPL (Demo)', 'role' => Role::OPERATOR, 'major' => 'RPL', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.rpl@gmail.com', 'birth_date' => '1982-04-18'],
+            ['name' => 'Operator DKV (Demo)', 'role' => Role::OPERATOR, 'major' => 'DKV', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.dkv@gmail.com', 'birth_date' => '1983-08-25'],
+            ['name' => 'Operator Kuliner (Demo)', 'role' => Role::OPERATOR, 'major' => 'KLN', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.kln@gmail.com', 'birth_date' => '1984-11-30'],
+            ['name' => 'Operator Teknik Pengelasan (Demo)', 'role' => Role::OPERATOR, 'major' => 'TP', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.tp@gmail.com', 'birth_date' => '1981-01-12'],
+            ['name' => 'Operator TKP (Demo)', 'role' => Role::OPERATOR, 'major' => 'TKP', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.tkp@gmail.com', 'birth_date' => '1985-09-05'],
             // Nama & gelar disimpan terpisah: displayName() membentuk "Budi Santoso, S.Kom".
-            ['name' => 'Budi Santoso', 'degree' => 'S.Kom', 'role' => Role::PEMINJAM, 'major' => 'RPL', 'type' => BorrowerType::GURU, 'password' => 'guru123', 'email' => 'guru.budi@gmail.com', 'birth_date' => '1985-03-12'],
-            ['name' => 'Sari Wijayanti', 'degree' => 'S.Pd', 'role' => Role::PEMINJAM, 'major' => 'TP', 'type' => BorrowerType::GURU, 'password' => 'guru123', 'email' => 'guru.sari@gmail.com', 'birth_date' => '1988-07-22'],
-            ['name' => 'Raka Pratama', 'role' => Role::PEMINJAM, 'major' => 'RPL', 'type' => BorrowerType::SISWA, 'password' => 'siswa123', 'email' => 'siswa.raka@gmail.com', 'birth_date' => '2010-05-10', 'class_name' => 'X RPL 1'],
-            ['name' => 'Nadia Putri', 'role' => Role::PEMINJAM, 'major' => 'DKV', 'type' => BorrowerType::SISWA, 'password' => 'siswa123', 'email' => 'siswa.nadia@gmail.com', 'birth_date' => '2010-09-15', 'class_name' => 'XI DKV 2'],
-            ['name' => 'Staf Tata Usaha', 'role' => Role::PEMINJAM, 'major' => null, 'type' => BorrowerType::STAF, 'password' => 'staf123', 'email' => 'staf.tata@gmail.com', 'birth_date' => '1990-01-20', 'work_unit' => 'Tata Usaha'],
-            ['name' => 'Staf Perpustakaan', 'role' => Role::PEMINJAM, 'major' => null, 'type' => BorrowerType::STAF, 'password' => 'staf123', 'email' => 'staf.perpus@gmail.com', 'birth_date' => '1992-11-05', 'work_unit' => 'Perpustakaan'],
+            ['name' => 'Budi Santoso', 'degree' => 'S.Kom', 'role' => Role::MEMBER, 'major' => 'RPL', 'type' => BorrowerType::GURU, 'password' => 'guru123', 'email' => 'guru.budi@gmail.com', 'birth_date' => '1985-03-12'],
+            ['name' => 'Sari Wijayanti', 'degree' => 'S.Pd', 'role' => Role::MEMBER, 'major' => 'TP', 'type' => BorrowerType::GURU, 'password' => 'guru123', 'email' => 'guru.sari@gmail.com', 'birth_date' => '1988-07-22'],
+            ['name' => 'Raka Pratama', 'role' => Role::MEMBER, 'major' => 'RPL', 'type' => BorrowerType::SISWA, 'password' => 'siswa123', 'email' => 'siswa.raka@gmail.com', 'birth_date' => '2010-05-10', 'class_name' => 'X RPL 1'],
+            ['name' => 'Nadia Putri', 'role' => Role::MEMBER, 'major' => 'DKV', 'type' => BorrowerType::SISWA, 'password' => 'siswa123', 'email' => 'siswa.nadia@gmail.com', 'birth_date' => '2010-09-15', 'class_name' => 'XI DKV 2'],
+            ['name' => 'Staf Tata Usaha', 'role' => Role::MEMBER, 'major' => null, 'type' => BorrowerType::STAF, 'password' => 'staf123', 'email' => 'staf.tata@gmail.com', 'birth_date' => '1990-01-20', 'work_unit' => 'Tata Usaha'],
+            ['name' => 'Staf Perpustakaan', 'role' => Role::MEMBER, 'major' => null, 'type' => BorrowerType::STAF, 'password' => 'staf123', 'email' => 'staf.perpus@gmail.com', 'birth_date' => '1992-11-05', 'work_unit' => 'Perpustakaan'],
         ];
 
         foreach ($accounts as $account) {

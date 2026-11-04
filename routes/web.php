@@ -22,8 +22,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WriteOffController;
 use Illuminate\Support\Facades\Route;
 
-$managers = 'SUPER_ADMIN|KETUA_LABORAN';
-$approvers = 'SUPER_ADMIN|KETUA_LABORAN|LABORAN';
+$managers = 'ADMIN|EDITOR_VALIDATOR';
+$approvers = 'ADMIN|EDITOR_VALIDATOR|OPERATOR';
 
 Route::get('/manifest.json', [PwaController::class, 'manifest'])->name('pwa.manifest');
 Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.service-worker');
@@ -44,7 +44,7 @@ Route::middleware(['auth', 'profile.completed', 'password.changed'])->group(func
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'show'])->name('catalogs.show');
         Route::get('/spesifikasi/{specification}', [SpecificationController::class, 'show'])->name('specifications.show');
         Route::get('/units/{unit}', [UnitController::class, 'show'])->name('units.show');
-        Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:SUPER_ADMIN|KETUA_LABORAN|LABORAN')->name('units.label');
+        Route::get('/units/{unit}/label', [UnitController::class, 'label'])->middleware('role:ADMIN|EDITOR_VALIDATOR|OPERATOR')->name('units.label');
 
         // Scan universal: semua pengguna yang sudah login boleh memindai, tetapi
         // detail internal tetap dibatasi cakupan akses di backend.
@@ -177,8 +177,8 @@ Route::middleware(['auth', 'profile.completed', 'password.changed'])->group(func
         Route::patch('/kerusakan/{damageReport}', [DamageReportController::class, 'update'])->name('damage-reports.update');
     });
 
-    // ============ WAKASEK SARPRAS / SUPER ADMIN ============
-    Route::middleware('role:SUPER_ADMIN')->group(function () {
+    // ============ ADMIN (approval level 2) ============
+    Route::middleware('role:ADMIN')->group(function () {
         Route::post('/loans/{loan}/close-shortage', [LoanController::class, 'closeShortage'])->name('loans.close-shortage');
 
         Route::get('/inventaris-keluar/persetujuan', [WriteOffController::class, 'pending'])->name('write-offs.pending');
@@ -204,11 +204,11 @@ Route::middleware(['auth', 'profile.completed', 'password.changed'])->group(func
     });
 
     // ============ ADMINISTRASI AKUN PENGGUNA ============
-    // Super Admin Pengguna hanya mengelola akun; tidak memperoleh akses
+    // Super Admin hanya mengelola akun; tidak memperoleh akses
     // transaksi inventaris mana pun.
-    // HANYA role Super Admin Pengguna. Super Admin Sarpras tidak memperoleh
+    // HANYA role Super Admin. Admin tidak memperoleh
     // pengecualian dan ditolak oleh middleware role di backend.
-    Route::middleware('role:SUPER_ADMIN_PENGGUNA')->group(function () {
+    Route::middleware('role:SUPER_ADMIN')->group(function () {
         Route::get('/pengguna', [UserController::class, 'index'])->name('users.index');
         Route::post('/pengguna', [UserController::class, 'store'])->name('users.store');
         Route::get('/pengguna/{user}', [UserController::class, 'show'])->name('users.show');

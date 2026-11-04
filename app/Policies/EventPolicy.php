@@ -8,9 +8,8 @@ use App\Models\User;
 class EventPolicy
 {
     /**
-     * Pembuat kegiatan atau Super Admin (Wakasek Sarpras) boleh menghapus,
-     * dan hanya bila belum ada transaksi peminjaman. PIC tidak memperoleh
-     * hak kepemilikan.
+     * Pembuat kegiatan atau Admin boleh menghapus, dan hanya bila belum ada
+     * transaksi peminjaman. PIC tidak memperoleh hak kepemilikan.
      */
     public function delete(User $user, Event $event): bool
     {
@@ -18,7 +17,7 @@ class EventPolicy
             return false;
         }
 
-        return $user->isSuperAdmin()
+        return $user->isAdmin()
             || ($event->created_by !== null && (int) $event->created_by === (int) $user->id);
     }
 

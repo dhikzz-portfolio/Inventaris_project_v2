@@ -12,97 +12,90 @@ class UserAdministrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $wakasek;
+    private User $superAdmin;
+
+    private User $admin;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->superAdmin = User::where('email', 'superadmin@gmail.com')->firstOrFail();
+        $this->admin = User::where('email', 'wakasek@gmail.com')->firstOrFail();
     }
 
-    private function makeAccountAdmin(): User
+    public function test_super_admin_mengelola_akun_tanpa_akses_operasional(): void
     {
-        $admin = User::factory()->create([
-            'name' => 'Admin Akun Sekolah',
-            'email' => 'admin.akun@gmail.com',
-            'role' => Role::SUPER_ADMIN->value,
-        ]);
-        $admin->syncRoles([Role::SUPER_ADMIN->value]);
+        $this->assertTrue($this->superAdmin->isSuperAdmin());
+        $this->assertTrue($this->superAdmin->canManageUsers());
+        $this->assertFalse($this->superAdmin->managesInventory());
 
-        return $admin;
+        $this->actingAs($this->superAdmin)->get(route('dashboard'))->assertOk();
+        $this->actingAs($this->superAdmin)->get(route('users.index'))->assertOk();
+        $this->actingAs($this->superAdmin)->get(route('roles.index'))->assertOk();
+        $this->actingAs($this->superAdmin)->get(route('settings.edit'))->assertOk();
+
+        // Super Admin tidak memiliki akses operasional inventaris.
+        $this->actingAs($this->superAdmin)->get(route('catalogs.index'))->assertForbidden();
+        $this->actingAs($this->superAdmin)->get(route('items.acquisitions'))->assertForbidden();
+        $this->actingAs($this->superAdmin)->get(route('write-offs.index'))->assertForbidden();
+        $this->actingAs($this->superAdmin)->get(route('reports.index'))->assertForbidden();
     }
 
-    public function test_super_admin_pengguna_mengelola_akun_tanpa_akses_operasional(): void
+    public function test_super_admin_tidak_dapat_membuat_atau_menetapkan_role_super_admin_tambahan(): void
     {
-        $accountAdmin = $this->makeAccountAdmin();
-
-        // Super Admin memiliki akses penuh (role: SUPER_ADMIN). Design constraint: tidak mengelola inventaris.
-        $this->assertTrue($accountAdmin->isSuperAdmin());
-        $this->assertTrue($accountAdmin->canManageUsers());
-        // Super Admin tidak mengelola inventaris (ini adalah pembatasan desain).
-        $this->assertFalse($accountAdmin->managesInventory());
-
-        $this->actingAs($accountAdmin)->get(route('dashboard'))->assertOk();
-        $this->actingAs($accountAdmin)->get(route('users.index'))->assertOk();
-        // Super Admin tidak memiliki akses operasional inventaris (katalog, peminjaman, dll).
-        $this->actingAs($accountAdmin)->get(route('catalogs.index'))->assertForbidden();
-        $this->actingAs($accountAdmin)->get(route('items.acquisitions'))->assertForbidden();
-        $this->actingAs($accountAdmin)->get(route('write-offs.index'))->assertForbidden();
-        $this->actingAs($accountAdmin)->get(route('reports.index'))->assertForbidden();
-    }
-
-    public function test_super_admin_pengguna_tidak_dapat_menetapkan_role_super_admin(): void
-    {
-        $accountAdmin = $this->makeAccountAdmin();
-
-        // Super Admin dapat menetapkan role Super Admin ke user lain.
-        // Hanya non-Super Admin yang diblokir.
-        $this->actingAs($accountAdmin)->post(route('users.store'), [
+        $this->actingAs($this->superAdmin)->post(route('users.store'), [
             'name' => 'Super Admin Palsu',
             'email' => 'super.palsu@gmail.com',
             'password' => 'rahasia123',
             'password_confirmation' => 'rahasia123',
             'role' => Role::SUPER_ADMIN->value,
-        ])->assertRedirect();
+        ])->assertSessionHasErrors('role');
 
-        $this->assertDatabaseHas('users', ['email' => 'super.palsu@gmail.com']);
+        $this->assertDatabaseMissing('users', ['email' => 'super.palsu@gmail.com']);
 
         $target = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
 
-        // Super Admin tetap dapat menetapkan role Super Admin.
-        $this->actingAs($accountAdmin)->put(route('users.update', $target), [
+        $this->actingAs($this->superAdmin)->put(route('users.update', $target), [
             'name' => $target->name,
             'email' => $target->email,
             'role' => Role::SUPER_ADMIN->value,
-        ])->assertRedirect();
+            'borrower_type' => 'GURU',
+        ])->assertSessionHasErrors('role');
 
-        $this->assertSame(Role::SUPER_ADMIN->value, $target->refresh()->role);
+        $this->assertSame(Role::MEMBER->value, $target->refresh()->role);
     }
 
-    public function test_super_admin_utama_tidak_dapat_dikelola_super_admin_pengguna(): void
+    public function test_akun_super_admin_tunggal_dilindungi_dari_penghapusan_dan_penonaktifan(): void
     {
-        $accountAdmin = $this->makeAccountAdmin();
+        $this->actingAs($this->superAdmin)
+            ->delete(route('users.destroy', $this->superAdmin))
+            ->assertStatus(422);
 
-        // Super Admin dapat mengubah akun Super Admin lain.
-        $this->actingAs($accountAdmin)->put(route('users.update', $this->wakasek), [
-            'name' => 'Diubah Paksa',
-            'email' => $this->wakasek->email,
-            'role' => Role::SUPER_ADMIN->value,
-        ])->assertRedirect();
+        $this->actingAs($this->superAdmin)
+            ->post(route('users.status', $this->superAdmin))
+            ->assertSessionHasErrors('status');
 
-        $this->actingAs($accountAdmin)->delete(route('users.destroy', $this->wakasek))->assertRedirect();
+        $this->actingAs($this->superAdmin)->put(route('users.update', $this->superAdmin), [
+            'name' => $this->superAdmin->name,
+            'email' => $this->superAdmin->email,
+            'role' => Role::MEMBER->value,
+            'borrower_type' => 'GURU',
+        ])->assertSessionHasErrors('role');
 
-        // Wakasek Sarpras memiliki akses penuh ke halaman pengguna (via role:SUPER_ADMIN middleware).
-        // Note: Application may return 302 depending on session state
-        $response = $this->actingAs($this->wakasek)->get(route('users.index'));
-        // Super Admin should have access to users.index
-        $this->assertTrue($response->status() === 200 || $response->status() === 302,
-            'Expected 200 or 302 but got ' . $response->status() . '. Response: ' . substr($response->content(), 0, 200));
+        $this->superAdmin->refresh();
+        $this->assertTrue($this->superAdmin->isSuperAdmin());
+        $this->assertTrue($this->superAdmin->isActive());
+    }
 
-        $this->assertSame(Role::SUPER_ADMIN->value, $this->wakasek->refresh()->role);
-        $this->assertTrue($this->wakasek->isActive());
+    public function test_admin_operasional_tidak_memiliki_akses_administrasi_akun(): void
+    {
+        $this->assertTrue($this->admin->isAdmin());
+
+        $this->actingAs($this->admin)->get(route('users.index'))->assertForbidden();
+        $this->actingAs($this->admin)->get(route('roles.index'))->assertForbidden();
+        $this->actingAs($this->admin)->get(route('settings.edit'))->assertForbidden();
     }
 
     public function test_akun_nonaktif_tidak_dapat_login_dan_sesi_berjalan_diputus(): void
@@ -126,10 +119,9 @@ class UserAdministrationTest extends TestCase
 
     public function test_perubahan_akun_dicatat_dengan_nilai_sebelum_dan_sesudah(): void
     {
-        $accountAdmin = $this->makeAccountAdmin();
         $target = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
 
-        $this->actingAs($accountAdmin)->put(route('users.update', $target), [
+        $this->actingAs($this->superAdmin)->put(route('users.update', $target), [
             'name' => 'Budi Santoso Baru',
             'email' => $target->email,
             'role' => Role::MEMBER->value,

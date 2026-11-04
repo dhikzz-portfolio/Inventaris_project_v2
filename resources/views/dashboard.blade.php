@@ -11,6 +11,10 @@
                         Ringkasan peminjaman
                     @elseif ($dashboardUser->isSuperAdmin())
                         Ringkasan sekolah
+                    @elseif ($dashboardUser->isAdmin())
+                        Ringkasan inventaris sekolah
+                    @elseif ($dashboardUser->isEditorValidator())
+                        Ringkasan laboratorium
                     @else
                         Ringkasan laboratorium
                     @endif
@@ -48,6 +52,8 @@
                         @elseif ($dashboardUser->isSuperAdmin())
                             Pantau barang sekolah                         @elseif ($dashboardUser->isEditorValidator())
                             Kelola barang laboratorium
+                        @elseif ($dashboardUser->isAdmin())
+                            Kelola inventaris sekolah
                         @else
                             Barang laboratorium Anda
                         @endif
@@ -58,9 +64,25 @@
                         @elseif ($dashboardUser->isSuperAdmin())
                             Lihat kondisi barang, permintaan pinjam, dan kegiatan terbaru di {{ $scopeLabel }}.                         @elseif ($dashboardUser->isEditorValidator())
                             Kelola barang dan permintaan pinjam dari {{ $scopeLabel }}.
+                        @elseif ($dashboardUser->isAdmin())
+                            Kelola barang dan permintaan pinjam di seluruh sekolah.
                         @else
                             Tinjau barang dan permintaan pinjam di {{ $scopeLabel }}.
                         @endif
+
+                    @if ($mode !== 'operational')
+                        <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                            <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
+                            Lihat katalog
+                        </a>
+                    @else
+                        @if ($dashboardUser->can('catalogs.view'))
+                            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                                <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
+                                Lihat katalog
+                            </a>
+                        @endif
+                    @endif
                     </p>
                 </div>
                 <div class="flex flex-col gap-2 sm:flex-row lg:shrink-0">
@@ -92,10 +114,12 @@
                                 <span class="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-900 dark:text-red-100">{{ $stats[3]['value'] }}</span>
                             @endif
                         </a>
-                        <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
-                            <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
-                            Lihat barang
-                        </a>
+                        @if ($dashboardUser->can('catalogs.view'))
+                            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                                <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
+                                Lihat barang
+                            </a>
+                        @endif
                     @endif
                 </div>
             </div>

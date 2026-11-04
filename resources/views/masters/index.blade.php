@@ -1,8 +1,11 @@
 <x-app-layout>
     @php
-    // Ketua Laboran hanya dapat MELIHAT master data. Perubahan menu final
-    // masih menunggu keputusan (docs/PENDING_DECISIONS.md).
-    $canEdit = auth()->user()->isSuperAdmin();
+    // Tombol tindakan mengikuti permission granular, bukan nama role.
+    $canJurusan = auth()->user()->can('master_jurusan.edit');
+    $canGedung = auth()->user()->can('master_gedung.edit');
+    $canRuangan = auth()->user()->can('master_ruangan.edit');
+    $canKategori = auth()->user()->can('master_kategori.edit');
+    $canEdit = $canJurusan || $canGedung || $canRuangan || $canKategori;
     @endphp
 
     <x-slot name="header">
@@ -14,8 +17,8 @@
 
     @unless ($canEdit)
     <div class="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200">
-        <strong>Akses lihat saja.</strong> Perubahan master data merupakan kewenangan Wakasek Sarpras / Super Admin.
-        Menu yang boleh dikelola Ketua Laboran masih menunggu keputusan.
+        <strong>Akses lihat saja.</strong> Perubahan master data hanya tersedia bagi role yang memiliki
+        permission tambah/ubah/hapus pada fitur terkait. Hubungi Super Admin untuk menyesuaikan permission.
     </div>
     @endunless
 
@@ -39,7 +42,7 @@
             <ul class="space-y-1.5 text-sm mb-4">
                 @forelse ($buildings as $building)
                 <li class="border-b border-dashed border-gray-100 pb-1.5">
-                    @if ($canEdit)<details>
+                    @if ($canGedung)<details>
                         <summary class="flex items-center justify-between cursor-pointer list-none">
                             <span class="text-gray-700">
                                 {{ $building->name }}
@@ -75,7 +78,7 @@
                 @endforelse
             </ul>
 
-            @if ($canEdit)
+            @if ($canGedung)
             <form method="POST" action="{{ route('masters.store-building') }}" class="grid grid-cols-2 gap-2">
                 @csrf
                 <input type="text" name="name" placeholder="Nama gedung * (Gedung C)" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
@@ -102,7 +105,7 @@
                             <td class="py-1.5 font-mono text-xs font-semibold text-gray-700 w-16">{{ $room->code }}</td>
                             <td class="py-1.5 text-xs text-gray-600">
                                 {{ $room->name }}
-                                @if ($canEdit)<details>
+                                @if ($canRuangan)<details>
                                     <summary class="text-[10px] text-blue-700 cursor-pointer">ubah</summary>
                                     <form method="POST" action="{{ route('masters.update-room', $room) }}" class="mt-1 space-y-1">
                                         @csrf @method('PUT')
@@ -145,7 +148,7 @@
                 </table>
             </div>
 
-            @if ($canEdit)
+            @if ($canRuangan)
             <form method="POST" action="{{ route('masters.store-room') }}" class="space-y-2">
                 @csrf
                 <select name="major_id" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
@@ -188,12 +191,12 @@
                     <details>
                         <summary class="flex items-center justify-between cursor-pointer list-none">
                             <span class="text-gray-700">{{ $major->name }}</span>
-                            <span class="text-[11px] text-gray-400">{{ $major->code ?: '-' }} • {{ $major->rooms_count }} ruang{{ $canEdit ? ' • ubah' : '' }}</span>
+                            <span class="text-[11px] text-gray-400">{{ $major->code ?: '-' }} • {{ $major->rooms_count }} ruang{{ $canJurusan ? ' • ubah' : '' }}</span>
                         </summary>
-                        @if (! $canEdit)
+                        @if (! $canJurusan)
                         <p class="text-[10px] text-gray-400">Hanya dapat dilihat.</p>
                         @endif
-                        @if ($canEdit)
+                        @if ($canJurusan)
                         <form method="POST" action="{{ route('masters.update-major', $major) }}" class="mt-2 flex gap-1.5">
                             @csrf @method('PUT')
                             <input type="text" name="name" value="{{ $major->name }}" class="flex-1 rounded-lg border-gray-300 text-xs" required>
@@ -209,7 +212,7 @@
                 </li>
                 @endforeach
             </ul>
-            @if ($canEdit)
+            @if ($canJurusan)
             <form method="POST" action="{{ route('masters.store-major') }}" class="grid grid-cols-2 gap-2">
                 @csrf
                 <input type="text" name="name" placeholder="Nama jurusan * (Teknik Pengelasan)" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
@@ -230,9 +233,9 @@
                     <details>
                         <summary class="flex items-center justify-between cursor-pointer list-none">
                             <span class="text-gray-700">{{ $category->name }}</span>
-                            <span class="text-[11px] text-gray-400">{{ $category->items_count }} brg{{ $canEdit ? ' • ubah' : '' }}</span>
+                            <span class="text-[11px] text-gray-400">{{ $category->items_count }} brg{{ $canKategori ? ' • ubah' : '' }}</span>
                         </summary>
-                        @if ($canEdit)
+                        @if ($canKategori)
                         <form method="POST" action="{{ route('masters.update-category', $category) }}" class="mt-2 space-y-1">
                             @csrf @method('PUT')
                             <input type="text" name="name" value="{{ $category->name }}" class="w-full rounded border-gray-300 text-xs" required>
@@ -249,7 +252,7 @@
                 </li>
                 @endforeach
             </ul>
-            @if ($canEdit)
+            @if ($canKategori)
             <form method="POST" action="{{ route('masters.store-category') }}" class="space-y-2">
                 @csrf
                 <input type="text" name="name" placeholder="Nama kategori *" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>

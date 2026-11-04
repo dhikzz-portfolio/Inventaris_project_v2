@@ -57,7 +57,7 @@ class UnitController extends Controller
             : collect();
 
         $rooms = Room::query()
-            ->when(! auth()->user()->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
+            ->when(! auth()->user()->isAdmin(), fn ($query) => $query->where('is_lab', true))
             ->whereKeyNot($unit->room_id)
             ->orderBy('building_letter')->orderBy('floor')->orderBy('room_no')
             ->get();
@@ -150,7 +150,7 @@ class UnitController extends Controller
 
         $destination = Room::findOrFail($data['room_id']);
 
-        if (! $request->user()->isSuperAdmin() && ! $destination->is_lab) {
+        if (! $request->user()->isAdmin() && ! $destination->is_lab) {
             abort(404);
         }
 

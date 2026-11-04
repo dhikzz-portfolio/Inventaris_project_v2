@@ -161,7 +161,7 @@ class RevisionV3AuditTest extends TestCase
         $room = $this->makeRoom(82);
         [$catalog, $units] = $this->makeCatalogWithUnits('Kursi Unit Uji', $room, 3);
 
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'UNIT',
             'unit_ids' => [$units[0]->id, $units[1]->id],
             'confirm_delete' => 1,
@@ -170,13 +170,9 @@ class RevisionV3AuditTest extends TestCase
         ])->assertRedirect(route('write-offs.index'))->assertSessionHasNoErrors();
 
         $writeOff = WriteOff::query()->where('mode', 'UNIT')->latest('id')->firstOrFail();
-        $this->assertSame('PENDING', $writeOff->status);
+        $this->assertSame('APPROVED', $writeOff->status);
         $this->assertSame(2, $writeOff->units()->count());
         $this->assertSame(2, $writeOff->quantity);
-
-        $this->actingAs($this->wakasek)
-            ->post(route('write-offs.approve', $writeOff))
-            ->assertRedirect();
 
         $this->assertSame(UnitStatus::DIHAPUS, $units[0]->refresh()->status);
         $this->assertSame(UnitStatus::DIHAPUS, $units[1]->refresh()->status);
@@ -191,7 +187,7 @@ class RevisionV3AuditTest extends TestCase
         $room = $this->makeRoom(83);
         [$catalog, $units] = $this->makeCatalogWithUnits('Meja Katalog Uji', $room, 2);
 
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'CATALOG',
             'catalog_id' => $catalog->id,
             'confirm_delete' => 1,
@@ -201,7 +197,7 @@ class RevisionV3AuditTest extends TestCase
 
         $this->assertSame(0, WriteOff::query()->where('item_id', $catalog->id)->count());
 
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'CATALOG',
             'catalog_id' => $catalog->id,
             'confirm_delete' => 1,
@@ -213,8 +209,7 @@ class RevisionV3AuditTest extends TestCase
         $writeOff = WriteOff::query()->where('item_id', $catalog->id)->latest('id')->firstOrFail();
         $this->assertSame('CATALOG', $writeOff->mode);
         $this->assertSame(2, $writeOff->units()->count());
-
-        $this->actingAs($this->wakasek)->post(route('write-offs.approve', $writeOff))->assertRedirect();
+        $this->assertSame('APPROVED', $writeOff->status);
 
         $this->assertSame(UnitStatus::DIHAPUS, $units[0]->refresh()->status);
         $this->assertSame(UnitStatus::DIHAPUS, $units[1]->refresh()->status);
@@ -229,7 +224,7 @@ class RevisionV3AuditTest extends TestCase
         [$catalog, $units] = $this->makeCatalogWithUnits('Katalog Tidak Layak', $room, 1);
         $units[0]->update(['status' => UnitStatus::DIPINJAM]);
 
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'CATALOG',
             'catalog_id' => $catalog->id,
             'confirm_delete' => 1,
@@ -249,7 +244,7 @@ class RevisionV3AuditTest extends TestCase
 
         $units[0]->update(['status' => UnitStatus::DIPINJAM]);
 
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'UNIT',
             'unit_ids' => [$units[0]->id],
             'confirm_delete' => 1,
@@ -261,7 +256,7 @@ class RevisionV3AuditTest extends TestCase
 
         $units[0]->update(['status' => UnitStatus::AKTIF]);
 
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'UNIT',
             'unit_ids' => [$units[0]->id],
             'confirm_delete' => 1,
@@ -269,7 +264,7 @@ class RevisionV3AuditTest extends TestCase
             'berita_acara' => $this->upload(),
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'UNIT',
             'unit_ids' => [$units[0]->id],
             'confirm_delete' => 1,
@@ -291,13 +286,13 @@ class RevisionV3AuditTest extends TestCase
 
         $betaUnits[0]->update(['condition' => Condition::RUSAK_RINGAN]);
 
-        $this->actingAs($this->ketua)
+        $this->actingAs($this->wakasek)
             ->get(route('write-offs.index', ['brand' => 'Merek Beta']))
             ->assertOk()
             ->assertSee($betaUnits[0]->inventory_code)
             ->assertDontSee($alfaUnits[0]->inventory_code);
 
-        $this->actingAs($this->ketua)
+        $this->actingAs($this->wakasek)
             ->get(route('write-offs.index', [
                 'brand' => 'Merek Beta',
                 'condition' => Condition::RUSAK_RINGAN->value,
@@ -309,12 +304,12 @@ class RevisionV3AuditTest extends TestCase
             ->assertSee($betaUnits[0]->inventory_code)
             ->assertDontSee($alfaUnits[0]->inventory_code);
 
-        $this->actingAs($this->ketua)
+        $this->actingAs($this->wakasek)
             ->get(route('write-offs.index', ['search' => substr($alfaUnits[0]->inventory_code, 0, 8)]))
             ->assertOk()
             ->assertSee($alfaUnits[0]->inventory_code);
 
-        $this->actingAs($this->ketua)
+        $this->actingAs($this->wakasek)
             ->get(route('write-offs.index'))
             ->assertOk()
             ->assertSee($alfaUnits[0]->inventory_code)

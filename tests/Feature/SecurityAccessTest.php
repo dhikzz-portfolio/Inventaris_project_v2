@@ -118,17 +118,21 @@ class SecurityAccessTest extends TestCase
         $this->actingAs($admin)->get(route('items.show', $labItem))->assertOk();
     }
 
-    public function test_ketua_laboran_tidak_dapat_mengajukan_pengadaan_ke_ruang_non_lab(): void
+    public function test_operator_tidak_dapat_mengajukan_pengadaan_ke_ruang_non_lab(): void
     {
         $this->seed();
-        $admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $editor = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $operator = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
         $nonLabRoom = Room::where('is_lab', false)->firstOrFail();
 
-        $this->actingAs($admin)->get(route('items.create'))
+        // Editor/Validator tidak membuat pengadaan sama sekali.
+        $this->actingAs($editor)->get(route('items.create'))->assertForbidden();
+
+        $this->actingAs($operator)->get(route('items.create'))
             ->assertOk()
             ->assertDontSee($nonLabRoom->name);
 
-        $this->actingAs($admin)->post(route('items.store'), [
+        $this->actingAs($operator)->post(route('items.store'), [
             'name' => 'Barang Umum Sekolah',
             'category_id' => Category::firstOrFail()->id,
             'room_id' => $nonLabRoom->id,

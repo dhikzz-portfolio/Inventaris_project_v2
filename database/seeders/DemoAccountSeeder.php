@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\BorrowerType;
+use App\Enums\OperatorCategory;
 use App\Enums\Role;
 use App\Models\Major;
 use App\Models\Room;
@@ -24,11 +25,11 @@ class DemoAccountSeeder extends Seeder
         $accounts = [
             ['name' => 'Drs. H. Wakasek Sarpras', 'role' => Role::ADMIN, 'major' => null, 'type' => null, 'password' => 'wakasek123', 'email' => 'wakasek@gmail.com', 'birth_date' => '1975-06-15'],
             ['name' => 'Editor/Validator Sekolah', 'role' => Role::EDITOR_VALIDATOR, 'major' => null, 'type' => null, 'password' => 'ketua123', 'email' => 'ketualaboran@gmail.com', 'birth_date' => '1978-02-10'],
-            ['name' => 'Operator RPL (Demo)', 'role' => Role::OPERATOR, 'major' => 'RPL', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.rpl@gmail.com', 'birth_date' => '1982-04-18'],
-            ['name' => 'Operator DKV (Demo)', 'role' => Role::OPERATOR, 'major' => 'DKV', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.dkv@gmail.com', 'birth_date' => '1983-08-25'],
-            ['name' => 'Operator Kuliner (Demo)', 'role' => Role::OPERATOR, 'major' => 'KLN', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.kln@gmail.com', 'birth_date' => '1984-11-30'],
-            ['name' => 'Operator Teknik Pengelasan (Demo)', 'role' => Role::OPERATOR, 'major' => 'TP', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.tp@gmail.com', 'birth_date' => '1981-01-12'],
-            ['name' => 'Operator TKP (Demo)', 'role' => Role::OPERATOR, 'major' => 'TKP', 'type' => 'LABORAN', 'password' => 'laboran123', 'email' => 'laboran.tkp@gmail.com', 'birth_date' => '1985-09-05'],
+            ['name' => 'Operator RPL (Demo)', 'role' => Role::OPERATOR, 'operator_category' => OperatorCategory::LABORAN, 'major' => 'RPL', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.rpl@gmail.com', 'birth_date' => '1982-04-18'],
+            ['name' => 'Operator DKV (Demo)', 'role' => Role::OPERATOR, 'operator_category' => OperatorCategory::LABORAN, 'major' => 'DKV', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.dkv@gmail.com', 'birth_date' => '1983-08-25'],
+            ['name' => 'Operator Kuliner (Demo)', 'role' => Role::OPERATOR, 'operator_category' => OperatorCategory::LABORAN, 'major' => 'KLN', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.kln@gmail.com', 'birth_date' => '1984-11-30'],
+            ['name' => 'Operator Teknik Pengelasan (Demo)', 'role' => Role::OPERATOR, 'operator_category' => OperatorCategory::LABORAN, 'major' => 'TP', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.tp@gmail.com', 'birth_date' => '1981-01-12'],
+            ['name' => 'Operator TKP (Demo)', 'role' => Role::OPERATOR, 'operator_category' => OperatorCategory::LABORAN, 'major' => 'TKP', 'type' => null, 'password' => 'laboran123', 'email' => 'laboran.tkp@gmail.com', 'birth_date' => '1985-09-05'],
             // Nama & gelar disimpan terpisah: displayName() membentuk "Budi Santoso, S.Kom".
             ['name' => 'Budi Santoso', 'degree' => 'S.Kom', 'role' => Role::MEMBER, 'major' => 'RPL', 'type' => BorrowerType::GURU, 'password' => 'guru123', 'email' => 'guru.budi@gmail.com', 'birth_date' => '1985-03-12'],
             ['name' => 'Sari Wijayanti', 'degree' => 'S.Pd', 'role' => Role::MEMBER, 'major' => 'TP', 'type' => BorrowerType::GURU, 'password' => 'guru123', 'email' => 'guru.sari@gmail.com', 'birth_date' => '1988-07-22'],
@@ -49,6 +50,7 @@ class DemoAccountSeeder extends Seeder
                     'email' => $email,
                     'password' => Hash::make($account['password']),
                     'role' => $account['role']->value,
+                    'operator_category' => isset($account['operator_category']) ? $account['operator_category']->value : null,
                     'borrower_type' => $account['type']?->value,
                     'major_id' => $account['major'] !== null ? $majors[$account['major']] : null,
                     'birth_date' => $account['birth_date'] ?? null,

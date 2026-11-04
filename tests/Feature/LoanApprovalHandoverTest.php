@@ -493,7 +493,6 @@ class LoanApprovalHandoverTest extends TestCase
             'items.acquisitions',
             'loans.pending',
             'loans.returns',
-            'settings.edit',
         ];
 
         foreach ($routes as $routeName) {
@@ -502,9 +501,11 @@ class LoanApprovalHandoverTest extends TestCase
                 ->assertOk();
         }
 
-        // Administrasi akun terpisah: hanya Super Admin Pengguna.
+        // Administrasi akun & pengaturan sekolah terpisah: hanya Super Admin.
         $this->actingAs($this->wakasek)->get(route('users.index'))->assertForbidden();
+        $this->actingAs($this->wakasek)->get(route('settings.edit'))->assertForbidden();
         $this->actingAs($this->accountAdministrator())->get(route('users.index'))->assertOk();
+        $this->actingAs($this->accountAdministrator())->get(route('settings.edit'))->assertOk();
     }
 
     public function test_role_bukan_wakasek_tidak_dapat_membuka_halaman_khusus_wakasek(): void

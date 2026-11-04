@@ -226,7 +226,7 @@ class RevisionV4Test extends TestCase
         ]);
 
         // Endpoint menolak unit yang sudah masuk pengajuan aktif.
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'UNIT',
             'unit_ids' => [$unit->id],
             'confirm_delete' => 1,
@@ -268,7 +268,7 @@ class RevisionV4Test extends TestCase
 
         $this->assertNull($first->units()->firstOrFail()->is_active);
 
-        $this->actingAs($this->ketua)->post(route('write-offs.store'), [
+        $this->actingAs($this->wakasek)->post(route('write-offs.store'), [
             'mode' => 'UNIT',
             'unit_ids' => [$unit->id],
             'confirm_delete' => 1,
@@ -384,6 +384,7 @@ class RevisionV4Test extends TestCase
             'created_by' => $this->guru->id,
         ]);
 
+        // Editor/Validator tidak memiliki permission hapus kegiatan.
         $this->actingAs($this->ketua)
             ->delete(route('events.destroy', $event))
             ->assertForbidden();

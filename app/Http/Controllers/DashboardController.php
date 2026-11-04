@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use App\Enums\Role;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
 use App\Models\Item;
 use App\Models\Loan;
 use App\Models\LoanItem;
+use App\Models\PermissionChangeLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -23,8 +25,12 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        // Tampilan baru hanya ditampilkan untuk role member (peminjam).
-        // Role lain tetap mengikuti dashboard operasional yang sudah ada pada branch sebelumnya.
+        // Dashboard Super Admin bersifat administratif dan terpisah dari
+        // dashboard operasional inventaris.
+        if ($user->isSuperAdmin()) {
+            return view('dashboard-admin', $this->administrativeData($user));
+        }
+
         if ($user->isMember()) {
             return view('dashboard', $this->personalData($user));
         }
@@ -32,13 +38,47 @@ class DashboardController extends Controller
         return view('dashboard', $this->operationalData($user));
     }
 
+    /** Dashboard pemantauan administrasi khusus Super Admin. */
+    private function administrativeData(User $user): array
+    {
+        $roleCounts = User::query()
+            ->selectRaw('role, COUNT(*) as total')
+            ->groupBy('role')
+            ->pluck('total', 'role');
+
+        $roles = collect(Role::cases())->map(fn (Role $role): array => [
+            'role' => $role,
+            'count' => (int) ($roleCounts[$role->value] ?? 0),
+        ]);
+
+        return [
+            'mode' => 'administrative',
+            'stats' => [
+                ['label' => 'Total Akun', 'value' => User::count(), 'unit' => 'akun', 'icon' => 'group', 'color' => 'slate'],
+                ['label' => 'Akun Aktif', 'value' => User::where('is_active', true)->count(), 'unit' => 'akun', 'icon' => 'verified_user', 'color' => 'green'],
+                ['label' => 'Akun Nonaktif', 'value' => User::where('is_active', false)->count(), 'unit' => 'akun', 'icon' => 'person_off', 'color' => 'red'],
+                ['label' => 'Perubahan Permission', 'value' => PermissionChangeLog::count(), 'unit' => 'catatan', 'icon' => 'admin_panel_settings', 'color' => 'amber'],
+            ],
+            'roles' => $roles,
+            'recentUsers' => User::query()->latest('id')->limit(6)->get(),
+            'loginHistory' => User::query()->whereNotNull('last_login_at')->latest('last_login_at')->limit(6)->get(),
+            'permissionChanges' => PermissionChangeLog::query()->with('actor')->latest('id')->limit(6)->get(),
+            'recentActivity' => Activity::with(['causer', 'subject'])->latest()->limit(10)->get(),
+            'security' => [
+                'last_login' => $user->last_login_at,
+                'password_changed' => $user->password_changed_at,
+                'must_change_password' => $user->mustChangePassword(),
+            ],
+        ];
+    }
+
     private function operationalData(User $user): array
     {
         $startOfMonth = now()->startOfMonth();
         $endOfMonth = now()->endOfMonth();
 
-        // Statistik memakai unit fisik dan menghormati cakupan akses: Super Admin
-        // melihat seluruh sekolah, Ketua Laboran seluruh lab, Laboran hanya ruangnya.
+        // Statistik memakai unit fisik dan menghormati cakupan akses: Admin
+        // melihat seluruh sekolah, Editor/Validator seluruh lab, Operator ruangnya.
         $unitScope = AssetUnit::query()
             ->visibleTo($user)
             ->where('status', '!=', UnitStatus::DIHAPUS->value);
@@ -116,7 +156,7 @@ class DashboardController extends Controller
         return [
             'mode' => 'operational',
             'scopeLabel' => match (true) {
-                $user->isSuperAdmin() => 'seluruh sekolah',
+                $user->isSuperAdmin(), $user->isAdmin() => 'seluruh sekolah',
                 $user->isEditorValidator() => 'semua laboratorium',
                 default => 'laboratorium Anda',
             },
@@ -134,7 +174,7 @@ class DashboardController extends Controller
             'statusDistribution' => $statusDistribution,
             'overdue' => $overdue,
             'recentActivity' => Activity::with(['causer', 'subject'])
-                ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('causer_id', $user->id))
+                ->when(! $user->isAdmin(), fn ($q) => $q->where('causer_id', $user->id))
                 ->latest()
                 ->limit(8)
                 ->get(),

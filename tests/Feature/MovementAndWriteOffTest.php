@@ -25,6 +25,8 @@ class MovementAndWriteOffTest extends TestCase
 
     private User $admin;
 
+    private User $editor;
+
     private Item $item;
 
     private Room $room1;
@@ -37,7 +39,8 @@ class MovementAndWriteOffTest extends TestCase
         $this->seed();
 
         $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
-        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->admin = $this->wakasek;
+        $this->editor = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
 
         $rooms = Room::all();
         $this->room1 = $rooms[0];
@@ -147,12 +150,9 @@ class MovementAndWriteOffTest extends TestCase
         ])->assertRedirect(route('write-offs.index'));
 
         $writeOff = WriteOff::where('item_id', $this->item->id)->firstOrFail();
-        $this->assertSame('PENDING', $writeOff->status);
+        // Admin adalah pemegang kewenangan akhir, jadi pengajuannya langsung sah.
+        $this->assertSame('APPROVED', $writeOff->status);
         Storage::disk('local')->assertExists($writeOff->berita_acara_path);
-
-        // Approval oleh Wakasek
-        $this->actingAs($this->wakasek)->post(route('write-offs.approve', $writeOff))
-            ->assertRedirect();
 
         $this->assertSame('APPROVED', $writeOff->refresh()->status);
         $this->assertSame(ItemStatus::DIHAPUS, $this->item->refresh()->status);
@@ -189,9 +189,7 @@ class MovementAndWriteOffTest extends TestCase
         ])->assertRedirect(route('write-offs.index'));
 
         $writeOff = WriteOff::where('item_id', $this->item->id)->firstOrFail();
-
-        $this->actingAs($this->wakasek)->post(route('write-offs.approve', $writeOff))
-            ->assertRedirect();
+        $this->assertSame('APPROVED', $writeOff->status);
 
         // Unit fisik benar-benar diarsipkan, bukan sekadar angka katalog dikurangi.
         $archived = AssetUnit::where('item_catalog_id', $this->item->id)
@@ -210,7 +208,7 @@ class MovementAndWriteOffTest extends TestCase
         $this->assertSame(ItemStatus::BAIK, $this->item->status);
     }
 
-    public function test_ketua_laboran_tidak_dapat_mengajukan_penghapusan_barang_di_luar_laboratorium(): void
+    public function test_editor_tidak_dapat_mengajukan_penghapusan_inventaris(): void
     {
         Storage::fake('public');
         Storage::fake('local');
@@ -235,12 +233,12 @@ class MovementAndWriteOffTest extends TestCase
 
         $ba = UploadedFile::fake()->create('Berita_Acara.pdf', 100, 'application/pdf');
 
-        $this->actingAs($this->admin)->post(route('write-offs.store'), [
+        $this->actingAs($this->editor)->post(route('write-offs.store'), [
             'item_id' => $nonLabItem->id,
             'quantity' => 1,
             'reason' => 'Di luar kewenangan',
             'berita_acara' => $ba,
-        ])->assertNotFound();
+        ])->assertForbidden();
 
         $this->assertDatabaseMissing('write_offs', ['item_id' => $nonLabItem->id]);
     }

@@ -162,7 +162,8 @@ class Loan extends Model
      */
     public function scopeVisibleTo($query, User $user)
     {
-        if ($user->isSuperAdmin()) {
+        // Admin mengelola seluruh inventaris sekolah.
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
             return $query;
         }
 
@@ -202,7 +203,9 @@ class Loan extends Model
      */
     public function canBeManagedBy(User $user): bool
     {
-        if ($user->isSuperAdmin()) {
+        // Admin mengelola seluruh transaksi sekolah; Super Admin tidak memiliki
+        // kewenangan operasional inventaris.
+        if ($user->isAdmin()) {
             return true;
         }
 
@@ -230,6 +233,7 @@ class Loan extends Model
     public function canBeViewedBy(User $user): bool
     {
         if ($user->isSuperAdmin()
+            || $user->isAdmin()
             || (int) $this->borrower_id === (int) $user->id
             || (int) $this->requested_by === (int) $user->id) {
             return true;

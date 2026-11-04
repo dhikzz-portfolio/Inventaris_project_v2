@@ -33,14 +33,14 @@ class AcquisitionService
     /** Tahap 1 — Laboran mengirim draft kepada Ketua Laboran. */
     public function submit(Item $item, User $actor): Item
     {
-        $this->assert($this->isRequesterOrSuperAdmin($item, $actor), 'Hanya pembuat pengajuan yang dapat mengirim pengajuan ini.');
+        $this->assert($this->isRequesterOrAdmin($item, $actor), 'Hanya pembuat pengajuan atau Admin yang dapat mengirim pengajuan ini.');
 
         $submitted = $this->transition(
             $item,
             [AcquisitionStatus::DRAFT],
             AcquisitionStatus::MENUNGGU_KONFIRMASI,
             $actor,
-            'Mengirim pengajuan pengadaan ke Ketua Laboran',
+            'Mengirim pengajuan pengadaan ke Editor/Validator',
             ['acquisition_submitted_at' => now()],
         );
 
@@ -48,7 +48,7 @@ class AcquisitionService
         // laboratorium; pengajuan barang umum menjadi kewenangan Admin.
         if ($this->isLabScoped($submitted)) {
             NotifyApp::toRoles(['EDITOR_VALIDATOR'], NotificationType::PENGADAAN,
-                "Pengajuan pengadaan \"{$submitted->name}\" menunggu konfirmasi Anda.", route('items.acquisitions'));
+                "Pengajuan pengadaan \"{$submitted->name}\" menunggu validasi Anda.", route('items.acquisitions'));
         } else {
             NotifyApp::toRoles(['ADMIN'], NotificationType::PENGADAAN,
                 "Pengajuan pengadaan \"{$submitted->name}\" di luar cakupan laboratorium dan menunggu keputusan Anda.", route('items.acquisitions'));
@@ -67,7 +67,7 @@ class AcquisitionService
             [AcquisitionStatus::MENUNGGU_KONFIRMASI],
             AcquisitionStatus::MENUNGGU_PERSETUJUAN,
             $actor,
-            'Mengonfirmasi pengajuan telah diketahui (bukan persetujuan akhir)',
+            'Memvalidasi pengajuan (bukan persetujuan akhir)',
             [
                 'acquisition_confirmed_by' => $actor->id,
                 'acquisition_confirmed_at' => now(),
@@ -79,7 +79,7 @@ class AcquisitionService
             route('items.acquisitions'));
 
         $this->notifyRequester($confirmed,
-            "Pengajuan \"{$confirmed->name}\" telah dikonfirmasi Editor/Validator; menunggu keputusan Admin.");
+            "Pengajuan \"{$confirmed->name}\" telah divalidasi Editor/Validator; menunggu keputusan Admin.");
 
         return $confirmed;
     }
@@ -103,7 +103,7 @@ class AcquisitionService
         );
 
         $this->notifyRequester($approved,
-            "Pengadaan \"{$approved->name}\" DISETUJUI Wakasek Sarpras. Lanjutkan proses pengadaan dan catat barang setelah diterima.");
+            "Pengadaan \"{$approved->name}\" DISETUJUI Admin. Lanjutkan proses pengadaan dan catat barang setelah diterima.");
 
         return $approved;
     }
@@ -136,7 +136,7 @@ class AcquisitionService
         }
 
         $this->notifyRequester($rejected,
-            "Pengadaan \"{$rejected->name}\" DITOLAK Wakasek Sarpras — {$reason}.");
+            "Pengadaan \"{$rejected->name}\" DITOLAK Admin — {$reason}.");
 
         return $rejected;
     }
@@ -144,7 +144,7 @@ class AcquisitionService
     /** Laboran memulai proses pengadaan setelah disetujui. */
     public function start(Item $item, User $actor): Item
     {
-        $this->assert($this->isRequesterOrSuperAdmin($item, $actor), 'Hanya pembuat pengajuan yang dapat memulai proses pengadaan.');
+        $this->assert($this->isRequesterOrAdmin($item, $actor), 'Hanya pembuat pengajuan atau Admin yang dapat memulai proses pengadaan.');
         $this->assert(
             in_array($item->acquisition_status, [AcquisitionStatus::DISETUJUI->value], true),
             'Pengadaan harus disetujui Wakasek sebelum diproses.'
@@ -167,7 +167,7 @@ class AcquisitionService
      */
     public function receive(Item $item, User $actor, array $received, ?string $condition, ?string $note = null): Item
     {
-        $this->assert($this->isRequesterOrSuperAdmin($item, $actor), 'Hanya pembuat pengajuan yang dapat mencatat penerimaan barang.');
+        $this->assert($this->isRequesterOrAdmin($item, $actor), 'Hanya pembuat pengajuan atau Admin yang dapat mencatat penerimaan barang.');
         $this->assert(
             in_array($item->acquisition_status, [
                 AcquisitionStatus::DISETUJUI->value,
@@ -241,7 +241,7 @@ class AcquisitionService
     /** Menerbitkan unit inventaris dari barang yang sudah diterima. */
     public function recordInventory(Item $item, User $actor): Item
     {
-        $this->assert($this->isRequesterOrSuperAdmin($item, $actor), 'Hanya pembuat pengajuan yang dapat mencatat inventaris.');
+        $this->assert($this->isRequesterOrAdmin($item, $actor), 'Hanya pembuat pengajuan atau Admin yang dapat mencatat inventaris.');
 
         return DB::transaction(function () use ($item, $actor): Item {
             $locked = Item::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
@@ -423,9 +423,9 @@ class AcquisitionService
             ->exists();
     }
 
-    private function isRequesterOrSuperAdmin(Item $item, User $actor): bool
+    private function isRequesterOrAdmin(Item $item, User $actor): bool
     {
-        return $actor->isSuperAdmin() || (int) $item->acquisition_requested_by === (int) $actor->id;
+        return $actor->isAdmin() || (int) $item->acquisition_requested_by === (int) $actor->id;
     }
 
     private function assert(bool $condition, string $message): void

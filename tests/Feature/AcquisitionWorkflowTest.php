@@ -199,7 +199,7 @@ class AcquisitionWorkflowTest extends TestCase
         $this->assertNotNull($approveLog);
         $this->assertSame('MENUNGGU_PERSETUJUAN', $approveLog->properties['status_sebelum']);
         $this->assertSame('DISETUJUI', $approveLog->properties['status_sesudah']);
-        $this->assertSame(Role::SUPER_ADMIN->value, $approveLog->properties['role']);
+        $this->assertSame(Role::ADMIN->value, $approveLog->properties['role']);
     }
 
     public function test_penolakan_wajib_alasan_dan_ditinjau_kembali(): void

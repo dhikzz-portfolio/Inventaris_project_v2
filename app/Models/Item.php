@@ -154,7 +154,7 @@ class Item extends Model
      */
     public function isVisibleTo(User $user): bool
     {
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
             return true;
         }
 
@@ -181,7 +181,8 @@ class Item extends Model
      */
     public function scopeVisibleTo($query, ?User $user)
     {
-        if ($user === null || $user->isSuperAdmin()) {
+        // Super Admin memantau seluruh data; Admin mengelola seluruh sekolah.
+        if ($user === null || $user->isSuperAdmin() || $user->isAdmin()) {
             return $query;
         }
 

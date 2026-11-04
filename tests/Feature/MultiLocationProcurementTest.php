@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Item;
 use App\Models\Room;
 use App\Models\User;
+use App\Models\UserRoomScope;
 use App\Services\InventoryCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
@@ -20,6 +21,8 @@ class MultiLocationProcurementTest extends TestCase
 
     private User $ketua;
 
+    private User $operator;
+
     private Category $category;
 
     /** @var Collection<int, Room> */
@@ -32,8 +35,16 @@ class MultiLocationProcurementTest extends TestCase
 
         $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
         $this->ketua = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->operator = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
         $this->category = Category::firstOrFail();
         $this->rooms = Room::where('is_lab', true)->orderBy('code')->take(3)->get();
+
+        foreach ($this->rooms as $room) {
+            UserRoomScope::firstOrCreate(
+                ['user_id' => $this->operator->id, 'room_id' => $room->id],
+                ['assigned_by' => $this->wakasek->id],
+            );
+        }
 
         $this->assertCount(3, $this->rooms);
     }
@@ -125,14 +136,15 @@ class MultiLocationProcurementTest extends TestCase
             ->assertSessionHasErrors();
     }
 
-    public function test_pengadaan_ketua_laboran_menunggu_approval_lalu_unit_dibuat_sesuai_alokasi(): void
+    public function test_pengadaan_operator_divalidasi_lalu_disetujui_admin_sesuai_alokasi(): void
     {
         $payload = $this->payload([
             ['room_id' => $this->rooms[0]->id, 'quantity' => 3],
             ['room_id' => $this->rooms[1]->id, 'quantity' => 2],
         ], 5);
 
-        $this->actingAs($this->ketua)->post(route('items.store'), $payload)
+        // Operator membuat pengajuan; Editor/Validator memvalidasi; Admin menyetujui.
+        $this->actingAs($this->operator)->post(route('items.store'), $payload)
             ->assertRedirect(route('items.acquisitions'));
 
         $catalog = Item::where('name', $payload['name'])->firstOrFail();
@@ -141,11 +153,11 @@ class MultiLocationProcurementTest extends TestCase
         $this->assertSame(0, $catalog->units()->count());
         $this->assertSame(5, $catalog->allocations()->sum('quantity'));
 
-        // Tahap 1 — Laboran/Ketua mengirim draft kepada Ketua Laboran.
-        $this->actingAs($this->ketua)->post(route('items.acquisitions.submit', $catalog))->assertRedirect();
+        // Tahap 1 — pembuat pengajuan mengirim draft kepada Editor/Validator.
+        $this->actingAs($this->operator)->post(route('items.acquisitions.submit', $catalog))->assertRedirect();
         $this->assertSame('MENUNGGU_KONFIRMASI', $catalog->refresh()->acquisition_status);
 
-        // Tahap 2 — konfirmasi Ketua Laboran, bukan persetujuan akhir.
+        // Tahap 2 — validasi Editor/Validator, bukan persetujuan akhir.
         $this->actingAs($this->ketua)->post(route('items.acquisitions.confirm', $catalog))->assertRedirect();
         $this->assertSame('MENUNGGU_PERSETUJUAN', $catalog->refresh()->acquisition_status);
 
@@ -157,11 +169,11 @@ class MultiLocationProcurementTest extends TestCase
         $this->assertSame('DISETUJUI', $catalog->refresh()->acquisition_status);
         $this->assertSame(0, $catalog->units()->count());
 
-        // Penerimaan dan pencatatan inventaris oleh pengaju.
-        $this->actingAs($this->ketua)->post(route('items.acquisitions.start', $catalog))->assertRedirect();
+        // Penerimaan dan pencatatan inventaris oleh Operator pengaju.
+        $this->actingAs($this->operator)->post(route('items.acquisitions.start', $catalog))->assertRedirect();
         $this->assertSame('DALAM_PROSES', $catalog->refresh()->acquisition_status);
 
-        $this->actingAs($this->ketua)->post(route('items.acquisitions.receive', $catalog), [
+        $this->actingAs($this->operator)->post(route('items.acquisitions.receive', $catalog), [
             'received' => [
                 $this->rooms[0]->id => 3,
                 $this->rooms[1]->id => 2,
@@ -172,7 +184,7 @@ class MultiLocationProcurementTest extends TestCase
         $this->assertSame('BARANG_DITERIMA', $catalog->refresh()->acquisition_status);
         $this->assertSame(0, $catalog->units()->count());
 
-        $this->actingAs($this->ketua)->post(route('items.acquisitions.record', $catalog))->assertRedirect();
+        $this->actingAs($this->operator)->post(route('items.acquisitions.record', $catalog))->assertRedirect();
 
         $this->assertSame('INVENTARIS_TERCATAT', $catalog->refresh()->acquisition_status);
         $this->assertSame(3, $catalog->units()->where('room_id', $this->rooms[0]->id)->count());

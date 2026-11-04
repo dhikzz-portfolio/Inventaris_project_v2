@@ -6,6 +6,7 @@ use App\Enums\Condition;
 use App\Enums\Decision;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
+use App\Enums\Role;
 use App\Exceptions\AvailabilityException;
 use App\Livewire\Catalog\ItemCatalog;
 use App\Livewire\Loan\LoanRequest;
@@ -318,13 +319,13 @@ class InventoryFlowTest extends TestCase
                 'email' => 'guru.baru@gmail.com',
                 'password' => 'rahasia123',
                 'password_confirmation' => 'rahasia123',
-                'role' => 'PEMINJAM',
-                'major_id' => $this->guru->major_id,
+                'role' => Role::MEMBER->value,
+                'borrower_type' => 'GURU',
             ])
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('users', ['email' => 'guru.baru@gmail.com', 'role' => 'PEMINJAM']);
+        $this->assertDatabaseHas('users', ['email' => 'guru.baru@gmail.com', 'role' => Role::MEMBER->value]);
     }
 
     public function test_generate_laporan_bulanan_tanpa_scope_id(): void

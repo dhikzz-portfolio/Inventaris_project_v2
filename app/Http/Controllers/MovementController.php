@@ -56,7 +56,7 @@ class MovementController extends Controller
             ->withQueryString();
 
         $rooms = Room::query()
-            ->when(! $user->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('is_lab', true))
             ->when($user->isOperator(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
             ->orderBy('code')
             ->get();
@@ -138,7 +138,7 @@ class MovementController extends Controller
             ->get()
             ->keyBy('id');
 
-        if (! $user->isSuperAdmin() && $rooms->contains(fn (Room $room): bool => ! $room->is_lab)) {
+        if (! $user->isAdmin() && $rooms->contains(fn (Room $room): bool => ! $room->is_lab)) {
             abort(404);
         }
 

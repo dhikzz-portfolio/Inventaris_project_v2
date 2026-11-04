@@ -76,7 +76,7 @@ class WriteOffController extends Controller
             'models' => Specification::query()->select('model_type')->distinct()->orderBy('model_type')->pluck('model_type'),
             'buildings' => Building::orderBy('code')->get(),
             'rooms' => Room::query()
-                ->when(! $user->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
+                ->when(! $user->isAdmin(), fn ($query) => $query->where('is_lab', true))
                 ->orderBy('code')
                 ->get(),
             'conditions' => Condition::cases(),
@@ -175,6 +175,8 @@ class WriteOffController extends Controller
         }
 
         $path = $request->file('berita_acara')->store('write-offs', 'local');
+        // Admin adalah pemegang kewenangan akhir penghapusan (pengganti
+        // Wakasek), sehingga pengajuannya langsung sah dan tercatat.
         $direct = $user->isApproverLevel2();
 
         $writeOff = DB::transaction(function () use ($unitIds, $itemId, $mode, $data, $user, $path, $direct) {
@@ -289,6 +291,8 @@ class WriteOffController extends Controller
         abort_if((int) $data['quantity'] > $removable, 422,
             "Jumlah melebihi unit yang dapat dihapus (tersedia {$removable}, termasuk permohonan yang masih menunggu).");
 
+        // Admin adalah pemegang kewenangan akhir penghapusan (pengganti
+        // Wakasek), sehingga pengajuannya langsung sah dan tercatat.
         $direct = $user->isApproverLevel2();
 
         $writeOff = DB::transaction(function () use ($data, $item, $request, $direct, $user) {

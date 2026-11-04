@@ -268,6 +268,8 @@ class SpecificationDistributionTest extends TestCase
 
     public function test_unit_dan_transaksi_lama_tetap_terhubung_setelah_spesifikasi_dibuat(): void
     {
+        $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\DemoLoanSeeder'])->assertSuccessful();
+
         $loanItem = LoanItem::query()->firstOrFail();
         $catalog = $loanItem->item;
 

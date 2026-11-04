@@ -101,7 +101,7 @@ class ReportImportService
             if ($code === '') {
                 $errors[] = 'Kode inventaris kosong.';
             } elseif (! preg_match(InventoryCodeService::PATTERN, $code)) {
-                $errors[] = "Format kode tidak valid: {$code} (contoh: G1-02-12).";
+                $errors[] = "Format kode tidak valid: {$code} (contoh: G1-02-012-01).";
             } elseif (isset($seen[$code])) {
                 $errors[] = 'Kode duplikat di dalam berkas (baris '.($seen[$code] + 2).').';
             }
@@ -163,7 +163,7 @@ class ReportImportService
                 if ($room !== null && preg_match(InventoryCodeService::PATTERN, $code)) {
                     $expectedPrefix = $room->buildingCode().(int) $room->floor;
                     $parts = explode('-', $code);
-                    $unitNo = (int) $parts[2];
+                    $unitNo = (int) end($parts);
 
                     if ($parts[0] !== $expectedPrefix || (int) $parts[1] !== (int) $room->room_no) {
                         $errors[] = "Kode {$code} tidak sesuai dengan lokasi ruangan {$room->code}.";

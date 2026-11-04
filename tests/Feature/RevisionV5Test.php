@@ -115,11 +115,8 @@ class RevisionV5Test extends TestCase
 
     private function accountAdmin(): User
     {
-        $admin = User::factory()->create([
-            'name' => 'Admin Akun Uji',
-            'email' => 'admin.akun.uji@gmail.com',
-            'role' => Role::SUPER_ADMIN->value,
-        ]);
+        // Sistem hanya memiliki satu akun Super Admin.
+        $admin = User::where('email', 'superadmin@gmail.com')->firstOrFail();
         $admin->syncRoles([Role::SUPER_ADMIN->value]);
 
         return $admin;
@@ -391,10 +388,11 @@ class RevisionV5Test extends TestCase
 
         $this->assertDatabaseMissing('users', ['email' => 'penyusup@example.test']);
 
-        $this->actingAs($admin)->get(route('users.show', $this->wakasek))->assertForbidden();
-        $this->actingAs($admin)->post(route('users.status', $this->wakasek))->assertForbidden();
+        // Admin operasional tidak dapat menyentuh akun Super Admin tunggal.
+        $this->actingAs($this->wakasek)->get(route('users.show', $admin))->assertForbidden();
+        $this->actingAs($this->wakasek)->post(route('users.status', $admin))->assertForbidden();
 
-        $this->assertTrue($this->wakasek->refresh()->isActive());
+        $this->assertTrue($admin->refresh()->isActive());
     }
 
     public function test_bootstrap_account_is_hashed_forced_to_change_password_and_idempotent(): void

@@ -266,7 +266,7 @@
                             <div class="sm:col-span-2">
                                 <label class="block text-[11px] font-semibold text-gray-500 mb-1">Jumlah *</label>
                                 <input type="number" min="1" required x-model.number="row.quantity"
-                                    :max="maxForRow(row)" :name="'allocations[' + index + '][quantity]'"
+                                    :name="'allocations[' + index + '][quantity]'"
                                     :disabled="remaining === 0 && !row.quantity"
                                     class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             </div>
@@ -468,11 +468,6 @@
                         const last = Number(parts[parts.length - 1]);
                         parts[parts.length - 1] = String(last + qty - 1).padStart(2, '0');
                         return room.preview + ' … ' + parts.join('-');
-                    },
-
-                    maxForRow(row) {
-                        const max = 99;
-                        return max;
                     },
 
                     addRow() {

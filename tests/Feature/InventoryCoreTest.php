@@ -22,7 +22,6 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
@@ -88,7 +87,9 @@ class InventoryCoreTest extends TestCase
         $room = $this->makeRoom('G', 1, 2, true, 'Lab Format', 'G1-92');
 
         $this->assertSame('G1-02-012-12', $service->format($room, 12, '012'));
+        $this->assertSame('G1-02-012-100', $service->format($room, 100, '012'));
         $this->assertTrue($service->isValidFormat('G1-02-012-12'));
+        $this->assertTrue($service->isValidFormat('G1-02-012-100'));
         $this->assertTrue($service->isValidFormat('F1-03-015-01'));
         $this->assertFalse($service->isValidFormat('g1-02-012-12'));
         $this->assertFalse($service->isValidFormat('G1/02/12'));
@@ -298,7 +299,8 @@ class InventoryCoreTest extends TestCase
             'email' => 'laboran.baru@gmail.com',
             'password' => 'rahasia123',
             'password_confirmation' => 'rahasia123',
-            'role' => 'LABORAN',
+            'role' => 'OPERATOR',
+            'operator_category' => 'LABORAN',
             'room_ids' => [$lab->id],
         ])->assertRedirect()->assertSessionHasNoErrors();
 
@@ -313,7 +315,8 @@ class InventoryCoreTest extends TestCase
         $this->actingAs($accountAdmin)->put(route('users.update', $user), [
             'name' => 'Laboran Baru',
             'email' => 'laboran.baru@gmail.com',
-            'role' => 'LABORAN',
+            'role' => 'OPERATOR',
+            'operator_category' => 'LABORAN',
             'room_ids' => [$otherLab->id],
         ])->assertRedirect()->assertSessionHasNoErrors();
 
@@ -358,7 +361,7 @@ class InventoryCoreTest extends TestCase
         $this->assertSame('T3-03-'.$catalog->item_type_code.'-01', $catalog->units()->orderBy('unit_no')->first()->inventory_code);
     }
 
-    public function test_kapasitas_99_dan_kode_tidak_dapat_dipakai_ulang(): void
+    public function test_nomor_unit_dapat_melewati_99_dan_kode_tidak_dipakai_ulang(): void
     {
         $room = $this->makeRoom('U', 4, 4, false, 'Ruang Penuh');
         $catalog = $this->makeCatalog('Barang Penuh', $room);
@@ -366,15 +369,18 @@ class InventoryCoreTest extends TestCase
 
         AssetUnitCode::create([
             'asset_unit_id' => $unit->id,
-            'inventory_code' => 'U4-04-99',
+            'inventory_code' => 'U4-04-099',
             'room_id' => $room->id,
             'unit_no' => 99,
             'issued_at' => now(),
             'reason' => 'PENEMPATAN',
         ]);
 
-        $this->expectException(ValidationException::class);
-        app(AssetUnitService::class)->create($catalog, $room, [], $this->superAdmin);
+        $next = app(AssetUnitService::class)->create($catalog, $room, [], $this->superAdmin);
+
+        $this->assertSame(100, (int) $next->unit_no);
+        $this->assertSame('U4-04-'.$catalog->item_type_code.'-100', $next->inventory_code);
+        $this->assertTrue(app(InventoryCodeService::class)->isValidFormat($next->inventory_code));
     }
 
     public function test_perintah_verify_codes_lulus_pada_data_seeder(): void

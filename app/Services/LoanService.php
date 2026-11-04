@@ -126,7 +126,7 @@ class LoanService
             // Laboran/K3 yang mengajukan barang dari laboratorium yang menjadi
             // kewenangannya sendiri tidak perlu endorsement orang lain. Barang
             // bernilai tinggi tetap harus menunggu persetujuan Wakasek.
-            $withinOwnLab = $this->allLinesWithinLaboranScope($requester, $merged, $items);
+            $withinOwnLab = $this->allLinesWithinOperatorScope($requester, $merged, $items);
             $autoEndorseLevel1 = ! $isWakasek && $requester->isOperator() && $withinOwnLab;
             $selfApproved = $isWakasek || ($autoEndorseLevel1 && ! $hasHighValue);
 

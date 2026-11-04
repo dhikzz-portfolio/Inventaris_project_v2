@@ -38,12 +38,14 @@ class SecureFileController extends Controller
     private function allowed(string $path, $user): bool
     {
         if (str_starts_with($path, 'reports/')) {
-            if ($user->isSuperAdmin()) {
+            // Admin mengelola laporan operasional seluruh sekolah; role lain
+            // hanya boleh membuka arsip yang dibuatnya sendiri.
+            if ($user->isAdmin()) {
                 return true;
             }
 
             // Arsip laporan hanya untuk pembuatnya; laporan seluruh sekolah oleh
-            // scheduler tidak boleh dibuka Ketua Laboran.
+            // scheduler tidak boleh dibuka Editor/Validator atau Operator.
             return Report::query()
                 ->where('generated_by', $user->id)
                 ->where(fn ($q) => $q->where('pdf_path', $path)->orWhere('excel_path', $path))
@@ -51,7 +53,7 @@ class SecureFileController extends Controller
         }
 
         if (str_starts_with($path, 'write-offs/')) {
-            return $user->managesInventory();
+            return $user->isAdmin();
         }
 
         if (str_starts_with($path, 'damage-reports/')) {

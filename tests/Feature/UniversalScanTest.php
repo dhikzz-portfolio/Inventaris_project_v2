@@ -32,11 +32,14 @@ class UniversalScanTest extends TestCase
         $this->siswa = User::where('email', 'siswa.raka@gmail.com')->firstOrFail();
     }
 
-    public function test_semua_role_yang_login_dapat_membuka_halaman_scan(): void
+    public function test_hanya_role_dengan_izin_inventaris_yang_dapat_membuka_halaman_scan(): void
     {
-        foreach ([$this->wakasek, $this->ketua, $this->laboran, $this->siswa] as $user) {
+        foreach ([$this->wakasek, $this->ketua, $this->laboran] as $user) {
             $this->actingAs($user)->get(route('scan'))->assertOk();
         }
+
+        // Member tidak memiliki permission inventory.view.
+        $this->actingAs($this->siswa)->get(route('scan'))->assertForbidden();
     }
 
     public function test_scan_kode_menampilkan_hasil_di_halaman_scan_tanpa_redirect(): void
@@ -60,18 +63,14 @@ class UniversalScanTest extends TestCase
             ->assertSee('Format kode tidak valid', false);
     }
 
-    public function test_peminjam_tidak_melihat_informasi_internal_unit(): void
+    public function test_peminjam_tidak_dapat_memindai_dan_tidak_melihat_informasi_internal(): void
     {
         $unit = AssetUnit::query()->firstOrFail();
         $unit->update(['acquisition_value' => 1234567, 'notes' => 'CATATAN-RAHASIA-INTERNAL']);
 
-        $response = $this->actingAs($this->siswa)
-            ->get(route('scan', ['code' => $unit->inventory_code]));
-
-        $response->assertOk();
-        $response->assertSee($unit->inventory_code);
-        $response->assertDontSee('CATATAN-RAHASIA-INTERNAL');
-        $response->assertDontSee('1.234.567');
+        $this->actingAs($this->siswa)
+            ->get(route('scan', ['code' => $unit->inventory_code]))
+            ->assertForbidden();
     }
 
     public function test_pengelola_melihat_informasi_internal_sesuai_kewenangan(): void

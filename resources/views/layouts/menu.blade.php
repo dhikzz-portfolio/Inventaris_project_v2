@@ -1,72 +1,89 @@
 @php
     $user = auth()->user();
-    $canManage = $user?->managesInventory();
-    $canApprove = $user?->canApproveLoans();
-    $isAdmin = $user?->isApproverLevel2();
-    $isAccountAdmin = $user?->isSuperAdmin();
-    $canManageUsers = $user?->canManageUsers();
+    $can = fn (string $permission): bool => (bool) $user?->can($permission);
+    $canViewMaster = $user?->hasAnyPermission([
+        'master_jurusan.view', 'master_gedung.view', 'master_ruangan.view', 'master_kategori.view',
+    ]) ?? false;
 @endphp
 
 <x-menu-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" icon="dashboard" label="Beranda" />
 
-@unless ($isAccountAdmin)
+@if ($can('catalog.view'))
     <x-menu-link :href="route('catalogs.index')" :active="request()->routeIs('catalogs.*') || request()->routeIs('units.*')" icon="inventory_2" label="Katalog Barang" />
+@endif
 
-{{-- Peminjaman --}}
-<x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isMember() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
-<x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" :label="$isAdmin ? 'Daftar Peminjaman' : 'Peminjaman Saya'" />
+@if ($can('loan.create'))
+    <x-menu-link :href="route('loans.create')" :active="request()->routeIs('loans.create')" icon="add_shopping_cart" :label="$user?->isMember() ? 'Peminjaman' : 'Ajukan Peminjaman'" />
+@endif
+@if ($can('loan.view'))
+    <x-menu-link :href="route('loans.index')" :active="request()->routeIs('loans.index') || request()->routeIs('loans.show')" icon="swap_horiz" :label="$user?->isApproverLevel2() ? 'Daftar Peminjaman' : 'Peminjaman Saya'" />
+@endif
 
-    {{-- Scan universal: semua pengguna operasional boleh memindai. --}}
+@if ($can('inventory.view'))
     <x-menu-link :href="route('scan')" :active="request()->routeIs('scan') || request()->routeIs('scan.resolve')" icon="qr_code_scanner" label="Scan Inventaris" />
+@endif
+@if ($can('event.view'))
     <x-menu-link :href="route('events.index')" :active="request()->routeIs('events.*')" icon="event" label="Rekap Kegiatan" />
+@endif
 
-    @if ($canApprove)
-        <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pinjaman &amp; Pengembalian</div>
+@if ($can('loan.approve') || $can('loan.return'))
+    <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pinjaman &amp; Pengembalian</div>
+    @if ($can('loan.approve'))
         <x-menu-link :href="route('loans.pending')" :active="request()->routeIs('loans.pending')" icon="how_to_reg" label="Permintaan Pinjam" />
+    @endif
+    @if ($can('loan.return'))
         <x-menu-link :href="route('loans.returns')" :active="request()->routeIs('loans.returns')" icon="assignment_return" label="Pengembalian" />
     @endif
+@endif
 
-    @if ($canManage || $canApprove)
-        <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Barang Sekolah</div>
-        @if ($canManage)
-            <x-menu-link :href="route('movements.index')" :active="request()->routeIs('movements.*')" icon="swap_horiz" label="Pindah Barang" />
-        @endif
+@if ($can('movement.view') || $can('unit_labels.view'))
+    <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Barang Sekolah</div>
+    @if ($can('movement.view'))
+        <x-menu-link :href="route('movements.index')" :active="request()->routeIs('movements.*')" icon="swap_horiz" label="Pindah Barang" />
+    @endif
+    @if ($can('unit_labels.view'))
         <x-menu-link :href="route('labels.index')" :active="request()->routeIs('labels.*')" icon="label" label="Cetak Label Barang" />
     @endif
+@endif
 
-    @if ($canApprove)
-        <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengadaan &amp; Kondisi</div>
+@if ($can('procurement.view') || $can('damage_report.view'))
+    <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengadaan &amp; Kondisi</div>
+    @if ($can('procurement.view'))
         <x-menu-link :href="route('items.acquisitions')" :active="request()->routeIs('items.acquisitions*')" icon="shopping_bag" label="Pengadaan Barang" />
+    @endif
+    @if ($can('damage_report.view'))
         <x-menu-link :href="route('damage-reports.index')" :active="request()->routeIs('damage-reports.*')" icon="report_problem" label="Laporan Kerusakan" />
     @endif
+@endif
 
-    @if ($canManage)
-        <x-menu-link :href="route('write-offs.index')" :active="request()->routeIs('write-offs.*')" icon="delete_forever" label="Inventaris Keluar" />
-    @endif
+@if ($can('write_off.view'))
+    <x-menu-link :href="route('write-offs.index')" :active="request()->routeIs('write-offs.*')" icon="delete_forever" label="Inventaris Keluar" />
+@endif
 
-    @if ($canApprove)
-        <x-menu-link :href="route('reports.index')" :active="request()->routeIs('reports.*')" icon="assessment" label="Laporan Bulanan" />
-    @endif
+@if ($can('report.view'))
+    <x-menu-link :href="route('reports.index')" :active="request()->routeIs('reports.*')" icon="assessment" label="Laporan Bulanan" />
+@endif
 
-    @if ($canManage)
-        {{-- Ketua Laboran dapat melihat master data, perubahan data khusus Super Admin. --}}
-        <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" :label="$isAdmin ? 'Data Sekolah' : 'Data Sekolah (lihat)'" />
-    @endif
-@endunless
+@if ($can('masters.view'))
+    <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" label="Data Sekolah" />
+@endif
 
 <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Akun Saya</div>
 <x-menu-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" icon="notifications" label="Pemberitahuan"
              :badge="$user?->unreadNotifications()->count() ?? 0" />
 
-@if ($isAdmin)
-    <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengelolaan Sekolah</div>
-    <x-menu-link :href="route('write-offs.pending')" :active="request()->routeIs('write-offs.pending')" icon="verified_user" label="Setujui Penghapusan" />
-    <x-menu-link :href="route('settings.edit')" :active="request()->routeIs('settings.*')" icon="settings" label="Pengaturan Sekolah" />
-@endif
-
-{{-- Revisi V7+: administrasi seluruh akun hanya untuk Super Admin.
-     Admin tidak memperoleh menu ini (backend juga menolak). --}}
-@if ($isAccountAdmin)
-    <div class="pt-3 pb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Administrasi Akun</div>
-    <x-menu-link :href="route('users.index')" :active="request()->routeIs('users.*')" icon="manage_accounts" label="Akun Pengguna" />
+@if ($can('write_off.approve') || $can('school_settings.view') || $can('roles.view') || $can('users.view') || $can('monitoring.view'))
+    <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengelolaan</div>
+    @if ($can('write_off.approve'))
+        <x-menu-link :href="route('write-offs.pending')" :active="request()->routeIs('write-offs.pending')" icon="verified_user" label="Setujui Penghapusan" />
+    @endif
+    @if ($can('school_settings.view'))
+        <x-menu-link :href="route('settings.edit')" :active="request()->routeIs('settings.*')" icon="settings" label="Pengaturan Sekolah" />
+    @endif
+    @if ($can('users.view') && ! $user?->isAdmin())
+        <x-menu-link :href="route('users.index')" :active="request()->routeIs('users.*')" icon="manage_accounts" label="Akun Pengguna" />
+    @endif
+    @if ($can('roles.view'))
+        <x-menu-link :href="route('roles.index')" :active="request()->routeIs('roles.*')" icon="admin_panel_settings" label="Role &amp; Permission" />
+    @endif
 @endif

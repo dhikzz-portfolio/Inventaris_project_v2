@@ -147,9 +147,6 @@ class InventoryBackfillService
                 }
 
                 $unitNo = ++$nextUnitNo;
-                if ($unitNo > InventoryCodeService::MAX_UNIT_NO) {
-                    break;
-                }
 
                 $code = sprintf(
                     '%s%d-%02d-%s-%02d',

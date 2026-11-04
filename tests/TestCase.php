@@ -2,9 +2,16 @@
 
 namespace Tests;
 
+use App\Enums\BorrowerType;
+use App\Enums\OperatorCategory;
+use App\Enums\Role;
+use App\Models\Major;
+use App\Models\Room;
+use App\Models\User;
+use App\Models\UserRoomScope;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -16,7 +23,7 @@ abstract class TestCase extends BaseTestCase
      * This method sets up demo users manually AND runs MasterDataSeeder
      * to ensure Category, Room, Building, and Major data exists.
      *
-     * @param string $class Database\\Seeders\\DatabaseSeeder (ignored due to seeder bug)
+     * @param  string  $class  Database\\Seeders\\DatabaseSeeder (ignored due to seeder bug)
      */
     public function seed($class = 'Database\\Seeders\\DatabaseSeeder'): void
     {
@@ -36,6 +43,9 @@ abstract class TestCase extends BaseTestCase
             // Log but continue - seeding is best-effort
         }
 
+        // Baseline permission granular untuk seluruh role.
+        Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\PermissionSeeder']);
+
         // Then, skip the buggy DemoAccountSeeder and set up users manually
         // $class parameter is ignored because DemoAccountSeeder is buggy
         $this->setupDemoUsersManually();
@@ -46,6 +56,31 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
     }
 
+    /** Akun Super Admin tunggal untuk pengujian administrasi akun. */
+    protected function accountAdministrator(): User
+    {
+        $user = User::where('email', 'superadmin@gmail.com')->firstOrFail();
+        $user->syncRoles([Role::SUPER_ADMIN->value]);
+
+        return $user;
+    }
+
+    /**
+     * Berganti pengguna dalam satu tes tidak boleh menyisakan hash password
+     * pengguna sebelumnya pada sesi (AuthenticateSession akan memutus sesi).
+     */
+    public function actingAs(Authenticatable $user, $guard = null)
+    {
+        // Pertahankan sesi bila masih pengguna yang sama (mis. alur pratinjau →
+        // konfirmasi), tetapi putuskan sesi saat berganti akun agar hash password
+        // pengguna sebelumnya tidak tersisa pada AuthenticateSession.
+        if (auth()->id() !== $user->getAuthIdentifier()) {
+            $this->flushSession();
+        }
+
+        return parent::actingAs($user, $guard);
+    }
+
     /** Setup akun demo manual karena DemoAccountSeeder memiliki bug.
      * Bug: $account['type']?->value gagal ketika $account['type'] adalah string
      * seperti 'LABORAN' karena ?-> hanya cek null, bukan validasi tipe.
@@ -53,7 +88,6 @@ abstract class TestCase extends BaseTestCase
      * string 'LABORAN' yang tidak valid untuk enum access.
      * Kita juga perlu membuat role Spatie Permission agar bisa disinkronkan.
      */
-
     private function setupDemoUsersManually(): void
     {
         // Coba seeding terlebih dahulu. Jika berhasil, return.
@@ -90,7 +124,7 @@ abstract class TestCase extends BaseTestCase
         foreach ($roleNames as $roleName) {
             // Cek role sudah ada atau belum
             $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
-            if (!$role) {
+            if (! $role) {
                 $role = \Spatie\Permission\Models\Role::create(['name' => $roleName]);
             }
         }
@@ -98,46 +132,46 @@ abstract class TestCase extends BaseTestCase
         // Create majors if not exist
         $majorCodes = ['RPL', 'DKV', 'TP', 'TKP', 'KLN'];
         foreach ($majorCodes as $code) {
-            \App\Models\Major::firstOrCreate(['code' => $code], ['name' => $code]);
+            Major::firstOrCreate(['code' => $code], ['name' => $code]);
         }
-        $majorMap = \App\Models\Major::pluck('id', 'code')->toArray();
+        $majorMap = Major::pluck('id', 'code')->toArray();
 
         // Role enum values
-        $roleAdmin = \App\Enums\Role::ADMIN->value;
-        $roleEditorValidator = \App\Enums\Role::EDITOR_VALIDATOR->value;
-        $roleOperator = \App\Enums\Role::OPERATOR->value;
-        $roleMember = \App\Enums\Role::MEMBER->value;
-        $roleSuperAdmin = \App\Enums\Role::SUPER_ADMIN->value;
+        $roleAdmin = Role::ADMIN->value;
+        $roleEditorValidator = Role::EDITOR_VALIDATOR->value;
+        $roleOperator = Role::OPERATOR->value;
+        $roleMember = Role::MEMBER->value;
+        $roleSuperAdmin = Role::SUPER_ADMIN->value;
 
         // BorrowerType enum values
-        $borrowerGuru = \App\Enums\BorrowerType::GURU->value;
-        $borrowerSiswa = \App\Enums\BorrowerType::SISWA->value;
-        $borrowerStaf = \App\Enums\BorrowerType::STAF->value;
+        $borrowerGuru = BorrowerType::GURU->value;
+        $borrowerSiswa = BorrowerType::SISWA->value;
+        $borrowerStaf = BorrowerType::STAF->value;
 
-        // Super Admin
-        $superAdmin = \App\Models\User::firstOrCreate(
-            ['email' => 'wakasek@gmail.com'],
+        // Super Admin (satu-satunya akun administrasi sistem).
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'superadmin@gmail.com'],
             [
-                'name' => 'Drs. H. Wakasek Sarpras',
-                'email' => 'wakasek@gmail.com',
-                'password' => bcrypt('wakasek123'),
+                'name' => 'Super Admin',
+                'email' => 'superadmin@gmail.com',
+                'password' => bcrypt('superadmin123'),
                 'role' => $roleSuperAdmin,
                 'borrower_type' => null,
                 'major_id' => null,
-                'birth_date' => '1975-06-15',
+                'birth_date' => '1980-01-01',
                 'profile_completed' => true,
                 'profile_completed_at' => now(),
             ]
         );
         $superAdmin->syncRoles([$roleSuperAdmin]);
 
-        // Admin
-        $admin = \App\Models\User::firstOrCreate(
-            ['email' => 'admin.akun.test@example.test'],
+        // Admin operasional (menggantikan Wakasek Sarpras).
+        $admin = User::firstOrCreate(
+            ['email' => 'wakasek@gmail.com'],
             [
-                'name' => 'Admin Akun Tes',
-                'email' => 'admin.akun.test@example.test',
-                'password' => bcrypt('admin123'),
+                'name' => 'Admin Operasional',
+                'email' => 'wakasek@gmail.com',
+                'password' => bcrypt('wakasek123'),
                 'role' => $roleAdmin,
                 'borrower_type' => null,
                 'major_id' => null,
@@ -149,7 +183,7 @@ abstract class TestCase extends BaseTestCase
         $admin->syncRoles([$roleAdmin]);
 
         // Ketua Laboran (EDITOR_VALIDATOR)
-        $ketua = \App\Models\User::firstOrCreate(
+        $ketua = User::firstOrCreate(
             ['email' => 'ketualaboran@gmail.com'],
             [
                 'name' => 'Editor/Validator Sekolah',
@@ -175,7 +209,7 @@ abstract class TestCase extends BaseTestCase
         ];
 
         foreach ($laboranData as $data) {
-            \App\Models\User::firstOrCreate(
+            User::firstOrCreate(
                 ['email' => $data['email']],
                 [
                     'name' => match ($data['major']) {
@@ -188,6 +222,7 @@ abstract class TestCase extends BaseTestCase
                     'email' => $data['email'],
                     'password' => bcrypt($passwords[$data['email']]),
                     'role' => $data['role'],
+                    'operator_category' => OperatorCategory::LABORAN->value,
                     'borrower_type' => $data['type'],
                     'major_id' => $majorMap[$data['major']] ?? null,
                     'birth_date' => match ($data['major']) {
@@ -203,6 +238,30 @@ abstract class TestCase extends BaseTestCase
             )->syncRoles([$data['role']]);
         }
 
+        // Cakupan laboratorium operator (sama dengan DemoAccountSeeder).
+        $scopes = [
+            'laboran.rpl@gmail.com' => ['H1-01', 'H1-02'],
+            'laboran.dkv@gmail.com' => ['G2-01', 'G2-02', 'H2-02'],
+            'laboran.kln@gmail.com' => ['H2-01'],
+            'laboran.tp@gmail.com' => ['G1-01', 'G1-05'],
+            'laboran.tkp@gmail.com' => ['H2-03', 'H2-04'],
+        ];
+
+        foreach ($scopes as $email => $codes) {
+            $operatorUser = User::where('email', $email)->first();
+
+            if ($operatorUser === null) {
+                continue;
+            }
+
+            foreach (Room::whereIn('code', $codes)->pluck('id') as $roomId) {
+                UserRoomScope::firstOrCreate(
+                    ['user_id' => $operatorUser->id, 'room_id' => $roomId],
+                    ['assigned_by' => $admin->id],
+                );
+            }
+        }
+
         // Guru entries
         $guruData = [
             ['email' => 'guru.budi@gmail.com', 'role' => $roleMember, 'major' => 'RPL', 'type' => $borrowerGuru],
@@ -210,7 +269,7 @@ abstract class TestCase extends BaseTestCase
         ];
 
         foreach ($guruData as $data) {
-            \App\Models\User::firstOrCreate(
+            User::firstOrCreate(
                 ['email' => $data['email']],
                 [
                     'name' => match ($data['major']) {
@@ -243,7 +302,7 @@ abstract class TestCase extends BaseTestCase
         ];
 
         foreach ($siswaData as $data) {
-            \App\Models\User::firstOrCreate(
+            User::firstOrCreate(
                 ['email' => $data['email']],
                 [
                     'name' => $data['name'] ?? 'Siswa Baru',
@@ -270,7 +329,7 @@ abstract class TestCase extends BaseTestCase
         ];
 
         foreach ($stafData as $data) {
-            \App\Models\User::firstOrCreate(
+            User::firstOrCreate(
                 ['email' => $data['email']],
                 [
                     'name' => match ($data['email']) {

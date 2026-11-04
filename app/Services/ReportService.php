@@ -44,9 +44,9 @@ class ReportService
         $start = Carbon::parse($period.'-01')->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
-        // Ketua Laboran mencakup seluruh laboratorium, Laboran/K3 hanya ruangan
-        // yang ditugaskan, dan bukan inventaris umum sekolah.
-        $labOnly = $user !== null && ! $user->isSuperAdmin();
+        // Editor/Validator mencakup seluruh laboratorium, Operator hanya ruangan
+        // yang ditugaskan; Admin dan Super Admin mencakup seluruh sekolah.
+        $labOnly = $user !== null && ! $user->isSuperAdmin() && ! $user->isAdmin();
         $roomScopedIds = $user?->isOperator()
             ? $user->roomScopes()->pluck('room_id')->map(fn ($id) => (int) $id)->all()
             : null;

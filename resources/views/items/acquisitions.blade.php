@@ -3,11 +3,13 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengadaan Barang</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Alur tiga tahap: Laboran → Ketua Laboran → Wakasek Sarpras. Barang baru menjadi inventaris setelah diterima dan dicatat.</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Alur tiga tahap: Operator → Editor/Validator → Admin. Barang baru menjadi inventaris setelah diterima dan dicatat.</p>
             </div>
-            <a href="{{ route('items.create') }}" class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
-                <span class="material-icons-round text-base" aria-hidden="true">add</span> Pengajuan baru
-            </a>
+            @if (auth()->user()->can('procurement.create'))
+                <a href="{{ route('items.create') }}" class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
+                    <span class="material-icons-round text-base" aria-hidden="true">add</span> Pengajuan baru
+                </a>
+            @endif
         </div>
     </x-slot>
 
@@ -21,9 +23,9 @@
     @endif
 
     <div class="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 sm:grid-cols-3">
-        <div class="flex items-start gap-2"><span class="material-icons-round text-base text-blue-600">edit_note</span><span>Laboran menyusun draft lalu mengirimkannya.</span></div>
-        <div class="flex items-start gap-2"><span class="material-icons-round text-base text-amber-600">how_to_reg</span><span>Ketua Laboran hanya mengonfirmasi telah mengetahui — bukan persetujuan akhir.</span></div>
-        <div class="flex items-start gap-2"><span class="material-icons-round text-base text-green-700">verified</span><span>Wakasek Sarpras memutuskan menyetujui atau menolak.</span></div>
+        <div class="flex items-start gap-2"><span class="material-icons-round text-base text-blue-600">edit_note</span><span>Operator menyusun draft lalu mengirimkannya.</span></div>
+        <div class="flex items-start gap-2"><span class="material-icons-round text-base text-amber-600">how_to_reg</span><span>Editor/Validator memvalidasi — bukan persetujuan akhir.</span></div>
+        <div class="flex items-start gap-2"><span class="material-icons-round text-base text-green-700">verified</span><span>Admin memutuskan menyetujui atau menolak.</span></div>
     </div>
 
     <form method="GET" action="{{ route('items.acquisitions') }}" role="search"
@@ -62,7 +64,8 @@
                 @foreach ($items as $item)
                     @php
                         $isRequester = (int) $item->acquisition_requested_by === (int) $user->id;
-                        $canOwn = $isRequester || $user->isSuperAdmin();
+                        $canOwn = ($isRequester && $user->can('procurement.create')) || $user->can('procurement.edit');
+                        $canReceive = $canOwn && $user->can('procurement.receive');
                     @endphp
                     <div class="flex flex-col gap-4 p-4 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40 sm:p-5 lg:flex-row lg:items-start">
                         <div class="min-w-0 flex-1">
@@ -110,16 +113,16 @@
                         </div>
 
                         <div class="flex shrink-0 flex-wrap items-start gap-2 lg:max-w-xs lg:justify-end">
-                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::DRAFT->value && $canOwn)
+                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::DRAFT->value && $canOwn && $user->can('procurement.create'))
                                 <form method="POST" action="{{ route('items.acquisitions.submit', $item) }}" x-data="{ submitting: false }" @submit="submitting = true">
                                     @csrf
                                     <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">
-                                        <span class="material-icons-round text-sm">send</span> <span x-text="submitting ? 'Mengirim…' : 'Kirim ke Ketua Laboran'"></span>
+                                        <span class="material-icons-round text-sm">send</span> <span x-text="submitting ? 'Mengirim…' : 'Kirim ke Editor/Validator'"></span>
                                     </button>
                                 </form>
                             @endif
 
-                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value && $user->isEditorValidator())
+                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value && $user->can('procurement.validate'))
                                 <form method="POST" action="{{ route('items.acquisitions.confirm', $item) }}" x-data="{ submitting: false }" @submit="submitting = true">
                                     @csrf
                                     <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60">
@@ -128,7 +131,7 @@
                                 </form>
                             @endif
 
-                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::MENUNGGU_PERSETUJUAN->value && $user->isApproverLevel2())
+                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::MENUNGGU_PERSETUJUAN->value && $user->can('procurement.approve'))
                                 <form method="POST" action="{{ route('items.approve', $item) }}" x-data="{ submitting: false }" @submit="submitting = true">
                                     @csrf
                                     <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-60">
@@ -146,7 +149,7 @@
                             @endif
 
                             @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::DISETUJUI->value)
-                                @if ($canOwn)
+                                @if ($canOwn && $user->can('procurement.edit'))
                                     <form method="POST" action="{{ route('items.acquisitions.start', $item) }}" x-data="{ submitting: false }" @submit="submitting = true">
                                         @csrf
                                         <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60">
@@ -154,20 +157,20 @@
                                         </button>
                                     </form>
                                 @endif
-                                @if ($canOwn)
+                                @if ($canReceive)
                                     <a href="{{ route('items.acquisitions.receive-form', $item) }}" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700">
                                         <span class="material-icons-round text-sm">inventory</span> Catat penerimaan
                                     </a>
                                 @endif
                             @endif
 
-                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::DALAM_PROSES->value && $canOwn)
+                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::DALAM_PROSES->value && $canReceive)
                                 <a href="{{ route('items.acquisitions.receive-form', $item) }}" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700">
                                     <span class="material-icons-round text-sm">inventory</span> Catat penerimaan
                                 </a>
                             @endif
 
-                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::BARANG_DITERIMA->value && $canOwn)
+                            @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::BARANG_DITERIMA->value && $canReceive)
                                 <form method="POST" action="{{ route('items.acquisitions.record', $item) }}" x-data="{ submitting: false }" @submit="submitting = true"
                                       onsubmit="return confirm('Terbitkan unit inventaris dari barang yang sudah diterima?')">
                                     @csrf

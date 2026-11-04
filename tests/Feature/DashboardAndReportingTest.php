@@ -84,11 +84,19 @@ class DashboardAndReportingTest extends TestCase
         $laboranResponse->assertSee('laboratorium Anda');
     }
 
-    public function test_menu_laboran_tidak_menautkan_mutasi_yang_bukan_kewenangannya(): void
+    public function test_menu_mutasi_mengikuti_permission_role(): void
     {
-        $laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $operator = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $editor = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
 
-        $this->actingAs($laboran)->get(route('dashboard'))
+        // Operator boleh mengelola mutasi sesuai penugasannya.
+        $this->actingAs($operator)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(route('movements.index'), false)
+            ->assertSee(route('labels.index'), false);
+
+        // Editor/Validator tidak memiliki permission mutasi.
+        $this->actingAs($editor)->get(route('dashboard'))
             ->assertOk()
             ->assertDontSee(route('movements.index'), false)
             ->assertSee(route('labels.index'), false);

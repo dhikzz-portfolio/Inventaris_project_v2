@@ -65,7 +65,7 @@ class DistributionForm extends Component
 
         $room = Room::findOrFail($data['toRoomId']);
 
-        if (! $user->isSuperAdmin() && ! $room->is_lab) {
+        if (! $user->isAdmin() && ! $room->is_lab) {
             abort(404);
         }
 
@@ -134,7 +134,7 @@ class DistributionForm extends Component
             : null;
 
         $rooms = Room::query()
-            ->when(! $user->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('is_lab', true))
             ->orderBy('building_letter')->orderBy('floor')->orderBy('room_no')
             ->get();
 

@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\BorrowerType;
+use App\Enums\OperatorCategory;
 use App\Enums\Role;
+use App\Support\RolePermissionManager;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +23,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'degree', 'email', 'email_verified_at', 'password',
-        'role', 'is_active', 'must_change_password', 'password_changed_at',
+        'role', 'operator_category', 'is_active', 'must_change_password', 'password_changed_at',
         'borrower_type', 'major_id', 'class_name', 'last_login_at',
         'birth_date', 'profile_completed_at', 'profile_completed', 'work_unit',
     ];
@@ -32,6 +34,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'borrower_type' => BorrowerType::class,
+            'operator_category' => OperatorCategory::class,
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'birth_date' => 'date',
@@ -43,9 +46,61 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Jaga tabel pivot Spatie tetap sinkron dengan kolom `role`.
+     * Kolom `role` tetap menjadi identitas tunggal; permission aktual dibaca
+     * dari role Spatie sehingga granular permission selalu berlaku.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (User $user): void {
+            if ($user->wasRecentlyCreated || $user->wasChanged('role')) {
+                $user->syncRoleFromColumn();
+            }
+        });
+    }
+
     public function major(): BelongsTo
     {
         return $this->belongsTo(Major::class);
+    }
+
+    public function syncRoleFromColumn(): void
+    {
+        if (blank($this->role)) {
+            return;
+        }
+
+        app(RolePermissionManager::class)->ensureRole($this->role);
+        $this->syncRoles([$this->role]);
+    }
+
+    /** Pemeriksaan permission granular (sumber: database, bukan hardcoded role). */
+    public function hasPermission(string $permission): bool
+    {
+        return $this->can($permission);
+    }
+
+    /** @param list<string> $permissions */
+    public function hasAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function hasFeaturePermission(string $feature, string $action = 'view'): bool
+    {
+        return $this->hasPermission($feature.'.'.$action);
+    }
+
+    public function hasOperatorCategory(OperatorCategory $category): bool
+    {
+        return $this->operator_category === $category;
     }
 
     /**

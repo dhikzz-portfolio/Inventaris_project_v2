@@ -310,8 +310,7 @@ class ItemController extends Controller
 
     /**
      * Validasi backend (bukan hanya frontend): total alokasi harus tepat sama
-     * dengan jumlah pengadaan dan setiap ruangan harus mampu menampung nomor
-     * unit baru tanpa melewati batas 99.
+     * dengan jumlah pengadaan.
      *
      * @param  Collection<int, array{room_id: int, quantity: int}>  $allocations
      */
@@ -323,32 +322,6 @@ class ItemController extends Controller
             throw ValidationException::withMessages([
                 'allocations' => "Total alokasi ({$sum} unit) harus sama dengan jumlah pengadaan ({$total} unit). Sisa yang belum dialokasikan: ".($total - $sum).' unit.',
             ]);
-        }
-
-        $codes = app(InventoryCodeService::class);
-
-        foreach ($allocations as $index => $allocation) {
-            $room = Room::find($allocation['room_id']);
-
-            if ($room === null) {
-                continue;
-            }
-
-            try {
-                $next = $codes->nextUnitNo($room);
-            } catch (ValidationException $exception) {
-                throw ValidationException::withMessages([
-                    "allocations.{$index}.quantity" => $exception->validator->errors()->first(),
-                ]);
-            }
-
-            $availableSlots = InventoryCodeService::MAX_UNIT_NO - $next + 1;
-
-            if ($allocation['quantity'] > $availableSlots) {
-                throw ValidationException::withMessages([
-                    "allocations.{$index}.quantity" => "Ruangan {$room->code} hanya memiliki {$availableSlots} nomor unit tersisa (maksimal 99 seumur hidup).",
-                ]);
-            }
         }
     }
 
@@ -447,7 +420,7 @@ class ItemController extends Controller
                 $scope->where('acquisition_requested_by', $user->id)
                     ->orWhereHas('allocations.room', fn ($room) => $room->whereIn('id', $user->roomScopes()->select('room_id')));
             }))
-            ->when(! $user->isSuperAdmin() && ! $user->isOperator(), fn ($query) => $query->where(function ($scope) {
+            ->when(! $user->isAdmin() && ! $user->isOperator(), fn ($query) => $query->where(function ($scope) {
                 $scope->whereHas('room', fn ($room) => $room->where('is_lab', true))
                     ->orWhereHas('allocations.room', fn ($room) => $room->where('is_lab', true));
             }))
@@ -469,7 +442,7 @@ class ItemController extends Controller
         $this->ensureVisible($item);
         $acquisitions->submit($item, $request->user());
 
-        return back()->with('success', "Pengajuan \"{$item->name}\" dikirim ke Ketua Laboran.");
+        return back()->with('success', "Pengajuan \"{$item->name}\" dikirim ke Editor/Validator.");
     }
 
     /** Tahap 2 — konfirmasi Ketua Laboran (bukan persetujuan akhir). */
@@ -479,10 +452,10 @@ class ItemController extends Controller
 
         $acquisitions->confirm($item, $request->user());
 
-        return back()->with('success', "Pengajuan \"{$item->name}\" dikonfirmasi dan diteruskan ke Wakasek Sarpras.");
+        return back()->with('success', "Pengajuan \"{$item->name}\" dikonfirmasi dan diteruskan ke Admin.");
     }
 
-    /** Tahap 3 — persetujuan akhir Wakasek Sarpras. */
+    /** Tahap 3 — persetujuan akhir Admin. */
     public function approveAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
     {
         abort_unless($request->user()->isApproverLevel2(), 403);
@@ -569,7 +542,7 @@ class ItemController extends Controller
     private function availableRooms(?User $user)
     {
         return Room::with('major')
-            ->when(! $user?->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
+            ->when(! $user?->isAdmin(), fn ($query) => $query->where('is_lab', true))
             ->when($user?->isOperator(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
             ->orderBy('code')
             ->get();
@@ -579,7 +552,7 @@ class ItemController extends Controller
     {
         $rule = Rule::exists('rooms', 'id');
 
-        if ($user->isSuperAdmin()) {
+        if ($user->isAdmin()) {
             return $rule;
         }
 

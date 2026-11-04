@@ -14,9 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryCodeService
 {
-    public const PATTERN = '/^[A-Z][1-9]-[0-9]{2}-[0-9]{3}-[0-9]{2}$/'; // [KODE GEDUNG-LANTAI]-[KODE RUANGAN]-[KODE JENIS BARANG 3 DIGIT]-[NOMOR SERI]
-
-    public const MAX_UNIT_NO = 99;
+    public const PATTERN = '/^[A-Z][1-9]-[0-9]{2}-[0-9]{3}-[0-9]{2,}$/'; // [KODE GEDUNG-LANTAI]-[KODE RUANGAN]-[KODE JENIS BARANG 3 DIGIT]-[NOMOR SERI]
 
     private ?bool $connected = null;
 
@@ -57,9 +55,9 @@ class InventoryCodeService
     {
         $resolved = $this->assertOrResolveRoomIdentity($room);
 
-        if ($unitNo < 1 || $unitNo > self::MAX_UNIT_NO) {
+        if ($unitNo < 1) {
             throw ValidationException::withMessages([
-                'unit_no' => 'Nomor unit harus berada di antara 01 dan 99.',
+                'unit_no' => 'Nomor unit minimal 01.',
             ]);
         }
 
@@ -153,19 +151,11 @@ class InventoryCodeService
     {
         $this->assertOrResolveRoomIdentity($room);
 
-        $query = AssetUnitCode::query()->where('room_id', $room->id);
+        $max = (int) AssetUnitCode::query()
+            ->where('room_id', $room->id)
+            ->max('unit_no');
 
-        $max = (int) $query->max('unit_no');
-
-        $next = $max + 1;
-
-        if ($next > self::MAX_UNIT_NO) {
-            throw ValidationException::withMessages([
-                'unit_no' => "Ruangan {$room->code} sudah memakai 99 nomor unit. Pecah ruangan atau pindahkan unit ke ruangan lain.",
-            ]);
-        }
-
-        return $next;
+        return $max + 1;
     }
 
     public function preview(Room $room, ?int $unitNo = null, ?Item $catalog = null): ?string
@@ -306,7 +296,7 @@ class InventoryCodeService
         $code = $this->normalize($code);
 
         // Accept both old and new formats
-        if (! $this->isValidFormat($code) && ! preg_match('/^[A-Z][1-9]-[0-9]{2}-[0-9]{2}$/', $code)) {
+        if (! $this->isValidFormat($code) && ! preg_match('/^[A-Z][1-9]-[0-9]{2}-[0-9]{2,}$/', $code)) {
             return null;
         }
 
@@ -356,9 +346,9 @@ class InventoryCodeService
      */
     public function formatFromCode(string $existingCode, int $unitNo): string
     {
-        if ($unitNo < 1 || $unitNo > self::MAX_UNIT_NO) {
+        if ($unitNo < 1) {
             throw ValidationException::withMessages([
-                'unit_no' => 'Nomor unit harus berada di antara 01 dan 99.',
+                'unit_no' => 'Nomor unit minimal 01.',
             ]);
         }
 

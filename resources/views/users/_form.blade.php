@@ -2,6 +2,7 @@
     $editing = $user !== null;
     $currentRole = old('role', $user?->role ?? \App\Enums\Role::MEMBER->value);
     $currentType = old('borrower_type', $user?->borrower_type?->value);
+    $currentOperatorCategory = old('operator_category', $user?->operator_category?->value);
     $selectedRooms = old('room_ids', $user?->roomScopes?->pluck('room_id')->all() ?? []);
 @endphp
 
@@ -131,7 +132,24 @@
         </fieldset>
 
         {{-- Kategori peminjam --}}
-        <fieldset class="border-t border-gray-100 pt-4 space-y-3" x-show="role === 'PEMINJAM'" x-cloak>
+        {{-- Kategori operator --}}
+        <fieldset class="border-t border-gray-100 pt-4 space-y-3" x-show="role === 'OPERATOR'" x-cloak>
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Kategori Operator</legend>
+            <p class="text-[11px] text-gray-400">Kategori hanya membedakan identitas; permission tetap mengikuti role Operator.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                @foreach ($operatorCategories as $category)
+                    <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs has-[:checked]:border-amber-500 has-[:checked]:ring-2 has-[:checked]:ring-amber-500/20">
+                        <input type="radio" name="operator_category" value="{{ $category->value }}"
+                               class="text-amber-600 focus:ring-amber-500"
+                               @checked($currentOperatorCategory === $category->value)>
+                        <span class="font-medium text-gray-700">{{ $category->label() }}</span>
+                    </label>
+                @endforeach
+            </div>
+            @error('operator_category') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+        </fieldset>
+
+        <fieldset class="border-t border-gray-100 pt-4 space-y-3" x-show="role === 'MEMBER'" x-cloak>
             <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Kategori Peminjam</legend>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -157,7 +175,7 @@
         </fieldset>
 
         {{-- Cakupan laboratorium --}}
-        <fieldset class="border-t border-gray-100 pt-4" x-show="role === 'LABORAN'" x-cloak>
+        <fieldset class="border-t border-gray-100 pt-4" x-show="role === 'OPERATOR'" x-cloak>
             <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Cakupan Laboratorium</legend>
             <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 p-2 space-y-1">
                 @forelse ($labRooms as $labRoom)

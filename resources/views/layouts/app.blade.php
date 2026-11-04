@@ -87,7 +87,7 @@
                 </main>
             </div>
 
-            @if (auth()->check() && auth()->user()->canApproveLoans())
+            @if (auth()->check() && auth()->user()->can('inventory.view'))
                 <!-- Tombol kamera mengambang untuk Laboran / pengelola (Bagian 5.9) -->
                 <a href="{{ route('scan') }}"
                    class="fixed bottom-20 right-4 z-30 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-900/20 transition hover:bg-brand-700 active:scale-95 md:hidden"

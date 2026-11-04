@@ -49,7 +49,7 @@ class DamageReportController extends Controller
             'statuses' => DamageReportStatus::cases(),
             'filters' => $filters,
             'rooms' => Room::query()
-                ->when(! $user->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
+                ->when(! $user->isSuperAdmin() && ! $user->isAdmin(), fn ($query) => $query->where('is_lab', true))
                 ->when($user->isOperator(), fn ($query) => $query->whereIn('id', $user->roomScopes()->select('room_id')))
                 ->orderBy('code')
                 ->get(),
@@ -84,7 +84,7 @@ class DamageReportController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user->isOperator() || $user->isSuperAdmin(), 403);
+        abort_unless($user->isOperator() || $user->isAdmin(), 403);
 
         $data = $request->validate([
             'asset_unit_id' => ['required', 'integer'],
@@ -148,7 +148,7 @@ class DamageReportController extends Controller
             'report' => $damageReport,
             'logs' => $damageReport->logs()->with('user')->get(),
             'statuses' => $damageReport->status->allowedTransitions(),
-            'canUpdate' => $user->isSuperAdmin() || (int) $damageReport->reported_by === (int) $user->id,
+            'canUpdate' => $user->isAdmin() || $user->isEditorValidator() || (int) $damageReport->reported_by === (int) $user->id,
         ]);
     }
 
@@ -157,7 +157,7 @@ class DamageReportController extends Controller
         $user = $request->user();
 
         abort_unless(
-            $user->isSuperAdmin() || (int) $damageReport->reported_by === (int) $user->id,
+            $user->isAdmin() || $user->isEditorValidator() || (int) $damageReport->reported_by === (int) $user->id,
             403
         );
 

@@ -82,7 +82,7 @@ class CatalogDeletionTest extends TestCase
 
         $this->actingAs($this->ketuaLaboran)
             ->delete(route('catalogs.destroy', $catalog))
-            ->assertNotFound();
+            ->assertForbidden();
 
         $this->assertNull($catalog->refresh()->archived_at);
     }

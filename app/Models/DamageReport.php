@@ -74,7 +74,8 @@ class DamageReport extends Model
      */
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
-        if ($user === null || $user->isSuperAdmin()) {
+        // Super Admin memantau seluruh data; Admin mengelola seluruh sekolah.
+        if ($user === null || $user->isSuperAdmin() || $user->isAdmin()) {
             return $query;
         }
 

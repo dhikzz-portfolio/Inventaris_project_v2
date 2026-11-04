@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Role;
 use App\Models\Building;
+use App\Models\Category;
 use App\Models\InstitutionSetting;
 use App\Models\Major;
 use App\Models\User;
@@ -16,44 +18,42 @@ class MasterDataTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $wakasek;
+    private User $superAdmin;
 
     private User $admin;
 
-    private User $laboran;
+    private User $editor;
 
-    private User $peminjam;
+    private User $operator;
+
+    private User $member;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->seed();
 
-        $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
-        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
-        $this->laboran = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
-        $this->peminjam = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
+        $this->superAdmin = User::where('email', 'superadmin@gmail.com')->firstOrFail();
+        $this->admin = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $this->editor = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->operator = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
+        $this->member = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
     }
 
-    public function test_peminjam_dan_laboran_tidak_bisa_akses_master_data(): void
+    public function test_selain_admin_tidak_bisa_akses_master_data(): void
     {
-        $this->actingAs($this->peminjam)->get(route('masters.index'))->assertForbidden();
-        $this->actingAs($this->laboran)->get(route('masters.index'))->assertForbidden();
+        $this->actingAs($this->member)->get(route('masters.index'))->assertForbidden();
+        $this->actingAs($this->operator)->get(route('masters.index'))->assertForbidden();
+        $this->actingAs($this->editor)->get(route('masters.index'))->assertForbidden();
+        $this->actingAs($this->superAdmin)->get(route('masters.index'))->assertForbidden();
     }
 
-    public function test_ketua_laboran_hanya_melihat_dan_wakasek_mengubah_master_data(): void
+    public function test_admin_mengelola_seluruh_master_data(): void
     {
-        // Ketua Laboran tetap membutuhkan data untuk pemantauan (read-only).
         $this->actingAs($this->admin)->get(route('masters.index'))->assertOk();
-        $this->actingAs($this->admin)->post(route('masters.store-major'), [
-            'name' => 'Tidak Boleh',
-            'code' => 'X1',
-        ])->assertForbidden();
-
-        $this->actingAs($this->wakasek)->get(route('masters.index'))->assertOk();
 
         // Tambah Jurusan
-        $this->actingAs($this->wakasek)->post(route('masters.store-major'), [
+        $this->actingAs($this->admin)->post(route('masters.store-major'), [
             'name' => 'Akuntansi dan Keuangan Lembaga',
             'code' => 'AKL',
         ])->assertRedirect()->assertSessionHasNoErrors();
@@ -64,7 +64,7 @@ class MasterDataTest extends TestCase
         // Tambah Ruangan (formulir sederhana: gedung dari master + lantai + nomor ruang)
         $building = Building::where('code', 'I')->firstOrFail();
 
-        $this->actingAs($this->wakasek)->post(route('masters.store-room'), [
+        $this->actingAs($this->admin)->post(route('masters.store-room'), [
             'major_id' => $major->id,
             'building_id' => $building->id,
             'floor' => 2,
@@ -78,26 +78,32 @@ class MasterDataTest extends TestCase
         ]);
 
         // Tambah Kategori
-        $this->actingAs($this->wakasek)->post(route('masters.store-category'), [
+        $this->actingAs($this->admin)->post(route('masters.store-category'), [
             'name' => 'Perangkat Jaringan Nirkabel',
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('categories', ['name' => 'Perangkat Jaringan Nirkabel']);
         // Kode klasifikasi aset lama sudah dihapus dari master kategori.
         $this->assertFalse(Schema::hasColumn('categories', 'code'));
+
+        // Hapus kategori baru
+        $category = Category::where('name', 'Perangkat Jaringan Nirkabel')->firstOrFail();
+        $this->actingAs($this->admin)->delete(route('masters.destroy-category', $category))
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('categories', ['id' => $category->id]);
     }
 
-    public function test_hanya_wakasek_yang_dapat_mengubah_pengaturan_instansi(): void
+    public function test_hanya_super_admin_yang_dapat_mengubah_pengaturan_instansi(): void
     {
         Storage::fake('public');
         Storage::fake('local');
 
-        $this->actingAs($this->admin)->get(route('settings.edit'))->assertForbidden();
-        $this->actingAs($this->laboran)->get(route('settings.edit'))->assertForbidden();
-        $this->actingAs($this->peminjam)->get(route('settings.edit'))->assertForbidden();
+        foreach ([$this->admin, $this->editor, $this->operator, $this->member] as $other) {
+            $this->actingAs($other)->get(route('settings.edit'))->assertForbidden();
+        }
 
         $logo = UploadedFile::fake()->image('logo_sekolah.png');
 
-        $this->actingAs($this->wakasek)->post(route('settings.update'), [
+        $this->actingAs($this->superAdmin)->post(route('settings.update'), [
             'institution_name' => 'SMK BAGIMU NEGERIKU DIGITAL',
             'location_code' => '12.24.13.08.01.07.01.99',
             'address' => 'Semarang Jawa Tengah',
@@ -112,42 +118,43 @@ class MasterDataTest extends TestCase
         Storage::disk('public')->assertExists($setting->logo_path);
     }
 
-    public function test_hanya_super_admin_pengguna_yang_dapat_mengelola_pengguna(): void
+    public function test_hanya_super_admin_yang_dapat_mengelola_pengguna(): void
     {
-        $accountAdmin = $this->accountAdministrator();
-
-        foreach ([$this->wakasek, $this->admin, $this->laboran, $this->peminjam] as $other) {
+        foreach ([$this->admin, $this->editor, $this->operator, $this->member] as $other) {
             $this->actingAs($other)->get(route('users.index'))->assertForbidden();
         }
 
-        $this->actingAs($accountAdmin)->get(route('users.index'))->assertOk();
+        $this->actingAs($this->superAdmin)->get(route('users.index'))->assertOk();
 
-        // Buat user baru
-        $this->actingAs($accountAdmin)->post(route('users.store'), [
+        // Buat user baru (role Operator dengan kategori Laboran).
+        $this->actingAs($this->superAdmin)->post(route('users.store'), [
             'name' => 'Laboran Baru',
             'email' => 'laboran.baru@gmail.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role' => 'LABORAN',
+            'role' => Role::OPERATOR->value,
+            'operator_category' => 'LABORAN',
             'major_id' => Major::first()->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $newUser = User::where('email', 'laboran.baru@gmail.com')->firstOrFail();
-        $this->assertTrue($newUser->hasRole('LABORAN'));
+        $this->assertTrue($newUser->hasRole(Role::OPERATOR->value));
+        $this->assertSame('LABORAN', $newUser->operator_category?->value);
 
-        // Update user
-        $this->actingAs($accountAdmin)->put(route('users.update', $newUser), [
+        // Ubah role menjadi Member.
+        $this->actingAs($this->superAdmin)->put(route('users.update', $newUser), [
             'name' => 'Laboran Baru Updated',
             'email' => 'laboran.baru@gmail.com',
-            'role' => 'PEMINJAM',
-            'major_id' => null,
+            'role' => Role::MEMBER->value,
+            'borrower_type' => 'GURU',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertSame('PEMINJAM', $newUser->refresh()->role);
-        $this->assertTrue($newUser->hasRole('PEMINJAM'));
+        $this->assertSame(Role::MEMBER->value, $newUser->refresh()->role);
+        $this->assertTrue($newUser->hasRole(Role::MEMBER->value));
+        $this->assertNull($newUser->operator_category);
 
         // Hapus user
-        $this->actingAs($accountAdmin)->delete(route('users.destroy', $newUser))
+        $this->actingAs($this->superAdmin)->delete(route('users.destroy', $newUser))
             ->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertDatabaseMissing('users', ['id' => $newUser->id]);
@@ -155,10 +162,8 @@ class MasterDataTest extends TestCase
 
     public function test_tidak_bisa_menghapus_akun_sendiri(): void
     {
-        $accountAdmin = $this->accountAdministrator();
-
-        $this->actingAs($accountAdmin)
-            ->delete(route('users.destroy', $accountAdmin))
+        $this->actingAs($this->superAdmin)
+            ->delete(route('users.destroy', $this->superAdmin))
             ->assertStatus(422);
     }
 }

@@ -85,7 +85,9 @@ class DatabaseSeederTest extends TestCase
         config(['auth.super_admin.email' => 'superadmin.prod@gmail.com']);
         config(['auth.super_admin.name' => 'Super Admin Prod']);
 
-        $this->seed();
+        // Jalankan DatabaseSeeder asli agar perilaku production teruji
+        // (TestCase::seed() dipakai untuk data demo pada tes lain).
+        $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\DatabaseSeeder']);
 
         $this->assertDatabaseHas('users', [
             'email' => 'superadmin.prod@gmail.com',

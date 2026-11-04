@@ -37,7 +37,7 @@ class LabelController extends Controller
                 ->orderBy('name')
                 ->pluck('name', 'id'),
             'rooms' => Room::query()
-                ->when(! $request->user()->isSuperAdmin(), fn ($query) => $query->where('is_lab', true))
+                ->when(! $request->user()->isAdmin(), fn ($query) => $query->where('is_lab', true))
                 ->orderBy('code')
                 ->get(),
             'categories' => Category::orderBy('name')->get(),

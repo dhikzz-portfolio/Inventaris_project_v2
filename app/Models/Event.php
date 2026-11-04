@@ -63,7 +63,7 @@ class Event extends Model
     }
 
     /**
-     * Pembuat kegiatan atau Super Admin boleh menghapus. PIC tidak otomatis
+     * Pembuat kegiatan atau Admin boleh menghapus. PIC tidak otomatis
      * menjadi pemilik. Kegiatan yang sudah memiliki riwayat peminjaman tidak
      * dapat dihapus siapa pun.
      */
@@ -73,7 +73,7 @@ class Event extends Model
             return false;
         }
 
-        return $user->isSuperAdmin() || (int) $this->created_by === (int) $user->id;
+        return $user->isAdmin() || (int) $this->created_by === (int) $user->id;
     }
 
     public function editor(): BelongsTo
@@ -83,7 +83,7 @@ class Event extends Model
 
     /**
      * Guru/staf hanya boleh mengubah kegiatan yang dibuatnya; pengelola
-     * inventaris (Wakasek/Ketua Laboran) boleh memantau dan mengubah semua
+     * inventaris (Admin/Editor/Validator) boleh memantau dan mengubah semua
      * kegiatan sesuai kewenangannya.
      */
     public function isManageableBy(?User $user): bool

@@ -290,10 +290,10 @@ class CriticalBusinessRulesTest extends TestCase
         Storage::fake('public');
         Storage::fake('local');
 
-        // Permohonan write-off oleh Admin Sarpras
+        // Permohonan write-off oleh Admin operasional.
         $file = UploadedFile::fake()->create('berita_acara.pdf', 100, 'application/pdf');
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->wakasek)
             ->post(route('write-offs.store'), [
                 'item_id' => $this->normalItem->id,
                 'quantity' => 1,
@@ -303,17 +303,9 @@ class CriticalBusinessRulesTest extends TestCase
             ->assertRedirect(route('write-offs.index'));
 
         $writeOff = WriteOff::where('item_id', $this->normalItem->id)->firstOrFail();
-        $this->assertSame('PENDING', $writeOff->status);
-
-        // Sebelum di-approve Wakasek, status barang masih tetap
-        $this->assertNotSame(ItemStatus::DIHAPUS, $this->normalItem->refresh()->status);
-
-        // Approval oleh Wakasek
-        $this->actingAs($this->wakasek)
-            ->post(route('write-offs.approve', $writeOff))
-            ->assertRedirect();
-
-        $this->assertSame('APPROVED', $writeOff->refresh()->status);
+        // Admin memegang kewenangan akhir penghapusan.
+        $this->assertSame('APPROVED', $writeOff->status);
+        $this->assertSame(ItemStatus::DIHAPUS, $this->normalItem->refresh()->status);
         $this->assertSame(ItemStatus::DIHAPUS, $this->normalItem->refresh()->status);
         $this->assertSame(0, $this->normalItem->quantity);
     }

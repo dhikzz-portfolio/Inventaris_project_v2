@@ -37,7 +37,7 @@ class InventoryCatalogTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->admin = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $this->admin = User::where('email', 'laboran.tp@gmail.com')->firstOrFail();
         $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
         $this->guru = User::where('email', 'guru.budi@gmail.com')->firstOrFail();
         $this->category = Category::firstOrFail();
@@ -79,11 +79,12 @@ class InventoryCatalogTest extends TestCase
         Storage::fake('local');
 
         $photo = UploadedFile::fake()->image('laptop_baru.jpg');
+        $room = Room::where('code', 'G1-01')->firstOrFail();
 
         $this->actingAs($this->admin)->post(route('items.store'), [
             'name' => 'Laptop Asus ROG Strix',
             'category_id' => $this->category->id,
-            'room_id' => $this->room->id,
+            'room_id' => $room->id,
             'specification' => 'Ryzen 9, 32GB RAM, RTX 4070',
             'acquisition_year' => 2025,
             'funding_source' => 'BOS Kinerja',
@@ -99,9 +100,11 @@ class InventoryCatalogTest extends TestCase
         $this->assertNotNull($item->photo_path);
         Storage::disk('public')->assertExists($item->photo_path);
 
-        // Alur tiga tahap sebelum keputusan akhir Wakasek.
+        // Alur tiga tahap sebelum keputusan akhir Admin.
+        $editor = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+
         $this->actingAs($this->admin)->post(route('items.acquisitions.submit', $item))->assertRedirect();
-        $this->actingAs($this->admin)->post(route('items.acquisitions.confirm', $item))->assertRedirect();
+        $this->actingAs($editor)->post(route('items.acquisitions.confirm', $item))->assertRedirect();
         $this->actingAs($this->wakasek)->post(route('items.approve', $item))
             ->assertRedirect();
         $this->assertSame('DISETUJUI', $item->refresh()->acquisition_status);

@@ -24,14 +24,14 @@ class ReportController extends Controller
         $user = $request->user();
 
         $reports = Report::with('generator')
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('generated_by', $user->id))
+            ->when(! $user->isSuperAdmin() && ! $user->isAdmin(), fn ($q) => $q->where('generated_by', $user->id))
             ->latest('generated_at')
             ->paginate(10);
 
         return view('reports.index', [
             'categories' => Category::orderBy('name')->get(),
             'rooms' => Room::query()
-                ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('is_lab', true))
+                ->when(! $user->isSuperAdmin() && ! $user->isAdmin(), fn ($q) => $q->where('is_lab', true))
                 ->when($user->isOperator(), fn ($q) => $q->whereIn('id', $user->roomScopes()->select('room_id')))
                 ->orderBy('code')
                 ->get(),
@@ -258,7 +258,7 @@ class ReportController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user->isSuperAdmin() || (int) $report->generated_by === (int) $user->id, 403);
+        abort_unless($user->isAdmin() || (int) $report->generated_by === (int) $user->id, 403);
 
         $period = $report->period;
         $scope = $report->scope;

@@ -18,6 +18,7 @@ class EventController extends Controller
 {
     public function index(Request $request, EventStatusService $statusService): View
     {
+        $user = $request->user();
         $status = trim((string) $request->query('status', ''));
         $today = now(config('app.timezone'))->toDateString();
 
@@ -30,6 +31,13 @@ class EventController extends Controller
         return view('events.index', [
             'events' => Event::withCount('loans')
                 ->with(['creator', 'picUser', 'loans' => fn ($q) => $q->withCount('loanItems')])
+                // Member hanya melihat rekap kegiatan miliknya sendiri.
+                ->when($user->isMember(), fn ($query) => $query->where(function ($scope) use ($user): void {
+                    $scope->where('created_by', $user->id)
+                        ->orWhereHas('loans', fn ($loan) => $loan
+                            ->where('borrower_id', $user->id)
+                            ->orWhere('requested_by', $user->id));
+                }))
                 ->when(in_array($status, EventStatus::values(), true), function ($query) use ($status, $today): void {
                     match ($status) {
                         EventStatus::BELUM_BERJALAN->value => $query->whereDate('start_date', '>', $today),
@@ -55,8 +63,8 @@ class EventController extends Controller
         $user = $request->user();
 
         // Siswa/peminjam biasa hanya melihat rekap; pencatatan kegiatan
-        // diperuntukkan bagi guru, staf, dan pengelola inventaris.
-        abort_unless($user->canRecordActivities() || $user->managesInventory(), 403);
+        // diperuntukkan bagi guru, staf, Operator, dan pengelola inventaris.
+        abort_unless($user->canRecordActivities() || $user->managesInventory() || $user->isOperator(), 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -138,7 +146,7 @@ class EventController extends Controller
     }
 
     /**
-     * Hapus kegiatan. Pembuat atau Super Admin boleh menghapus, dan kegiatan
+     * Hapus kegiatan. Pembuat atau Admin boleh menghapus, dan kegiatan
      * yang sudah memiliki transaksi peminjaman selalu ditolak meskipun request
      * dikirim langsung ke API/route.
      */
@@ -147,8 +155,8 @@ class EventController extends Controller
         $user = $request->user();
         $isOwner = (int) $event->created_by === (int) $user->id;
 
-        abort_unless($isOwner || $user->isSuperAdmin(), 403,
-            'Hanya pembuat kegiatan atau Super Admin yang dapat menghapus kegiatan ini.');
+        abort_unless($isOwner || $user->isAdmin(), 403,
+            'Hanya pembuat kegiatan atau Admin yang dapat menghapus kegiatan ini.');
 
         if ($event->hasLoans()) {
             return back()->with('error', 'Kegiatan tidak dapat dihapus karena telah memiliki riwayat transaksi peminjaman.');

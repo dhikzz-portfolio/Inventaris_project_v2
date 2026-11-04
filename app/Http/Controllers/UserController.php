@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\BorrowerType;
 use App\Enums\NotificationType;
+use App\Enums\OperatorCategory;
 use App\Enums\Role;
 use App\Models\Event;
 use App\Models\Major;
@@ -58,6 +59,17 @@ class UserController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $editUser = $editId !== null
+            ? User::with(['major', 'roomScopes'])->find($editId)
+            : null;
+
+        // Role Super Admin tidak dapat ditetapkan, tetapi akun yang sedang
+        // diedit harus tetap menampilkan role-nya agar form konsisten.
+        $roles = $this->assignableRoles($actor);
+        if ($editUser?->isSuperAdmin()) {
+            $roles[] = Role::SUPER_ADMIN;
+        }
+
         return view('users.index', [
             'users' => $users,
             'filters' => $filters,
@@ -68,12 +80,11 @@ class UserController extends Controller
                 'account_admins' => User::where('role', Role::SUPER_ADMIN->value)->count(),
             ],
             'majors' => Major::orderBy('name')->get(),
-            'roles' => $this->assignableRoles($actor),
+            'roles' => $roles,
             'borrowerTypes' => BorrowerType::cases(),
+            'operatorCategories' => OperatorCategory::cases(),
             'labRooms' => Room::where('is_lab', true)->orderBy('building_letter')->orderBy('floor')->orderBy('room_no')->get(),
-            'editUser' => $editId !== null
-                ? User::with(['major', 'roomScopes'])->find($editId)
-                : null,
+            'editUser' => $editUser,
             'canManageSuperAdmin' => false,
         ]);
     }
@@ -90,6 +101,7 @@ class UserController extends Controller
             'email' => ['nullable', 'string', 'email', 'max:255', new GmailAddress, 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(array_column($this->assignableRoles($actor), 'value'))],
+            'operator_category' => ['nullable', Rule::in(OperatorCategory::values())],
             'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
             'class_name' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'string', 'max:50'],
             'major_id' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'exists:majors,id'],
@@ -107,6 +119,9 @@ class UserController extends Controller
             'email' => $data['email'] ?? null,
             'password' => Hash::make($data['password']),
             'role' => $data['role'],
+            'operator_category' => $data['role'] === Role::OPERATOR->value
+                ? ($data['operator_category'] ?? null)
+                : null,
             'is_active' => $request->boolean('is_active', true),
             'must_change_password' => $request->boolean('must_change_password'),
             'borrower_type' => $category['is_peminjam'] ? ($data['borrower_type'] ?? null) : null,
@@ -142,12 +157,21 @@ class UserController extends Controller
         $this->normalizeEmail($request);
         $category = $this->borrowerContext($request);
 
+        $allowedRoles = array_column($this->assignableRoles($actor), 'value');
+
+        // Akun Super Admin yang sudah ada boleh mempertahankan role-nya,
+        // tetapi tidak boleh membuat Super Admin tambahan.
+        if ($user->isSuperAdmin()) {
+            $allowedRoles[] = Role::SUPER_ADMIN->value;
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'degree' => $category['is_siswa'] ? ['prohibited'] : ['nullable', 'string', 'max:100'],
             'email' => ['nullable', 'string', 'email', 'max:255', new GmailAddress, Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', Rule::in(array_column($this->assignableRoles($actor), 'value'))],
+            'role' => ['required', Rule::in($allowedRoles)],
+            'operator_category' => ['nullable', Rule::in(OperatorCategory::values())],
             'borrower_type' => ['nullable', Rule::in(BorrowerType::values())],
             'class_name' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'string', 'max:50'],
             'major_id' => $category['is_teacher_or_staff'] ? ['prohibited'] : ['nullable', 'exists:majors,id'],
@@ -195,6 +219,9 @@ class UserController extends Controller
         $user->degree = $category['is_siswa'] ? null : ($data['degree'] ?? null);
         $user->email = $data['email'] ?? null;
         $user->role = $data['role'];
+        $user->operator_category = $data['role'] === Role::OPERATOR->value
+            ? ($data['operator_category'] ?? $user->operator_category)
+            : null;
         $user->is_active = $isActive;
         $user->borrower_type = $category['is_peminjam']
             ? ($data['borrower_type'] ?? $user->borrower_type)
@@ -346,10 +373,8 @@ class UserController extends Controller
      */
     private function assignableRoles(User $actor): array
     {
-        if ($actor->isSuperAdmin()) {
-            return Role::cases();
-        }
-
+        // Hanya satu akun Super Admin yang boleh ada. Role Super Admin tidak
+        // pernah dapat ditetapkan dari halaman administrasi akun.
         return array_values(array_filter(
             Role::cases(),
             fn (Role $role) => $role->isAssignableByAccountAdmin(),
@@ -411,8 +436,8 @@ class UserController extends Controller
             'major_id.prohibited' => 'Jurusan tidak berlaku untuk peminjam kategori Guru/Staf.',
             'class_name.prohibited' => 'Kelas hanya berlaku untuk peminjam kategori Siswa.',
             'role.in' => $actor->isSuperAdmin()
-                ? 'Role yang dipilih tidak valid.'
-                : 'Admin tidak dapat menetapkan role Super Admin.',
+                ? 'Role Super Admin tidak dapat ditetapkan; hanya satu akun Super Admin yang diizinkan.'
+                : 'Role yang dipilih tidak valid untuk kewenangan Anda.',
         ];
     }
 

@@ -15,7 +15,6 @@ class PermissionChangeLog extends Model
         'reason',
         'before',
         'after',
-        'recorded_at',
     ];
 
     /** @return array<string, string> */
@@ -24,7 +23,6 @@ class PermissionChangeLog extends Model
         return [
             'before' => 'json',
             'after' => 'json',
-            'recorded_at' => 'datetime',
         ];
     }
 

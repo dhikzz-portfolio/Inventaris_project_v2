@@ -140,7 +140,7 @@ class RoleController extends Controller
         return PermissionChangeLog::query()
             ->with('actor')
             ->where('role_name', $role->value)
-            ->latest('recorded_at')
+            ->latest('created_at')
             ->limit(30)
             ->get();
     }

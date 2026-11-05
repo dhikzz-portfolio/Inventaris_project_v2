@@ -39,6 +39,7 @@ class UserController extends Controller
         $filters = [
             'search' => trim((string) $request->query('search', '')),
             'role' => trim((string) $request->query('role', '')),
+            'category' => trim((string) $request->query('category', '')),
             'status' => trim((string) $request->query('status', '')),
         ];
 
@@ -52,6 +53,12 @@ class UserController extends Controller
                     ->orWhere('work_unit', 'like', $term));
             })
             ->when(in_array($filters['role'], Role::values(), true), fn ($query) => $query->where('role', $filters['role']))
+            ->when($filters['category'] !== '', fn ($query) => match ($filters['category']) {
+                BorrowerType::SISWA->value, BorrowerType::GURU->value, BorrowerType::STAF->value => $query->where('borrower_type', $filters['category']),
+                OperatorCategory::LABORAN->value, OperatorCategory::K3->value => $query->where('operator_category', $filters['category']),
+                'LAINNYA' => $query->whereNull('borrower_type')->whereNull('operator_category'),
+                default => $query,
+            })
             ->when($filters['status'] === 'active', fn ($query) => $query->where('is_active', true))
             ->when($filters['status'] === 'inactive', fn ($query) => $query->where('is_active', false))
             ->orderBy('role')
@@ -108,10 +115,22 @@ class UserController extends Controller
             'room_ids' => ['nullable', 'array'],
             'room_ids.*' => ['integer', Rule::exists('rooms', 'id')->where('is_lab', true)],
             'is_active' => ['nullable', 'boolean'],
-            'must_change_password' => ['nullable', 'boolean'],
         ], $this->categoryMessages($actor));
 
         $this->assertMayAssignRole($actor, $data['role']);
+
+        $roomIds = $data['room_ids'] ?? [];
+
+        if ($data['role'] === Role::OPERATOR->value && $roomIds === [] && filled($data['major_id'] ?? null)) {
+            // Seluruh laboratorium jurusan aktif secara default.
+            $roomIds = Room::query()->where('is_lab', true)
+                ->where('major_id', (int) $data['major_id'])->pluck('id')->all();
+        }
+
+        $this->assertRoomScopeMatchesMajor(
+            $data['role'] === Role::OPERATOR->value ? ($data['major_id'] ?? null) : null,
+            $roomIds,
+        );
 
         $user = User::create([
             'name' => $data['name'],
@@ -123,14 +142,13 @@ class UserController extends Controller
                 ? ($data['operator_category'] ?? null)
                 : null,
             'is_active' => $request->boolean('is_active', true),
-            'must_change_password' => $request->boolean('must_change_password'),
             'borrower_type' => $category['is_peminjam'] ? ($data['borrower_type'] ?? null) : null,
             'class_name' => $category['is_siswa'] ? ($data['class_name'] ?? null) : null,
             'major_id' => $category['is_teacher_or_staff'] ? null : ($data['major_id'] ?? null),
         ]);
 
         $user->syncRoles([$data['role']]);
-        $this->syncRoomScopes($user, $data['room_ids'] ?? [], $actor->id);
+        $this->syncRoomScopes($user, $roomIds, $actor->id);
 
         activity('pengguna')->performedOn($user)->causedBy($actor)
             ->withProperties([
@@ -178,10 +196,21 @@ class UserController extends Controller
             'room_ids' => ['nullable', 'array'],
             'room_ids.*' => ['integer', Rule::exists('rooms', 'id')->where('is_lab', true)],
             'is_active' => ['nullable', 'boolean'],
-            'must_change_password' => ['nullable', 'boolean'],
         ], $this->categoryMessages($actor));
 
         $this->assertMayAssignRole($actor, $data['role']);
+
+        $roomIds = $data['room_ids'] ?? [];
+
+        if ($data['role'] === Role::OPERATOR->value && $roomIds === [] && filled($data['major_id'] ?? null)) {
+            $roomIds = Room::query()->where('is_lab', true)
+                ->where('major_id', (int) $data['major_id'])->pluck('id')->all();
+        }
+
+        $this->assertRoomScopeMatchesMajor(
+            $data['role'] === Role::OPERATOR->value ? ($data['major_id'] ?? null) : null,
+            $roomIds,
+        );
 
         // Cegah diri sendiri menurunkan role sendiri.
         if ($actor->id === $user->id && $data['role'] !== Role::SUPER_ADMIN->value) {
@@ -230,15 +259,12 @@ class UserController extends Controller
         $user->major_id = $category['is_teacher_or_staff'] ? null : ($data['major_id'] ?? null);
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
-            $user->must_change_password = true;
             $user->password_changed_at = null;
-        } elseif ($request->has('must_change_password')) {
-            $user->must_change_password = $request->boolean('must_change_password');
         }
         $user->save();
 
         $user->syncRoles([$data['role']]);
-        $this->syncRoomScopes($user, $data['room_ids'] ?? [], $actor->id);
+        $this->syncRoomScopes($user, $roomIds, $actor->id);
 
         activity('pengguna')->performedOn($user)->causedBy($actor)
             ->withProperties([
@@ -448,6 +474,30 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Operator hanya boleh diberi laboratorium dari jurusan yang dipilih.
+     * Ruangan dari jurusan lain ditolak, bukan dipotong secara diam-diam.
+     *
+     * @param  array<int, int|string>  $roomIds
+     */
+    private function assertRoomScopeMatchesMajor(?int $majorId, array $roomIds): void
+    {
+        if ($majorId === null || $roomIds === []) {
+            return;
+        }
+
+        $invalid = Room::query()
+            ->whereIn('id', array_map('intval', $roomIds))
+            ->where(fn ($query) => $query->whereNull('major_id')->orWhere('major_id', '!=', $majorId))
+            ->exists();
+
+        if ($invalid) {
+            throw ValidationException::withMessages([
+                'room_ids' => 'Laboratorium yang dipilih harus berasal dari jurusan operator tersebut.',
+            ]);
+        }
+    }
+
     /** @param array<int, int|string> $roomIds */
     private function syncRoomScopes(User $user, array $roomIds, int $assignedBy): void
     {
@@ -457,7 +507,16 @@ class UserController extends Controller
             return;
         }
 
-        foreach (array_unique(array_map('intval', $roomIds)) as $roomId) {
+        $allowedIds = Room::query()
+            ->where('is_lab', true)
+            ->when($user->major_id !== null, fn ($query) => $query->where('major_id', $user->major_id))
+            ->whereIn('id', array_map('intval', $roomIds))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        foreach ($allowedIds as $roomId) {
             UserRoomScope::create([
                 'user_id' => $user->id,
                 'room_id' => $roomId,

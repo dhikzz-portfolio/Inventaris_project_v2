@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    @php($selectedFilterCount = collect([$filters['role'], $filters['status']])->filter(fn ($value) => $value !== '')->count())
+    @php($selectedFilterCount = collect([$filters['role'], $filters['category'], $filters['status']])->filter(fn ($value) => $value !== '')->count())
     <form method="GET" action="{{ route('users.index') }}"
           x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }"
           class="mb-4 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -59,7 +59,7 @@
         </div>
 
         <div id="user-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <div>
             <label for="user-role" class="sr-only">Filter role</label>
             <select id="user-role" name="role" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
@@ -70,6 +70,18 @@
             </select>
             </div>
             <div>
+            <label for="user-category" class="sr-only">Filter kategori pengguna</label>
+            <select id="user-category" name="category" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                <option value="">Semua kategori</option>
+                <option value="SISWA" @selected($filters['category'] === 'SISWA')>Siswa</option>
+                <option value="GURU" @selected($filters['category'] === 'GURU')>Guru</option>
+                <option value="STAF" @selected($filters['category'] === 'STAF')>Staf / Tenaga Kependidikan</option>
+                <option value="LABORAN" @selected($filters['category'] === 'LABORAN')>Operator — Laboran</option>
+                <option value="K3" @selected($filters['category'] === 'K3')>Operator — K3</option>
+                <option value="LAINNYA" @selected($filters['category'] === 'LAINNYA')>Lainnya (tanpa kategori)</option>
+            </select>
+            </div>
+            <div>
             <select name="status" aria-label="Filter status akun" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
                 <option value="">Semua status</option>
                 <option value="active" @selected($filters['status'] === 'active')>Aktif</option>
@@ -77,7 +89,12 @@
             </select>
             </div>
           </div>
-          <div class="mt-3 flex justify-end">
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+            @if ($selectedFilterCount > 0 || $filters['search'] !== '')
+                <a href="{{ route('users.index') }}" class="text-xs font-semibold text-slate-500 hover:underline dark:text-slate-400">Reset filter</a>
+            @else
+                <span></span>
+            @endif
             <button type="submit" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 Terapkan filter
             </button>
@@ -133,9 +150,6 @@
                                         @unless ($user->isActive())
                                             <span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">NONAKTIF</span>
                                         @endunless
-                                        @if ($user->mustChangePassword())
-                                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">WAJIB GANTI PASSWORD</span>
-                                        @endif
                                     </div>
                                     <div class="font-mono text-[11px] text-slate-500 dark:text-slate-400">{{ $user->email }}</div>
                                 </td>

@@ -14,7 +14,7 @@ use Spatie\Permission\Models\Role as SpatieRole;
  * Password awal TIDAK ditanam di source code: diambil dari
  * BOOTSTRAP_USER_ADMIN_PASSWORD bila diisi, atau dibuat acak (atau diberikan
  * eksplisit lewat --password). Selalu dicetak ke output konsol sekali.
- * Akun wajib mengganti password pada login pertama.
+ * Pengguna tetap dapat mengganti password secara sukarela dari halaman profil.
  */
 class BootstrapUserAdmin extends Command
 {
@@ -22,7 +22,7 @@ class BootstrapUserAdmin extends Command
                             {--email= : Email akun (atau setel BOOTSTRAP_USER_ADMIN_EMAIL)}
                             {--name= : Nama akun (opsional)}
                             {--password= : Password awal (opsional; default BOOTSTRAP_USER_ADMIN_PASSWORD, lalu acak)}
-                            {--reset-password : Setel ulang password akun bootstrap yang sudah ada (wajib ganti lagi)}';
+                            {--reset-password : Setel ulang password akun bootstrap yang sudah ada}';
 
     protected $description = 'Buat satu akun awal Super Admin Pengguna (idempoten, password dari env/acak).';
 
@@ -64,7 +64,6 @@ class BootstrapUserAdmin extends Command
 
             $existing->forceFill([
                 'password' => $password,
-                'must_change_password' => true,
                 'password_changed_at' => null,
             ])->save();
 
@@ -86,7 +85,6 @@ class BootstrapUserAdmin extends Command
             'password' => $password,
             'role' => Role::SUPER_ADMIN->value,
             'is_active' => true,
-            'must_change_password' => true,
             'profile_completed' => true,
             'profile_completed_at' => now(),
         ]);
@@ -109,7 +107,7 @@ class BootstrapUserAdmin extends Command
             $this->warn('Sumber: BOOTSTRAP_USER_ADMIN_PASSWORD. Kosongkan variabel itu setelah login pertama.');
         }
 
-        $this->line('Wajib ganti password pada login pertama: ya');
+        $this->line('Wajib ganti password pada login pertama: tidak (dapat diganti kapan saja dari profil)');
         $this->line('Halaman administrasi akun: '.url('/pengguna'));
         $this->newLine();
         $this->warn('Simpan password ini sekarang; nilai di .env hanya dibaca saat command dijalankan.');

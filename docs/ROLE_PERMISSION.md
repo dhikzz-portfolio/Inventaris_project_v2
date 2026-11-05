@@ -59,19 +59,24 @@ Tindakan yang tersedia: `view`, `create`, `edit`, `delete`, `approve`, `reject`,
 
 Baseline lengkap dan dapat dieksekusi ada di `App\Support\PermissionCatalog::BASELINES`.
 
-## 5. Status tampilan
+## 5. Tiga mode akses fitur
 
-- **Kelola / Full Access**: semua tindakan fitur aktif.
-- **Hanya Lihat / View Only**: hanya `view`; endpoint perubahan ditolak backend.
-- **Disembunyikan / Hidden**: tidak ada permission; menu tidak tampil dan route/endpoint 403.
-- Kombinasi lain ditampilkan sebagai **Custom**.
+Setiap card fitur memiliki tiga tombol utama:
+
+- **Bisa Edit** (`FULL`): seluruh tindakan fitur tersedia; checkbox tindakan dapat dipakai
+  untuk membatasi tindakan tertentu (mode parsial ditampilkan sebagai **Custom**).
+- **Hanya Lihat** (`VIEW_ONLY`): hanya `view`; form dan endpoint perubahan ditolak backend.
+- **Sembunyikan** (`HIDDEN`): tidak ada permission; menu tidak tampil dan route/endpoint 403.
+
+Data scope (jurusan/laboratorium) tetap terpisah dari mode ini: Bisa Edit tidak memperluas
+data yang boleh diakses.
 
 ## 6. Pengelolaan oleh Super Admin
 
 Menu **Role & Permission** (`/role-permission`):
 
 1. Pilih role.
-2. Atur per fitur: Sembunyikan / Hanya lihat / Kelola, atau centang tindakan individual.
+2. Atur per fitur: Sembunyikan / Hanya Lihat / Bisa Edit, atau centang tindakan individual.
 3. Pratinjau menunjukkan jumlah fitur terlihat dan tindakan diizinkan.
 4. Isi alasan (opsional) lalu simpan.
 5. Riwayat perubahan mencatat waktu, pelaku, alasan, dan jumlah permission sebelum/sesudah.

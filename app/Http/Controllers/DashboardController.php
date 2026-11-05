@@ -67,7 +67,6 @@ class DashboardController extends Controller
             'security' => [
                 'last_login' => $user->last_login_at,
                 'password_changed' => $user->password_changed_at,
-                'must_change_password' => $user->mustChangePassword(),
             ],
         ];
     }

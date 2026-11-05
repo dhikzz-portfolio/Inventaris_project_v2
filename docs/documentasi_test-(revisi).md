@@ -424,3 +424,140 @@ Current dirty working tree (from  git status --short ) includes the authorizatio
 - or finish a specific remaining navigation/UI adjustment you want before we stop.
 
 If this is the stopping point, I would not make further changes here.
+
+
+LAPORAN AKHIR REVISI V8
+
+A. Executive Summary
+
+Seluruh modul dalam prompt revisi telah diimplementasikan dan diuji pada codebase aktual:
+- Pengadaan dapat membuat katalog tanpa merek, dengan jumlah + satuan sebagai data inti.
+- Satu katalog mendukung banyak kelompok spesifikasi (merek, model/tipe, tahun, sumber dana, jumlah).
+- Setiap kelompok dialokasikan ke banyak ruangan dengan kondisi dan keterangan per alokasi.
+- Penerimaan barang dicatat per alokasi; unit inventaris hanya terbit setelah  BARANG_DITERIMA .
+- Barang rusak tetap terbit sebagai inventaris dan otomatis membuat laporan kerusakan yang terhubung ke unit + alokasi, idempoten (retry tidak menduplikasi).
+- Role-permission memakai tiga mode: Bisa Edit, Hanya Lihat, Sembunyikan, dengan backend sebagai otoritas.
+- Filter kategori pengguna bekerja pada query backend.
+- Registrasi publik dan kewajiban ganti password login pertama dihapus tanpa menghapus fitur ganti password sukarela.
+- Cakupan laboratorium Operator dimulai dari jurusan, dengan validasi backend terhadap laboratorium lintas jurusan.
+
+Hasil verifikasi: 402 tes lulus, 0 gagal, 2265 assertion.
+
+B. Repository Audit
+
+- Laravel 13, PHP 8.3, Livewire 4, Spatie Permission 8, PHPUnit, SQLite in-memory untuk tes.
+- Arsitektur existing dipertahankan:  AcquisitionService ,  DamageReportService ,  MovementController ,  LoanService ,  RolePermissionManager , scope  visibleTo .
+- Tidak ada  .ai/rules ; pedoman aktif adalah  AGENTS.md .
+- Temuan utama: payload pengadaan lama hanya mendukung satu merek/tipe dan satu kondisi global; penerimaan hanya per ruangan; flag wajib ganti password masih aktif; registrasi publik masih terbuka; form cakupan Operator belum dimulai dari jurusan.
+- Dependensi perubahan dipetakan sebelum implementasi (katalog → spesifikasi → alokasi → unit → kerusakan → laporan/riwayat).
+
+C. Implementasi per Modul
+
+Pengadaan dan katalog
+-  items/create  memakai repeater kelompok spesifikasi + alokasi bertingkat, ringkasan jumlah live, dan validasi klien sebagai pelengkap.
+-  spec_groups[]  divalidasi backend: jumlah tiap kelompok = total alokasinya, total seluruh kelompok =  quantity  pengadaan.
+- Payload lama ( brand ,  model_type ,  allocations[] ,  room_id ) tetap didukung agar kompatibel.
+
+Multiple spesifikasi, kondisi, keterangan
+- Setiap alokasi menyimpan  acquisition_year ,  funding_source ,  condition  (enum  Condition  existing), dan  note .
+- Ruangan duplikat ditolak per kelompok; ruangan sama boleh dipakai kelompok berbeda.
+- Detail katalog menampilkan tabel kelompok spesifikasi, ruangan, jumlah, tahun, dana, kondisi, keterangan.
+
+Penerimaan dan integrasi kerusakan
+-  AcquisitionService::receive()  menerima kunci id alokasi dan tetap menerima id ruangan lama.
+-  recordInventory()  membuat unit per alokasi dengan kondisi/tahun/dana/catatan, lalu memanggil  DamageReportService::report()  untuk alokasi rusak dengan  acquisition_allocation_id .
+- Unit + laporan dibuat dalam transaksi; kondisi awal  BAIK  tercatat sebagai  previous_condition ; percobaan ulang ditolak dan tidak menduplikasi.
+
+Mutasi dan peminjaman
+- Tidak ada sistem baru. Alur tetap memakai controller/service existing beserta validasi unit, status pinjam, cakupan ruangan, dan histori lokasi asal/tujuan.
+
+Role-permission
+- Label dan tombol card menjadi Bisa Edit / Hanya Lihat / Sembunyikan (plus Custom untuk kombinasi parsial).
+-  RolePermissionManager::update() / reset()  kini mengembalikan  [sebelum, sesudah] ; audit log role memakai nilai yang benar.
+- Baseline lima role, batasan keamanan, cache, dan proteksi Super Admin tidak diubah.
+
+Manajemen akun
+- Filter  category  +  search  dijalankan pada query:  SISWA/GURU/STAF  dari  borrower_type ,  LABORAN/K3  dari  operator_category ,  LAINNYA  bila keduanya kosong; pagination mempertahankan filter.
+
+Autentikasi
+- Route/controller/view registrasi dihapus; tombol Register di login dihilangkan.
+- Middleware  EnsurePasswordChanged , alias  password.changed , dan semua redirect paksa dihapus; flag lama dibersihkan migration.
+- Pembuatan akun oleh Super Admin dan ganti password sukarela tetap berfungsi.
+
+Cakupan Operator
+- Form: dropdown jurusan + checkbox laboratorium; seluruh lab jurusan aktif default.
+- Backend menolak  room_ids  dari jurusan lain, menyimpan ulang hanya lab sesuai  major_id , dan migration membersihkan cakupan lama yang jelas melanggar.
+
+D. Database Changes
+
+Migration baru:  2026_11_05_000001_add_procurement_condition_and_scope_metadata.php 
+-  acquisition_allocations :  acquisition_year ,  funding_source ,  condition  (default  BAIK ),  note .
+-  damage_reports.acquisition_allocation_id  (FK nullable, null on delete; FK dilewati di SQLite).
+-  users.must_change_password  diisi  false  untuk semua akun lama.
+- Pembersihan  user_room_scopes  milik Operator yang menunjuk lab tanpa jurusan/jurusan lain.
+- Semua pemeriksaan memakai  Schema::hasTable / hasColumn ; tidak ada tabel/kolom lama yang dihapus dan tidak ada data inventaris/transaksi yang dihapus.
+
+E. Files Changed
+
+Dibuat:
+-  database/migrations/2026_11_05_000001_add_procurement_condition_and_scope_metadata.php 
+-  tests/Feature/RevisionV8Test.php 
+-  docs/REVISION_V8.md 
+
+Diubah (utama):
+-  app/Http/Controllers/ItemController.php  — spec groups, validasi alokasi, penerimaan, provisioning kondisi.
+-  app/Services/AcquisitionService.php ,  app/Services/DamageReportService.php  — penerimaan per alokasi + laporan otomatis.
+-  app/Models/AcquisitionAllocation.php ,  app/Models/DamageReport.php  — field/relasi baru.
+-  app/Http/Controllers/UserController.php  — filter kategori, cakupan jurusan.
+-  app/Support/RolePermissionManager.php  — nilai balik audit.
+-  resources/views/items/create|receive|show.blade.php ,  users/index|_form|show.blade.php ,  roles/show.blade.php ,  auth/login.blade.php .
+-  routes/auth.php ,  routes/web.php ,  bootstrap/app.php ,  BootstrapUserAdmin.php ,  DashboardController.php ,  profile/edit.blade.php ,  dashboard-admin.blade.php .
+-  tests/Feature/RegistrationTest.php ,  tests/Feature/RevisionV5Test.php .
+-  docs/ROLE_PERMISSION.md ,  docs/DATABASE.md ,  docs/PROJECT_STATUS.md .
+
+Dihapus:
+-  app/Http/Controllers/Auth/RegisteredUserController.php 
+-  app/Http/Middleware/EnsurePasswordChanged.php 
+-  resources/views/auth/register.blade.php ,  register-new.blade.php 
+
+F. Testing Results
+
+Perintah dan hasil aktual:
+-  php artisan test --compact  → 402 passed, 0 failed, 0 error, 2265 assertions (SQLite in-memory).
+-  vendor/bin/pint --dirty --format agent  → PASS.
+-  php artisan view:cache  lalu  view:clear  → PASS (seluruh Blade terkompilasi).
+-  php artisan route:list --except-vendor  → PASS.
+-  php -l  pada seluruh file PHP yang diubah → PASS.
+
+Tes baru  RevisionV8Test  mencakup 5 skenario: multi-kelompok + kondisi per alokasi, penolakan alokasi tidak seimbang, penerimaan rusak + laporan otomatis + anti-duplikasi, filter kategori backend, dan cakupan Operator per jurusan.
+
+Kegagalan yang ditemukan saat pengujian dan diperbaiki:
+1. Closure transaksi  store()  merujuk  $allocations / $groups  yang tidak ada → diperbaiki.
+2.  distinct  wildcard bersarang berlaku lintas kelompok → diganti validasi duplikat per kelompok.
+3.  validated()  tidak mengembalikan parent  received  saat aturan wildcard anak dipakai → input tervalidasi dibaca langsung.
+4.  provisionAllocations()  membuat spesifikasi "tanpa merek" hantu → dibuat lazy.
+
+Tidak dijalankan: suite MySQL, uji beban/konkurensi paralel, dan Playwright/E2E.
+
+G. Security and Authorization Audit
+
+- Route tetap memakai middleware  role:  dan  permission: ; endpoint pengguna hanya untuk Super Admin.
+- Backend tetap memeriksa permission dan data scope; penyembunyian tombol bukan pengamanan tunggal.
+- Registrasi publik tidak memiliki route aktif; tidak ada jalur self-registration.
+- Role Super Admin tidak dapat ditetapkan lewat halaman akun dan permission-nya terkunci.
+- Operator: ID ruangan/unit dimanipulasi ditolak oleh  roomRule ,  visibleTo , dan validasi jurusan; migration membersihkan cakupan lintas jurusan yang lama.
+- Admin tidak memperoleh akses pengelolaan akun, role, atau pengaturan sekolah.
+- Password tetap di-hash; reset password sah dan ganti password sukarela tetap tersedia.
+- Data scope terpisah dari mode akses: Bisa Edit tidak memperluas cakupan laboratorium.
+
+H. Remaining Issues
+
+1. Pengujian ulang di MySQL dan uji konkurensi penerimaan paralel belum dilakukan pada revisi ini.
+2. Playwright/E2E dan audit responsif belum diulang; validasi UI baru melalui kompilasi Blade dan test HTTP.
+3. Pembersihan cakupan Operator lintas jurusan di migration belum memiliki tes langsung (migrasi berjalan pada DB kosong saat suite); validasi penulisan baru sudah diuji.
+4. Identitas spesifikasi tetap  (katalog, merek, model/tipe) . Dua kelompok dengan merek+model identik berbagi satu baris spesifikasi, tetapi alokasi, kondisi, tahun, dan sumber dana tetap terpisah.
+5. Cetak fisik label/QR dan verifikasi email tetap di luar cakupan.
+
+I. Final Status
+
+COMPLETED WITH KNOWN ISSUES — seluruh kebutuhan fungsional utama terimplementasi dan seluruh 402 tes lulus; masalah yang tersisa adalah keterbatasan verifikasi lingkungan (MySQL/E2E/responsif) dan satu tes migrasi pembersihan scope yang belum dibuat langsung, bukan fitur yang belum diimplementasikan.

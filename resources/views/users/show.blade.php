@@ -36,7 +36,6 @@
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Kelas / unit kerja</dt><dd>{{ $user->class_name ?: ($user->work_unit ?: '—') }}</dd></div>
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Jurusan</dt><dd>{{ $user->major?->name ?: '—' }}</dd></div>
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Login terakhir</dt><dd>{{ $user->last_login_at?->format('d M Y H:i') ?: 'belum pernah' }}</dd></div>
-                    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Wajib ganti password</dt><dd>{{ $user->mustChangePassword() ? 'Ya' : 'Tidak' }}</dd></div>
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Password terakhir diubah</dt><dd>{{ $user->password_changed_at?->format('d M Y H:i') ?: '—' }}</dd></div>
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Riwayat peminjaman</dt><dd>{{ $loanCount }} transaksi</dd></div>
                 </dl>

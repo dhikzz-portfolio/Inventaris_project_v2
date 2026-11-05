@@ -30,7 +30,7 @@ Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.service
 
 Route::redirect('/', '/dashboard');
 
-Route::middleware(['auth', 'profile.completed', 'password.changed'])->group(function () use ($masterView) {
+Route::middleware(['auth', 'profile.completed'])->group(function () use ($masterView) {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // File internal (foto bukti, BA, TTD, BAST, laporan) — akses diperiksa per peran.

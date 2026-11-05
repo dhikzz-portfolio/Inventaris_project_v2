@@ -7,6 +7,10 @@ Revisi V6 (3 November 2026): mutasi multi-lokasi dalam satu transaksi (`asset_un
 
 Revisi V7 (3 November 2026): peminjaman atas nama diri sendiri/orang lain dengan pemisahan `requested_by` dan identitas peminjam, rincian unit konsisten pada PDF/Excel dan pratinjau Excel, contoh file + panduan impor, galeri multi-foto kerusakan pada detail unit, serta administrasi akun yang hanya dapat diakses Super Admin Pengguna beserta bootstrap akun awal yang aman. Rincian: `REVISION_V7.md` dan `TESTING.md` bagian "Revisi V7".
 
+Revisi V8 (5 November 2026): katalog tanpa merek dengan jumlah/satuan sebagai data inti, beberapa kelompok spesifikasi per katalog (tahun, sumber dana, jumlah), kondisi dan keterangan per alokasi ruangan, penerimaan barang per alokasi dengan laporan kerusakan otomatis yang idempoten, label tiga mode role-permission (Bisa Edit / Hanya Lihat / Sembunyikan) beserta perbaikan audit perubahan, filter kategori pengguna, penonaktifan registrasi publik, penghapusan kewajiban ganti password login pertama, dan cakupan laboratorium Operator berdasarkan jurusan. Rincian: `REVISION_V8.md`.
+
+> Catatan V8: baris lama pada tabel di bawah yang masih menyebut registrasi mandiri atau wajib ganti password menggambarkan kondisi sebelum V8; perilaku aktif mengikuti `REVISION_V8.md`.
+
 > **Status keputusan:** empat kebijakan bisnis masih **PENDING CLARIFICATION** — lihat `docs/PENDING_DECISIONS.md`. Implementasi memakai opsi paling aman dan tidak mengaktifkan alur persetujuan yang belum disepakati.
 Database pengembangan: `inventaris_sekolah_v2` (MySQL 8.4)
 

@@ -1,19 +1,34 @@
 @php
-    $initialAllocations = old('allocations', []);
+    $initialGroups = old('spec_groups');
 
-    if (empty($initialAllocations)) {
-        $initialAllocations = [['room_id' => '', 'quantity' => old('quantity', 1)]];
+    if (empty($initialGroups)) {
+        $initialGroups = [[
+            'brand' => old('brand', ''),
+            'model_type' => old('model_type', ''),
+            'acquisition_year' => old('acquisition_year', now()->year),
+            'funding_source' => old('funding_source', 'BOS'),
+            'quantity' => old('quantity', 1),
+            'allocations' => old('allocations', [[
+                'room_id' => '',
+                'quantity' => old('quantity', 1),
+                'condition' => \App\Enums\Condition::BAIK->value,
+                'note' => '',
+            ]]),
+        ]];
     }
+
+    $conditionOptions = collect($conditions)->map(fn ($condition) => [
+        'value' => $condition->value,
+        'label' => $condition->label(),
+    ])->values();
 @endphp
 
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
-                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengadaan Barang Multi-Lokasi
-                </h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Satu pengadaan, jumlah unit dibagi ke beberapa
-                    gedung/ruangan</p>
+                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengadaan Barang Multi-Lokasi</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Satu katalog, beberapa kelompok spesifikasi, alokasi ke beberapa ruangan.</p>
             </div>
             <a href="{{ route('catalogs.index') }}"
                 class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">←
@@ -33,28 +48,28 @@
     @endif
 
     <form method="POST" action="{{ route('items.store') }}" enctype="multipart/form-data"
-        class="max-w-5xl rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6"
+        class="max-w-6xl rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6"
         x-data="procurement({
             rooms: {{ \Illuminate\Support\Js::from($roomOptions) }},
             catalogs: {{ \Illuminate\Support\Js::from($catalogMap) }},
             catalogOptions: {{ \Illuminate\Support\Js::from($catalogs->map(fn ($catalogOption) => ['id' => $catalogOption->id, 'name' => $catalogOption->name, 'category_name' => $catalogOption->category?->name])->values()) }},
-            allBrands: {{ \Illuminate\Support\Js::from($brands) }},
+            conditions: {{ \Illuminate\Support\Js::from($conditionOptions) }},
             initialCatalog: {{ \Illuminate\Support\Js::from((string) old('catalog_id', '')) }},
             initialCatalogName: {{ \Illuminate\Support\Js::from((string) ($catalogs->firstWhere('id', old('catalog_id'))?->name ?? '')) }},
             initialName: {{ \Illuminate\Support\Js::from((string) old('name', '')) }},
             initialCategory: {{ \Illuminate\Support\Js::from((string) old('category_id', '')) }},
-            initialBrand: {{ \Illuminate\Support\Js::from((string) old('brand', '')) }},
-            initialModel: {{ \Illuminate\Support\Js::from((string) old('model_type', '')) }},
-            initialTotal: {{ (int) old('quantity', 1) }},
-            initialRows: {{ \Illuminate\Support\Js::from($initialAllocations) }}
+            defaultYear: {{ (int) old('acquisition_year', now()->year) }},
+            defaultFunding: {{ \Illuminate\Support\Js::from((string) old('funding_source', 'BOS')) }},
+            initialGroups: {{ \Illuminate\Support\Js::from($initialGroups) }}
         })">
-        @csrf
 
-        {{-- Bagian A — Katalog & jumlah pengadaan --}}
+        @csrf
+        <input type="hidden" name="quantity" :value="totalQuantity">
+
+        {{-- Bagian A — Katalog --}}
         <div class="flex items-center gap-2 mb-4">
-            <span
-                class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">A</span>
-            <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Data Pengadaan &amp; Katalog</h3>
+            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">A</span>
+            <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Data Katalog</h3>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -99,88 +114,39 @@
                         </template>
                         <li x-show="filteredCatalogs.length === 0" class="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
                             <span class="block font-semibold text-slate-700 dark:text-slate-200">Tidak ada katalog yang cocok.</span>
-                            <span class="mt-1 block">Kata kunci pencarian bukan pembuatan barang. Barang baru harus diajukan
-                                melalui pengadaan dengan nama &amp; kategori yang sah — bukan dibuat otomatis dari teks pencarian.</span>
-                            @if (auth()->user()->isSuperAdmin())
-                                <a href="{{ route('masters.index') }}" class="mt-2 inline-flex min-h-8 items-center justify-center rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">Kelola kategori di Data Sekolah</a>
-                            @endif
+                            <span class="mt-1 block">Barang baru diajukan sebagai katalog baru dengan nama &amp; kategori yang sah, bukan dibuat otomatis dari teks pencarian.</span>
                         </li>
                     </ul>
                 </div>
                 <input type="hidden" name="catalog_id" :value="catalogId || ''">
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Ketik untuk mencari katalog, atau biarkan kosong untuk membuat katalog baru. Jangan buat katalog baru
-                    hanya karena merek atau tipe/model berbeda.
+                    Merek/model diisi per kelompok spesifikasi di Bagian B. Jangan membuat katalog baru hanya karena merek atau tipe berbeda.
                 </p>
                 <div x-show="catalogId" x-cloak
                     class="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
                     <span class="font-semibold" x-text="selectedCatalog?.name"></span>
-                    — kategori otomatis: <span class="font-semibold"
-                        x-text="selectedCatalog?.category_name || '—'"></span>.
-                    Nama katalog dan kategori dikunci; isi hanya merek, tipe/model, jumlah, sumber, tahun, dan
-                    spesifikasi.
+                    — kategori otomatis: <span class="font-semibold" x-text="selectedCatalog?.category_name || '—'"></span>.
                 </div>
             </div>
 
             <div>
                 <x-input-label for="name" value="Nama katalog barang *" />
                 <input id="name" name="name" type="text" x-model="name" :disabled="!!catalogId"
-                    placeholder="mis. Kursi Umum"
+                    placeholder="mis. Keyboard"
                     class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 dark:disabled:bg-slate-800" />
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400"
-                    x-text="catalogId ? 'Mengikuti katalog terpilih (tidak dapat diubah).' : 'Wajib untuk katalog baru.'">
-                </p>
+                    x-text="catalogId ? 'Mengikuti katalog terpilih (tidak dapat diubah).' : 'Wajib untuk katalog baru.'"></p>
             </div>
 
             <div>
-                <x-input-label for="category_id" value="Kategori barang" />
+                <x-input-label for="category_id" value="Kategori barang *" />
                 <select id="category_id" name="category_id" x-model.number="categoryId" :disabled="!!catalogId"
                     class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 dark:disabled:bg-slate-800">
                     <option value="">— pilih kategori —</option>
                     @foreach ($categories as $category)
-                        <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>{{ $category->name }}
-                        </option>
+                        <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>{{ $category->name }}</option>
                     @endforeach
                 </select>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400"
-                    x-text="catalogId ? 'Mengikuti kategori katalog terpilih (tidak dapat diubah).' : 'Wajib untuk katalog baru.'">
-                </p>
-            </div>
-
-            <div>
-                <x-input-label for="brand" value="Merek / brand" />
-                <input id="brand" name="brand" type="text" list="brand-options" x-model="brand"
-                    placeholder="Futura, Chitose, atau Tanpa Merek"
-                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                <datalist id="brand-options">
-                    <template x-for="brandOption in brandOptions" :key="brandOption">
-                        <option :value="brandOption"></option>
-                    </template>
-                </datalist>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kosongkan bila tidak bermerek; sistem
-                    menyimpan “Tanpa Merek”.</p>
-            </div>
-
-            <div>
-                <x-input-label for="model_type" value="Tipe / model" />
-                <input id="model_type" name="model_type" type="text" list="model-options" x-model="modelType"
-                    placeholder="mis. Kursi Plastik Tipe A"
-                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                <datalist id="model-options">
-                    <template x-for="modelOption in modelOptions" :key="modelOption">
-                        <option :value="modelOption"></option>
-                    </template>
-                </datalist>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kosongkan bila tidak ditentukan; sistem
-                    menyimpan “Tidak Ditentukan”.</p>
-            </div>
-
-            <div>
-                <x-input-label for="quantity" value="Jumlah Pengadaan *" />
-                <input id="quantity" name="quantity" type="number" min="1" required x-model.number="quantity"
-                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Total unit yang harus dialokasikan tepat
-                    habis pada Bagian B.</p>
             </div>
 
             <div>
@@ -190,21 +156,21 @@
             </div>
 
             <div>
-                <x-input-label for="acquisition_year" value="Tahun Perolehan *" />
+                <x-input-label for="acquisition_year" value="Tahun perolehan default *" />
                 <x-text-input id="acquisition_year" name="acquisition_year" type="number" min="1990"
                     max="{{ now()->year + 1 }}" class="mt-1 block w-full" :value="old('acquisition_year', now()->year)" required />
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Dipakai bila kelompok spesifikasi tidak mengisi tahun sendiri.</p>
             </div>
 
             <div>
-                <x-input-label for="funding_source" value="Sumber Dana *" />
+                <x-input-label for="funding_source" value="Sumber dana default *" />
                 <x-text-input id="funding_source" name="funding_source" type="text" class="mt-1 block w-full"
                     :value="old('funding_source', 'BOS')" placeholder="BOS, komite, hibah..." required />
             </div>
 
-            <div class="md:col-span-2">
-                <x-input-label for="specification" value="Spesifikasi" />
-                <textarea id="specification" name="specification" rows="2"
-                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">{{ old('specification') }}</textarea>
+            <div>
+                <x-input-label for="specification" value="Spesifikasi umum (opsional)" />
+                <x-text-input id="specification" name="specification" type="text" class="mt-1 block w-full" :value="old('specification')" />
             </div>
 
             <div>
@@ -216,107 +182,167 @@
             <label class="flex items-center gap-2 md:col-span-2">
                 <input type="checkbox" name="is_high_value" value="1" @checked(old('is_high_value'))
                     class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600">
-                <span class="text-sm text-slate-700 dark:text-slate-300">Barang <strong>bernilai tinggi</strong> —
-                    pengajuan oleh Laboran/K3 wajib persetujuan Wakasek.</span>
+                <span class="text-sm text-slate-700 dark:text-slate-300">Barang <strong>bernilai tinggi</strong> — pengajuan oleh Operator wajib persetujuan Admin.</span>
             </label>
         </div>
 
-        {{-- Bagian B — Distribusi lokasi --}}
+        {{-- Bagian B — Kelompok spesifikasi & alokasi --}}
         <div class="mt-8 border-t border-slate-100 pt-6 dark:border-slate-700">
-            <div class="flex items-center gap-2 mb-3">
-                <span
-                    class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">B</span>
-                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Distribusi Lokasi</h3>
-                <span class="ms-auto text-xs text-slate-500 dark:text-slate-400">
-                    Terpakai <strong x-text="allocated"></strong> / <strong x-text="quantity || 0"></strong>
-                    • Sisa <strong :class="remaining === 0 ? 'text-green-700' : 'text-red-600'"
-                        x-text="remaining"></strong>
-                </span>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">B</span>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Kelompok Spesifikasi &amp; Alokasi Ruangan</h3>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">
+                    Total pengadaan <strong x-text="totalQuantity"></strong> unit •
+                    <span :class="allGroupsBalanced ? 'text-green-700' : 'text-red-600'"
+                          x-text="allGroupsBalanced ? 'semua kelompok seimbang' : 'alokasi belum seimbang'"></span>
+                </div>
             </div>
 
-            <div class="space-y-3">
-                <template x-for="(row, index) in rows" :key="row.key">
-                    <div
-                        class="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/60">
-                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-start">
-                            <div class="sm:col-span-4">
-                                <label class="block text-[11px] font-semibold text-gray-500 mb-1">Gedung</label>
-                                <select x-model.number="row.building_id" @change="row.room_id = ''"
-                                    :name="'allocations[' + index + '][building_hint]'"
-                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                    <option value="">— pilih gedung —</option>
-                                    <template x-for="building in buildings" :key="building.id">
-                                        <option :value="building.id" x-text="building.name"></option>
-                                    </template>
-                                </select>
+            <div class="mt-4 space-y-4">
+                <template x-for="(group, groupIndex) in groups" :key="group.key">
+                    <section class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="text-sm font-bold text-slate-800 dark:text-slate-100">
+                                Kelompok Spesifikasi <span x-text="groupIndex + 1"></span>
                             </div>
-
-                            <div class="sm:col-span-4">
-                                <label class="block text-[11px] font-semibold text-gray-500 mb-1">Ruangan *</label>
-                                <select x-model.number="row.room_id" :name="'allocations[' + index + '][room_id]'"
-                                    required
-                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                    <option value="">— pilih ruangan —</option>
-                                    <template x-for="room in roomsFor(row)" :key="room.id">
-                                        <option :value="room.id" x-text="(room.code ? room.code + ' — ' : '') + (room.name || '')"></option>
-                                    </template>
-                                </select>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-semibold"
+                                      :class="groupRemaining(group) === 0 ? 'text-green-700' : 'text-red-600'">
+                                    Terpakai <span x-text="groupAllocated(group)"></span> / <span x-text="group.quantity || 0"></span>
+                                    • Sisa <span x-text="groupRemaining(group)"></span>
+                                </span>
+                                <button type="button" @click="removeGroup(groupIndex)" :disabled="groups.length === 1"
+                                    class="text-[11px] font-semibold text-red-600 hover:underline disabled:text-gray-300 disabled:no-underline">Hapus kelompok</button>
                             </div>
+                        </div>
 
+                        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-12">
+                            <div class="sm:col-span-3">
+                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Merek</label>
+                                <input type="text" x-model="group.brand" :name="'spec_groups[' + groupIndex + '][brand]'"
+                                    placeholder="mis. Logitech / Tanpa Merek"
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            </div>
+                            <div class="sm:col-span-3">
+                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Tipe / model</label>
+                                <input type="text" x-model="group.model_type" :name="'spec_groups[' + groupIndex + '][model_type]'"
+                                    placeholder="mis. K120"
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            </div>
                             <div class="sm:col-span-2">
-                                <label class="block text-[11px] font-semibold text-gray-500 mb-1">Jumlah *</label>
-                                <input type="number" min="1" required x-model.number="row.quantity"
-                                    :name="'allocations[' + index + '][quantity]'"
-                                    :disabled="remaining === 0 && !row.quantity"
+                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Tahun</label>
+                                <input type="number" min="1990" max="{{ now()->year + 1 }}" x-model.number="group.acquisition_year"
+                                    :name="'spec_groups[' + groupIndex + '][acquisition_year]'"
                                     class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             </div>
-
-                            <div class="sm:col-span-2 flex sm:justify-end items-center pt-1">
-                                <button type="button" @click="removeRow(index)" :disabled="rows.length === 1"
-                                    class="text-xs font-semibold text-red-600 hover:underline disabled:text-gray-300 disabled:no-underline">
-                                    Hapus baris
-                                </button>
+                            <div class="sm:col-span-2">
+                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Sumber dana</label>
+                                <input type="text" x-model="group.funding_source" :name="'spec_groups[' + groupIndex + '][funding_source]'"
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Jumlah *</label>
+                                <input type="number" min="1" required x-model.number="group.quantity"
+                                    :name="'spec_groups[' + groupIndex + '][quantity]'"
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                         </div>
 
-                        <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                            <div class="text-gray-500">
-                                Lantai: <strong x-text="rowMeta(row).floor ?? '—'"></strong>
-                                • Kode lokasi: <span class="font-mono" x-text="rowMeta(row).code ?? '—'"></span>
-                            </div>
-                            <div class="text-gray-500">
-                                Pratinjau kode inventaris:
-                                <span class="font-mono font-bold text-slate-800 dark:text-slate-100"
-                                    x-text="preview(row)"></span>
-                                <span class="text-slate-500 dark:text-slate-400">(readonly — dibuat backend)</span>
-                            </div>
+                        <div class="mt-4 space-y-2">
+                            <template x-for="(row, rowIndex) in group.allocations" :key="row.key">
+                                <div class="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-12">
+                                        <div class="sm:col-span-2">
+                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Gedung</label>
+                                            <select x-model.number="row.building_id" @change="row.room_id = ''"
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                <option value="">— gedung —</option>
+                                                <template x-for="building in buildings" :key="building.id">
+                                                    <option :value="building.id" x-text="building.name"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div class="sm:col-span-3">
+                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Ruangan *</label>
+                                            <select x-model.number="row.room_id" required
+                                                :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][room_id]'"
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                <option value="">— ruangan —</option>
+                                                <template x-for="room in roomsFor(row)" :key="room.id">
+                                                    <option :value="room.id" x-text="(room.code ? room.code + ' — ' : '') + (room.name || '')"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Jumlah *</label>
+                                            <input type="number" min="1" required x-model.number="row.quantity"
+                                                :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][quantity]'"
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Kondisi</label>
+                                            <select x-model="row.condition"
+                                                :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][condition]'"
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                <template x-for="condition in conditions" :key="condition.value">
+                                                    <option :value="condition.value" x-text="condition.label"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div class="sm:col-span-3">
+                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Keterangan</label>
+                                            <input type="text" maxlength="500" x-model="row.note"
+                                                :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][note]'"
+                                                placeholder="mis. kemasan penyok"
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-500">
+                                        <span>
+                                            Lantai <strong x-text="rowMeta(row).floor ?? '—'"></strong>
+                                            • Kode lokasi <span class="font-mono" x-text="rowMeta(row).code ?? '—'"></span>
+                                            • Pratinjau kode <span class="font-mono font-bold text-slate-800 dark:text-slate-100" x-text="preview(row)"></span>
+                                        </span>
+                                        <button type="button" @click="removeAllocation(group, rowIndex)" :disabled="group.allocations.length === 1"
+                                            class="font-semibold text-red-600 hover:underline disabled:text-gray-300 disabled:no-underline">Hapus baris</button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <button type="button" @click="addAllocation(group)"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-[11px] font-bold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+                                <span class="material-icons-round text-sm">add</span> Tambah ruangan
+                            </button>
                         </div>
-                    </div>
+
+                        <p class="mt-2 text-[11px]" :class="groupRemaining(group) === 0 ? 'text-green-700' : 'text-red-600'">
+                            <span x-show="groupRemaining(group) > 0">Sisa <span x-text="groupRemaining(group)"></span> unit kelompok ini belum dialokasikan.</span>
+                            <span x-show="groupRemaining(group) === 0">Seluruh unit kelompok ini sudah dialokasikan.</span>
+                            <span x-show="groupRemaining(group) < 0" class="font-bold">Alokasi melebihi jumlah kelompok.</span>
+                        </p>
+                    </section>
                 </template>
             </div>
 
-            <div class="mt-3 flex items-center gap-3 flex-wrap">
-                <button type="button" @click="addRow()" :disabled="remaining <= 0"
-                    class="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950">
-                    <span class="material-icons-round text-base">add</span> Tambah Lokasi
+            <div class="mt-4">
+                <button type="button" @click="addGroup()"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                    <span class="material-icons-round text-base">add</span> Tambah kelompok spesifikasi
                 </button>
-                <p class="text-xs" :class="remaining === 0 ? 'text-green-700' : 'text-red-600'">
-                    <span x-show="remaining > 0">Sisa <span x-text="remaining"></span> unit belum dialokasikan —
-                        simpan dinonaktifkan.</span>
-                    <span x-show="remaining === 0">Seluruh unit sudah dialokasikan.</span>
-                    <span x-show="remaining < 0" class="font-bold">Alokasi melebihi jumlah pengadaan.</span>
-                </p>
             </div>
 
-            <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                Satu ruangan hanya boleh muncul sekali. Kode inventaris diterbitkan otomatis mengikuti gedung, lantai,
-                ruangan, dan nomor unit berikutnya.
+            <p class="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+                Setiap kelompok boleh memiliki kondisi fisik berbeda per ruangan. Total alokasi setiap kelompok harus sama dengan jumlah kelompok tersebut,
+                dan total seluruh kelompok menjadi jumlah pengadaan. Kode inventaris diterbitkan otomatis oleh backend.
             </p>
         </div>
 
         <div class="mt-6 flex items-center gap-3">
             <x-primary-button class="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-                x-bind:disabled="remaining !== 0 || (quantity || 0) < 1">
+                x-bind:disabled="!canSubmit">
                 Ajukan Pengadaan
             </x-primary-button>
             <a href="{{ route('catalogs.index') }}"
@@ -327,26 +353,50 @@
     @push('scripts')
         <script>
             function procurement(config) {
+                const defaultYear = Number(config.defaultYear) || new Date().getFullYear();
+                const defaultFunding = config.defaultFunding || 'BOS';
+                const rooms = config.rooms || [];
+
+                const makeRow = (row) => {
+                    const roomId = Number(row?.room_id) || '';
+                    const room = rooms.find((item) => Number(item.id) === roomId);
+
+                    return {
+                        key: Math.random().toString(36).slice(2),
+                        building_id: room ? Number(room.building_id) : '',
+                        room_id: roomId,
+                        quantity: Number(row?.quantity) || 1,
+                        condition: row?.condition || 'BAIK',
+                        note: row?.note || '',
+                    };
+                };
+
+                const makeGroup = (group) => ({
+                    key: Math.random().toString(36).slice(2),
+                    brand: group?.brand || '',
+                    model_type: group?.model_type || '',
+                    acquisition_year: Number(group?.acquisition_year) || defaultYear,
+                    funding_source: group?.funding_source || defaultFunding,
+                    quantity: Number(group?.quantity) || 1,
+                    allocations: ((group?.allocations && group.allocations.length) ? group.allocations : [{}]).map(makeRow),
+                });
+
+                const initial = (config.initialGroups && config.initialGroups.length)
+                    ? config.initialGroups
+                    : [{}];
+
                 return {
-                    quantity: Number(config.initialTotal) || 1,
-                    rooms: config.rooms || [],
+                    rooms,
                     catalogMap: config.catalogs || {},
-                    allBrands: config.allBrands || [],
+                    catalogOptions: config.catalogOptions || [],
                     catalogId: Number(config.initialCatalog) || '',
                     catalogQuery: config.initialCatalogName || '',
                     catalogOpen: false,
                     catalogHighlight: 0,
-                    catalogOptions: config.catalogOptions || [],
+                    conditions: config.conditions || [],
                     name: config.initialName || '',
                     categoryId: Number(config.initialCategory) || '',
-                    brand: config.initialBrand || '',
-                    modelType: config.initialModel || '',
-                    rows: (config.initialRows || []).map((row, index) => ({
-                        key: index + '-' + Math.random().toString(36).slice(2),
-                        building_id: row.building_id ? Number(row.building_id) : '',
-                        room_id: row.room_id ? Number(row.room_id) : '',
-                        quantity: Number(row.quantity) || 1,
-                    })),
+                    groups: initial.map(makeGroup),
 
                     get buildings() {
                         const seen = new Map();
@@ -354,7 +404,7 @@
                             if (room.building_id && !seen.has(room.building_id)) {
                                 seen.set(room.building_id, {
                                     id: room.building_id,
-                                    name: room.building_name || ('Gedung ' + room.building)
+                                    name: room.building_name || ('Gedung ' + room.building),
                                 });
                             }
                         });
@@ -408,46 +458,56 @@
                         this.catalogHighlight = (this.catalogHighlight - 1 + total) % total;
                     },
 
-                    get brandOptions() {
-                        const brands = this.catalogId && this.selectedCatalog ?
-                            this.selectedCatalog.brands :
-                            this.allBrands;
-                        return [...new Set((brands || []).filter(Boolean))];
-                    },
-
-                    get modelOptions() {
-                        if (!this.catalogId || !this.selectedCatalog) return [];
-                        return [...new Set((this.selectedCatalog.models || [])
-                            .filter((item) => !this.brand || item.brand === this.brand)
-                            .map((item) => item.model)
-                            .filter(Boolean))];
-                    },
-
-                    /**
-                     * Memilih katalog lama mengunci nama & kategori. Nilai diambil
-                     * dari katalog, bukan dari input pengguna.
-                     */
+                    /** Katalog terpilih mengunci nama & kategori; merek/model tetap milik kelompok. */
                     applyCatalog() {
                         if (!this.catalogId || !this.selectedCatalog) {
                             this.name = '';
                             this.categoryId = '';
-                            this.brand = '';
-                            this.modelType = '';
                             return;
                         }
 
                         this.name = this.selectedCatalog.name;
                         this.categoryId = this.selectedCatalog.category_id;
-                        this.brand = '';
-                        this.modelType = '';
                     },
 
-                    get allocated() {
-                        return this.rows.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0);
+                    get totalQuantity() {
+                        return this.groups.reduce((sum, group) => sum + (Number(group.quantity) || 0), 0);
                     },
 
-                    get remaining() {
-                        return (Number(this.quantity) || 0) - this.allocated;
+                    groupAllocated(group) {
+                        return group.allocations.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0);
+                    },
+
+                    groupRemaining(group) {
+                        return (Number(group.quantity) || 0) - this.groupAllocated(group);
+                    },
+
+                    get allGroupsBalanced() {
+                        return this.groups.length > 0 && this.groups.every((group) =>
+                            (Number(group.quantity) || 0) > 0 && this.groupRemaining(group) === 0
+                        );
+                    },
+
+                    get canSubmit() {
+                        return this.allGroupsBalanced;
+                    },
+
+                    addGroup() {
+                        this.groups.push(makeGroup({ quantity: 1 }));
+                    },
+
+                    removeGroup(index) {
+                        if (this.groups.length > 1) this.groups.splice(index, 1);
+                    },
+
+                    addAllocation(group) {
+                        const remaining = this.groupRemaining(group);
+
+                        group.allocations.push(makeRow({ quantity: remaining > 0 ? remaining : 1 }));
+                    },
+
+                    removeAllocation(group, index) {
+                        if (group.allocations.length > 1) group.allocations.splice(index, 1);
                     },
 
                     roomsFor(row) {
@@ -468,19 +528,6 @@
                         const last = Number(parts[parts.length - 1]);
                         parts[parts.length - 1] = String(last + qty - 1).padStart(2, '0');
                         return room.preview + ' … ' + parts.join('-');
-                    },
-
-                    addRow() {
-                        this.rows.push({
-                            key: Date.now() + '-' + Math.random().toString(36).slice(2),
-                            building_id: '',
-                            room_id: '',
-                            quantity: Math.max(1, this.remaining),
-                        });
-                    },
-
-                    removeRow(index) {
-                        if (this.rows.length > 1) this.rows.splice(index, 1);
                     },
                 };
             }

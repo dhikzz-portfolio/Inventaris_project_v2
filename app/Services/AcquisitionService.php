@@ -4,12 +4,16 @@ namespace App\Services;
 
 use App\Enums\AcquisitionStatus;
 use App\Enums\Condition;
+use App\Enums\DamageClassification;
 use App\Enums\NotificationType;
 use App\Models\AcquisitionAllocation;
+use App\Models\AssetUnit;
+use App\Models\DamageReport;
 use App\Models\Item;
 use App\Models\Room;
 use App\Models\Specification;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -163,9 +167,14 @@ class AcquisitionService
     /**
      * Laboran mencatat barang yang benar-benar diterima.
      *
-     * @param  array<int, int>  $received  [room_id => jumlah aktual diterima]
+     * Setiap alokasi ruangan memiliki jumlah, kondisi, dan keterangan sendiri.
+     * `$receipts` boleh dikunci dengan id alokasi (form baru) atau id ruangan
+     * (kompatibilitas form lama). Nilai boleh berupa array
+     * `{quantity, condition, note}` atau angka jumlah diterima.
+     *
+     * @param  array<int, array{quantity?: int|string, condition?: string|null, note?: string|null}|int|string>  $receipts
      */
-    public function receive(Item $item, User $actor, array $received, ?string $condition, ?string $note = null): Item
+    public function receive(Item $item, User $actor, array $receipts, ?string $defaultCondition = null, ?string $defaultNote = null): Item
     {
         $this->assert($this->isRequesterOrAdmin($item, $actor), 'Hanya pembuat pengajuan atau Admin yang dapat mencatat penerimaan barang.');
         $this->assert(
@@ -176,10 +185,7 @@ class AcquisitionService
             'Barang hanya dapat dicatat setelah pengadaan disetujui dan belum pernah diterima.'
         );
 
-        $conditionEnum = Condition::tryFrom((string) $condition);
-        $this->assert($conditionEnum !== null, 'Kondisi barang yang diterima tidak valid.');
-
-        return DB::transaction(function () use ($item, $actor, $received, $conditionEnum, $note): Item {
+        return DB::transaction(function () use ($item, $actor, $receipts, $defaultCondition, $defaultNote): Item {
             $locked = Item::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->acquisition_received_at !== null) {
@@ -189,13 +195,25 @@ class AcquisitionService
             }
 
             $allocations = $this->resolveAllocations($locked);
-
             $total = 0;
+            $summaryCondition = $defaultCondition;
 
             foreach ($allocations as $allocation) {
-                $qty = array_key_exists((int) $allocation->room_id, $received)
-                    ? (int) $received[(int) $allocation->room_id]
-                    : (int) $allocation->quantity;
+                $receipt = $receipts[(int) $allocation->id] ?? $receipts[(int) $allocation->room_id] ?? null;
+
+                if (is_array($receipt)) {
+                    $qty = filled($receipt['quantity'] ?? null) ? (int) $receipt['quantity'] : (int) $allocation->quantity;
+                    $condition = $receipt['condition'] ?? $defaultCondition;
+                    $note = filled($receipt['note'] ?? null) ? trim((string) $receipt['note']) : $defaultNote;
+                } elseif ($receipt !== null && $receipt !== '') {
+                    $qty = (int) $receipt;
+                    $condition = $defaultCondition;
+                    $note = $defaultNote;
+                } else {
+                    $qty = (int) $allocation->quantity;
+                    $condition = $defaultCondition;
+                    $note = $defaultNote;
+                }
 
                 if ($qty < 0 || $qty > (int) $allocation->quantity) {
                     throw ValidationException::withMessages([
@@ -203,10 +221,26 @@ class AcquisitionService
                     ]);
                 }
 
+                $conditionEnum = Condition::tryFrom((string) ($condition ?? Condition::BAIK->value));
+
+                if ($conditionEnum === null) {
+                    throw ValidationException::withMessages([
+                        'received' => 'Kondisi barang yang diterima tidak valid.',
+                    ]);
+                }
+
+                if ($qty > 0) {
+                    $summaryCondition = $conditionEnum->value;
+                }
+
                 $total += $qty;
 
                 if ($allocation->exists) {
-                    $allocation->forceFill(['received_quantity' => $qty])->save();
+                    $allocation->forceFill([
+                        'received_quantity' => $qty,
+                        'condition' => $conditionEnum->value,
+                        'note' => $note,
+                    ])->save();
                 }
             }
 
@@ -216,6 +250,7 @@ class AcquisitionService
                 ]);
             }
 
+            $summaryConditionEnum = Condition::tryFrom((string) ($summaryCondition ?? Condition::BAIK->value)) ?? Condition::BAIK;
             $before = $locked->acquisition_status;
 
             $locked->forceFill([
@@ -223,15 +258,22 @@ class AcquisitionService
                 'acquisition_received_by' => $actor->id,
                 'acquisition_received_at' => now(),
                 'acquisition_received_quantity' => $total,
-                'acquisition_received_condition' => $conditionEnum->value,
-                'acquisition_received_note' => $note,
+                'acquisition_received_condition' => $summaryConditionEnum->value,
+                'acquisition_received_note' => $defaultNote,
             ])->save();
 
-            $this->log($locked, $before, AcquisitionStatus::BARANG_DITERIMA, $actor, 'Mencatat barang yang diterima', $note, [
+            $this->log($locked, $before, AcquisitionStatus::BARANG_DITERIMA, $actor, 'Mencatat barang yang diterima', $defaultNote, [
                 'jumlah_diterima' => $total,
                 'jumlah_diajukan' => (int) $locked->quantity,
                 'selisih' => $total - (int) $locked->quantity,
-                'kondisi' => $conditionEnum->value,
+                'kondisi_default' => $summaryConditionEnum->value,
+                'alokasi' => $allocations->map(fn (AcquisitionAllocation $allocation): array => [
+                    'alokasi_id' => $allocation->exists ? $allocation->id : null,
+                    'ruangan_id' => (int) $allocation->room_id,
+                    'jumlah' => (int) ($allocation->received_quantity ?? 0),
+                    'kondisi' => $allocation->condition?->value,
+                    'keterangan' => $allocation->note,
+                ])->all(),
             ]);
 
             return $locked->fresh(['allocations.room', 'allocations.specification', 'room', 'category']);
@@ -265,8 +307,8 @@ class AcquisitionService
                 $locked->model_type,
             )->id;
 
-            $condition = Condition::tryFrom((string) $locked->acquisition_received_condition) ?? Condition::BAIK;
             $created = 0;
+            $damaged = 0;
 
             foreach ($allocations as $allocation) {
                 $room = $allocation->room ?: Room::find($allocation->room_id);
@@ -275,14 +317,25 @@ class AcquisitionService
                     continue;
                 }
 
-                $qty = $allocation->received_quantity ?? $allocation->quantity;
+                $qty = (int) ($allocation->received_quantity ?? $allocation->quantity);
+                $condition = $allocation->conditionEnum();
 
-                for ($i = 0; $i < (int) $qty; $i++) {
-                    $this->units->create($locked, $room, [
+                for ($i = 0; $i < $qty; $i++) {
+                    // Unit selalu dibuat BAIK; laporan kerusakan otomatis
+                    // menyimpan kondisi awal dan mengubahnya secara terlacak.
+                    $unit = $this->units->create($locked, $room, [
                         'specification_id' => $allocation->specification_id ?: $defaultSpecificationId,
-                        'condition' => $condition,
+                        'condition' => Condition::BAIK,
+                        'acquisition_year' => $allocation->acquisition_year,
+                        'funding_source' => $allocation->funding_source,
+                        'notes' => $allocation->note,
                     ], $actor);
                     $created++;
+
+                    if ($condition->isDamaged()) {
+                        $this->reportReceivedDamage($unit, $condition, $allocation, $actor);
+                        $damaged++;
+                    }
                 }
 
                 if ($allocation->exists) {
@@ -306,6 +359,7 @@ class AcquisitionService
 
             $this->log($locked, $before, AcquisitionStatus::INVENTARIS_TERCATAT, $actor, 'Mencatat barang menjadi inventaris resmi', null, [
                 'unit_dibuat' => $created,
+                'laporan_kerusakan_otomatis' => $damaged,
             ]);
 
             $roles = $this->isLabScoped($locked) ? ['EDITOR_VALIDATOR', 'ADMIN'] : ['ADMIN'];
@@ -316,6 +370,43 @@ class AcquisitionService
 
             return $locked->fresh(['allocations.room', 'room', 'category']);
         });
+    }
+
+    /**
+     * Laporan kerusakan otomatis untuk unit yang diterima dalam kondisi rusak.
+     * Idempoten per unit + alokasi agar percobaan ulang tidak membuat duplikat.
+     */
+    private function reportReceivedDamage(
+        AssetUnit $unit,
+        Condition $condition,
+        AcquisitionAllocation $allocation,
+        User $actor,
+    ): void {
+        $alreadyReported = DamageReport::query()
+            ->where('asset_unit_id', $unit->id)
+            ->when($allocation->exists, fn (Builder $query) => $query->where('acquisition_allocation_id', $allocation->id))
+            ->exists();
+
+        if ($alreadyReported) {
+            return;
+        }
+
+        $classification = $condition === Condition::RUSAK_BERAT
+            ? DamageClassification::RUSAK_BERAT
+            : DamageClassification::RUSAK_RINGAN;
+
+        $description = trim((string) ($allocation->note
+            ?: 'Kerusakan tercatat otomatis saat penerimaan barang pengadaan.'));
+
+        app(DamageReportService::class)->report(
+            $actor,
+            $unit,
+            $classification,
+            $description,
+            null,
+            [],
+            $allocation->exists ? $allocation->id : null,
+        );
     }
 
     /**

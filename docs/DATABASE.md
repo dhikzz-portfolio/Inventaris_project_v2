@@ -469,9 +469,22 @@ Index `loans_requested_by_index`. Backfill mengisi `requested_by = borrower_id` 
 
 `damage_reports.photo_path` tetap menjadi foto utama/kompatibilitas. Setiap baris foto diverifikasi ulang oleh `SecureFileController` terhadap laporan yang terlihat pengguna.
 
-### 2.26 `users.must_change_password` dan `password_changed_at` (V7)
+### 2.26 `users.must_change_password` dan `password_changed_at` (V7, diubah V8)
 
-Boolean `must_change_password` default `false` dan timestamp `password_changed_at` nullable. Akun hasil bootstrap atau reset administrator wajib mengganti password; middleware `password.changed` mengarahkan ke halaman profil. Password tidak pernah disimpan pada audit trail.
+Boolean `must_change_password` default `false` dan timestamp `password_changed_at` nullable. Sejak V8 kewajiban mengganti password pada login pertama **dihapus**: middleware `password.changed` dan route terkait sudah tidak ada, dan migration V8 mengosongkan flag lama. `password_changed_at` tetap diisi ketika pengguna mengganti password secara sukarela. Password tidak pernah disimpan pada audit trail.
+
+### 2.27 `acquisition_allocations` — kelompok spesifikasi & kondisi (V8)
+
+Migration `2026_11_05_000001_add_procurement_condition_and_scope_metadata.php` menambahkan:
+
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| `acquisition_year` | smallint nullable | Tahun perolehan kelompok spesifikasi. |
+| `funding_source` | varchar(100) nullable | Sumber dana kelompok spesifikasi. |
+| `condition` | varchar(20) default `BAIK` | Kondisi fisik barang pada alokasi ruangan ini. |
+| `note` | text nullable | Keterangan kondisi/penerimaan. |
+
+`damage_reports.acquisition_allocation_id` (FK nullable, null on delete) menghubungkan laporan kerusakan otomatis dengan alokasi ruangan asal. Data lama tetap valid: kolom baru nullable/default dan tidak ada baris yang dihapus. Migration memeriksa keberadaan kolom sebelum menambahkannya agar aman dijalankan ulang.
 
 ## 3. ERD
 

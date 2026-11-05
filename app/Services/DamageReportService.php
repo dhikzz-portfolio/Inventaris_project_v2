@@ -31,8 +31,9 @@ class DamageReportService
         string $description,
         ?string $photoPath = null,
         array $photoPaths = [],
+        ?int $acquisitionAllocationId = null,
     ): DamageReport {
-        return DB::transaction(function () use ($actor, $unit, $classification, $description, $photoPath, $photoPaths): DamageReport {
+        return DB::transaction(function () use ($actor, $unit, $classification, $description, $photoPath, $photoPaths, $acquisitionAllocationId): DamageReport {
             $locked = AssetUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
             $locked->loadMissing(['room', 'catalog']);
             $previous = $locked->condition;
@@ -50,6 +51,7 @@ class DamageReportService
 
             $report = DamageReport::create([
                 'asset_unit_id' => $locked->id,
+                'acquisition_allocation_id' => $acquisitionAllocationId,
                 'reported_by' => $actor->id,
                 'classification' => $classification->value,
                 'previous_condition' => $previous->value,

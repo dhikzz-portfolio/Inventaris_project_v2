@@ -51,16 +51,7 @@
         <x-auth-button label="Masuk" />
     </form>
 
-    <div class="mt-5">
-        <form method="POST" action="{{ route('register.start') }}">
-            @csrf
-            <button type="submit" class="w-full inline-flex items-center justify-center rounded-xl border border-brand-600 px-4 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-brand-500 dark:text-brand-300 dark:hover:bg-brand-900/40 dark:focus:ring-offset-slate-900">
-                Daftar Akun
-            </button>
-        </form>
-    </div>
-
     <p class="mt-5 text-center text-xs leading-relaxed text-slate-400 dark:text-slate-500">
-        Gunakan akun sekolah Anda. Hubungi administrator jika mengalami kendala masuk.
+        Gunakan akun sekolah Anda. Akun dibuat oleh Super Admin; hubungi administrator jika mengalami kendala masuk.
     </p>
 </x-guest-layout>

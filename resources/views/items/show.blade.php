@@ -111,6 +111,39 @@
                 </div>
             </div>
 
+            {{-- Kelompok spesifikasi & alokasi pengadaan --}}
+            @if ($item->allocations->isNotEmpty())
+                <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <h3 class="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                        <span class="material-icons-round text-blue-600">account_tree</span> Kelompok Spesifikasi &amp; Alokasi Pengadaan
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[640px] text-left text-xs">
+                            <thead class="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+                                <tr>
+                                    <th class="px-2 py-2">Spesifikasi</th>
+                                    <th class="px-2 py-2">Ruangan</th>
+                                    <th class="px-2 py-2 text-center">Diterima / Dialokasikan</th>
+                                    <th class="px-2 py-2 text-center">Kondisi</th>
+                                    <th class="px-2 py-2">Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                @foreach ($item->allocations as $allocation)
+                                    <tr>
+                                        <td class="px-2 py-2">{{ $allocation->specification?->displayName() ?? '—' }}</td>
+                                        <td class="px-2 py-2">{{ $allocation->room?->code }} — {{ $allocation->room?->name }}</td>
+                                        <td class="px-2 py-2 text-center">{{ $allocation->received_quantity ?? $allocation->quantity }} / {{ $allocation->quantity }}</td>
+                                        <td class="px-2 py-2 text-center">{{ $allocation->conditionEnum()->label() }}</td>
+                                        <td class="px-2 py-2">{{ $allocation->note ?: '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
             {{-- Riwayat peminjaman --}}
             <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">

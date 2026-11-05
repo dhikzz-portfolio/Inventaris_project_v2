@@ -47,7 +47,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="applyAll('hidden')" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Sembunyikan semua</button>
                 <button type="button" onclick="applyAll('view')" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Semua hanya lihat</button>
-                <button type="button" onclick="applyAll('full')" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Semua kelola</button>
+                <button type="button" onclick="applyAll('full')" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Semua bisa edit</button>
             </div>
         </div>
 
@@ -73,14 +73,14 @@
                                                   'bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300' => $state === 'VIEW_ONLY',
                                                   'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => $state === 'HIDDEN',
                                                   'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300' => $state === 'CUSTOM',
-                                              ])>{{ $state === 'FULL' ? 'Kelola' : ($state === 'VIEW_ONLY' ? 'Hanya lihat' : ($state === 'HIDDEN' ? 'Disembunyikan' : 'Custom')) }}</span>
+                                              ])>{{ $state === 'FULL' ? 'Bisa Edit' : ($state === 'VIEW_ONLY' ? 'Hanya Lihat' : ($state === 'HIDDEN' ? 'Sembunyikan' : 'Custom')) }}</span>
                                     </div>
                                     <p class="mt-0.5 font-mono text-[10px] text-slate-400">{{ $feature }}.*</p>
 
                                     <div class="mt-2 flex flex-wrap gap-1.5">
                                         <button type="button" onclick="setFeature('{{ $feature }}', 'hidden')" class="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Sembunyikan</button>
                                         <button type="button" onclick="setFeature('{{ $feature }}', 'view')" class="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Hanya lihat</button>
-                                        <button type="button" onclick="setFeature('{{ $feature }}', 'full')" class="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Kelola</button>
+                                        <button type="button" onclick="setFeature('{{ $feature }}', 'full')" class="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Bisa Edit</button>
                                     </div>
                                 </div>
 
@@ -208,7 +208,7 @@
                 var cls = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
 
                 if (on.length === total) {
-                    text = 'Kelola';
+                    text = 'Bisa Edit';
                     cls = 'bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300';
                 } else if (on.length === 1 && on[0].dataset.action === 'view') {
                     text = 'Hanya lihat';

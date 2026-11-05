@@ -98,8 +98,9 @@ final class RolePermissionManager
      * Simpan konfigurasi permission baru secara transaksional beserta audit.
      *
      * @param  array<string, array<int, string>>  $selection  fitur => tindakan
+     * @return array{0: list<string>, 1: list<string>} permission sebelum & sesudah
      */
-    public function update(string|Role $role, array $selection, User $actor, ?string $reason = null): void
+    public function update(string|Role $role, array $selection, User $actor, ?string $reason = null): array
     {
         $roleValue = $role instanceof Role ? $role->value : strtoupper($role);
         $permissions = PermissionCatalog::normalize($selection);
@@ -116,7 +117,7 @@ final class RolePermissionManager
         $before = $this->current($roleValue);
 
         if ($before === $permissions) {
-            return;
+            return [$before, $permissions];
         }
 
         DB::transaction(function () use ($spatieRole, $permissions, $before, $actor, $reason, $roleValue): void {
@@ -135,9 +136,14 @@ final class RolePermissionManager
         });
 
         $this->forgetCache();
+
+        return [$before, $permissions];
     }
 
-    public function reset(string|Role $role, User $actor, ?string $reason = null): void
+    /**
+     * @return array{0: list<string>, 1: list<string>} permission sebelum & sesudah
+     */
+    public function reset(string|Role $role, User $actor, ?string $reason = null): array
     {
         $roleValue = $role instanceof Role ? $role->value : strtoupper($role);
 
@@ -152,7 +158,7 @@ final class RolePermissionManager
         $baseline = PermissionCatalog::baseline($roleValue);
 
         if ($before === $baseline) {
-            return;
+            return [$before, $baseline];
         }
 
         DB::transaction(function () use ($spatieRole, $baseline, $before, $actor, $reason, $roleValue): void {
@@ -169,6 +175,8 @@ final class RolePermissionManager
         });
 
         $this->forgetCache();
+
+        return [$before, $baseline];
     }
 
     public function forgetCache(): void

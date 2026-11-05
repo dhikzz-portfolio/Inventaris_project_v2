@@ -41,7 +41,10 @@ class ItemController extends Controller
     {
         $this->ensureVisible($item);
 
-        $item->load(['room.major', 'category', 'movements.mover', 'movements.fromRoom', 'movements.toRoom']);
+        $item->load([
+            'room.major', 'category', 'movements.mover', 'movements.fromRoom', 'movements.toRoom',
+            'allocations.room', 'allocations.specification',
+        ]);
 
         $loanHistory = $item->loanItems()
             ->with(['loan.borrower', 'loan.event'])
@@ -119,6 +122,7 @@ class ItemController extends Controller
 
         return view('items.create', [
             'categories' => Category::orderBy('name')->get(),
+            'conditions' => Condition::cases(),
             'catalogs' => $catalogs,
             'catalogMap' => $catalogMap,
             'brands' => Specification::query()
@@ -150,16 +154,32 @@ class ItemController extends Controller
             'allocations' => ['nullable', 'array'],
             'allocations.*.room_id' => ['required_with:allocations', 'integer', 'distinct', $this->roomRule($request->user())],
             'allocations.*.quantity' => ['required_with:allocations', 'integer', 'min:1'],
+            'allocations.*.condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
+            'allocations.*.note' => ['nullable', 'string', 'max:500'],
+            // Kelompok spesifikasi: satu katalog dapat berisi beberapa merek/tipe
+            // dengan tahun, sumber dana, dan jumlah masing-masing.
+            'spec_groups' => ['nullable', 'array'],
+            'spec_groups.*.brand' => ['nullable', 'string', 'max:100'],
+            'spec_groups.*.model_type' => ['nullable', 'string', 'max:100'],
+            'spec_groups.*.acquisition_year' => ['nullable', 'integer', 'min:1990', 'max:'.(now()->year + 1)],
+            'spec_groups.*.funding_source' => ['nullable', 'string', 'max:100'],
+            'spec_groups.*.quantity' => ['required_with:spec_groups', 'integer', 'min:1'],
+            'spec_groups.*.allocations' => ['required_with:spec_groups', 'array', 'min:1'],
+            'spec_groups.*.allocations.*.room_id' => ['required', 'integer', $this->roomRule($request->user())],
+            'spec_groups.*.allocations.*.quantity' => ['required', 'integer', 'min:1'],
+            'spec_groups.*.allocations.*.condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
+            'spec_groups.*.allocations.*.note' => ['nullable', 'string', 'max:500'],
         ], [
             'allocations.*.room_id.distinct' => 'Satu ruangan hanya boleh muncul sekali pada daftar alokasi.',
             'allocations.*.quantity.min' => 'Jumlah alokasi setiap lokasi minimal 1 unit.',
         ]);
 
         $total = (int) $data['quantity'];
-        $allocations = $this->normalizeAllocations($request, $data, $total);
-        $this->assertAllocationsValid($allocations, $total);
+        $hasSpecGroups = filled($request->input('spec_groups'));
+        $groups = $this->normalizeSpecGroups($request, $data, $total);
+        $this->assertAllocationsValid($groups, $total, $hasSpecGroups);
 
-        $firstRoom = Room::findOrFail($allocations->first()['room_id']);
+        $firstRoom = Room::findOrFail($groups->first()['allocations'][0]['room_id']);
 
         $existingCatalog = null;
 
@@ -195,7 +215,7 @@ class ItemController extends Controller
 
         $createdAllocations = collect();
 
-        DB::transaction(function () use ($data, $category, $firstRoom, $total, $allocations, $request, $existingCatalog, &$createdAllocations) {
+        DB::transaction(function () use ($data, $category, $firstRoom, $total, $groups, $request, $existingCatalog, &$createdAllocations) {
             $isWakasek = $request->user()->isApproverLevel2();
             $isNewCatalog = $existingCatalog === null;
 
@@ -232,31 +252,47 @@ class ItemController extends Controller
                 'acquisition_received_condition' => $isWakasek ? Condition::BAIK->value : null,
             ]);
 
-            // Merek + tipe/model menjadi spesifikasi katalog, bukan sekadar
-            // teks pada transaksi pengadaan.
-            $specification = Specification::resolveFor(
-                $item,
-                $data['brand'] ?? null,
-                $data['model_type'] ?? null,
-                $data['specification'] ?? null,
-            );
+            // Setiap kelompok spesifikasi memiliki merek/tipe, tahun, sumber
+            // dana, dan jumlahnya sendiri. Katalog tetap satu jenis barang.
+            $groupSummary = [];
 
-            foreach ($allocations as $allocation) {
-                $createdAllocations->push(AcquisitionAllocation::create([
-                    'item_catalog_id' => $item->id,
-                    'specification_id' => $specification->id,
-                    'room_id' => $allocation['room_id'],
-                    'quantity' => $allocation['quantity'],
-                ]));
+            foreach ($groups as $group) {
+                $specification = Specification::resolveFor(
+                    $item,
+                    $group['brand'] ?? null,
+                    $group['model_type'] ?? null,
+                    $data['specification'] ?? null,
+                );
+
+                $groupSummary[] = [
+                    'spesifikasi' => $specification->spec_code,
+                    'merek' => $specification->brand,
+                    'tipe_model' => $specification->model_type,
+                    'tahun' => $group['acquisition_year'],
+                    'sumber_dana' => $group['funding_source'],
+                    'jumlah' => $group['quantity'],
+                    'alokasi' => $group['allocations'],
+                ];
+
+                foreach ($group['allocations'] as $allocation) {
+                    $createdAllocations->push(AcquisitionAllocation::create([
+                        'item_catalog_id' => $item->id,
+                        'specification_id' => $specification->id,
+                        'room_id' => $allocation['room_id'],
+                        'quantity' => $allocation['quantity'],
+                        'condition' => $allocation['condition'] ?? Condition::BAIK->value,
+                        'note' => $allocation['note'] ?? null,
+                        'acquisition_year' => $group['acquisition_year'] ?? $data['acquisition_year'],
+                        'funding_source' => $group['funding_source'] ?? $data['funding_source'],
+                    ]));
+                }
             }
 
             activity('pengadaan')
                 ->performedOn($item)
                 ->causedBy($request->user())
                 ->withProperties([
-                    'alokasi' => $allocations->all(),
-                    'merek' => $specification->brand,
-                    'tipe_model' => $specification->model_type,
+                    'kelompok_spesifikasi' => $groupSummary,
                 ])
                 ->log($isNewCatalog
                     ? ($isWakasek
@@ -283,7 +319,7 @@ class ItemController extends Controller
      * Form lama tanpa alokasi diperlakukan sebagai satu alokasi.
      *
      * @param  array<string, mixed>  $data
-     * @return Collection<int, array{room_id: int, quantity: int}>
+     * @return Collection<int, array{room_id: int, quantity: int, condition: string, note: ?string}>
      */
     private function normalizeAllocations(Request $request, array $data, int $total): Collection
     {
@@ -292,11 +328,18 @@ class ItemController extends Controller
             ->map(fn (array $row) => [
                 'room_id' => (int) $row['room_id'],
                 'quantity' => (int) $row['quantity'],
+                'condition' => (string) ($row['condition'] ?? Condition::BAIK->value),
+                'note' => filled($row['note'] ?? null) ? trim((string) $row['note']) : null,
             ])
             ->values();
 
         if ($rows->isEmpty() && filled($data['room_id'] ?? null)) {
-            $rows = collect([['room_id' => (int) $data['room_id'], 'quantity' => $total]]);
+            $rows = collect([[
+                'room_id' => (int) $data['room_id'],
+                'quantity' => $total,
+                'condition' => Condition::BAIK->value,
+                'note' => null,
+            ]]);
         }
 
         if ($rows->isEmpty()) {
@@ -309,18 +352,91 @@ class ItemController extends Controller
     }
 
     /**
-     * Validasi backend (bukan hanya frontend): total alokasi harus tepat sama
-     * dengan jumlah pengadaan.
+     * Bentuk kelompok spesifikasi dari request. Form baru mengirim
+     * `spec_groups`; form lama tetap didukung sebagai satu kelompok.
      *
-     * @param  Collection<int, array{room_id: int, quantity: int}>  $allocations
+     * @param  array<string, mixed>  $data
+     * @return Collection<int, array{brand: ?string, model_type: ?string, acquisition_year: int, funding_source: ?string, quantity: int, allocations: list<array{room_id: int, quantity: int, condition: string, note: ?string}>}>
      */
-    private function assertAllocationsValid(Collection $allocations, int $total): void
+    private function normalizeSpecGroups(Request $request, array $data, int $total): Collection
     {
-        $sum = (int) $allocations->sum('quantity');
+        $rows = collect($request->input('spec_groups', []))
+            ->filter(fn ($group) => is_array($group) && filled($group['quantity'] ?? null))
+            ->values();
+
+        if ($rows->isNotEmpty()) {
+            return $rows->map(fn (array $group): array => [
+                'brand' => $group['brand'] ?? null,
+                'model_type' => $group['model_type'] ?? null,
+                'acquisition_year' => filled($group['acquisition_year'] ?? null)
+                    ? (int) $group['acquisition_year']
+                    : (int) $data['acquisition_year'],
+                'funding_source' => $group['funding_source'] ?? $data['funding_source'],
+                'quantity' => (int) $group['quantity'],
+                'allocations' => collect($group['allocations'] ?? [])
+                    ->filter(fn ($row) => is_array($row) && filled($row['room_id'] ?? null) && filled($row['quantity'] ?? null))
+                    ->map(fn (array $row): array => [
+                        'room_id' => (int) $row['room_id'],
+                        'quantity' => (int) $row['quantity'],
+                        'condition' => (string) ($row['condition'] ?? Condition::BAIK->value),
+                        'note' => filled($row['note'] ?? null) ? trim((string) $row['note']) : null,
+                    ])
+                    ->values()
+                    ->all(),
+            ])->values();
+        }
+
+        return collect([[
+            'brand' => $data['brand'] ?? null,
+            'model_type' => $data['model_type'] ?? null,
+            'acquisition_year' => (int) $data['acquisition_year'],
+            'funding_source' => $data['funding_source'],
+            'quantity' => $total,
+            'allocations' => $this->normalizeAllocations($request, $data, $total)->all(),
+        ]]);
+    }
+
+    /**
+     * Validasi backend (bukan hanya frontend): jumlah alokasi setiap kelompok
+     * harus tepat sama dengan jumlah kelompok tersebut, dan total seluruh
+     * kelompok harus sama dengan jumlah pengadaan.
+     *
+     * @param  Collection<int, array{quantity: int, allocations: list<array{room_id: int, quantity: int, condition: string, note: ?string}>}>  $groups
+     */
+    private function assertAllocationsValid(Collection $groups, int $total, bool $hasSpecGroups = false): void
+    {
+        $sum = 0;
+
+        foreach ($groups as $index => $group) {
+            $groupSum = (int) collect($group['allocations'])->sum('quantity');
+            $sum += $groupSum;
+
+            // `distinct` pada wildcard bersarang berlaku lintas kelompok, sehingga
+            // duplikasi ruangan diperiksa per kelompok di sini. Ruangan yang sama
+            // tetap boleh dipakai oleh kelompok spesifikasi yang berbeda.
+            if (collect($group['allocations'])->pluck('room_id')->duplicates()->isNotEmpty()) {
+                $key = $hasSpecGroups ? "spec_groups.{$index}.allocations" : 'allocations';
+
+                throw ValidationException::withMessages([
+                    $key => 'Satu ruangan hanya boleh muncul sekali dalam satu kelompok spesifikasi.',
+                ]);
+            }
+
+            if ($groupSum !== (int) $group['quantity']) {
+                $key = $hasSpecGroups ? "spec_groups.{$index}.allocations" : 'allocations';
+                $label = $hasSpecGroups ? 'kelompok '.($index + 1) : 'pengadaan';
+
+                throw ValidationException::withMessages([
+                    $key => "Total alokasi {$label} ({$groupSum} unit) harus sama dengan jumlah yang ditetapkan ("
+                        .(int) $group['quantity'].' unit).',
+                ]);
+            }
+        }
 
         if ($sum !== $total) {
             throw ValidationException::withMessages([
-                'allocations' => "Total alokasi ({$sum} unit) harus sama dengan jumlah pengadaan ({$total} unit). Sisa yang belum dialokasikan: ".($total - $sum).' unit.',
+                $hasSpecGroups ? 'quantity' : 'allocations' => "Total jumlah pengadaan ({$total} unit) harus sama dengan jumlah seluruh alokasi ({$sum} unit). Sisa yang belum dialokasikan: "
+                    .($total - $sum).' unit.',
             ]);
         }
     }
@@ -506,18 +622,30 @@ class ItemController extends Controller
 
         $data = $request->validate([
             'received' => ['required', 'array'],
-            'received.*' => ['nullable', 'integer', 'min:0'],
-            'condition' => ['required', Rule::in(array_column(Condition::cases(), 'value'))],
+            'received.*.quantity' => ['nullable', 'integer', 'min:0'],
+            'received.*.condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
+            'received.*.note' => ['nullable', 'string', 'max:500'],
+            'condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
             'note' => ['nullable', 'string', 'max:500'],
         ], [
             'received.required' => 'Isi jumlah aktual barang yang diterima untuk setiap lokasi.',
         ]);
 
+        // Kunci penerimaan: id alokasi pada form baru; id ruangan tetap
+        // diterima untuk kompatibilitas request lama.
+        $receipts = [];
+
+        // `validated()` tidak mengembalikan parent array ketika aturan wildcard
+        // anak dipakai, sehingga input yang sudah tervalidasi dibaca langsung.
+        foreach ($request->input('received', []) as $key => $row) {
+            $receipts[(int) $key] = is_array($row) ? $row : ['quantity' => (int) $row];
+        }
+
         $acquisitions->receive(
             $item,
             $request->user(),
-            array_map('intval', $data['received']),
-            $data['condition'],
+            $receipts,
+            $data['condition'] ?? null,
             $data['note'] ?? null,
         );
 
@@ -583,7 +711,9 @@ class ItemController extends Controller
     private function provisionAllocations(Item $item, Collection $allocations, ?User $actor = null): void
     {
         $service = app(AssetUnitService::class);
-        $defaultSpecificationId = Specification::resolveFor($item, $item->brand, $item->model_type)->id;
+        // Spesifikasi cadangan hanya dibuat saat benar-benar diperlukan agar
+        // katalog dengan kelompok spesifikasi tidak memiliki spesifikasi hantu.
+        $defaultSpecificationId = null;
 
         foreach ($allocations as $allocation) {
             $room = $allocation->room ?: Room::find($allocation->room_id);
@@ -594,7 +724,12 @@ class ItemController extends Controller
 
             for ($i = 0; $i < (int) $allocation->quantity; $i++) {
                 $service->create($item, $room, [
-                    'specification_id' => $allocation->specification_id ?: $defaultSpecificationId,
+                    'specification_id' => $allocation->specification_id
+                        ?: ($defaultSpecificationId ??= Specification::resolveFor($item, $item->brand, $item->model_type)->id),
+                    'condition' => $allocation->conditionEnum(),
+                    'acquisition_year' => $allocation->acquisition_year,
+                    'funding_source' => $allocation->funding_source,
+                    'notes' => $allocation->note,
                 ], $actor);
             }
 

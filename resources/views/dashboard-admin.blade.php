@@ -101,7 +101,7 @@
 
     <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Keamanan akun</h3>
-        <dl class="mt-3 grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
+        <dl class="mt-3 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
             <div>
                 <dt class="text-slate-400">Login terakhir</dt>
                 <dd class="mt-0.5 font-medium text-slate-700 dark:text-slate-200">{{ $security['last_login']?->format('d M Y H:i') ?? '—' }}</dd>
@@ -109,10 +109,6 @@
             <div>
                 <dt class="text-slate-400">Password terakhir diubah</dt>
                 <dd class="mt-0.5 font-medium text-slate-700 dark:text-slate-200">{{ $security['password_changed']?->format('d M Y H:i') ?? '—' }}</dd>
-            </div>
-            <div>
-                <dt class="text-slate-400">Wajib ganti password</dt>
-                <dd class="mt-0.5 font-medium text-slate-700 dark:text-slate-200">{{ $security['must_change_password'] ? 'Ya' : 'Tidak' }}</dd>
             </div>
         </dl>
     </section>

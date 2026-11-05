@@ -4,10 +4,21 @@
     $currentType = old('borrower_type', $user?->borrower_type?->value);
     $currentOperatorCategory = old('operator_category', $user?->operator_category?->value);
     $selectedRooms = old('room_ids', $user?->roomScopes?->pluck('room_id')->all() ?? []);
+    $labRoomOptions = $labRooms->map(fn ($room) => [
+        'id' => (int) $room->id,
+        'major_id' => $room->major_id ? (int) $room->major_id : null,
+        'label' => trim(($room->code ? $room->code.' — ' : '').$room->name),
+    ])->values();
 @endphp
 
 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"
-     x-data="{ role: '{{ $currentRole }}', type: '{{ $currentType }}' }">
+     x-data="userForm({
+         role: '{{ $currentRole }}',
+         type: '{{ $currentType }}',
+         initialMajor: {{ (int) old('major_id', $user?->major_id ?? 0) }},
+         rooms: {{ \Illuminate\Support\Js::from($labRoomOptions) }},
+         initialRooms: {{ \Illuminate\Support\Js::from(array_map('intval', $selectedRooms)) }}
+     })">
     <div class="flex items-center justify-between gap-2 mb-4">
         <h3 class="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
             <span class="material-icons-round text-amber-600">{{ $editing ? 'manage_accounts' : 'person_add' }}</span>
@@ -59,16 +70,17 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div x-show="!['GURU', 'STAF'].includes(type)" x-cloak>
+                <div x-show="role === 'MEMBER'" x-cloak>
                     <x-input-label value="Jurusan" />
-                    <select name="major_id" :disabled="['GURU', 'STAF'].includes(type)"
+                    <select name="major_id"
+                            :disabled="role !== 'MEMBER' || ['GURU', 'STAF'].includes(type)"
                             class="mt-1 block w-full rounded-lg border-gray-300 text-sm disabled:bg-slate-100 disabled:text-slate-400">
                         <option value="">— tanpa jurusan —</option>
                         @foreach ($majors as $major)
                             <option value="{{ $major->id }}" @selected(old('major_id', $user?->major_id) == $major->id)>{{ $major->name }}</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-[11px] text-gray-400">Tidak tersedia untuk peminjam kategori guru/staf.</p>
+                    <p class="mt-1 text-[11px] text-gray-400">Jurusan peminjam; tidak tersedia untuk kategori guru/staf. Jurusan Operator diatur pada bagian cakupan laboratorium.</p>
                     @error('major_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -102,14 +114,7 @@
                 <span>Aktif — akun nonaktif tidak dapat login dan sesi aktifnya diputus.</span>
             </label>
             @error('is_active') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-
-            <label class="flex items-center gap-2 text-xs text-gray-700">
-                <input type="checkbox" name="must_change_password" value="1"
-                       class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-                       @checked(old('must_change_password', $user?->mustChangePassword() ?? ! $editing))>
-                <span>Wajib mengganti password pada login berikutnya (otomatis aktif saat administrator mengisi password baru).</span>
-            </label>
-            @error('must_change_password') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            <p class="text-[11px] text-gray-400">Login pertama tidak mewajibkan penggantian password. Pengguna dapat menggantinya secara sukarela dari halaman profil.</p>
         </fieldset>
 
         {{-- Role --}}
@@ -174,20 +179,47 @@
             </div>
         </fieldset>
 
-        {{-- Cakupan laboratorium --}}
-        <fieldset class="border-t border-gray-100 pt-4" x-show="role === 'OPERATOR'" x-cloak>
+        {{-- Cakupan laboratorium berdasarkan jurusan --}}
+        <fieldset class="border-t border-gray-100 pt-4 space-y-3" x-show="role === 'OPERATOR'" x-cloak>
             <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Cakupan Laboratorium</legend>
+
+            <div>
+                <x-input-label value="Jurusan Operator" />
+                <select name="major_id" x-model.number="majorId" @change="syncRooms()"
+                        :disabled="role !== 'OPERATOR'"
+                        class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500 disabled:bg-slate-100 disabled:text-slate-400">
+                    <option value="">— pilih jurusan —</option>
+                    @foreach ($majors as $major)
+                        <option value="{{ $major->id }}">{{ $major->name }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-[11px] text-gray-400">Operator hanya memiliki satu jurusan. Seluruh laboratorium jurusan aktif secara default.</p>
+                @error('major_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-[11px] text-gray-500">
+                    <span class="font-semibold" x-text="selectedRooms.length"></span> dari
+                    <span x-text="filteredRooms.length"></span> laboratorium dipilih.
+                </p>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="selectAllRooms()" :disabled="filteredRooms.length === 0"
+                            class="rounded-md border border-gray-300 px-2 py-1 text-[10px] font-semibold text-gray-600 disabled:opacity-40">Pilih semua</button>
+                    <button type="button" @click="clearRooms()"
+                            class="rounded-md border border-gray-300 px-2 py-1 text-[10px] font-semibold text-gray-600">Kosongkan</button>
+                </div>
+            </div>
+
             <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 p-2 space-y-1">
-                @forelse ($labRooms as $labRoom)
+                <template x-for="room in filteredRooms" :key="room.id">
                     <label class="flex items-center gap-2 text-xs text-gray-700 px-1 py-0.5">
-                        <input type="checkbox" name="room_ids[]" value="{{ $labRoom->id }}"
-                               class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-                               @checked(in_array($labRoom->id, $selectedRooms))>
-                        <span>{{ $labRoom->code }} — {{ $labRoom->name }}</span>
+                        <input type="checkbox" name="room_ids[]" :value="room.id" x-model="selectedRooms"
+                               class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        <span x-text="room.label"></span>
                     </label>
-                @empty
-                    <p class="text-xs text-gray-400 px-1">Belum ada laboratorium pada master ruangan.</p>
-                @endforelse
+                </template>
+                <p x-show="filteredRooms.length === 0" class="px-1 text-xs text-gray-400"
+                   x-text="majorId ? 'Jurusan ini belum memiliki laboratorium pada master ruangan.' : 'Pilih jurusan terlebih dahulu.'"></p>
             </div>
             @error('room_ids') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </fieldset>
@@ -211,3 +243,35 @@
         </form>
     @endif
 </div>
+
+@push('scripts')
+    <script>
+        function userForm(config) {
+            return {
+                role: config.role,
+                type: config.type,
+                majorId: Number(config.initialMajor) || '',
+                rooms: config.rooms || [],
+                selectedRooms: (config.initialRooms || []).map(Number),
+
+                get filteredRooms() {
+                    if (!this.majorId) return [];
+                    return this.rooms.filter((room) => Number(room.major_id) === Number(this.majorId));
+                },
+
+                /** Perubahan jurusan tidak menyisakan laboratorium lama yang tidak valid. */
+                syncRooms() {
+                    this.selectedRooms = this.filteredRooms.map((room) => Number(room.id));
+                },
+
+                selectAllRooms() {
+                    this.selectedRooms = this.filteredRooms.map((room) => Number(room.id));
+                },
+
+                clearRooms() {
+                    this.selectedRooms = [];
+                },
+            };
+        }
+    </script>
+@endpush

@@ -395,7 +395,7 @@ class RevisionV5Test extends TestCase
         $this->assertTrue($admin->refresh()->isActive());
     }
 
-    public function test_bootstrap_account_is_hashed_forced_to_change_password_and_idempotent(): void
+    public function test_bootstrap_account_is_hashed_without_forced_password_change_and_idempotent(): void
     {
         $this->artisan('user:bootstrap-admin', [
             '--email' => 'bootstrap.admin@example.test',
@@ -406,7 +406,7 @@ class RevisionV5Test extends TestCase
 
         $this->assertSame(Role::SUPER_ADMIN->value, $admin->role);
         $this->assertTrue(Hash::check('AwalKuat12345!', $admin->password));
-        $this->assertTrue($admin->mustChangePassword());
+        $this->assertFalse($admin->mustChangePassword());
         $this->assertTrue($admin->isActive());
 
         $this->artisan('user:bootstrap-admin', [
@@ -416,8 +416,10 @@ class RevisionV5Test extends TestCase
 
         $this->assertSame(1, User::where('email', 'bootstrap.admin@example.test')->count());
 
-        $this->actingAs($admin)->get(route('users.index'))->assertRedirect(route('profile.edit'));
+        // Login pertama tidak mewajibkan penggantian password.
+        $this->actingAs($admin)->get(route('users.index'))->assertOk();
 
+        // Penggantian password secara sukarela tetap berfungsi.
         $this->actingAs($admin)->put(route('password.update'), [
             'current_password' => 'AwalKuat12345!',
             'password' => 'PasswordBaru123!',
@@ -442,20 +444,20 @@ class RevisionV5Test extends TestCase
         $originalHash = $admin->password;
 
         $this->assertTrue(Hash::check('PasswordDariEnv123!', $originalHash));
-        $this->assertTrue($admin->mustChangePassword());
+        $this->assertFalse($admin->mustChangePassword());
 
         // Tanpa --reset-password, akun yang sudah ada tidak diubah.
         $this->artisan('user:bootstrap-admin', ['--password' => 'PasswordLain123!'])->assertSuccessful();
         $this->assertSame($originalHash, $admin->refresh()->password);
 
-        // Dengan --reset-password, password dari env dipakai dan kewajiban ganti diaktifkan lagi.
-        $admin->forceFill(['must_change_password' => false, 'password_changed_at' => now()])->save();
+        // Dengan --reset-password, password dari env dipakai tanpa memaksa ganti.
+        $admin->forceFill(['password_changed_at' => now()])->save();
 
         $this->artisan('user:bootstrap-admin', ['--reset-password' => true])->assertSuccessful();
 
         $admin->refresh();
         $this->assertTrue(Hash::check('PasswordDariEnv123!', $admin->password));
-        $this->assertTrue($admin->mustChangePassword());
+        $this->assertFalse($admin->mustChangePassword());
         $this->assertNull($admin->password_changed_at);
         $this->assertSame(1, User::where('email', 'env.admin@example.test')->count());
 

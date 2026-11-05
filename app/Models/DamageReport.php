@@ -18,7 +18,7 @@ class DamageReport extends Model
     use LogsActivity, SoftDeletes;
 
     protected $fillable = [
-        'asset_unit_id', 'reported_by', 'classification', 'previous_condition',
+        'asset_unit_id', 'acquisition_allocation_id', 'reported_by', 'classification', 'previous_condition',
         'reported_condition', 'description', 'photo_path', 'status',
         'handled_by', 'handled_at', 'resolution_note',
     ];
@@ -45,6 +45,12 @@ class DamageReport extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(AssetUnit::class, 'asset_unit_id');
+    }
+
+    /** Alokasi pengadaan sumber unit rusak (bila laporan dibuat otomatis). */
+    public function acquisitionAllocation(): BelongsTo
+    {
+        return $this->belongsTo(AcquisitionAllocation::class, 'acquisition_allocation_id');
     }
 
     public function reporter(): BelongsTo

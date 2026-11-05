@@ -929,7 +929,7 @@ class LoanService
                         $qtyNow,
                         $condition,
                         $returner,
-                        $condition->isDamaged() ? $damagePath : null,
+                        $condition->isDamaged() && $hasUploadedPhoto ? $damagePath : null,
                         $room,
                         isset($row['assignment_id']) ? (int) $row['assignment_id'] : null,
                         isset($row['unit_id']) ? (int) $row['unit_id'] : null,

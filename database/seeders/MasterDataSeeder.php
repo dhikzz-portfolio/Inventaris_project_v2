@@ -32,8 +32,7 @@ class MasterDataSeeder extends Seeder
             'KLN' => 'Kuliner',
             'TP' => 'Teknik Pengelasan',
             'TKP' => 'Teknik Konstruksi Perumahan',
-        ])->each(fn (string $name, string $code) =>
-            Major::updateOrCreate(['code' => $code], ['name' => $name])
+        ])->each(fn (string $name, string $code) => Major::updateOrCreate(['code' => $code], ['name' => $name])
         );
 
         // Data contoh lama (TKJ/MM) hanya dihapus bila benar-benar tidak dipakai.
@@ -47,11 +46,10 @@ class MasterDataSeeder extends Seeder
         // Master gedung resmi A–G. `updateOrCreate` membuat seeder idempoten
         collect(range('A', 'G'))
             ->map(fn (string $code) => ['name' => 'Gedung '.$code, 'code' => $code])
-            ->each(fn (array $building) =>
-                Building::updateOrCreate(
-                    ['code' => $building['code']],
-                    $building + ['is_active' => true]
-                )
+            ->each(fn (array $building) => Building::updateOrCreate(
+                ['code' => $building['code']],
+                $building + ['is_active' => true]
+            )
             );
 
         foreach ([

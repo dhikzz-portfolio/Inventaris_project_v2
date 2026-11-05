@@ -229,6 +229,36 @@ class MovementAndWriteOffTest extends TestCase
         $this->assertSame(ItemStatus::BAIK, $this->item->status);
     }
 
+    public function test_penghapusan_seluruh_katalog_tanpa_berita_acara(): void
+    {
+        Storage::fake('public');
+        Storage::fake('local');
+
+        $units = app(AssetUnitService::class);
+        foreach (range(1, 2) as $ignored) {
+            $units->create($this->item, $this->room1);
+        }
+
+        $this->actingAs($this->admin)->post(route('write-offs.store'), [
+            'mode' => 'CATALOG',
+            'catalog_id' => $this->item->id,
+            'confirm_delete' => 1,
+            'confirm_catalog' => 1,
+            'reason' => 'Seluruh unit katalog rusak dan tidak layak pakai',
+        ])->assertRedirect(route('write-offs.index'))->assertSessionHasNoErrors();
+
+        $writeOff = WriteOff::where('item_id', $this->item->id)->latest('id')->firstOrFail();
+
+        $this->assertSame('CATALOG', $writeOff->mode);
+        $this->assertSame('APPROVED', $writeOff->status);
+        $this->assertNull($writeOff->berita_acara_path);
+        $this->assertSame(2, $writeOff->quantity);
+        $this->assertSame(0, AssetUnit::where('item_catalog_id', $this->item->id)
+            ->where('status', '!=', UnitStatus::DIHAPUS->value)
+            ->count());
+        $this->assertSame(ItemStatus::DIHAPUS, $this->item->refresh()->status);
+    }
+
     public function test_editor_tidak_dapat_mengajukan_penghapusan_inventaris(): void
     {
         Storage::fake('public');

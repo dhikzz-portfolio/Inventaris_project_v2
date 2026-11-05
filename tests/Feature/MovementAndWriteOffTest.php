@@ -356,4 +356,40 @@ class MovementAndWriteOffTest extends TestCase
         $this->assertSame($this->room1->id, $unit->refresh()->room_id);
         $this->assertDatabaseMissing('asset_unit_movements', ['asset_unit_id' => $unit->id]);
     }
+
+    public function test_unit_pada_katalog_berstatus_dihapus_tetap_tampil_di_mode_unit_dan_katalog(): void
+    {
+        $unit = app(AssetUnitService::class)->create($this->item, $this->room1);
+
+        // Data lama bisa menyisakan unit hidup pada katalog yang sudah DIHAPUS,
+        // sehingga daftar unit harus tetap menampilkannya seperti mode katalog.
+        $this->item->update(['status' => ItemStatus::DIHAPUS]);
+
+        $response = $this->actingAs($this->admin)->get(route('write-offs.index'));
+
+        $response->assertOk()
+            ->assertViewHas('units', fn ($units): bool => $units->getCollection()->contains('id', $unit->id))
+            ->assertViewHas('catalogs', fn ($catalogs): bool => $catalogs->contains('id', $this->item->id));
+    }
+
+    public function test_katalog_yang_diarsipkan_tetap_dapat_dihapus_seluruh_unitnya(): void
+    {
+        $service = app(AssetUnitService::class);
+        $service->create($this->item, $this->room1);
+        $service->create($this->item, $this->room1);
+
+        $this->item->update(['archived_at' => now()]);
+
+        $this->actingAs($this->admin)->post(route('write-offs.store'), [
+            'mode' => 'CATALOG',
+            'catalog_id' => $this->item->id,
+            'confirm_delete' => 1,
+            'confirm_catalog' => 1,
+            'reason' => 'Katalog diarsipkan, unit sisa dimusnahkan',
+        ])->assertRedirect(route('write-offs.index'))->assertSessionHasNoErrors();
+
+        $this->assertSame(0, AssetUnit::where('item_catalog_id', $this->item->id)
+            ->where('status', '!=', UnitStatus::DIHAPUS->value)
+            ->count());
+    }
 }

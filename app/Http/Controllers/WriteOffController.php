@@ -46,9 +46,10 @@ class WriteOffController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        // Daftar katalog untuk filter mode per unit harus mencakup setiap
-        // katalog yang unitnya muncul pada daftar unit, termasuk katalog yang
-        // sudah diarsipkan tetapi unitnya belum dihapus.
+        // Daftar katalog harus mencakup setiap katalog yang unitnya muncul pada
+        // daftar unit, termasuk katalog yang sudah diarsipkan atau berstatus
+        // DIHAPUS tetapi unitnya belum dihapus, agar dua mode penghapusan
+        // menawarkan cakupan yang sama.
         $catalogs = Item::query()
             ->approved()
             ->visibleTo($user)
@@ -57,11 +58,13 @@ class WriteOffController extends Controller
                 ->where('status', '!=', UnitStatus::DIHAPUS->value))
             ->withCount([
                 'units as active_units_count' => fn (Builder $query) => $query
+                    ->visibleTo($user)
                     ->where('status', '!=', UnitStatus::DIHAPUS->value),
             ])
             ->with([
                 'specifications' => fn ($query) => $query->withCount([
                     'units as active_units_count' => fn (Builder $unit) => $unit
+                        ->visibleTo($user)
                         ->where('status', '!=', UnitStatus::DIHAPUS->value),
                 ]),
             ])
@@ -130,9 +133,10 @@ class WriteOffController extends Controller
                 ]);
             }
 
+            // Katalog yang diarsipkan tetap boleh dihapus unitnya karena
+            // daftar katalog pada halaman ini memang menampilkannya.
             $catalog = Item::query()
                 ->approved()
-                ->notArchived()
                 ->visibleTo($user)
                 ->whereKey($data['catalog_id'])
                 ->first();
@@ -141,7 +145,7 @@ class WriteOffController extends Controller
                 abort(404);
             }
 
-            $unitIds = $this->eligibleCatalogUnits($catalog)->pluck('id')->all();
+            $unitIds = $this->eligibleCatalogUnits($catalog, $user)->pluck('id')->all();
             $itemId = $catalog->id;
 
             if ($unitIds === []) {
@@ -608,12 +612,14 @@ class WriteOffController extends Controller
     }
 
     /**
-     * Unit yang dapat dihapus pada satu katalog: bukan unit terhapus, tidak
-     * sedang dipinjam, dan belum masuk pengajuan yang masih menunggu.
+     * Unit yang dapat dihapus pada satu katalog: berada dalam cakupan pengguna,
+     * bukan unit terhapus, tidak sedang dipinjam, dan belum masuk pengajuan yang
+     * masih menunggu.
      */
-    private function eligibleCatalogUnits(Item $catalog): Builder
+    private function eligibleCatalogUnits(Item $catalog, User $user): Builder
     {
         return AssetUnit::query()
+            ->visibleTo($user)
             ->where('item_catalog_id', $catalog->id)
             ->whereNotIn('status', [UnitStatus::DIHAPUS->value, UnitStatus::DIPINJAM->value])
             ->whereNull('archived_at')
@@ -653,11 +659,12 @@ class WriteOffController extends Controller
     {
         $codes = app(InventoryCodeService::class);
 
+        // Status katalog sengaja tidak difilter: unit yang masih hidup pada
+        // katalog berstatus DIHAPUS/arsip harus tetap dapat dihapus dari sini
+        // (mode per katalog juga menampilkan katalog tersebut).
         return AssetUnit::query()
             ->visibleTo($user)
-            ->whereHas('catalog', fn (Builder $query) => $query
-                ->approved()
-                ->where('status', '!=', ItemStatus::DIHAPUS->value))
+            ->whereHas('catalog', fn (Builder $query) => $query->approved())
             ->where('status', '!=', UnitStatus::DIHAPUS->value)
             ->when($filters['search'] !== '', function (Builder $query) use ($filters, $codes) {
                 $term = '%'.mb_strtoupper(trim($filters['search'])).'%';
@@ -709,7 +716,7 @@ class WriteOffController extends Controller
         $summaries = [];
 
         foreach ($catalogs as $catalog) {
-            $eligible = $this->eligibleCatalogUnits($catalog)->with('room.building')->get();
+            $eligible = $this->eligibleCatalogUnits($catalog, $user)->with('room.building')->get();
 
             $summaries[$catalog->id] = [
                 'id' => $catalog->id,

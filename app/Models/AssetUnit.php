@@ -63,6 +63,12 @@ class AssetUnit extends Model
         return $this->hasMany(AssetUnitMovement::class);
     }
 
+    /** Riwayat status operasional (manual maupun transaksi). */
+    public function statusLogs(): HasMany
+    {
+        return $this->hasMany(AssetUnitStatusLog::class)->latest('created_at');
+    }
+
     /** Catatan distribusi bila unit ini dialokasikan lewat menu distribusi. */
     public function distributionUnit(): HasOne
     {

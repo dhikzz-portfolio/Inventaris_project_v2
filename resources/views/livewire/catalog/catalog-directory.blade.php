@@ -1,5 +1,5 @@
 <div>
-    @php($selectedFilterCount = collect([$category, $building, $floor, $room, $availability])->filter(fn ($value) => $value !== '')->count())
+    @php($selectedFilterCount = collect([$category, $building, $floor, $room, $brand, $model, $condition, $status, $availability])->filter(fn ($value) => $value !== '')->count())
 
     <div x-data="{ filtersOpen: false }" class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
@@ -50,6 +50,34 @@
                         <option value="{{ $roomOption->id }}">
                             {{ $roomOption->building_letter }}{{ $roomOption->floor }}-{{ str_pad((string) $roomOption->room_no, 2, '0', STR_PAD_LEFT) }} — {{ $roomOption->name }}
                         </option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="brand" aria-label="Filter merek" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua merek</option>
+                    @foreach ($brands as $brandOption)
+                        <option value="{{ $brandOption }}">{{ $brandOption }}</option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="model" aria-label="Filter model" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua model</option>
+                    @foreach ($models as $modelOption)
+                        <option value="{{ $modelOption }}">{{ $modelOption }}</option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="condition" aria-label="Filter kondisi fisik" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua kondisi</option>
+                    @foreach ($conditions as $conditionOption)
+                        <option value="{{ $conditionOption->value }}">{{ $conditionOption->label() }}</option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="status" aria-label="Filter status operasional" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua status</option>
+                    @foreach ($statuses as $statusOption)
+                        <option value="{{ $statusOption->value }}">{{ $statusOption->label() }}</option>
                     @endforeach
                 </select>
 

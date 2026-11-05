@@ -13,6 +13,7 @@ use App\Enums\NotificationType;
 use App\Enums\UnitStatus;
 use App\Exceptions\AvailabilityException;
 use App\Models\AssetUnit;
+use App\Models\AssetUnitStatusLog;
 use App\Models\Item;
 use App\Models\ItemMovement;
 use App\Models\Loan;
@@ -618,7 +619,20 @@ class LoanService
                 $loanItemUnit->markAssigned();
 
                 // Status unit fisik mengikuti posisi riil: sedang dipinjam.
+                // Transaksi menjadi sumber perubahan; histori manual tetap utuh.
+                $statusBefore = $unit->status;
                 $unit->forceFill(['status' => UnitStatus::DIPINJAM])->save();
+
+                if ($statusBefore !== UnitStatus::DIPINJAM) {
+                    AssetUnitStatusLog::create([
+                        'asset_unit_id' => $unit->id,
+                        'from_status' => $statusBefore->value,
+                        'to_status' => UnitStatus::DIPINJAM->value,
+                        'source' => AssetUnitStatusLog::SOURCE_TRANSACTION,
+                        'reason' => 'Serah terima peminjaman #'.$loan->id,
+                        'changed_by' => $officer->id,
+                    ]);
+                }
 
                 $assignedUnitIds[(int) $loanItem->id][(int) $unit->id] = true;
 
@@ -1277,10 +1291,23 @@ class LoanService
             if ($unit !== null) {
                 // Kondisi & status unit mengikuti hasil pengembalian supaya unit
                 // rusak tidak lagi dianggap dapat dipinjam.
+                $statusBefore = $unit->status;
+
                 $unit->forceFill([
                     'condition' => $conditionIn,
                     'status' => UnitStatus::AKTIF,
                 ])->save();
+
+                if ($statusBefore !== UnitStatus::AKTIF) {
+                    AssetUnitStatusLog::create([
+                        'asset_unit_id' => $unit->id,
+                        'from_status' => $statusBefore->value,
+                        'to_status' => UnitStatus::AKTIF->value,
+                        'source' => AssetUnitStatusLog::SOURCE_TRANSACTION,
+                        'reason' => 'Pengembalian peminjaman #'.$loanItem->loan_id,
+                        'changed_by' => ($returner ?? auth()->user())?->id,
+                    ]);
+                }
 
                 // Unit yang kembali ke ruangan lain harus berpindah lokasi secara
                 // resmi (kode inventaris ikut diterbitkan ulang).

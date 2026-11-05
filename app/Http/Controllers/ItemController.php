@@ -175,11 +175,32 @@ class ItemController extends Controller
         ]);
 
         $total = (int) $data['quantity'];
-        $hasSpecGroups = filled($request->input('spec_groups'));
-        $groups = $this->normalizeSpecGroups($request, $data, $total);
-        $this->assertAllocationsValid($groups, $total, $hasSpecGroups);
 
-        $firstRoom = Room::findOrFail($groups->first()['allocations'][0]['room_id']);
+        if ($total < 1) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Jumlah pengadaan minimal 1 unit.',
+            ]);
+        }
+
+        // Mode stok (bawaan revisi V9): pengadaan hanya mencatat katalog dan
+        // jumlah. Spesifikasi dan ruangan ditentukan saat distribusi.
+        // Mode alokasi tetap didukung untuk data dan pengadaan yang sudah ada.
+        $requestedMode = $request->input('procurement_mode');
+        $usesAllocations = $requestedMode === 'ALOKASI'
+            || ($requestedMode === null && (filled($request->input('spec_groups'))
+                || filled($request->input('allocations'))
+                || filled($request->input('room_id'))));
+
+        $hasSpecGroups = $usesAllocations && filled($request->input('spec_groups'));
+        $groups = $usesAllocations ? $this->normalizeSpecGroups($request, $data, $total) : collect();
+
+        if ($usesAllocations) {
+            $this->assertAllocationsValid($groups, $total, $hasSpecGroups);
+        }
+
+        $firstRoom = $usesAllocations
+            ? Room::findOrFail($groups->first()['allocations'][0]['room_id'])
+            : null;
 
         $existingCatalog = null;
 
@@ -190,6 +211,16 @@ class ItemController extends Controller
                 || ! $existingCatalog->isRecordedInInventory()) {
                 throw ValidationException::withMessages([
                     'catalog_id' => 'Katalog yang dipilih tidak tersedia atau sudah diarsipkan.',
+                ]);
+            }
+
+            // Satu baris katalog masih menjadi induk satu pengadaan. Menambah
+            // stok ke katalog yang sudah tercatat akan menghilangkan jumlah
+            // pengadaan baru (status katalog sudah inventaris tercatat), jadi
+            // permintaan tersebut ditolak alih-alih disimpan sebagian.
+            if (! $usesAllocations) {
+                throw ValidationException::withMessages([
+                    'catalog_id' => 'Katalog ini sudah tercatat sebagai inventaris. Pengadaan stok baru memerlukan katalog pengadaan tersendiri; gunakan mode alokasi ruangan untuk menambah stok pada katalog yang sudah ada.',
                 ]);
             }
 
@@ -215,23 +246,30 @@ class ItemController extends Controller
 
         $createdAllocations = collect();
 
-        DB::transaction(function () use ($data, $category, $firstRoom, $total, $groups, $request, $existingCatalog, &$createdAllocations) {
+        DB::transaction(function () use ($data, $category, $firstRoom, $total, $groups, $request, $existingCatalog, $usesAllocations, &$createdAllocations) {
             $isWakasek = $request->user()->isApproverLevel2();
             $isNewCatalog = $existingCatalog === null;
 
-            // Pengadaan oleh pihak selain Wakasek selalu dimulai sebagai draft;
-            // unit baru hanya terbit setelah barang benar-benar diterima.
+            // Pengadaan oleh pihak selain Wakasek selalu dimulai sebagai draft.
+            // Pengadaan mode stok yang dibuat Wakasek langsung disetujui, tetapi
+            // unit baru terbit setelah penerimaan dan distribusi yang sah.
+            $recordsImmediately = $isWakasek && $usesAllocations;
+
             $initialStatus = $isWakasek
-                ? AcquisitionStatus::INVENTARIS_TERCATAT->value
+                ? ($usesAllocations
+                    ? AcquisitionStatus::INVENTARIS_TERCATAT->value
+                    : AcquisitionStatus::DISETUJUI->value)
                 : AcquisitionStatus::DRAFT->value;
 
             $item = $existingCatalog ?? Item::create([
-                'internal_id' => IdGenerator::internalId($firstRoom),
+                'internal_id' => $firstRoom !== null
+                    ? IdGenerator::internalId($firstRoom)
+                    : IdGenerator::stockInternalId(),
                 'location_code' => InstitutionSetting::current()->location_code,
                 'register_no' => IdGenerator::register(null)['register_no'],
                 'name' => $data['name'],
                 'category_id' => $category->id,
-                'room_id' => $firstRoom->id,
+                'room_id' => $firstRoom?->id,
                 'brand' => Specification::normalizeBrand($data['brand'] ?? null) === Specification::BRAND_UNSPECIFIED ? '' : trim((string) $data['brand']),
                 'model_type' => Specification::normalizeModel($data['model_type'] ?? null) === Specification::MODEL_UNSPECIFIED ? '' : trim((string) $data['model_type']),
                 'specification' => $data['specification'] ?? null,
@@ -246,10 +284,10 @@ class ItemController extends Controller
                 'acquisition_requested_by' => $request->user()->id,
                 'acquisition_approved_by' => $isWakasek ? $request->user()->id : null,
                 'acquisition_decided_at' => $isWakasek ? now() : null,
-                'acquisition_received_by' => $isWakasek ? $request->user()->id : null,
-                'acquisition_received_at' => $isWakasek ? now() : null,
-                'acquisition_received_quantity' => $isWakasek ? $total : null,
-                'acquisition_received_condition' => $isWakasek ? Condition::BAIK->value : null,
+                'acquisition_received_by' => $recordsImmediately ? $request->user()->id : null,
+                'acquisition_received_at' => $recordsImmediately ? now() : null,
+                'acquisition_received_quantity' => $recordsImmediately ? $total : null,
+                'acquisition_received_condition' => $recordsImmediately ? Condition::BAIK->value : null,
             ]);
 
             // Setiap kelompok spesifikasi memiliki merek/tipe, tahun, sumber
@@ -300,10 +338,15 @@ class ItemController extends Controller
                         : 'Menyimpan draft pengajuan pengadaan barang baru (belum dikirim)')
                     : 'Menambah stok spesifikasi pada katalog yang sudah ada');
 
-            if ($isWakasek && $item->isRecordedInInventory()) {
+            if ($recordsImmediately && $item->isRecordedInInventory()) {
                 $this->provisionAllocations($item->fresh(), $createdAllocations, $request->user());
             }
         });
+
+        if (! $usesAllocations) {
+            return redirect()->route('items.acquisitions')
+                ->with('success', 'Pengadaan disimpan sebagai stok. Catat penerimaan setelah barang datang, lalu distribusikan untuk menentukan spesifikasi dan lokasi unit.');
+        }
 
         if ($request->user()->isApproverLevel2()) {
             return redirect()->route('catalogs.index')
@@ -518,7 +561,7 @@ class ItemController extends Controller
         $search = trim($validated['search'] ?? '');
 
         $requests = Item::query()
-            ->with(['room', 'category', 'requester', 'confirmer', 'approver', 'receiver'])
+            ->with(['room', 'category', 'requester', 'confirmer', 'approver', 'receiver', 'allocations'])
             ->whereIn('acquisition_status', AcquisitionStatus::values())
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
                 $like = "%{$search}%";
@@ -621,14 +664,13 @@ class ItemController extends Controller
         $this->ensureVisible($item);
 
         $data = $request->validate([
-            'received' => ['required', 'array'],
+            'received' => ['nullable', 'array'],
             'received.*.quantity' => ['nullable', 'integer', 'min:0'],
             'received.*.condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
             'received.*.note' => ['nullable', 'string', 'max:500'],
+            'received_total' => ['nullable', 'integer', 'min:0'],
             'condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
             'note' => ['nullable', 'string', 'max:500'],
-        ], [
-            'received.required' => 'Isi jumlah aktual barang yang diterima untuk setiap lokasi.',
         ]);
 
         // Kunci penerimaan: id alokasi pada form baru; id ruangan tetap
@@ -647,16 +689,26 @@ class ItemController extends Controller
             $receipts,
             $data['condition'] ?? null,
             $data['note'] ?? null,
+            filled($data['received_total'] ?? null) ? (int) $data['received_total'] : null,
         );
 
+        $message = $item->allocations()->exists()
+            ? 'Lanjutkan dengan pencatatan inventaris.'
+            : 'Barang tersimpan sebagai stok diterima. Lanjutkan dengan distribusi untuk menentukan merek, model, ruangan, kondisi, dan status unit.';
+
         return redirect()->route('items.acquisitions')
-            ->with('success', "Penerimaan \"{$item->name}\" dicatat. Lanjutkan dengan pencatatan inventaris.");
+            ->with('success', "Penerimaan \"{$item->name}\" dicatat. {$message}");
     }
 
     /** Menerbitkan unit inventaris dari barang yang sudah diterima. */
     public function recordInventory(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
     {
         $this->ensureVisible($item);
+
+        if (! $item->allocations()->exists() && $item->receipts()->exists()) {
+            return redirect()->route('distributions.index')
+                ->with('success', "Barang \"{$item->name}\" sudah tercatat sebagai stok diterima. Tentukan spesifikasi dan lokasi unit melalui formulir distribusi.");
+        }
 
         $result = $acquisitions->recordInventory($item, $request->user());
 

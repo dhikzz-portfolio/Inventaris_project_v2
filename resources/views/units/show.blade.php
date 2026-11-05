@@ -169,6 +169,38 @@
             <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="mb-3 flex items-center gap-2.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                        <span class="material-icons-round" aria-hidden="true">history</span>
+                    </span>
+                    Riwayat Status Operasional
+                </h3>
+                @if ($unit->statusLogs->isEmpty())
+                    <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-800/50">
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200">Belum ada perubahan status</p>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Perubahan manual dan otomatis akan tercatat di bagian ini.</p>
+                    </div>
+                @else
+                    <ul class="space-y-2 text-xs">
+                        @foreach ($unit->statusLogs as $log)
+                            <li class="rounded-xl border border-slate-200 p-2.5 dark:border-slate-700">
+                                <div class="flex flex-wrap items-center gap-2 text-slate-700 dark:text-slate-200">
+                                    <span class="text-[11px] font-semibold">{{ $log->from_status?->label() ?? '—' }}</span>
+                                    <span class="material-icons-round text-sm text-slate-400" aria-hidden="true">arrow_forward</span>
+                                    <span class="text-[11px] font-bold text-brand-700 dark:text-brand-300">{{ $log->to_status->label() }}</span>
+                                    <span class="ms-auto rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $log->source }}</span>
+                                    <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ $log->created_at?->format('d/m/Y H:i') }}</span>
+                                </div>
+                                <div class="mt-1.5 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+                                    oleh {{ $log->actor?->name ?? 'Sistem' }}@if ($log->reason) — {{ $log->reason }} @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <h3 class="mb-3 flex items-center gap-2.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
                         <span class="material-icons-round" aria-hidden="true">swap_horiz</span>
                     </span>
                     Riwayat Perpindahan
@@ -294,6 +326,14 @@
                                         <option value="{{ $statusOption->value }}" @selected($unit->status === $statusOption)>{{ $statusOption->label() }}</option>
                                     @endforeach
                                 </select>
+                            </div>
+                            <div>
+                                <label for="unit-status-reason" class="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-200">Alasan perubahan status</label>
+                                <input id="unit-status-reason" name="status_reason" type="text" maxlength="500"
+                                       value="{{ old('status_reason') }}"
+                                       placeholder="Wajib bila status diubah"
+                                       class="h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                @error('status_reason') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                             </div>
                         @endif
                         <div>

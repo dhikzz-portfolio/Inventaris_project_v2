@@ -7,6 +7,7 @@ use App\Enums\ItemStatus;
 use App\Enums\NotificationType;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
+use App\Models\AssetUnitStatusLog;
 use App\Models\Building;
 use App\Models\Category;
 use App\Models\Item;
@@ -419,10 +420,21 @@ class WriteOffController extends Controller
                 ]);
             }
 
+            $statusBefore = $unit->status;
+
             $unit->forceFill([
                 'status' => UnitStatus::DIHAPUS,
                 'archived_at' => now(),
             ])->save();
+
+            AssetUnitStatusLog::create([
+                'asset_unit_id' => $unit->id,
+                'from_status' => $statusBefore->value,
+                'to_status' => UnitStatus::DIHAPUS->value,
+                'source' => AssetUnitStatusLog::SOURCE_TRANSACTION,
+                'reason' => 'Penghapusan inventaris #'.$writeOff->id,
+                'changed_by' => auth()->id(),
+            ]);
 
             $catalogIds[] = $unit->item_catalog_id;
             $archived++;
@@ -514,10 +526,21 @@ class WriteOffController extends Controller
         }
 
         foreach ($candidates as $unit) {
+            $statusBefore = $unit->status;
+
             $unit->forceFill([
                 'status' => UnitStatus::DIHAPUS,
                 'archived_at' => now(),
             ])->save();
+
+            AssetUnitStatusLog::create([
+                'asset_unit_id' => $unit->id,
+                'from_status' => $statusBefore->value,
+                'to_status' => UnitStatus::DIHAPUS->value,
+                'source' => AssetUnitStatusLog::SOURCE_TRANSACTION,
+                'reason' => 'Penghapusan inventaris #'.$writeOff->id,
+                'changed_by' => auth()->id(),
+            ]);
         }
 
         $item->refresh();

@@ -132,6 +132,52 @@ class Item extends Model
         return (int) $this->allocations()->sum('quantity');
     }
 
+    /** Catatan penerimaan aktual barang katalog ini. */
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(ProcurementReceipt::class, 'item_catalog_id');
+    }
+
+    /** Total barang yang benar-benar diterima (belum tentu sudah didistribusikan). */
+    public function receivedStockQuantity(): int
+    {
+        if (array_key_exists('received_stock', $this->attributes)) {
+            return (int) $this->attributes['received_stock'];
+        }
+
+        return (int) $this->receipts()->sum('quantity');
+    }
+
+    /** Total unit yang sudah diterbitkan lewat distribusi bersumber stok. */
+    public function distributedStockQuantity(): int
+    {
+        if (array_key_exists('distributed_stock', $this->attributes)) {
+            return (int) $this->attributes['distributed_stock'];
+        }
+
+        return (int) $this->distributions()
+            ->where('source', Distribution::SOURCE_STOCK)
+            ->sum('quantity');
+    }
+
+    /**
+     * Sisa stok yang belum didistribusikan.
+     *
+     * Hanya penerimaan yang tercatat sebagai stok yang dihitung; unit lama yang
+     * sudah terbentuk (termasuk pengadaan sebelum revisi ini) tidak pernah
+     * dianggap sebagai stok bebas. Nilai tidak pernah negatif.
+     */
+    public function remainingStockQuantity(): int
+    {
+        return max(0, $this->receivedStockQuantity() - $this->distributedStockQuantity());
+    }
+
+    /** Katalog menggunakan alur stok penerimaan (bukan alokasi lama). */
+    public function usesStockDistribution(): bool
+    {
+        return $this->receipts()->exists();
+    }
+
     /**
      * ID Editor/Validator yang berwenang melihat katalog ini.
      * Digunakan untuk menentukan penerima notifikasi yang tepat.
@@ -195,7 +241,13 @@ class Item extends Model
                 if ($user->isEditorValidator()) {
                     $legacy->whereHas('room', fn ($room) => $room->where('is_lab', true));
                 } elseif ($user->isOperator()) {
-                    $legacy->whereIn('room_id', $user->roomScopes()->select('room_id'));
+                    $legacy->whereIn('room_id', $user->roomScopes()->select('room_id'))
+                        // Stok pengadaan tanpa lokasi hanya terlihat oleh
+                        // pengaju sampai didistribusikan ke laboratoriumnya.
+                        ->orWhere(fn ($stock) => $stock
+                            ->whereDoesntHave('units')
+                            ->whereHas('receipts')
+                            ->where('acquisition_requested_by', $user->id));
                 }
             });
         });
@@ -237,6 +289,18 @@ class Item extends Model
     public function scopeApproved(Builder $query): Builder
     {
         return $query->whereIn('acquisition_status', AcquisitionStatus::recordedValues());
+    }
+
+    /**
+     * Katalog yang boleh menerima distribusi: sudah tercatat sebagai inventaris
+     * atau masih berstatus barang diterima (stok menunggu distribusi).
+     */
+    public function scopeDistributable(Builder $query): Builder
+    {
+        return $query->whereIn('acquisition_status', array_merge(
+            AcquisitionStatus::recordedValues(),
+            [AcquisitionStatus::BARANG_DITERIMA->value],
+        ));
     }
 
     /** Katalog yang belum diarsipkan masih ditawarkan pada transaksi baru. */

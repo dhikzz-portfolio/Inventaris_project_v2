@@ -6,6 +6,7 @@ use App\Enums\Condition;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
+use App\Models\AssetUnitStatusLog;
 use App\Models\Item;
 use App\Models\Room;
 use App\Models\Specification;
@@ -77,6 +78,59 @@ class AssetUnitService
 
             return $unit->fresh(['catalog', 'room']);
         }, 3);
+    }
+
+    /**
+     * Ubah status operasional unit dan simpan riwayatnya.
+     *
+     * Sumber perubahan dibedakan (`MANUAL`, `TRANSAKSI`, `DISTRIBUSI`) agar
+     * perubahan manual tetap terlacak ketika transaksi berikutnya memperbarui
+     * status secara otomatis.
+     */
+    public function changeStatus(
+        AssetUnit $unit,
+        UnitStatus $status,
+        string $source = AssetUnitStatusLog::SOURCE_MANUAL,
+        ?string $reason = null,
+        ?User $actor = null,
+    ): AssetUnit {
+        $before = $unit->status;
+
+        if ($before === $status) {
+            return $unit;
+        }
+
+        return DB::transaction(function () use ($unit, $before, $status, $source, $reason, $actor): AssetUnit {
+            $locked = AssetUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
+
+            $locked->update(['status' => $status]);
+
+            AssetUnitStatusLog::create([
+                'asset_unit_id' => $locked->id,
+                'from_status' => $before->value,
+                'to_status' => $status->value,
+                'source' => $source,
+                'reason' => $reason,
+                'changed_by' => $actor?->id,
+            ]);
+
+            $this->syncCatalogCounters($locked->catalog);
+
+            if ($actor !== null) {
+                activity('inventaris')
+                    ->performedOn($locked)
+                    ->causedBy($actor)
+                    ->withProperties([
+                        'status_sebelum' => $before->value,
+                        'status_sesudah' => $status->value,
+                        'sumber' => $source,
+                        'alasan' => $reason,
+                    ])
+                    ->log('Mengubah status unit menjadi '.$status->label());
+            }
+
+            return $locked->fresh(['catalog', 'room']);
+        });
     }
 
     public function updateCondition(AssetUnit $unit, Condition $condition, ?User $actor = null): AssetUnit

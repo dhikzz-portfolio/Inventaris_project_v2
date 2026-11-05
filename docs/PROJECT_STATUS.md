@@ -9,6 +9,8 @@ Revisi V7 (3 November 2026): peminjaman atas nama diri sendiri/orang lain dengan
 
 Revisi V8 (5 November 2026): katalog tanpa merek dengan jumlah/satuan sebagai data inti, beberapa kelompok spesifikasi per katalog (tahun, sumber dana, jumlah), kondisi dan keterangan per alokasi ruangan, penerimaan barang per alokasi dengan laporan kerusakan otomatis yang idempoten, label tiga mode role-permission (Bisa Edit / Hanya Lihat / Sembunyikan) beserta perbaikan audit perubahan, filter kategori pengguna, penonaktifan registrasi publik, penghapusan kewajiban ganti password login pertama, dan cakupan laboratorium Operator berdasarkan jurusan. Rincian: `REVISION_V8.md`.
 
+Revisi V9 (5 November 2026): pengadaan mode **stok** (katalog + jumlah tanpa ruangan/spesifikasi), penerimaan aktual ke `procurement_receipts`, distribusi berbasis sisa stok dengan banyak alokasi ruangan dan kelompok spesifikasi per alokasi, perhitungan sisa stok tanpa penghitungan ganda, riwayat status operasional (`asset_unit_status_logs`) dengan alasan wajib untuk perubahan manual, serta filter merek/model/kondisi/status pada katalog. Alur alokasi lama dipertahankan sebagai jalur kompatibilitas. Rincian dan batasan: `REVISION_V9.md`.
+
 > Catatan V8: baris lama pada tabel di bawah yang masih menyebut registrasi mandiri atau wajib ganti password menggambarkan kondisi sebelum V8; perilaku aktif mengikuti `REVISION_V8.md`.
 
 > **Status keputusan:** empat kebijakan bisnis masih **PENDING CLARIFICATION** — lihat `docs/PENDING_DECISIONS.md`. Implementasi memakai opsi paling aman dan tidak mengaktifkan alur persetujuan yang belum disepakati.

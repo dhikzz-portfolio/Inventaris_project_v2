@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Enums\Condition;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
+use App\Models\AssetUnitStatusLog;
 use App\Models\LoanItemUnit;
 use App\Models\Room;
+use App\Services\AssetUnitService;
 use App\Services\InventoryCodeService;
 use App\Services\LabelService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class UnitController extends Controller
@@ -32,6 +35,7 @@ class UnitController extends Controller
             'movements.toRoom',
             'movements.mover',
             'maintenanceRecords' => fn ($query) => $query->orderByDesc('performed_at'),
+            'statusLogs.actor',
             'damageReports' => fn ($query) => $query
                 ->with(['reporter', 'handler', 'logs.user', 'photos'])
                 ->latest('created_at'),
@@ -73,7 +77,7 @@ class UnitController extends Controller
     }
 
     /** Ubah kondisi/catatan unit (Laboran dalam cakupan) dan status (pengelola). */
-    public function update(Request $request, AssetUnit $unit): RedirectResponse
+    public function update(Request $request, AssetUnit $unit, AssetUnitService $units): RedirectResponse
     {
         $user = $request->user();
 
@@ -87,15 +91,25 @@ class UnitController extends Controller
         $data = $request->validate([
             'condition' => ['required', Rule::enum(Condition::class)],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'status_reason' => ['nullable', 'string', 'max:500'],
         ]);
 
         // Status hanya boleh diubah pengelola, dan tidak lewat alur hapus/pinjam.
+        $newStatus = $unit->status;
+
         if ($user->managesInventory()) {
-            $status = $request->validate([
+            $newStatus = UnitStatus::from($request->validate([
                 'status' => ['required', Rule::in([UnitStatus::AKTIF->value, UnitStatus::HILANG->value])],
-            ])['status'];
-        } else {
-            $status = $unit->status->value;
+            ])['status']);
+        }
+
+        $statusChanged = $newStatus !== $unit->status;
+        $reason = filled($data['status_reason'] ?? null) ? trim((string) $data['status_reason']) : null;
+
+        if ($statusChanged && $reason === null) {
+            throw ValidationException::withMessages([
+                'status_reason' => 'Alasan wajib diisi ketika status operasional diubah.',
+            ]);
         }
 
         $before = [
@@ -106,9 +120,14 @@ class UnitController extends Controller
 
         $unit->update([
             'condition' => $data['condition'],
-            'status' => $status,
             'notes' => $data['notes'] ?? null,
         ]);
+
+        if ($statusChanged) {
+            $unit = $units->changeStatus($unit, $newStatus, AssetUnitStatusLog::SOURCE_MANUAL, $reason, $user);
+        }
+
+        $unit->refresh();
 
         activity('unit')
             ->performedOn($unit)

@@ -442,10 +442,21 @@ class InventoryCoreTest extends TestCase
 
         $this->assertSame(UnitStatus::AKTIF, $unit->refresh()->status);
 
+        // Perubahan status manual wajib menyertakan alasan.
         $this->actingAs($this->superAdmin)
             ->patch(route('units.update', $unit), [
                 'condition' => Condition::BAIK->value,
                 'status' => UnitStatus::HILANG->value,
+            ])
+            ->assertSessionHasErrors('status_reason');
+
+        $this->assertSame(UnitStatus::AKTIF, $unit->refresh()->status);
+
+        $this->actingAs($this->superAdmin)
+            ->patch(route('units.update', $unit), [
+                'condition' => Condition::BAIK->value,
+                'status' => UnitStatus::HILANG->value,
+                'status_reason' => 'Tidak ditemukan saat pemeriksaan fisik',
             ])
             ->assertRedirect()
             ->assertSessionHasNoErrors();

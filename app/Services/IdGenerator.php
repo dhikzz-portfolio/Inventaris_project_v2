@@ -42,6 +42,23 @@ class IdGenerator
     }
 
     /**
+     * ID internal untuk katalog pengadaan yang belum memiliki lokasi.
+     * Lokasi tidak ditentukan pada pengadaan mode stok; kode unit dibuat saat
+     * distribusi. ID ini hanya identitas administratif katalog.
+     */
+    public static function stockInternalId(): string
+    {
+        $seq = 1;
+
+        do {
+            $candidate = 'stok-'.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+            $seq++;
+        } while (Item::where('internal_id', $candidate)->exists());
+
+        return $candidate;
+    }
+
+    /**
      * Baris 1 label: Kode Lokasi/Instansi (default dari pengaturan instansi).
      */
     public static function locationCode(): string

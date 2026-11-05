@@ -10,6 +10,7 @@ use App\Models\AcquisitionAllocation;
 use App\Models\AssetUnit;
 use App\Models\DamageReport;
 use App\Models\Item;
+use App\Models\ProcurementReceipt;
 use App\Models\Room;
 use App\Models\Specification;
 use App\Models\User;
@@ -174,8 +175,14 @@ class AcquisitionService
      *
      * @param  array<int, array{quantity?: int|string, condition?: string|null, note?: string|null}|int|string>  $receipts
      */
-    public function receive(Item $item, User $actor, array $receipts, ?string $defaultCondition = null, ?string $defaultNote = null): Item
-    {
+    public function receive(
+        Item $item,
+        User $actor,
+        array $receipts,
+        ?string $defaultCondition = null,
+        ?string $defaultNote = null,
+        ?int $totalReceived = null,
+    ): Item {
         $this->assert($this->isRequesterOrAdmin($item, $actor), 'Hanya pembuat pengajuan atau Admin yang dapat mencatat penerimaan barang.');
         $this->assert(
             in_array($item->acquisition_status, [
@@ -185,13 +192,26 @@ class AcquisitionService
             'Barang hanya dapat dicatat setelah pengadaan disetujui dan belum pernah diterima.'
         );
 
-        return DB::transaction(function () use ($item, $actor, $receipts, $defaultCondition, $defaultNote): Item {
+        return DB::transaction(function () use ($item, $actor, $receipts, $defaultCondition, $defaultNote, $totalReceived): Item {
             $locked = Item::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->acquisition_received_at !== null) {
                 throw ValidationException::withMessages([
                     'received' => 'Penerimaan barang untuk pengajuan ini sudah pernah dicatat.',
                 ]);
+            }
+
+            // Pengadaan tanpa alokasi ruangan (alur stok): penerimaan hanya
+            // mencatat jumlah aktual. Spesifikasi dan lokasi ditentukan saat
+            // distribusi, bukan di sini.
+            if (! $locked->allocations()->exists()) {
+                if ($totalReceived === null) {
+                    throw ValidationException::withMessages([
+                        'received_total' => 'Isi jumlah aktual barang yang diterima.',
+                    ]);
+                }
+
+                return $this->receiveAsStock($locked, $actor, $totalReceived, $defaultCondition, $defaultNote);
             }
 
             $allocations = $this->resolveAllocations($locked);
@@ -280,6 +300,70 @@ class AcquisitionService
         });
     }
 
+    /**
+     * Catat penerimaan untuk pengadaan tanpa alokasi ruangan.
+     *
+     * Hanya jumlah aktual yang disimpan (sebagai stok diterima). Unit fisik
+     * dibuat nanti oleh distribusi setelah pengguna menentukan merek, model,
+     * tahun, sumber dana, ruangan, kondisi, dan status operasional.
+     */
+    private function receiveAsStock(
+        Item $locked,
+        User $actor,
+        int $totalReceived,
+        ?string $defaultCondition,
+        ?string $defaultNote,
+    ): Item {
+        if ($totalReceived < 1) {
+            throw ValidationException::withMessages([
+                'received_total' => 'Minimal satu unit harus benar-benar diterima.',
+            ]);
+        }
+
+        if ($totalReceived > (int) $locked->quantity) {
+            throw ValidationException::withMessages([
+                'received_total' => "Jumlah diterima ({$totalReceived}) melebihi jumlah pengadaan ({$locked->quantity}). Catat kelebihan melalui pengadaan baru.",
+            ]);
+        }
+
+        $condition = Condition::tryFrom((string) ($defaultCondition ?? Condition::BAIK->value));
+
+        if ($condition === null) {
+            throw ValidationException::withMessages([
+                'condition' => 'Kondisi barang yang diterima tidak valid.',
+            ]);
+        }
+
+        ProcurementReceipt::create([
+            'item_catalog_id' => $locked->id,
+            'quantity' => $totalReceived,
+            'condition' => $condition->value,
+            'note' => $defaultNote,
+            'received_by' => $actor->id,
+            'received_at' => now(),
+        ]);
+
+        $before = $locked->acquisition_status;
+
+        $locked->forceFill([
+            'acquisition_status' => AcquisitionStatus::BARANG_DITERIMA->value,
+            'acquisition_received_by' => $actor->id,
+            'acquisition_received_at' => now(),
+            'acquisition_received_quantity' => $totalReceived,
+            'acquisition_received_condition' => $condition->value,
+            'acquisition_received_note' => $defaultNote,
+        ])->save();
+
+        $this->log($locked, $before, AcquisitionStatus::BARANG_DITERIMA, $actor, 'Mencatat barang yang diterima sebagai stok', $defaultNote, [
+            'jumlah_diterima' => $totalReceived,
+            'jumlah_diajukan' => (int) $locked->quantity,
+            'selisih' => $totalReceived - (int) $locked->quantity,
+            'kondisi_default' => $condition->value,
+        ]);
+
+        return $locked->fresh(['receipts', 'room', 'category']);
+    }
+
     /** Menerbitkan unit inventaris dari barang yang sudah diterima. */
     public function recordInventory(Item $item, User $actor): Item
     {
@@ -297,6 +381,15 @@ class AcquisitionService
             if ($locked->units()->exists()) {
                 throw ValidationException::withMessages([
                     'inventory' => 'Unit inventaris untuk pengajuan ini sudah pernah diterbitkan.',
+                ]);
+            }
+
+            // Alur stok: unit hanya terbit dari distribusi yang menentukan
+            // spesifikasi dan lokasi. Pencatatan langsung akan membuat unit
+            // tanpa kelompok spesifikasi yang sah.
+            if (! $locked->allocations()->exists() && $locked->receipts()->exists()) {
+                throw ValidationException::withMessages([
+                    'inventory' => 'Barang sudah tercatat sebagai stok diterima. Gunakan menu Distribusi untuk menentukan merek, model, ruangan, kondisi, dan status unit.',
                 ]);
             }
 

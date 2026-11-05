@@ -171,13 +171,19 @@
                             @endif
 
                             @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::BARANG_DITERIMA->value && $canReceive)
-                                <form method="POST" action="{{ route('items.acquisitions.record', $item) }}" x-data="{ submitting: false }" @submit="submitting = true"
-                                      onsubmit="return confirm('Terbitkan unit inventaris dari barang yang sudah diterima?')">
-                                    @csrf
-                                    <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60">
-                                        <span class="material-icons-round text-sm">qr_code_2</span> <span x-text="submitting ? 'Mencatat…' : 'Catat inventaris'"></span>
-                                    </button>
-                                </form>
+                                @if ($item->allocations->isEmpty())
+                                    <a href="{{ route('distributions.index') }}" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700">
+                                        <span class="material-icons-round text-sm">local_shipping</span> Distribusikan
+                                    </a>
+                                @else
+                                    <form method="POST" action="{{ route('items.acquisitions.record', $item) }}" x-data="{ submitting: false }" @submit="submitting = true"
+                                          onsubmit="return confirm('Terbitkan unit inventaris dari barang yang sudah diterima?')">
+                                        @csrf
+                                        <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60">
+                                            <span class="material-icons-round text-sm">qr_code_2</span> <span x-text="submitting ? 'Mencatat…' : 'Catat inventaris'"></span>
+                                        </button>
+                                    </form>
+                                @endif
                             @endif
 
                             <a href="{{ route('items.show', $item) }}" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">Detail</a>

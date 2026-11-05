@@ -2,10 +2,13 @@
 
 namespace App\Livewire\Catalog;
 
+use App\Enums\Condition;
+use App\Enums\UnitStatus;
 use App\Models\Building;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Room;
+use App\Models\Specification;
 use App\Services\InventoryCodeService;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -24,6 +27,14 @@ class CatalogDirectory extends Component
 
     public string $room = '';
 
+    public string $brand = '';
+
+    public string $model = '';
+
+    public string $condition = '';
+
+    public string $status = '';
+
     public string $availability = '';
 
     public int $perPage = 15;
@@ -34,19 +45,52 @@ class CatalogDirectory extends Component
         'building' => ['except' => ''],
         'floor' => ['except' => ''],
         'room' => ['except' => ''],
+        'brand' => ['except' => ''],
+        'model' => ['except' => ''],
+        'condition' => ['except' => ''],
+        'status' => ['except' => ''],
         'availability' => ['except' => ''],
     ];
 
+    public function updatedBuilding(): void
+    {
+        $this->floor = '';
+        $this->room = '';
+        $this->resetPage();
+    }
+
+    public function updatedFloor(): void
+    {
+        $this->room = '';
+        $this->resetPage();
+    }
+
+    public function updatedRoom(): void
+    {
+        if ($this->room !== '') {
+            $this->building = '';
+            $this->floor = '';
+        }
+
+        $this->resetPage();
+    }
+
+    public function updatedBrand(): void
+    {
+        $this->model = '';
+        $this->resetPage();
+    }
+
     public function updating($property, $value): void
     {
-        if (in_array($property, ['search', 'category', 'building', 'floor', 'room', 'availability'], true)) {
+        if (in_array($property, ['search', 'category', 'building', 'floor', 'room', 'brand', 'model', 'condition', 'status', 'availability'], true)) {
             $this->resetPage();
         }
     }
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'category', 'building', 'floor', 'room', 'availability']);
+        $this->reset(['search', 'category', 'building', 'floor', 'room', 'brand', 'model', 'condition', 'status', 'availability']);
         $this->resetPage();
     }
 
@@ -101,7 +145,12 @@ class CatalogDirectory extends Component
 
         $query->when($this->category, fn ($q) => $q->where('category_id', $this->category));
 
-        if ($this->building !== '' || $this->floor !== '' || $this->room !== '') {
+        // Filter fisik mengikuti hierarki yang sama di semua modul:
+        // gedung → lantai → ruangan → merek → model → kondisi → status.
+        $hasUnitFilters = $this->building !== '' || $this->floor !== '' || $this->room !== ''
+            || $this->brand !== '' || $this->model !== '' || $this->condition !== '' || $this->status !== '';
+
+        if ($hasUnitFilters) {
             $query->whereHas('units', function ($unit) use ($user) {
                 $unit->visibleTo($user);
 
@@ -116,6 +165,25 @@ class CatalogDirectory extends Component
                             $room->where('floor', $this->floor);
                         }
                     });
+                }
+
+                if ($this->brand !== '' || $this->model !== '') {
+                    $unit->whereHas('specification', function ($specification) {
+                        if ($this->brand !== '') {
+                            $specification->where('brand', $this->brand);
+                        }
+                        if ($this->model !== '') {
+                            $specification->where('model_type', 'like', '%'.$this->model.'%');
+                        }
+                    });
+                }
+
+                if ($this->condition !== '') {
+                    $unit->where('condition', $this->condition);
+                }
+
+                if ($this->status !== '') {
+                    $unit->where('status', $this->status);
                 }
             });
         }
@@ -144,7 +212,18 @@ class CatalogDirectory extends Component
             'floors' => Room::query()
                 ->when($this->building !== '', fn ($q) => $q->where('building_letter', $this->building))
                 ->select('floor')->distinct()->orderBy('floor')->pluck('floor'),
-            'activeFilters' => collect(['search', 'category', 'building', 'floor', 'room', 'availability'])
+            'brands' => Specification::query()
+                ->whereHas('itemCatalog', fn ($catalog) => $catalog->visibleTo($user))
+                ->whereHas('units', fn ($unit) => $unit->visibleTo($user)->where('status', '!=', UnitStatus::DIHAPUS->value))
+                ->select('brand')->distinct()->orderBy('brand')->pluck('brand'),
+            'models' => Specification::query()
+                ->whereHas('itemCatalog', fn ($catalog) => $catalog->visibleTo($user))
+                ->whereHas('units', fn ($unit) => $unit->visibleTo($user)->where('status', '!=', UnitStatus::DIHAPUS->value))
+                ->when($this->brand !== '', fn ($query) => $query->where('brand', $this->brand))
+                ->select('model_type')->distinct()->orderBy('model_type')->pluck('model_type'),
+            'conditions' => Condition::cases(),
+            'statuses' => UnitStatus::cases(),
+            'activeFilters' => collect(['search', 'category', 'building', 'floor', 'room', 'brand', 'model', 'condition', 'status', 'availability'])
                 ->filter(fn ($field) => $this->$field !== '')->count(),
             'scopeMissing' => $user->isOperator() && ! $user->roomScopes()->exists(),
         ]);

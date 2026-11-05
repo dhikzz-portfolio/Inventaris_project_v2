@@ -35,17 +35,52 @@
           class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         @csrf
 
+        @if ($item->allocations->isEmpty())
+            {{-- Pengadaan mode stok: hanya jumlah aktual, kondisi, dan keterangan.
+                 Spesifikasi dan ruangan ditentukan pada saat distribusi. --}}
+            <h3 class="mb-1 text-sm font-bold text-slate-800 dark:text-slate-100">Jumlah dan kondisi barang diterima</h3>
+            <p class="mb-3 text-[11px] text-slate-500 dark:text-slate-400">
+                Pengadaan ini belum memiliki alokasi ruangan. Barang yang diterima menjadi stok dan didistribusikan setelahnya.
+            </p>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-12">
+                <div class="sm:col-span-3">
+                    <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300" for="received-total">Diterima aktual *</label>
+                    <input id="received-total" type="number" min="0" max="{{ (int) $item->quantity }}"
+                           name="received_total"
+                           value="{{ old('received_total', (int) $item->quantity) }}"
+                           class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Maks. {{ (int) $item->quantity }} {{ $item->unit }} sesuai pengadaan.</p>
+                </div>
+
+                <div class="sm:col-span-4">
+                    <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300" for="received-condition">Kondisi fisik dominan</label>
+                    <select id="received-condition" name="condition"
+                            class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        @foreach ($conditions as $condition)
+                            <option value="{{ $condition->value }}" @selected(old('condition', \App\Enums\Condition::BAIK->value) === $condition->value)>{{ $condition->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="sm:col-span-5">
+                    <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300" for="received-note">Keterangan</label>
+                    <input id="received-note" type="text" maxlength="500" name="note" value="{{ old('note') }}"
+                           placeholder="mis. 2 unit belum dikirim"
+                           class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                </div>
+            </div>
+
+            <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                Jumlah aktual boleh berbeda dari jumlah pengajuan; selisihnya tersimpan pada riwayat pengadaan.
+                Kondisi fisik dan status operasional ditetapkan per kelompok saat distribusi.
+            </p>
+        @else
         <h3 class="mb-1 text-sm font-bold text-slate-800 dark:text-slate-100">Jumlah, kondisi, dan keterangan per alokasi</h3>
         <p class="mb-3 text-[11px] text-slate-500 dark:text-slate-400">Kondisi fisik dapat berbeda antar ruangan. Barang rusak tetap diterima penuh dan diterbitkan sebagai inventaris resmi.</p>
 
         @php
-            $allocations = $item->allocations->isNotEmpty()
-                ? $item->allocations
-                : collect([new \App\Models\AcquisitionAllocation([
-                    'room_id' => $item->room_id,
-                    'quantity' => (int) $item->quantity,
-                    'condition' => \App\Enums\Condition::BAIK->value,
-                ])]);
+            $allocations = $item->allocations;
         @endphp
 
         <div class="space-y-3">
@@ -108,6 +143,7 @@
             Unit berkondisi rusak otomatis dibuatkan laporan kerusakan saat inventaris dicatat.
             Penerimaan hanya dapat dicatat satu kali untuk setiap pengajuan.
         </p>
+        @endif
 
         <div class="mt-5 flex justify-end">
             <button :disabled="submitting" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60">

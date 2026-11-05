@@ -61,10 +61,14 @@
                                 <span class="break-all font-mono">{{ $wo->item?->internal_id }}</span> • Ruang {{ $wo->item?->room?->code }} •
                                 Diajukan {{ $wo->created_at->diffForHumans() }} oleh {{ $wo->requester?->name }}
                             </div>
-                            <a href="{{ route('files.show', ['path' => $wo->berita_acara_path]) }}" target="_blank"
-                               class="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 hover:underline dark:text-brand-300 dark:hover:bg-slate-800">
-                                <span class="material-icons-round text-sm" aria-hidden="true">description</span> Lihat Berita Acara
-                            </a>
+                            @if ($wo->berita_acara_path)
+                                <a href="{{ route('files.show', ['path' => $wo->berita_acara_path]) }}" target="_blank"
+                                   class="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 hover:underline dark:text-brand-300 dark:hover:bg-slate-800">
+                                    <span class="material-icons-round text-sm" aria-hidden="true">description</span> Lihat Berita Acara
+                                </a>
+                            @else
+                                <p class="mt-2 text-xs text-slate-400 dark:text-slate-500">Tanpa berita acara (opsional).</p>
+                            @endif
                         </div>
                         <div class="flex min-w-0 flex-col gap-2">
                             <form method="POST" action="{{ route('write-offs.approve', $wo) }}" onsubmit="return confirm('Setujui penghapusan barang ini? Barang akan diarsipkan dan tidak dapat dipinjam lagi.')">

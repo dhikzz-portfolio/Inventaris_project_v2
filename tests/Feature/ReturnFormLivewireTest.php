@@ -16,7 +16,6 @@ use App\Models\User;
 use App\Services\AssetUnitService;
 use App\Services\LoanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -183,24 +182,16 @@ class ReturnFormLivewireTest extends TestCase
         $this->assertSame(0, (int) $loanItem->refresh()->qty_lost);
     }
 
-    public function test_pengembalian_kondisi_rusak_validasi_foto_bukti(): void
+    public function test_pengembalian_kondisi_rusak_tanpa_foto_tetap_diterima(): void
     {
         Storage::fake('public');
         Storage::fake('local');
         $this->actingAs($this->laboran);
 
-        // Kondisi rusak tanpa upload foto -> Harus error validasi foto
+        // Foto bukti kerusakan opsional, pengembalian tetap dapat diproses.
         Livewire::test(ReturnForm::class, ['loan' => $this->loan])
             ->set('rows.0.condition_in', Condition::RUSAK_BERAT->value)
             ->set('rows.0.damage_photo', null)
-            ->call('submit')
-            ->assertHasErrors(['rows.0.damage_photo']);
-
-        // Upload foto bukti -> Harus sukses
-        $file = UploadedFile::fake()->image('rusak_berat.jpg');
-        Livewire::test(ReturnForm::class, ['loan' => $this->loan])
-            ->set('rows.0.condition_in', Condition::RUSAK_BERAT->value)
-            ->set('rows.0.damage_photo', $file)
             ->call('submit')
             ->assertHasNoErrors();
 

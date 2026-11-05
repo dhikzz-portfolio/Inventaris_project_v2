@@ -292,10 +292,9 @@ class ReturnForm extends Component
             $rules["rows.{$index}.returned_room_id"] = ['required', 'exists:rooms,id'];
             $rules["rows.{$index}.return_notes"] = ['nullable', 'string', 'max:1000'];
 
-            $damaged = ($row['condition_in'] ?? Condition::BAIK->value) !== Condition::BAIK->value;
-            $rules["rows.{$index}.damage_photo"] = $damaged
-                ? ['required', 'image', 'max:4096']
-                : ['nullable', 'image', 'max:4096'];
+            // Foto bukti kerusakan bersifat opsional; bila diunggah tetap
+            // harus berupa gambar.
+            $rules["rows.{$index}.damage_photo"] = ['nullable', 'image', 'max:4096'];
 
             if (! $row['has_assignment']) {
                 $rules["rows.{$index}.qty_returned"] = [
@@ -457,11 +456,7 @@ class ReturnForm extends Component
         foreach ($this->rows as $i => $row) {
             $rules["rows.{$i}.qty_returned"][] = 'max:'.(int) $row['remaining'];
 
-            if (($row['condition_in'] ?? 'BAIK') !== 'BAIK' && (int) ($row['qty_returned'] ?? 0) > 0) {
-                $rules["rows.{$i}.damage_photo"] = ['required', 'image', 'max:4096'];
-            } else {
-                $rules["rows.{$i}.damage_photo"] = ['nullable', 'image', 'max:4096'];
-            }
+            $rules["rows.{$i}.damage_photo"] = ['nullable', 'image', 'max:4096'];
         }
 
         $validated = $this->validate($rules);

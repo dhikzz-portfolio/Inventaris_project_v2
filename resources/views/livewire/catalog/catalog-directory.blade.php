@@ -1,13 +1,13 @@
 <div>
-    @php($selectedFilterCount = collect([$category, $building, $floor, $room, $brand, $model, $condition, $status, $availability])->filter(fn ($value) => $value !== '')->count())
+    @php($selectedFilterCount = collect([$category, $building, $floor, $room, $condition, $status, $availability])->filter(fn ($value) => $value !== '')->count())
 
     <div x-data="{ filtersOpen: false }" class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
             <div class="relative min-w-0 flex-1">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">search</span>
                 <input type="text" wire:model.live.debounce.400ms="search"
-                       placeholder="Cari nama barang atau kode unit"
-                       aria-label="Cari katalog barang"
+                       placeholder="Cari nama katalog atau kategori"
+                       aria-label="Cari nama katalog atau kategori"
                        class="w-full rounded-xl border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
             <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen" aria-controls="catalog-filter-panel"
@@ -50,20 +50,6 @@
                         <option value="{{ $roomOption->id }}">
                             {{ $roomOption->building_letter }}{{ $roomOption->floor }}-{{ str_pad((string) $roomOption->room_no, 2, '0', STR_PAD_LEFT) }} — {{ $roomOption->name }}
                         </option>
-                    @endforeach
-                </select>
-
-                <select wire:model.live="brand" aria-label="Filter merek" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua merek</option>
-                    @foreach ($brands as $brandOption)
-                        <option value="{{ $brandOption }}">{{ $brandOption }}</option>
-                    @endforeach
-                </select>
-
-                <select wire:model.live="model" aria-label="Filter model" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua model</option>
-                    @foreach ($models as $modelOption)
-                        <option value="{{ $modelOption }}">{{ $modelOption }}</option>
                     @endforeach
                 </select>
 
@@ -118,7 +104,7 @@
                         <span class="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-900/60 dark:text-brand-300">{{ $catalog->units_count }}</span>
                     </div>
                     <div class="mt-1 space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                        <div class="line-clamp-1">{{ $catalog->category?->name }}@if ($catalog->brand) • {{ $catalog->brand }}@endif</div>
+                        <div class="line-clamp-1">{{ $catalog->category?->name }}</div>
                         @php($effectiveAvailable = max(0, $catalog->available_count - $catalog->activeLoanRemainingQuantity()))
                         <div class="line-clamp-1">Tersedia {{ $effectiveAvailable }} · Rusak {{ $catalog->damaged_count }}</div>
                     </div>

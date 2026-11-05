@@ -46,10 +46,15 @@ class WriteOffController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        // Daftar katalog untuk filter mode per unit harus mencakup setiap
+        // katalog yang unitnya muncul pada daftar unit, termasuk katalog yang
+        // sudah diarsipkan tetapi unitnya belum dihapus.
         $catalogs = Item::query()
             ->approved()
-            ->notArchived()
             ->visibleTo($user)
+            ->whereHas('units', fn (Builder $query) => $query
+                ->visibleTo($user)
+                ->where('status', '!=', UnitStatus::DIHAPUS->value))
             ->withCount([
                 'units as active_units_count' => fn (Builder $query) => $query
                     ->where('status', '!=', UnitStatus::DIHAPUS->value),
@@ -100,7 +105,7 @@ class WriteOffController extends Controller
             'item_id' => ['nullable', 'required_without:mode', 'exists:item_catalogs,id'],
             'quantity' => ['nullable', 'required_without:mode', 'integer', 'min:1'],
             'reason' => ['required', 'string', 'max:1000'],
-            'berita_acara' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'berita_acara' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
         ], [
             'catalog_id.required_if' => 'Pilih katalog yang akan dihapus seluruh unitnya.',
         ]);
@@ -175,7 +180,10 @@ class WriteOffController extends Controller
             $itemId = (int) AssetUnit::query()->whereKey($unitIds[0])->value('item_catalog_id');
         }
 
-        $path = $request->file('berita_acara')->store('write-offs', 'local');
+        // Dokumen berita acara bersifat opsional.
+        $path = $request->hasFile('berita_acara')
+            ? $request->file('berita_acara')->store('write-offs', 'local')
+            : null;
         // Admin adalah pemegang kewenangan akhir penghapusan (pengganti
         // Wakasek), sehingga pengajuannya langsung sah dan tercatat.
         $direct = $user->isApproverLevel2();
@@ -276,7 +284,7 @@ class WriteOffController extends Controller
             'item_id' => ['required', 'exists:item_catalogs,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             'reason' => ['required', 'string', 'max:1000'],
-            'berita_acara' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'berita_acara' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
         ]);
 
         $item = Item::findOrFail($data['item_id']);
@@ -302,7 +310,9 @@ class WriteOffController extends Controller
                 'quantity' => $data['quantity'],
                 'mode' => 'CATALOG',
                 'reason' => $data['reason'],
-                'berita_acara_path' => $request->file('berita_acara')->store('write-offs', 'local'),
+                'berita_acara_path' => $request->hasFile('berita_acara')
+                    ? $request->file('berita_acara')->store('write-offs', 'local')
+                    : null,
                 'status' => $direct ? 'APPROVED' : 'PENDING',
                 'requested_by' => $user->id,
                 'approved_by' => $direct ? $user->id : null,

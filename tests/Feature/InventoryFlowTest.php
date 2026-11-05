@@ -20,7 +20,6 @@ use App\Models\User;
 use App\Services\LoanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -162,7 +161,7 @@ class InventoryFlowTest extends TestCase
         $this->assertNotSame(LoanStatus::SELESAI, $loan->refresh()->status);
     }
 
-    public function test_kerusakan_wajib_foto_bukti(): void
+    public function test_kerusakan_dapat_diproses_tanpa_foto_bukti(): void
     {
         $service = app(LoanService::class);
 
@@ -177,14 +176,15 @@ class InventoryFlowTest extends TestCase
 
         $loanItem = $loan->loanItems()->firstOrFail();
 
-        $this->expectException(ValidationException::class);
-
+        // Foto bukti opsional: pengembalian rusak tetap diproses.
         $service->processReturn($loan, $this->laboran, [[
             'loan_item_id' => $loanItem->id,
             'qty_returned' => 1,
             'condition_in' => Condition::RUSAK_RINGAN->value,
             'returned_room_id' => $this->item->room_id,
         ]]);
+
+        $this->assertSame(ItemStatus::RUSAK_RINGAN, $this->item->refresh()->status);
     }
 
     public function test_form_livewire_peminjaman_membuat_request(): void

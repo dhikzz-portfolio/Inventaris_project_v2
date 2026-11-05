@@ -64,8 +64,8 @@
     <x-menu-link :href="route('reports.index')" :active="request()->routeIs('reports.*')" icon="assessment" label="Laporan Bulanan" />
 @endif
 
-@if ($can('masters.view'))
-    <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" label="Data Sekolah" />
+@if ($canViewMaster)
+    <x-menu-link :href="route('masters.index')" :active="request()->routeIs('masters.*')" icon="category" label="Master Data" />
 @endif
 
 <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Akun Saya</div>

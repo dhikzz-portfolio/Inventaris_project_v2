@@ -475,7 +475,7 @@
 
                                                         @if (($row['condition_in'] ?? 'BAIK') !== 'BAIK' && ! $row['returned'])
                                                             <div class="mt-2">
-                                                                <x-input-label value="Foto bukti kerusakan *" />
+                                                                <x-input-label value="Foto bukti kerusakan (opsional)" />
                                                                 <input type="file" wire:model.live="rows.{{ $index }}.damage_photo"
                                                                     accept="image/*"
                                                                     class="mt-1 block w-full text-xs text-slate-600 file:me-2 file:rounded file:border-0 file:bg-red-50 file:px-2 file:py-1.5 file:text-red-700 dark:text-slate-300 dark:file:bg-red-950/50 dark:file:text-red-300">
@@ -602,7 +602,7 @@
             </div>
 
             <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                Jika kondisi akhir rusak: foto bukti wajib, status barang diperbarui (Rusak Ringan/Berat), dan riwayat peminjam terakhir tercatat.
+                Jika kondisi akhir rusak: foto bukti opsional, status barang diperbarui (Rusak Ringan/Berat), dan riwayat peminjam terakhir tercatat.
             </p>
         @endif
 

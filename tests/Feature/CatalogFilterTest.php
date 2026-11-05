@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Livewire\Catalog\CatalogDirectory;
+use App\Livewire\Catalog\SpecificationDirectory;
+use App\Models\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -22,19 +24,24 @@ class CatalogFilterTest extends TestCase
         $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
     }
 
-    public function test_filter_merek_dan_model_mempersempit_katalog(): void
+    public function test_kartu_katalog_hanya_menampilkan_nama_dan_kategori(): void
     {
         Livewire::actingAs($this->wakasek)
             ->test(CatalogDirectory::class)
-            ->set('brand', 'Chitose')
+            ->set('search', 'Kursi')
             ->assertSee('Kursi Umum')
-            ->assertDontSee('Lemari Arsip');
+            ->assertDontSee('Lemari Arsip')
+            ->assertDontSee('Chitose');
+    }
+
+    public function test_pencarian_merek_dilakukan_di_detail_katalog(): void
+    {
+        $catalog = Item::where('name', 'Kursi Umum')->firstOrFail();
 
         Livewire::actingAs($this->wakasek)
-            ->test(CatalogDirectory::class)
+            ->test(SpecificationDirectory::class, ['catalogId' => $catalog->id])
             ->set('brand', 'Chitose')
-            ->set('model', 'Kursi Susun')
-            ->assertSee('Kursi Umum');
+            ->assertSee('Chitose');
     }
 
     public function test_perubahan_gedung_mereset_lantai_dan_ruangan(): void
@@ -71,13 +78,12 @@ class CatalogFilterTest extends TestCase
     {
         $component = Livewire::actingAs($this->wakasek)
             ->test(CatalogDirectory::class)
-            ->set('brand', 'Chitose')
             ->set('condition', 'BAIK')
             ->set('status', 'AKTIF');
 
         $component->call('resetFilters');
 
-        foreach (['brand', 'model', 'condition', 'status', 'building', 'floor', 'room'] as $field) {
+        foreach (['search', 'category', 'building', 'floor', 'room', 'condition', 'status', 'availability'] as $field) {
             $this->assertSame('', $component->get($field), "Filter {$field} tidak kosong setelah reset.");
         }
     }

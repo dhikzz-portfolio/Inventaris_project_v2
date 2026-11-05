@@ -12,6 +12,7 @@
                 'room_id' => '',
                 'quantity' => old('quantity', 1),
                 'condition' => \App\Enums\Condition::BAIK->value,
+                'status' => \App\Enums\UnitStatus::AKTIF->value,
                 'note' => '',
             ]]),
         ]];
@@ -21,6 +22,11 @@
         'value' => $condition->value,
         'label' => $condition->label(),
     ])->values();
+
+    $statusOptions = collect($statuses)->map(fn ($status) => [
+        'value' => $status->value,
+        'label' => $status->label(),
+    ])->values();
 @endphp
 
 <x-app-layout>
@@ -28,7 +34,7 @@
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengadaan Barang</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Catat katalog dan jumlah pengadaan. Spesifikasi serta lokasi ditentukan saat distribusi.</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Catat katalog, kelompok spesifikasi, dan alokasi ruangan dalam satu pengajuan.</p>
             </div>
             <a href="{{ route('catalogs.index') }}"
                 class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">←
@@ -54,19 +60,18 @@
             catalogs: {{ \Illuminate\Support\Js::from($catalogMap) }},
             catalogOptions: {{ \Illuminate\Support\Js::from($catalogs->map(fn ($catalogOption) => ['id' => $catalogOption->id, 'name' => $catalogOption->name, 'category_name' => $catalogOption->category?->name])->values()) }},
             conditions: {{ \Illuminate\Support\Js::from($conditionOptions) }},
+            statuses: {{ \Illuminate\Support\Js::from($statusOptions) }},
             initialCatalog: {{ \Illuminate\Support\Js::from((string) old('catalog_id', '')) }},
             initialCatalogName: {{ \Illuminate\Support\Js::from((string) ($catalogs->firstWhere('id', old('catalog_id'))?->name ?? '')) }},
             initialName: {{ \Illuminate\Support\Js::from((string) old('name', '')) }},
             initialCategory: {{ \Illuminate\Support\Js::from((string) old('category_id', '')) }},
             defaultYear: {{ (int) old('acquisition_year', now()->year) }},
             defaultFunding: {{ \Illuminate\Support\Js::from((string) old('funding_source', 'BOS')) }},
-            initialGroups: {{ \Illuminate\Support\Js::from($initialGroups) }},
-            initialMode: {{ \Illuminate\Support\Js::from((string) old('procurement_mode', filled(old('spec_groups')) || filled(old('allocations')) ? 'ALOKASI' : 'STOK')) }},
-            initialQuantity: {{ (int) old('quantity', 1) }}
+            initialGroups: {{ \Illuminate\Support\Js::from($initialGroups) }}
         })">
 
         @csrf
-        <input type="hidden" name="procurement_mode" :value="mode">
+        <input type="hidden" name="procurement_mode" value="ALOKASI">
         <input type="hidden" name="quantity" :value="totalQuantity">
 
         {{-- Bagian A — Katalog --}}
@@ -123,10 +128,7 @@
                 </div>
                 <input type="hidden" name="catalog_id" :value="catalogId || ''">
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Merek/model diisi per kelompok spesifikasi pada mode alokasi. Jangan membuat katalog baru hanya karena merek atau tipe berbeda.
-                </p>
-                <p x-show="mode === 'STOK' && catalogId" x-cloak class="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                    Katalog yang sudah tercatat menambah stok lewat mode alokasi ruangan. Mode stok hanya untuk pengadaan baru.
+                    Merek/model diisi per kelompok spesifikasi. Jangan membuat katalog baru hanya karena merek atau tipe berbeda.
                 </p>
                 <div x-show="catalogId" x-cloak
                     class="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
@@ -192,44 +194,8 @@
             </label>
         </div>
 
-        {{-- Mode pengadaan: stok (spesifikasi & lokasi menyusul) atau alokasi langsung --}}
+        {{-- Bagian B — Kelompok spesifikasi & alokasi ruangan --}}
         <div class="mt-8 border-t border-slate-100 pt-6 dark:border-slate-700">
-            <div class="flex items-center gap-2 mb-3">
-                <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">B</span>
-                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Cara pencatatan</h3>
-            </div>
-
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition"
-                       :class="mode === 'STOK' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40' : 'border-slate-200 dark:border-slate-700'">
-                    <input type="radio" name="procurement_mode_choice" value="STOK" x-model="mode"
-                           class="mt-1 border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600">
-                    <span>
-                        <span class="block text-sm font-semibold text-slate-800 dark:text-slate-100">Stok diterima (disarankan)</span>
-                        <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">Pengadaan hanya mencatat katalog dan jumlah. Merek, model, tahun, sumber dana, ruangan, kondisi, dan status ditentukan saat distribusi.</span>
-                    </span>
-                </label>
-                <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition"
-                       :class="mode === 'ALOKASI' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40' : 'border-slate-200 dark:border-slate-700'">
-                    <input type="radio" name="procurement_mode_choice" value="ALOKASI" x-model="mode"
-                           class="mt-1 border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600">
-                    <span>
-                        <span class="block text-sm font-semibold text-slate-800 dark:text-slate-100">Alokasi ruangan langsung</span>
-                        <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">Alur lama: tentukan kelompok spesifikasi dan ruangan sejak pengajuan. Tetap didukung untuk data dan pengadaan yang sudah berjalan.</span>
-                    </span>
-                </label>
-            </div>
-
-            <div x-show="mode === 'STOK'" class="mt-4 max-w-xs">
-                <x-input-label for="stock_quantity" value="Jumlah pengadaan *" />
-                <input id="stock_quantity" type="number" min="1" x-model.number="stockQuantity"
-                       class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Jumlah ini menjadi batas maksimum barang yang dapat diterima dan didistribusikan.</p>
-            </div>
-        </div>
-
-        {{-- Bagian C — Kelompok spesifikasi & alokasi (alur langsung) --}}
-        <div x-show="mode === 'ALOKASI'" x-cloak class="mt-8 border-t border-slate-100 pt-6 dark:border-slate-700">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                     <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">B</span>
@@ -317,7 +283,7 @@
                                                 </template>
                                             </select>
                                         </div>
-                                        <div class="sm:col-span-2">
+                                        <div class="sm:col-span-1">
                                             <label class="mb-1 block text-[11px] font-semibold text-gray-500">Jumlah *</label>
                                             <input type="number" min="1" required x-model.number="row.quantity"
                                                 :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][quantity]'"
@@ -333,7 +299,17 @@
                                                 </template>
                                             </select>
                                         </div>
-                                        <div class="sm:col-span-3">
+                                        <div class="sm:col-span-2">
+                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Status</label>
+                                            <select x-model="row.status"
+                                                :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][status]'"
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                <template x-for="status in statuses" :key="status.value">
+                                                    <option :value="status.value" x-text="status.label"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div class="sm:col-span-2">
                                             <label class="mb-1 block text-[11px] font-semibold text-gray-500">Keterangan</label>
                                             <input type="text" maxlength="500" x-model="row.note"
                                                 :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][note]'"
@@ -377,8 +353,10 @@
             </div>
 
             <p class="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-                Setiap kelompok boleh memiliki kondisi fisik berbeda per ruangan. Total alokasi setiap kelompok harus sama dengan jumlah kelompok tersebut,
-                dan total seluruh kelompok menjadi jumlah pengadaan. Kode inventaris diterbitkan otomatis oleh backend.
+                Ruangan yang sama boleh muncul beberapa kali dalam satu kelompok selama kondisinya berbeda.
+                Setiap baris juga memiliki status operasional sendiri (aktif, hilang, dipinjam, dan lainnya).
+                Total alokasi setiap kelompok harus sama dengan jumlah kelompok tersebut, dan total seluruh kelompok menjadi jumlah pengadaan.
+                Kode inventaris diterbitkan otomatis oleh backend.
             </p>
         </div>
 
@@ -409,6 +387,7 @@
                         room_id: roomId,
                         quantity: Number(row?.quantity) || 1,
                         condition: row?.condition || 'BAIK',
+                        status: row?.status || 'AKTIF',
                         note: row?.note || '',
                     };
                 };
@@ -436,10 +415,9 @@
                     catalogOpen: false,
                     catalogHighlight: 0,
                     conditions: config.conditions || [],
+                    statuses: config.statuses || [],
                     name: config.initialName || '',
                     categoryId: Number(config.initialCategory) || '',
-                    mode: config.initialMode === 'ALOKASI' ? 'ALOKASI' : 'STOK',
-                    stockQuantity: Number(config.initialQuantity) || 1,
                     groups: initial.map(makeGroup),
 
                     get buildings() {
@@ -471,9 +449,6 @@
                     selectCatalog(id) {
                         this.catalogId = Number(id) || '';
                         this.applyCatalog();
-                        // Katalog yang sudah tercatat menambah stok lewat alur
-                        // alokasi ruangan; mode stok hanya untuk pengadaan baru.
-                        if (this.catalogId) this.mode = 'ALOKASI';
                         this.catalogQuery = this.selectedCatalog?.name || '';
                         this.catalogOpen = false;
                     },
@@ -518,10 +493,6 @@
                     },
 
                     get totalQuantity() {
-                        if (this.mode === 'STOK') {
-                            return Math.max(0, Number(this.stockQuantity) || 0);
-                        }
-
                         return this.groups.reduce((sum, group) => sum + (Number(group.quantity) || 0), 0);
                     },
 
@@ -540,10 +511,6 @@
                     },
 
                     get canSubmit() {
-                        if (this.mode === 'STOK') {
-                            return Number(this.stockQuantity) > 0 && !!this.name && !!this.categoryId;
-                        }
-
                         return this.allGroupsBalanced;
                     },
 

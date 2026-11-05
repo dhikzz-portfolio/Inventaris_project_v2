@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Condition;
+use App\Enums\UnitStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,7 +11,7 @@ class AcquisitionAllocation extends Model
 {
     protected $fillable = [
         'item_catalog_id', 'specification_id', 'room_id',
-        'quantity', 'received_quantity', 'condition', 'note',
+        'quantity', 'received_quantity', 'condition', 'status', 'note',
         'acquisition_year', 'funding_source', 'provisioned_at',
     ];
 
@@ -20,6 +21,7 @@ class AcquisitionAllocation extends Model
             'quantity' => 'integer',
             'received_quantity' => 'integer',
             'condition' => Condition::class,
+            'status' => UnitStatus::class,
             'acquisition_year' => 'integer',
             'provisioned_at' => 'datetime',
         ];
@@ -29,6 +31,12 @@ class AcquisitionAllocation extends Model
     public function conditionEnum(): Condition
     {
         return $this->condition instanceof Condition ? $this->condition : Condition::BAIK;
+    }
+
+    /** Status operasional alokasi; pengadaan lama tanpa nilai dianggap aktif. */
+    public function statusEnum(): UnitStatus
+    {
+        return $this->status instanceof UnitStatus ? $this->status : UnitStatus::AKTIF;
     }
 
     public function catalog(): BelongsTo

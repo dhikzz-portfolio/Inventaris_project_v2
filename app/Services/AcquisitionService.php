@@ -419,6 +419,7 @@ class AcquisitionService
                     $unit = $this->units->create($locked, $room, [
                         'specification_id' => $allocation->specification_id ?: $defaultSpecificationId,
                         'condition' => Condition::BAIK,
+                        'status' => $allocation->statusEnum(),
                         'acquisition_year' => $allocation->acquisition_year,
                         'funding_source' => $allocation->funding_source,
                         'notes' => $allocation->note,

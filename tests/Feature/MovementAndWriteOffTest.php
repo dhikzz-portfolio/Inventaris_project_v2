@@ -70,11 +70,32 @@ class MovementAndWriteOffTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Filter Unit')
-            ->assertSee('Cari kode unit')
+            ->assertSee('Cari kode unit atau nama barang')
             ->assertSee('Filter')
             ->assertSeeInOrder(['id="movement-search"', 'id="movement-filter-panel"'], false)
             ->assertSee('movement-catalog', false)
             ->assertSee('Terapkan filter');
+    }
+
+    public function test_daftar_pindah_barang_dapat_dicari_berdasarkan_nama_barang_dan_kode_unit(): void
+    {
+        $unit = app(AssetUnitService::class)->create($this->item, $this->room1);
+
+        $nameResponse = $this->actingAs($this->admin)
+            ->get(route('movements.index', ['search' => 'Server Rack']));
+
+        $nameResponse->assertOk()
+            ->assertViewHas('units', function ($units) use ($unit): bool {
+                return $units->getCollection()->contains('id', $unit->id);
+            });
+
+        $codeResponse = $this->actingAs($this->admin)
+            ->get(route('movements.index', ['search' => $unit->inventory_code]));
+
+        $codeResponse->assertOk()
+            ->assertViewHas('units', function ($units) use ($unit): bool {
+                return $units->getCollection()->contains('id', $unit->id);
+            });
     }
 
     public function test_write_off_form_submits_selected_units_from_responsive_views(): void

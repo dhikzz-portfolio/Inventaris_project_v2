@@ -129,37 +129,45 @@
             @endunless
         </div>
         <div class="hidden overflow-x-auto md:block">
-            <table class="w-full min-w-[760px] text-sm">
-                <thead class="bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            <table class="w-full min-w-[820px] table-fixed text-sm">
+                <colgroup>
+                    <col class="w-[14%]">
+                    <col class="w-[18%]">
+                    <col class="w-[18%]">
+                    <col class="w-[22%]">
+                    <col class="w-[14%]">
+                    <col class="w-[14%]">
+                </colgroup>
+                <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                     <tr>
-                        <th class="px-5 py-3 text-left">Periode</th>
-                        <th class="px-5 py-3 text-left">Cakupan</th>
-                        <th class="px-5 py-3 text-left">Dibuat oleh</th>
-                        <th class="px-5 py-3 text-left">Waktu generate</th>
-                        <th class="px-5 py-3 text-center">Unduh</th>
-                        <th class="px-5 py-3 text-center">Aksi</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Periode</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Cakupan</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Dibuat oleh</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Waktu generate</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Unduh</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     @forelse ($reports as $report)
-                        <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                            <td class="whitespace-nowrap px-5 py-3 font-semibold text-slate-800 dark:text-slate-100">{{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $report->period)->translatedFormat('F Y') }}</td>
-                            <td class="px-5 py-3 text-xs text-slate-500 dark:text-slate-400">
-                                <span class="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold uppercase text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $report->scope }}{{ $report->scope_id ? ' #'.$report->scope_id : '' }}</span>
+                        <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
+                            <td class="whitespace-nowrap px-3 py-4 font-semibold text-slate-800 dark:text-slate-100">{{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $report->period)->translatedFormat('F Y') }}</td>
+                            <td class="px-3 py-4 text-xs text-slate-500 dark:text-slate-400">
+                                <span class="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $report->scope }}{{ $report->scope_id ? ' #'.$report->scope_id : '' }}</span>
                             </td>
-                            <td class="px-5 py-3 text-xs text-slate-500 dark:text-slate-400">{{ $report->generator?->name ?: 'Scheduler' }}</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-xs text-slate-500 dark:text-slate-400">{{ $report->generated_at->format('d M Y H:i') }}</td>
-                            <td class="px-5 py-3 text-center">
+                            <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $report->generator?->name ?: 'Scheduler' }}">{{ $report->generator?->name ?: 'Scheduler' }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-xs text-slate-500 dark:text-slate-400">{{ $report->generated_at->format('d M Y H:i') }}</td>
+                            <td class="px-2 py-4 text-center">
                                 <div class="flex items-center justify-center gap-2">
                                     @if ($report->pdf_path)
-                                        <a href="{{ route('files.show', ['path' => $report->pdf_path]) }}" target="_blank" class="font-semibold text-brand-700 hover:underline dark:text-brand-300">PDF</a>
+                                        <a href="{{ route('files.show', ['path' => $report->pdf_path]) }}" target="_blank" class="inline-flex min-h-8 items-center justify-center rounded-lg bg-red-50 px-2.5 text-[11px] font-bold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">PDF</a>
                                     @endif
                                     @if ($report->excel_path)
-                                        <a href="{{ route('files.show', ['path' => $report->excel_path]) }}" download class="font-semibold text-brand-700 hover:underline dark:text-brand-300">Excel</a>
+                                        <a href="{{ route('files.show', ['path' => $report->excel_path]) }}" download class="inline-flex min-h-8 items-center justify-center rounded-lg bg-green-50 px-2.5 text-[11px] font-bold text-green-700 transition hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-green-950/40 dark:text-green-300 dark:hover:bg-green-950/60">Excel</a>
                                     @endif
                                 </div>
                             </td>
-                            <td class="px-5 py-3 text-center">
+                            <td class="px-2 py-4 text-center">
                                 @if (auth()->user()->isSuperAdmin() || (int) $report->generated_by === (int) auth()->id())
                                     <form method="POST" action="{{ route('reports.destroy', $report) }}" x-data="{ submitting: false }"
                                           @submit="submitting = true"

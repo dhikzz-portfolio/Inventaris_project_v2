@@ -5,7 +5,7 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporkan Kerusakan Barang</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Pilih unit inventaris pada ruang lingkup Anda dan jelaskan kerusakannya.</p>
             </div>
-            <a href="{{ route('damage-reports.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Kembali</a>
+            <a href="{{ route('damage-reports.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">← Kembali</a>
         </div>
     </x-slot>
 

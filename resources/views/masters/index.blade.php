@@ -6,6 +6,11 @@
     $canRuangan = auth()->user()->can('master_ruangan.edit');
     $canKategori = auth()->user()->can('master_kategori.edit');
     $canEdit = $canJurusan || $canGedung || $canRuangan || $canKategori;
+    $masterInputClass = 'h-10 min-w-0 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100';
+    $masterCompactInputClass = 'h-9 min-w-0 rounded-lg border-slate-300 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100';
+    $masterPrimaryButtonClass = 'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900';
+    $masterSaveButtonClass = 'inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900';
+    $masterDangerButtonClass = 'inline-flex min-h-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60';
     @endphp
 
     <x-slot name="header">
@@ -29,136 +34,167 @@
     <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div class="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
         {{-- Master Gedung --}}
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h3 class="mb-1 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                <span class="material-icons-round text-blue-600">apartment</span> Master Gedung
-            </h3>
-            <p class="mb-4 text-[11px] text-slate-500 dark:text-slate-400">
+        <section class="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                    <span class="material-icons-round">apartment</span>
+                </span>
+                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Master Gedung</h3>
+            </div>
+            <p class="mt-3 min-h-10 text-xs leading-5 text-slate-500 dark:text-slate-400">
                 Identitas kode gedung dipakai generator kode lokasi &amp; kode inventaris (mis. Gedung C lantai 1 ruang 03 → <span class="font-mono">C1-03-21</span>).
             </p>
 
-            <ul class="space-y-1.5 text-sm mb-4">
+            <ul class="mb-4 max-h-72 flex-1 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200 text-sm dark:divide-slate-800 dark:border-slate-700">
                 @forelse ($buildings as $building)
-                <li class="border-b border-dashed border-gray-100 pb-1.5">
-                    @if ($canGedung)<details>
-                        <summary class="flex items-center justify-between cursor-pointer list-none">
-                            <span class="text-gray-700">
-                                {{ $building->name }}
+                <li class="px-3 py-3 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                    @if ($canGedung)
+                    <details class="group">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-slate-800 dark:text-slate-100">
+                            <span class="flex min-w-0 flex-wrap items-center gap-2 font-semibold">
+                                <span class="truncate">{{ $building->name }}</span>
                                 @unless ($building->is_active)
-                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">NONAKTIF</span>
+                                    <span class="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">NONAKTIF</span>
                                 @endunless
                             </span>
-                            <span class="text-[11px] text-gray-400 font-mono">kode {{ $building->code }} • {{ $building->rooms_count }} ruang • ubah</span>
+                            <span class="flex shrink-0 items-center gap-2">
+                                <span class="rounded-md bg-slate-100 px-2 py-1 font-mono text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $building->code }} · {{ $building->rooms_count }} ruang</span>
+                                <span class="inline-flex min-h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-brand-700 dark:border-slate-700 dark:bg-slate-900 dark:text-brand-300">
+                                    Ubah <span class="material-icons-round text-sm transition-transform group-open:rotate-180" aria-hidden="true">expand_more</span>
+                                </span>
+                            </span>
                         </summary>
-                        <form method="POST" action="{{ route('masters.update-building', $building) }}" class="mt-2 flex gap-1.5">
+                        <form method="POST" action="{{ route('masters.update-building', $building) }}" class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_5rem_auto]">
                             @csrf @method('PUT')
-                            <input type="text" name="name" value="{{ $building->name }}" class="flex-1 rounded-lg border-gray-300 text-xs" required>
-                            <input type="text" name="code" value="{{ $building->code }}" maxlength="1" class="w-14 rounded-lg border-gray-300 text-xs uppercase font-mono" required title="Identitas kode gedung (A-Z)">
-                            <button class="px-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">Simpan</button>
+                            <input type="text" name="name" value="{{ $building->name }}" aria-label="Nama gedung" class="{{ $masterCompactInputClass }}" required>
+                            <input type="text" name="code" value="{{ $building->code }}" maxlength="1" aria-label="Kode gedung" class="{{ $masterCompactInputClass }} font-mono uppercase" required title="Identitas kode gedung (A-Z)">
+                            <button class="{{ $masterSaveButtonClass }}">Simpan</button>
                         </form>
-                        <p class="text-[10px] text-gray-400 mt-1">
+                        <p class="mt-2 text-[11px] leading-4 text-slate-500 dark:text-slate-400">
                             Kode gedung tidak dapat diubah bila sudah ada unit inventaris yang memakainya.
                         </p>
-                        <form method="POST" action="{{ route('masters.destroy-building', $building) }}" class="mt-1" onsubmit="return confirm('Hapus gedung ini?')">
+                        <form method="POST" action="{{ route('masters.destroy-building', $building) }}" class="mt-2" onsubmit="return confirm('Hapus gedung ini?')">
                             @csrf @method('DELETE')
-                            <button class="text-[11px] text-red-600 hover:underline">Hapus gedung</button>
+                            <button class="{{ $masterDangerButtonClass }}">Hapus gedung</button>
                         </form>
                     </details>
                     @else
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-700">{{ $building->name }}</span>
-                        <span class="text-[11px] text-gray-400 font-mono">kode {{ $building->code }} • {{ $building->rooms_count }} ruang</span>
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="min-w-0 truncate font-semibold text-slate-800 dark:text-slate-100">{{ $building->name }}</span>
+                        <span class="shrink-0 rounded-md bg-slate-100 px-2 py-1 font-mono text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $building->code }} · {{ $building->rooms_count }} ruang</span>
                     </div>
                     @endif
                 </li>
                 @empty
-                <li class="text-sm text-gray-400">Belum ada data gedung.</li>
+                <li class="px-3 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada data gedung.</li>
                 @endforelse
             </ul>
 
             @if ($canGedung)
-            <form method="POST" action="{{ route('masters.store-building') }}" class="grid grid-cols-2 gap-2">
+            <form method="POST" action="{{ route('masters.store-building') }}" class="mt-auto grid grid-cols-1 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto] dark:border-slate-800">
                 @csrf
-                <input type="text" name="name" placeholder="Nama gedung * (Gedung C)" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
-                <input type="text" name="code" placeholder="Kode * (C)" maxlength="1" class="rounded-lg border-gray-300 text-sm uppercase font-mono focus:ring-blue-500 focus:border-blue-500" required>
-                <button class="min-h-10 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">Tambah Gedung</button>
+                <input type="text" name="name" placeholder="Nama gedung *" aria-label="Nama gedung baru" class="{{ $masterInputClass }}" required>
+                <input type="text" name="code" placeholder="Kode * (C)" maxlength="1" aria-label="Kode gedung baru" class="{{ $masterInputClass }} font-mono uppercase" required>
+                <button class="{{ $masterPrimaryButtonClass }}">Tambah Gedung</button>
             </form>
             @endif
-        </div>
+        </section>
 
         {{-- Ruangan --}}
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h3 class="mb-1 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                <span class="material-icons-round text-blue-600">domain</span> Ruangan ({{ $rooms->count() }})
-            </h3>
-            <p class="mb-4 text-[11px] text-slate-500 dark:text-slate-400">
+        <section class="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                    <span class="material-icons-round">domain</span>
+                </span>
+                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Ruangan <span class="ms-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $rooms->count() }}</span></h3>
+            </div>
+            <p class="mt-3 min-h-10 text-xs leading-5 text-slate-500 dark:text-slate-400">
                 Kode lokasi dibentuk otomatis dari gedung + lantai + nomor ruangan.
             </p>
 
-            <div class="max-h-72 overflow-auto mb-4">
-                <table class="w-full text-sm">
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                        @foreach ($rooms as $room)
+            <div class="mb-4 max-h-72 flex-1 overflow-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                <table class="w-full min-w-[640px] table-fixed text-sm">
+                    <colgroup>
+                        <col class="w-[17%]">
+                        <col class="w-[28%]">
+                        <col class="w-[30%]">
+                        <col class="w-[25%]">
+                    </colgroup>
+                    <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
-                            <td class="py-1.5 font-mono text-xs font-semibold text-gray-700 w-16">{{ $room->code }}</td>
-                            <td class="py-1.5 text-xs text-gray-600">
-                                {{ $room->name }}
-                                @if ($canRuangan)<details>
-                                    <summary class="text-[10px] text-blue-700 cursor-pointer">ubah</summary>
+                            <th scope="col" class="px-3 py-2.5 text-left">Kode</th>
+                            <th scope="col" class="px-3 py-2.5 text-left">Ruangan</th>
+                            <th scope="col" class="px-3 py-2.5 text-left">Lokasi</th>
+                            <th scope="col" class="px-3 py-2.5 text-right">Jurusan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        @forelse ($rooms as $room)
+                        <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                            <td class="whitespace-nowrap px-3 py-3 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">{{ $room->code }}</td>
+                            <td class="px-3 py-3 text-xs text-slate-700 dark:text-slate-200">
+                                <div class="font-semibold">{{ $room->name ?: '—' }}</div>
+                                @if ($canRuangan)<details class="mt-1.5">
+                                    <summary class="inline-flex min-h-7 cursor-pointer list-none items-center rounded-md border border-slate-200 bg-white px-2 text-[10px] font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-slate-800">Ubah</summary>
                                     <form method="POST" action="{{ route('masters.update-room', $room) }}" class="mt-1 space-y-1">
                                         @csrf @method('PUT')
-                                        <select name="major_id" class="w-full rounded border-gray-300 text-[11px]">
+                                        <select name="major_id" aria-label="Jurusan ruangan" class="{{ $masterCompactInputClass }} w-full">
                                             <option value="">— jurusan —</option>
                                             @foreach ($majors as $major)
                                             <option value="{{ $major->id }}" @selected($room->major_id === $major->id)>{{ $major->name }}</option>
                                             @endforeach
                                         </select>
-                                        <input type="text" name="name" value="{{ $room->name }}" class="w-full rounded border-gray-300 text-[11px]">
-                                        <div class="flex flex-wrap gap-1">
-                                            <select name="building_id" class="rounded border-gray-300 text-[11px]" required>
+                                        <input type="text" name="name" value="{{ $room->name }}" aria-label="Nama ruangan" class="{{ $masterCompactInputClass }} w-full">
+                                        <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_auto]">
+                                            <select name="building_id" aria-label="Gedung ruangan" class="{{ $masterCompactInputClass }} col-span-2 sm:col-span-1" required>
                                                 @foreach ($buildings as $building)
                                                 <option value="{{ $building->id }}" @selected($room->building_id === $building->id)>
                                                     {{ $building->name }} ({{ $building->code }})
                                                 </option>
                                                 @endforeach
                                             </select>
-                                            <input type="number" name="floor" value="{{ $room->floor }}" min="1" max="9" class="w-12 rounded border-gray-300 text-[11px]" required>
-                                            <input type="number" name="room_no" value="{{ $room->room_no }}" min="1" max="99" title="Nomor ruangan" class="w-12 rounded border-gray-300 text-[11px]" required>
-                                            <label class="flex items-center gap-1 text-[10px] text-gray-500">
+                                            <input type="number" name="floor" value="{{ $room->floor }}" min="1" max="9" aria-label="Lantai" class="{{ $masterCompactInputClass }} px-2" required>
+                                            <input type="number" name="room_no" value="{{ $room->room_no }}" min="1" max="99" title="Nomor ruangan" aria-label="Nomor ruangan" class="{{ $masterCompactInputClass }} px-2" required>
+                                            <label class="col-span-2 flex min-h-9 items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-300 sm:col-span-1">
                                                 <input type="checkbox" name="is_lab" value="1" @checked($room->is_lab)> Lab
                                             </label>
-                                            <button class="px-2 rounded bg-slate-800 text-white text-[10px] font-semibold">Simpan</button>
+                                            <button class="{{ $masterSaveButtonClass }} col-span-2 sm:col-span-1">Simpan</button>
                                         </div>
                                     </form>
                                     <form method="POST" action="{{ route('masters.destroy-room', $room) }}" class="mt-1" onsubmit="return confirm('Hapus ruangan ini?')">
                                         @csrf @method('DELETE')
-                                        <button class="text-[10px] text-red-600 hover:underline">Hapus</button>
+                                        <button class="{{ $masterDangerButtonClass }}">Hapus</button>
                                     </form>
                                 </details>@endif
                             </td>
-                            <td class="py-1.5 text-[11px] text-gray-400 text-right">
-                                {{ $room->building?->name ?? $room->building_letter }} • Lt. {{ $room->floor }} • {{ str_pad((string) $room->room_no, 2, '0', STR_PAD_LEFT) }}
-                                @if ($room->is_lab)<span class="ms-1 rounded bg-blue-50 text-blue-700 px-1">lab</span>@endif
+                            <td class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">
+                                <span class="inline-flex flex-wrap items-center gap-1">
+                                    <span>{{ $room->building?->name ?? $room->building_letter }} · Lt. {{ $room->floor }} · {{ str_pad((string) $room->room_no, 2, '0', STR_PAD_LEFT) }}</span>
+                                    @if ($room->is_lab)<span class="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">LAB</span>@endif
+                                </span>
                             </td>
+                            <td class="px-3 py-3 text-right text-xs text-slate-600 dark:text-slate-300">{{ $room->major?->code ?: $room->major?->name ?: '—' }}</td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr><td colspan="4" class="px-3 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada data ruangan.</td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
 
             @if ($canRuangan)
-            <form method="POST" action="{{ route('masters.store-room') }}" class="space-y-2">
+            <form method="POST" action="{{ route('masters.store-room') }}" class="mt-auto space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                 @csrf
-                <select name="major_id" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                <select name="major_id" aria-label="Jurusan ruangan baru" class="{{ $masterInputClass }}">
                     <option value="">— jurusan (opsional) —</option>
                     @foreach ($majors as $major)
                     <option value="{{ $major->id }}">{{ $major->name }}</option>
                     @endforeach
                 </select>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    <select name="building_id" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 sm:col-span-1" required>
+                    <select name="building_id" aria-label="Gedung ruangan baru" class="{{ $masterInputClass }} col-span-2 sm:col-span-1" required>
                         <option value="">— gedung —</option>
                         @foreach ($buildings as $building)
                         <option value="{{ $building->id }}" @disabled(! $building->is_active)>
@@ -166,99 +202,120 @@
                         </option>
                         @endforeach
                     </select>
-                    <input type="number" name="floor" placeholder="Lantai *" min="1" max="9" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
-                    <input type="number" name="room_no" placeholder="No. ruang *" min="1" max="99" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
+                    <input type="number" name="floor" placeholder="Lantai *" min="1" max="9" aria-label="Lantai ruangan baru" class="{{ $masterInputClass }}" required>
+                    <input type="number" name="room_no" placeholder="No. ruang *" min="1" max="99" aria-label="Nomor ruangan baru" class="{{ $masterInputClass }}" required>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <input type="text" name="name" placeholder="Nama ruangan (opsional)" class="sm:col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                    <label class="flex items-center gap-2 text-xs text-gray-600">
+                <div class="grid grid-cols-1 items-center gap-2 sm:grid-cols-3">
+                    <input type="text" name="name" placeholder="Nama ruangan (opsional)" aria-label="Nama ruangan baru" class="{{ $masterInputClass }} sm:col-span-2">
+                    <label class="flex min-h-10 items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                         <input type="checkbox" name="is_lab" value="1"> Ruangan lab
                     </label>
                 </div>
-                <button class="min-h-10 w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">Tambah Ruangan</button>
+                <button class="{{ $masterPrimaryButtonClass }} w-full">Tambah Ruangan</button>
             </form>
             @endif
-        </div>
+        </section>
 
         {{-- Jurusan --}}
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
-                <span class="material-icons-round text-blue-600">school</span> Jurusan / Kompetensi Keahlian
-            </h3>
-            <ul class="space-y-1.5 text-sm mb-4">
-                @foreach ($majors as $major)
-                <li class="border-b border-dashed border-gray-100 pb-1.5">
-                    <details>
-                        <summary class="flex items-center justify-between cursor-pointer list-none">
-                            <span class="text-gray-700">{{ $major->name }}</span>
-                            <span class="text-[11px] text-gray-400">{{ $major->code ?: '-' }} • {{ $major->rooms_count }} ruang{{ $canJurusan ? ' • ubah' : '' }}</span>
+        <section class="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                    <span class="material-icons-round">school</span>
+                </span>
+                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Jurusan / Kompetensi Keahlian</h3>
+            </div>
+            <p class="mt-3 min-h-10 text-xs leading-5 text-slate-500 dark:text-slate-400">Kelola jurusan yang digunakan untuk mengelompokkan ruangan sekolah.</p>
+            <ul class="mb-4 max-h-72 flex-1 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200 text-sm dark:divide-slate-800 dark:border-slate-700">
+                @forelse ($majors as $major)
+                <li class="px-3 py-3 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                    <details class="group">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-slate-800 dark:text-slate-100">
+                            <span class="min-w-0 truncate font-semibold">{{ $major->name }}</span>
+                            <span class="flex shrink-0 items-center gap-2">
+                                <span class="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $major->code ?: 'Tanpa kode' }} · {{ $major->rooms_count }} ruang</span>
+                                @if ($canJurusan)
+                                    <span class="inline-flex min-h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-brand-700 dark:border-slate-700 dark:bg-slate-900 dark:text-brand-300">
+                                        Ubah <span class="material-icons-round text-sm transition-transform group-open:rotate-180" aria-hidden="true">expand_more</span>
+                                    </span>
+                                @endif
+                            </span>
                         </summary>
-                        @if (! $canJurusan)
-                        <p class="text-[10px] text-gray-400">Hanya dapat dilihat.</p>
-                        @endif
                         @if ($canJurusan)
-                        <form method="POST" action="{{ route('masters.update-major', $major) }}" class="mt-2 flex gap-1.5">
+                        <form method="POST" action="{{ route('masters.update-major', $major) }}" class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto]">
                             @csrf @method('PUT')
-                            <input type="text" name="name" value="{{ $major->name }}" class="flex-1 rounded-lg border-gray-300 text-xs" required>
-                            <input type="text" name="code" value="{{ $major->code }}" class="w-20 rounded-lg border-gray-300 text-xs" placeholder="Kode">
-                            <button class="px-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">Simpan</button>
+                            <input type="text" name="name" value="{{ $major->name }}" aria-label="Nama jurusan" class="{{ $masterCompactInputClass }}" required>
+                            <input type="text" name="code" value="{{ $major->code }}" aria-label="Kode jurusan" class="{{ $masterCompactInputClass }}" placeholder="Kode">
+                            <button class="{{ $masterSaveButtonClass }}">Simpan</button>
                         </form>
-                        <form method="POST" action="{{ route('masters.destroy-major', $major) }}" class="mt-1" onsubmit="return confirm('Hapus jurusan ini?')">
+                        <form method="POST" action="{{ route('masters.destroy-major', $major) }}" class="mt-2" onsubmit="return confirm('Hapus jurusan ini?')">
                             @csrf @method('DELETE')
-                            <button class="text-[11px] text-red-600 hover:underline">Hapus jurusan</button>
+                            <button class="{{ $masterDangerButtonClass }}">Hapus jurusan</button>
                         </form>
                         @endif
                     </details>
                 </li>
-                @endforeach
+                @empty
+                <li class="px-3 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada data jurusan.</li>
+                @endforelse
             </ul>
             @if ($canJurusan)
-            <form method="POST" action="{{ route('masters.store-major') }}" class="grid grid-cols-2 gap-2">
+            <form method="POST" action="{{ route('masters.store-major') }}" class="mt-auto grid grid-cols-1 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto] dark:border-slate-800">
                 @csrf
-                <input type="text" name="name" placeholder="Nama jurusan * (Teknik Pengelasan)" class="col-span-2 rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
-                <input type="text" name="code" placeholder="Kode (opsional), mis. TP" class="rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
-                <button class="min-h-10 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">Tambah</button>
+                <input type="text" name="name" placeholder="Nama jurusan *" aria-label="Nama jurusan baru" class="{{ $masterInputClass }}" required>
+                <input type="text" name="code" placeholder="Kode (opsional)" aria-label="Kode jurusan baru" class="{{ $masterInputClass }}">
+                <button class="{{ $masterPrimaryButtonClass }}">Tambah</button>
             </form>
             @endif
-        </div>
+        </section>
 
         {{-- Kategori --}}
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h3 class="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-1.5">
-                <span class="material-icons-round text-blue-600">category</span> Kategori Barang
-            </h3>
-            <ul class="space-y-1.5 text-sm mb-4">
-                @foreach ($categories as $category)
-                <li class="border-b border-dashed border-gray-100 pb-1.5">
-                    <details>
-                        <summary class="flex items-center justify-between cursor-pointer list-none">
-                            <span class="text-gray-700">{{ $category->name }}</span>
-                            <span class="text-[11px] text-gray-400">{{ $category->items_count }} brg{{ $canKategori ? ' • ubah' : '' }}</span>
+        <section class="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                    <span class="material-icons-round">category</span>
+                </span>
+                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Kategori Barang</h3>
+            </div>
+            <p class="mt-3 min-h-10 text-xs leading-5 text-slate-500 dark:text-slate-400">Atur kategori untuk membantu pencarian dan pengelompokan inventaris.</p>
+            <ul class="mb-4 max-h-72 flex-1 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200 text-sm dark:divide-slate-800 dark:border-slate-700">
+                @forelse ($categories as $category)
+                <li class="px-3 py-3 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                    <details class="group">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-slate-800 dark:text-slate-100">
+                            <span class="min-w-0 truncate font-semibold">{{ $category->name }}</span>
+                            <span class="flex shrink-0 items-center gap-2">
+                                <span class="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $category->items_count }} barang</span>
+                                @if ($canKategori)
+                                    <span class="inline-flex min-h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-brand-700 dark:border-slate-700 dark:bg-slate-900 dark:text-brand-300">
+                                        Ubah <span class="material-icons-round text-sm transition-transform group-open:rotate-180" aria-hidden="true">expand_more</span>
+                                    </span>
+                                @endif
+                            </span>
                         </summary>
                         @if ($canKategori)
-                        <form method="POST" action="{{ route('masters.update-category', $category) }}" class="mt-2 space-y-1">
+                        <form method="POST" action="{{ route('masters.update-category', $category) }}" class="mt-3 space-y-2">
                             @csrf @method('PUT')
-                            <input type="text" name="name" value="{{ $category->name }}" class="w-full rounded border-gray-300 text-xs" required>
-                            <div class="flex gap-1 items-center">
-                                <button class="px-2 py-1 rounded bg-slate-800 text-white text-xs font-semibold">Simpan</button>
-                            </div>
+                            <input type="text" name="name" value="{{ $category->name }}" aria-label="Nama kategori" class="{{ $masterCompactInputClass }} w-full" required>
+                            <button class="{{ $masterSaveButtonClass }}">Simpan</button>
                         </form>
-                        <form method="POST" action="{{ route('masters.destroy-category', $category) }}" class="mt-1" onsubmit="return confirm('Hapus kategori ini?')">
+                        <form method="POST" action="{{ route('masters.destroy-category', $category) }}" class="mt-2" onsubmit="return confirm('Hapus kategori ini?')">
                             @csrf @method('DELETE')
-                            <button class="text-[11px] text-red-600 hover:underline">Hapus kategori</button>
+                            <button class="{{ $masterDangerButtonClass }}">Hapus kategori</button>
                         </form>
                         @endif
                     </details>
                 </li>
-                @endforeach
+                @empty
+                <li class="px-3 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada data kategori.</li>
+                @endforelse
             </ul>
             @if ($canKategori)
-            <form method="POST" action="{{ route('masters.store-category') }}" class="space-y-2">
+            <form method="POST" action="{{ route('masters.store-category') }}" class="mt-auto space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                 @csrf
-                <input type="text" name="name" placeholder="Nama kategori *" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" required>
-                <button class="min-h-10 w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">Tambah Kategori</button>
+                <input type="text" name="name" placeholder="Nama kategori *" aria-label="Nama kategori baru" class="{{ $masterInputClass }}" required>
+                <button class="{{ $masterPrimaryButtonClass }} w-full">Tambah Kategori</button>
             </form>
             @endif
-        </div>
+        </section>
     </div>
 </x-app-layout>

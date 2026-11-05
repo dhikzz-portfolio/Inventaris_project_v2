@@ -172,14 +172,16 @@
                         </a>
                         @if (auth()->user()->canApproveLoans())
                             <a href="{{ route('units.label', $result['unit_id']) }}" target="_blank"
-                                class="text-xs font-semibold text-amber-700 hover:underline">Cetak ulang label</a>
+                                class="inline-flex min-h-8 items-center justify-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                                <span class="material-icons-round text-sm" aria-hidden="true">print</span> Cetak ulang label
+                            </a>
                         @endif
                     </div>
                 @elseif ($result['status'] === 'catalog')
                     <div class="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-900">
                         Kode ini adalah ID internal katalog lama: <strong>{{ $result['name'] }}</strong>
                         ({{ $result['code'] }}).
-                        <a href="{{ $result['url'] }}" class="font-semibold underline">Buka detail katalog</a>.
+                        <a href="{{ $result['url'] }}" class="ms-1 inline-flex min-h-8 items-center justify-center rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">Buka detail katalog</a>
                     </div>
                 @elseif ($result['status'] === 'restricted')
                     <div class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">

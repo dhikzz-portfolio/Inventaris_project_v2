@@ -270,29 +270,40 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
+            <table class="w-full min-w-[980px] table-fixed text-sm">
+                <colgroup>
+                    <col class="w-[15%]">
+                    <col class="w-[20%]">
+                    <col class="w-[18%]">
+                    <col class="w-[10%]">
+                    <col class="w-[16%]">
+                    <col class="w-[13%]">
+                    <col class="w-[8%]">
+                </colgroup>
+                <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-400">
                     <tr>
-                        <th class="px-4 py-3 text-left">Waktu</th>
-                        <th class="px-4 py-3 text-left">Katalog</th>
-                        <th class="px-4 py-3 text-left">Merek / tipe</th>
-                        <th class="px-4 py-3 text-right">Jumlah</th>
-                        <th class="px-4 py-3 text-left">Tujuan</th>
-                        <th class="px-4 py-3 text-left">Petugas</th>
-                        <th class="px-4 py-3 text-right">Unit</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Waktu</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Katalog</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Merek / tipe</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Jumlah</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Tujuan</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Petugas</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Unit</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     @forelse ($recent as $row)
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                            <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-600 dark:text-slate-300">{{ $row->distributed_at?->format('d M Y H:i') }}</td>
-                            <td class="px-4 py-3 text-xs text-slate-700 dark:text-slate-200">{{ $row->catalog?->name }}</td>
-                            <td class="px-4 py-3 text-xs text-slate-700 dark:text-slate-200">{{ $row->specification?->displayName() }}</td>
-                            <td class="px-4 py-3 text-right font-semibold tabular-nums text-slate-800 dark:text-slate-100">{{ $row->quantity }}</td>
-                            <td class="px-4 py-3 text-xs text-slate-700 dark:text-slate-200">{{ $row->toRoom?->name }}</td>
-                            <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">{{ $row->actor?->name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-right text-xs text-slate-500 dark:text-slate-400">
-                                <a href="{{ route('specifications.show', $row->specification_id) }}" class="font-semibold text-brand-700 hover:underline dark:text-brand-300">Lihat</a>
+                        <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                            <td class="whitespace-nowrap px-3 py-4 text-xs text-slate-600 dark:text-slate-300">{{ $row->distributed_at?->format('d M Y H:i') }}</td>
+                            <td class="truncate px-3 py-4 text-xs font-medium text-slate-800 dark:text-slate-100" title="{{ $row->catalog?->name }}">{{ $row->catalog?->name }}</td>
+                            <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $row->specification?->displayName() }}">{{ $row->specification?->displayName() }}</td>
+                            <td class="px-2 py-4 text-center">
+                                <span class="inline-flex min-w-9 justify-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $row->quantity }}</span>
+                            </td>
+                            <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $row->toRoom?->name }}">{{ $row->toRoom?->name }}</td>
+                            <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $row->actor?->name ?? '—' }}">{{ $row->actor?->name ?? '—' }}</td>
+                            <td class="px-2 py-4 text-center">
+                                <a href="{{ route('specifications.show', $row->specification_id) }}" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-brand-600 bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:border-brand-700 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-brand-500 dark:bg-brand-500 dark:hover:border-brand-400 dark:hover:bg-brand-400 dark:focus:ring-offset-slate-900">Lihat</a>
                             </td>
                         </tr>
                     @empty

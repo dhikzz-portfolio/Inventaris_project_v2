@@ -14,7 +14,7 @@
             {{ $editing ? 'Ubah Pengguna' : 'Tambah Pengguna' }}
         </h3>
         @if ($editing)
-            <a href="{{ route('users.index') }}" class="text-xs text-gray-500 hover:text-gray-800">← Batal</a>
+            <a href="{{ route('users.index') }}" class="inline-flex min-h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">← Batal</a>
         @endif
     </div>
 
@@ -207,7 +207,7 @@
               onsubmit="return confirm('Hapus pengguna {{ $user->name }}? Akun dengan riwayat peminjaman tidak dapat dihapus.')">
             @csrf
             @method('DELETE')
-            <button class="w-full rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold py-2">Hapus Pengguna</button>
+            <button class="inline-flex min-h-9 w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">Hapus Pengguna</button>
         </form>
     @endif
 </div>

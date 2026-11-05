@@ -5,7 +5,7 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Detail Laporan Kerusakan</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Riwayat penanganan tidak dapat dihapus dari antarmuka biasa.</p>
             </div>
-            <a href="{{ route('damage-reports.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Kembali</a>
+            <a href="{{ route('damage-reports.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">← Kembali</a>
         </div>
     </x-slot>
 
@@ -50,7 +50,7 @@
                         @endforeach
                         @if ($report->photos->isEmpty())
                             <a href="{{ route('files.show', ['path' => $report->photo_path]) }}" target="_blank" rel="noopener"
-                               class="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300">
+                               class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                                 <span class="material-icons-round text-base">photo</span> Lihat dokumentasi foto
                             </a>
                         @endif

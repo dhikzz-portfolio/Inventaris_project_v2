@@ -8,7 +8,7 @@
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Pinjaman #{{ $loan->id }} — {{ $loan->purpose }}</p>
             </div>
-            <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">← Kembali ke detail</a>
+            <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">← Kembali ke detail</a>
         </div>
     </x-slot>
 
@@ -234,7 +234,7 @@
 
         <div x-show="totalVisible === 0" x-cloak class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             Tidak ada unit yang cocok dengan pencarian/filter.
-            <button type="button" @click="resetFilters()" class="font-semibold text-brand-700 underline dark:text-brand-300">Hapus filter</button>
+            <button type="button" @click="resetFilters()" class="ms-1 inline-flex min-h-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 transition hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300 dark:hover:bg-brand-900/50">Hapus filter</button>
         </div>
 
         <form method="POST" action="{{ route('loans.handover', $loan) }}" id="handover-form">

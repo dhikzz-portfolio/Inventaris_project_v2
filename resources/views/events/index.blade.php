@@ -111,9 +111,8 @@
                     </dl>
 
                     <a href="{{ route('events.show', $event) }}"
-                       class="inline-flex min-h-9 items-center gap-2 rounded-lg px-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">
+                       class="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                         Lihat detail
-                        <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
                     </a>
                 </article>
                 @empty

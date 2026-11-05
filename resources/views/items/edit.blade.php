@@ -5,7 +5,7 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Ubah Katalog Barang</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Perbarui informasi barang. Unit fisik dikelola secara terpisah.</p>
             </div>
-            <a href="{{ route('catalogs.show', $item) }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">← Kembali ke detail katalog</a>
+            <a href="{{ route('catalogs.show', $item) }}" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">← Kembali ke detail katalog</a>
         </div>
     </x-slot>
 
@@ -92,7 +92,7 @@
 
         <div class="mt-6 flex items-center gap-3">
             <x-primary-button class="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Simpan Perubahan</x-primary-button>
-            <a href="{{ route('catalogs.show', $item) }}" class="text-sm text-gray-500 hover:text-gray-800">Batal</a>
+            <a href="{{ route('catalogs.show', $item) }}" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:focus:ring-offset-slate-900">Batal</a>
         </div>
     </form>
 </x-app-layout>

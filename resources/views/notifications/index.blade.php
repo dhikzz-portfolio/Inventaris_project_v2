@@ -13,7 +13,9 @@
             @if ($unreadCount > 0)
                 <form method="POST" action="{{ route('notifications.read-all') }}">
                     @csrf
-                    <button class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 hover:underline dark:text-blue-300 dark:hover:bg-slate-800">Tandai semua dibaca</button>
+                    <button class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                        <span class="material-icons-round text-base" aria-hidden="true">done_all</span> Tandai semua dibaca
+                    </button>
                 </form>
             @endif
         </div>
@@ -67,20 +69,22 @@
                         @if ($notification->link && $notification->link_accessible)
                             <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
                                 @csrf
-                                <button class="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 hover:underline dark:text-blue-300 dark:hover:bg-slate-800">Buka detail →</button>
+                                <button class="inline-flex min-h-8 items-center justify-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                                    Buka detail <span class="material-icons-round text-sm" aria-hidden="true">arrow_forward</span>
+                                </button>
                             </form>
                         @elseif ($notification->link && ! $notification->isRead())
                             <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
                                 @csrf
                                 <span class="text-[11px] text-slate-500 dark:text-slate-400">Tautan tujuan tidak lagi tersedia untuk akun Anda.</span>
-                                <button class="ms-1 inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 hover:underline dark:text-blue-300 dark:hover:bg-slate-800">Tandai sudah dibaca</button>
+                                <button class="ms-1 inline-flex min-h-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 transition hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300 dark:hover:bg-brand-900/50">Tandai sudah dibaca</button>
                             </form>
                         @elseif ($notification->link)
                             <span class="mt-1 inline-block text-[11px] text-slate-500 dark:text-slate-400">Tautan tujuan tidak lagi tersedia untuk akun Anda.</span>
                         @elseif (! $notification->isRead())
                             <form method="POST" action="{{ route('notifications.read', $notification) }}" class="mt-1">
                                 @csrf
-                                <button class="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 hover:underline dark:text-blue-300 dark:hover:bg-slate-800">Tandai sudah dibaca</button>
+                                <button class="inline-flex min-h-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 transition hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300 dark:hover:bg-brand-900/50">Tandai sudah dibaca</button>
                             </form>
                         @endif
                     </div>

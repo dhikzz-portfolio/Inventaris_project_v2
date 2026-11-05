@@ -103,9 +103,11 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-3 text-xs text-gray-400">
-                    Label terakhir dicetak: {{ $item->last_label_printed_at?->format('d M Y H:i') ?: 'belum pernah' }}
-                    — <a href="{{ route('items.label', $item) }}" target="_blank" class="text-blue-700 hover:underline">re-print stiker</a>
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+                    <span>Label terakhir dicetak: {{ $item->last_label_printed_at?->format('d M Y H:i') ?: 'belum pernah' }}</span>
+                    <a href="{{ route('items.label', $item) }}" target="_blank" class="inline-flex min-h-8 items-center justify-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                        <span class="material-icons-round text-sm" aria-hidden="true">print</span> Re-print stiker
+                    </a>
                 </div>
             </div>
 
@@ -124,36 +126,46 @@
                 @else
                     <p class="mb-2 text-[11px] text-slate-400 md:hidden">Geser tabel ke samping untuk melihat semua kolom.</p>
                     <div class="overflow-x-auto">
-                        <table class="w-full min-w-[640px] text-sm">
-                            <thead class="text-xs uppercase text-gray-400">
+                        <table class="w-full min-w-[700px] table-fixed text-sm">
+                            <colgroup>
+                                <col class="w-[18%]">
+                                <col class="w-[20%]">
+                                <col class="w-[19%]">
+                                <col class="w-[12%]">
+                                <col class="w-[16%]">
+                                <col class="w-[15%]">
+                            </colgroup>
+                            <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                                 <tr>
-                                    <th class="whitespace-nowrap text-left py-2">Peminjam</th>
-                                    <th class="whitespace-nowrap text-left py-2">Tujuan</th>
-                                    <th class="whitespace-nowrap text-left py-2">Periode</th>
-                                    <th class="whitespace-nowrap text-center py-2">Qty</th>
-                                    <th class="whitespace-nowrap text-center py-2">Kondisi Kembali</th>
-                                    <th class="whitespace-nowrap text-center py-2">Status</th>
+                                    <th scope="col" class="px-3 py-3 text-left">Peminjam</th>
+                                    <th scope="col" class="px-3 py-3 text-left">Tujuan</th>
+                                    <th scope="col" class="px-3 py-3 text-left">Periode</th>
+                                    <th scope="col" class="px-2 py-3 text-center">Qty</th>
+                                    <th scope="col" class="px-2 py-3 text-center">Kondisi Kembali</th>
+                                    <th scope="col" class="px-2 py-3 text-center">Status</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                                 @foreach ($loanHistory as $li)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="py-2">
-                                            <a href="{{ route('loans.show', $li->loan) }}" class="text-gray-700 hover:text-blue-700 font-medium">{{ $li->loan?->borrower?->name }}</a>
-                                            <div class="text-[11px] text-gray-400">{{ $li->loan?->event?->name ?: '—' }}</div>
+                                    <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                                        <td class="truncate px-3 py-4">
+                                            <a href="{{ route('loans.show', $li->loan) }}" class="font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $li->loan?->borrower?->name }}</a>
+                                            <div class="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">{{ $li->loan?->event?->name ?: '—' }}</div>
                                         </td>
-                                        <td class="py-2 text-xs text-gray-500">{{ \Illuminate\Support\Str::limit($li->loan?->purpose, 40) }}</td>
-                                        <td class="py-2 text-xs text-gray-500">{{ $li->loan?->start_date?->format('d/m/Y') }} → {{ $li->loan?->due_date?->format('d/m/Y') }}</td>
-                                        <td class="py-2 text-center text-xs">{{ $li->qty_borrowed }} / {{ $li->qty_returned ?? '—' }}</td>
-                                        <td class="py-2 text-center text-xs">
+                                        <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $li->loan?->purpose }}">{{ \Illuminate\Support\Str::limit($li->loan?->purpose, 40) }}</td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-xs text-slate-600 dark:text-slate-300">{{ $li->loan?->start_date?->format('d/m/Y') }} – {{ $li->loan?->due_date?->format('d/m/Y') }}</td>
+                                        <td class="px-2 py-4 text-center">
+                                            <span class="inline-flex min-w-12 justify-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $li->qty_borrowed }} / {{ $li->qty_returned ?? '—' }}</span>
+                                        </td>
+                                        <td class="px-2 py-4 text-center text-xs">
                                             @if ($li->condition_in)
-                                                <span class="{{ $li->condition_in->isDamaged() ? 'text-red-600 font-semibold' : 'text-green-700' }}">{{ $li->condition_in->label() }}</span>
+                                                <span class="inline-flex justify-center rounded-lg px-2 py-1 font-semibold {{ $li->condition_in->isDamaged() ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300' : 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' }}">{{ $li->condition_in->label() }}</span>
                                             @else
-                                                <span class="text-gray-300">—</span>
+                                                <span class="text-slate-400 dark:text-slate-500">—</span>
                                             @endif
                                         </td>
-                                        <td class="py-2 text-center">
-                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $li->loan?->status?->badgeClass() }}">{{ $li->loan?->status?->label() }}</span>
+                                        <td class="px-2 py-4 text-center">
+                                            <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $li->loan?->status?->badgeClass() }}">{{ $li->loan?->status?->label() }}</span>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -196,7 +208,7 @@
                     </div>
                 </div>
                 <a href="{{ route('items.label', $item) }}" target="_blank"
-                   class="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-700 font-semibold hover:underline">
+                   class="mt-3 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                     <span class="material-icons-round text-lg">print</span> Cetak / Re-print Stiker
                 </a>
             </div>
@@ -221,7 +233,7 @@
                         @endforeach
                     </ul>
                 @endif
-                <a href="{{ route('loans.create') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-700 font-semibold hover:underline">
+                <a href="{{ route('loans.create') }}" class="mt-3 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                     <span class="material-icons-round text-lg">add_shopping_cart</span> Ajukan Peminjaman
                 </a>
             </div>

@@ -19,16 +19,28 @@
         </div>
     </div>
 
-    <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="relative lg:col-span-2">
+    @php($selectedFilterCount = collect([$building, $floor, $room, $condition, $status, $year])->filter(fn ($value) => $value !== '')->count())
+    <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <div class="relative min-w-0 flex-1">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true">search</span>
                 <input type="text" wire:model.live.debounce.350ms="search"
                        placeholder="Cari kode inventaris atau nama barang"
                        aria-label="Cari kode inventaris atau nama barang"
                        class="w-full rounded-xl border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
+            <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen" aria-controls="specification-units-filter-panel"
+                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
+                <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
+                Filter
+                @if ($selectedFilterCount > 0)
+                    <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $selectedFilterCount }}</span>
+                @endif
+            </button>
+        </div>
 
+        <div id="specification-units-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <select wire:model.live="building" aria-label="Filter gedung" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
                 <option value="">Semua gedung</option>
                 @foreach ($buildings as $buildingOption)
@@ -67,6 +79,7 @@
             <input type="number" wire:model.live.debounce.400ms="year" min="1990" max="{{ now()->year + 1 }}"
                    placeholder="Tahun pengadaan" aria-label="Filter tahun pengadaan"
                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+          </div>
         </div>
 
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
@@ -88,7 +101,7 @@
                             <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Kode inventaris</p>
                             <p class="break-all font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</p>
                         </div>
-                        <a href="{{ route('units.show', $unit) }}" class="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 hover:underline dark:text-brand-300 dark:hover:bg-slate-800">Detail →</a>
+                        <a href="{{ route('units.show', $unit) }}" class="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-brand-600 bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:border-brand-700 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-brand-500 dark:bg-brand-500 dark:hover:border-brand-400 dark:hover:bg-brand-400 dark:focus:ring-offset-slate-900">Detail</a>
                     </div>
                     <p class="mt-2 text-sm text-slate-700 dark:text-slate-300">
                         Gedung {{ $unit->room?->building_letter }}, Lantai {{ $unit->room?->floor }}, Ruang {{ str_pad((string) $unit->room?->room_no, 2, '0', STR_PAD_LEFT) }}
@@ -106,38 +119,50 @@
         </div>
 
         <div class="hidden overflow-x-auto lg:block">
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
+            <table class="w-full min-w-[980px] table-fixed text-sm">
+                <colgroup>
+                    <col class="w-[6%]">
+                    <col class="w-[17%]">
+                    <col class="w-[12%]">
+                    <col class="w-[23%]">
+                    <col class="w-[12%]">
+                    <col class="w-[12%]">
+                    <col class="w-[9%]">
+                    <col class="w-[9%]">
+                </colgroup>
+                <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-400">
                     <tr>
-                        <th class="px-4 py-3 text-left">No.</th>
-                        <th class="px-4 py-3 text-left">Kode inventaris</th>
-                        <th class="px-4 py-3 text-left">Gedung</th>
-                        <th class="px-4 py-3 text-left">Ruangan</th>
-                        <th class="px-4 py-3 text-left">Kondisi</th>
-                        <th class="px-4 py-3 text-left">Status</th>
-                        <th class="px-4 py-3 text-left">Pengadaan</th>
-                        <th class="px-4 py-3 text-right">Aksi</th>
+                        <th scope="col" class="px-3 py-3.5 text-center">No.</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Kode inventaris</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Gedung</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Ruangan</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Kondisi</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Status</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Pengadaan</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800" wire:loading.class="opacity-60">
                     @forelse ($units as $index => $unit)
-                        <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                            <td class="px-4 py-3 text-xs tabular-nums text-slate-500 dark:text-slate-400">{{ $units->firstItem() + $index }}</td>
-                            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
-                            <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">Gedung {{ $unit->room?->building_letter }}</td>
-                            <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
+                        <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                            <td class="px-3 py-4 text-center text-xs tabular-nums text-slate-500 dark:text-slate-400">{{ $units->firstItem() + $index }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
+                            <td class="px-3 py-4 text-xs text-slate-600 dark:text-slate-300">Gedung {{ $unit->room?->building_letter }}</td>
+                            <td class="px-3 py-4 text-xs text-slate-600 dark:text-slate-300">
                                 Lantai {{ $unit->room?->floor }}, Ruang {{ str_pad((string) $unit->room?->room_no, 2, '0', STR_PAD_LEFT) }}
-                                <div class="text-slate-400 dark:text-slate-500">{{ $unit->room?->name }}</div>
+                                <div class="mt-0.5 truncate text-slate-400 dark:text-slate-500" title="{{ $unit->room?->name }}">{{ $unit->room?->name }}</div>
                             </td>
-                            <td class="px-4 py-3">
-                                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $unit->condition->label() }}</span>
+                            <td class="px-2 py-4 text-center">
+                                <span class="inline-flex justify-center rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $unit->condition->label() }}</span>
                             </td>
-                            <td class="px-4 py-3">
-                                <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
+                            <td class="px-2 py-4 text-center">
+                                <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-semibold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
                             </td>
-                            <td class="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">{{ $unit->acquisition_year ?: '—' }}</td>
-                            <td class="px-4 py-3 text-right">
-                                <a href="{{ route('units.show', $unit) }}" class="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 hover:underline dark:text-brand-300 dark:hover:bg-slate-800">Detail</a>
+                            <td class="px-2 py-4 text-center">
+                                <span class="inline-flex min-w-10 justify-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $unit->acquisition_year ?: '—' }}</span>
+                            </td>
+                            <td class="px-2 py-4 text-center">
+                                <a href="{{ route('units.show', $unit) }}" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-brand-600 bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:border-brand-700 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-brand-500 dark:bg-brand-500 dark:hover:border-brand-400 dark:hover:bg-brand-400 dark:focus:ring-offset-slate-900">Detail</a>
                             </td>
                         </tr>
                     @empty

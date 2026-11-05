@@ -41,7 +41,7 @@
                     <label for="label-search" class="sr-only">Cari kode unit atau nama barang</label>
                     <div class="relative min-w-0 flex-1">
                         <span class="material-icons-round pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true">search</span>
-                        <input id="label-search" type="search" name="search" value="{{ request('search') }}" placeholder="Cari kode unit, contoh: G1-02-12"
+                        <input id="label-search" type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama barang atau kode unit, contoh: Helm Las / G1-02-12"
                                class="min-h-10 w-full rounded-xl border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                     </div>
                     <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen" aria-controls="label-filter-panel"
@@ -177,53 +177,63 @@
                 </div>
 
                 <div class="max-h-[60vh] overflow-auto">
-                    <table class="w-full min-w-[860px] border-separate border-spacing-0 text-sm">
+                    <table class="w-full min-w-[900px] table-fixed border-separate border-spacing-0 text-sm">
+                        <colgroup>
+                            <col class="w-[5%]">
+                            <col class="w-[16%]">
+                            <col class="w-[21%]">
+                            <col class="w-[21%]">
+                            <col class="w-[12%]">
+                            <col class="w-[12%]">
+                            <col class="w-[9%]">
+                            <col class="w-[4%]">
+                        </colgroup>
                         <thead class="sticky top-0 z-10 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 shadow-[inset_0_-1px_0_0_#e2e8f0] dark:bg-slate-800 dark:text-slate-400 dark:shadow-[inset_0_-1px_0_0_#334155]">
                             <tr>
-                                <th class="w-12 px-4 py-3"></th>
-                                <th class="px-4 py-3 text-left">Kode Inventaris</th>
-                                <th class="px-4 py-3 text-left">Nama Barang</th>
-                                <th class="px-4 py-3 text-left">Lokasi</th>
-                                <th class="px-4 py-3 text-left">Kondisi</th>
-                                <th class="px-4 py-3 text-left">Status</th>
-                                <th class="px-4 py-3 text-center">Cetak Terakhir</th>
-                                <th class="px-4 py-3 text-center">Satuan</th>
+                                <th scope="col" class="w-12 px-3 py-3"></th>
+                                <th scope="col" class="px-3 py-3 text-left">Kode Inventaris</th>
+                                <th scope="col" class="px-3 py-3 text-left">Nama Barang</th>
+                                <th scope="col" class="px-3 py-3 text-left">Lokasi</th>
+                                <th scope="col" class="px-2 py-3 text-center">Kondisi</th>
+                                <th scope="col" class="px-2 py-3 text-center">Status</th>
+                                <th scope="col" class="px-3 py-3 text-center">Cetak Terakhir</th>
+                                <th scope="col" class="px-3 py-3 text-center">Satuan</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($units as $unit)
                                 <tr class="group transition-colors hover:bg-sky-50/60 dark:hover:bg-slate-800/70">
-                                    <td class="border-b border-slate-100 px-4 py-3 text-center dark:border-slate-800">
+                                    <td class="border-b border-slate-100 px-3 py-3 text-center dark:border-slate-800">
                                         <input type="checkbox" name="unit_ids[]" value="{{ $unit->id }}" aria-label="Pilih unit {{ $unit->inventory_code }}"
                                                class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950"
                                                onchange="updateLabelCount()"
                                                @checked(in_array($unit->id, old('unit_ids', [])))>
                                     </td>
-                                    <td class="whitespace-nowrap border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                                    <td class="whitespace-nowrap border-b border-slate-100 px-3 py-3 dark:border-slate-800">
                                         <span class="inline-flex rounded-md bg-slate-100 px-2 py-1 font-mono text-xs font-bold tracking-tight text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $unit->inventory_code }}</span>
                                     </td>
-                                    <td class="min-w-[180px] border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                                    <td class="min-w-[180px] border-b border-slate-100 px-3 py-3 dark:border-slate-800">
                                         <a href="{{ route('units.show', $unit) }}" class="font-semibold text-slate-800 transition-colors group-hover:text-brand-700 dark:text-slate-100 dark:group-hover:text-brand-300">{{ $unit->catalog?->name }}</a>
                                         <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $unit->catalog?->category?->name ?: 'Tanpa kategori' }}</div>
                                     </td>
-                                    <td class="min-w-[190px] border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                                    <td class="min-w-[190px] border-b border-slate-100 px-3 py-3 dark:border-slate-800">
                                         <div class="flex items-start gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-200">
                                             <span class="material-icons-round mt-0.5 text-sm text-slate-400" aria-hidden="true">location_on</span>
                                             <span>Gedung {{ $unit->room?->building_letter }}, Lantai {{ $unit->room?->floor }}, Ruang {{ str_pad((string) $unit->room?->room_no, 2, '0', STR_PAD_LEFT) }}</span>
                                         </div>
                                         <div class="mt-0.5 pl-5 text-xs text-slate-500 dark:text-slate-400">{{ $unit->room?->name ?: 'Lokasi belum diatur' }}</div>
                                     </td>
-                                    <td class="whitespace-nowrap border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-                                        <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-200 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-800' : ($unit->condition === \App\Enums\Condition::RUSAK_RINGAN ? 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:ring-yellow-800' : 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:ring-orange-800') }}">
+                                    <td class="whitespace-nowrap border-b border-slate-100 px-2 py-3 text-center dark:border-slate-800">
+                                        <span class="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-semibold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-200 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-800' : ($unit->condition === \App\Enums\Condition::RUSAK_RINGAN ? 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:ring-yellow-800' : 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:ring-orange-800') }}">
                                             <span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>
                                             {{ $unit->condition->label() }}
                                         </span>
                                     </td>
-                                    <td class="whitespace-nowrap border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-                                        <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
+                                    <td class="whitespace-nowrap border-b border-slate-100 px-2 py-3 text-center dark:border-slate-800">
+                                        <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-semibold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
                                     </td>
-                                    <td class="whitespace-nowrap border-b border-slate-100 px-4 py-3 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">{{ $unit->last_label_printed_at?->format('d/m/Y') ?: 'Belum pernah' }}</td>
-                                    <td class="border-b border-slate-100 px-4 py-3 text-center dark:border-slate-800">
+                                    <td class="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">{{ $unit->last_label_printed_at?->format('d/m/Y') ?: 'Belum pernah' }}</td>
+                                    <td class="border-b border-slate-100 px-3 py-3 text-center dark:border-slate-800">
                                         <a href="{{ route('units.label', $unit) }}" target="_blank" title="Cetak label satuan / re-print" aria-label="Cetak label unit {{ $unit->inventory_code }}"
                                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-brand-800 dark:hover:bg-brand-900/40 dark:hover:text-brand-300">
                                             <span class="material-icons-round text-lg" aria-hidden="true">print</span>

@@ -267,7 +267,7 @@
                     description="Lihat status dan jadwal barang yang Anda pinjam."
                 >
                     <x-slot name="actions">
-                        <a href="{{ route('loans.index') }}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300">
+                        <a href="{{ route('loans.index') }}" class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                             Lihat riwayat
                             <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
                         </a>

@@ -316,7 +316,7 @@
                                     <span class="material-icons-round shrink-0 text-sm" aria-hidden="true">close</span>
                                 </a>
                             @endforeach
-                            <a href="{{ route('loans.show', $loan) }}" class="px-1 text-[11px] font-semibold text-brand-700 underline dark:text-brand-300">Hapus semua</a>
+                            <a href="{{ route('loans.show', $loan) }}" class="inline-flex min-h-7 items-center justify-center rounded-md bg-brand-600 px-2 py-0.5 text-[10px] font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:focus:ring-offset-slate-900">Hapus semua</a>
                         </div>
                     @endif
                   </div>
@@ -333,14 +333,21 @@
                     @if ($unitAssignments->isNotEmpty())
                         <div role="region" aria-label="Daftar unit barang" tabindex="0"
                              class="max-h-[26rem] overflow-auto overscroll-contain border-y border-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800">
-                            <table class="w-full min-w-[680px] text-left text-xs">
-                            <thead class="sticky top-0 z-10 bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-slate-500 shadow-[inset_0_-1px_0_0_#e2e8f0] dark:bg-slate-800 dark:text-slate-400 dark:shadow-[inset_0_-1px_0_0_#334155]">
+                            <table class="w-full min-w-[720px] table-fixed text-left text-xs">
+                            <colgroup>
+                                <col class="w-[38%]">
+                                <col class="w-[19%]">
+                                <col class="w-[14%]">
+                                <col class="w-[15%]">
+                                <col class="w-[14%]">
+                            </colgroup>
+                            <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                                 <tr>
-                                    <th class="px-4 py-3">Kode unit</th>
-                                    <th class="px-4 py-3">Lokasi</th>
-                                    <th class="px-4 py-3">Kondisi</th>
-                                    <th class="px-4 py-3">Dikembalikan</th>
-                                    <th class="px-4 py-3">Status</th>
+                                    <th scope="col" class="px-3 py-3">Kode unit</th>
+                                    <th scope="col" class="px-3 py-3">Lokasi</th>
+                                    <th scope="col" class="px-2 py-3 text-center">Kondisi</th>
+                                    <th scope="col" class="px-3 py-3">Dikembalikan</th>
+                                    <th scope="col" class="px-2 py-3 text-center">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -354,7 +361,7 @@
                                     $damagePhoto = $assignment->damage_photo_path;
                                 @endphp
                                 <tr class="align-top transition hover:bg-slate-50/70 dark:hover:bg-slate-800/40 {{ $damagePhoto ? 'bg-red-50/30 dark:bg-red-950/10' : '' }}">
-                                    <td class="max-w-[18rem] px-4 py-3">
+                                    <td class="max-w-[18rem] px-3 py-4">
                                         <div class="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-100">{{ $unit?->inventory_code ?? '-' }}</div>
                                         <div class="mt-1 truncate font-semibold text-slate-700 dark:text-slate-200">{{ $loanItem?->item?->name ?? '-' }}</div>
                                         <div class="truncate text-[11px] text-slate-500 dark:text-slate-400" title="{{ $specification }}">{{ $specification }}</div>
@@ -375,8 +382,9 @@
                                                         'notes' => $assignment->return_notes,
                                                         'officer' => $assignment->confirmer?->name,
                                                     ]) }})"
-                                                    class="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-red-700 hover:underline dark:text-red-300">
-                                                <span class="material-icons-round text-[13px]" aria-hidden="true">photo_camera</span>                                                 Lihat foto bukti kerusakan
+                                                    class="mt-2 inline-flex min-h-8 items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 text-[10px] font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">
+                                                <span class="material-icons-round text-[13px]" aria-hidden="true">photo_camera</span>
+                                                Lihat foto bukti kerusakan
                                             </button>
                                         @elseif ($damagePhoto)
                                             <p class="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-red-700 dark:text-red-300">
@@ -384,21 +392,21 @@
                                             </p>
                                         @endif
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">{{ $unit?->locationLabel() ?? '-' }}</td>
-                                    <td class="whitespace-nowrap px-4 py-3">
-                                        <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ ($assignment->condition_in ?? $unit?->condition)?->isDamaged() ? 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300' }}">
+                                    <td class="truncate px-3 py-4 text-slate-600 dark:text-slate-300" title="{{ $unit?->locationLabel() ?? '-' }}">{{ $unit?->locationLabel() ?? '-' }}</td>
+                                    <td class="whitespace-nowrap px-2 py-4 text-center">
+                                        <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ ($assignment->condition_in ?? $unit?->condition)?->isDamaged() ? 'bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300' : 'bg-green-50 text-green-700 dark:bg-green-950/60 dark:text-green-300' }}">
                                             {{ ($assignment->condition_in ?? $unit?->condition)?->label() ?? '—' }}
                                         </span>
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    <td class="whitespace-nowrap px-3 py-4 text-slate-600 dark:text-slate-300">
                                         @if ($checkedAt)
                                             {{ $checkedAt->format('d M Y H:i') }}
                                         @else
                                             <span class="text-slate-400 dark:text-slate-500">Belum kembali</span>
                                         @endif
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-3">
-                                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ ($assignment->return_status ?? \App\Enums\ReturnStatus::BELUM_DIPERIKSA)->label() }}</span>
+                                    <td class="whitespace-nowrap px-2 py-4 text-center">
+                                        <span class="inline-flex justify-center rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ ($assignment->return_status ?? \App\Enums\ReturnStatus::BELUM_DIPERIKSA)->label() }}</span>
                                     </td>
                                 </tr>
                             @endforeach
@@ -495,7 +503,7 @@
                                                     <span class="mt-1 block break-all font-mono text-[10px] text-slate-500 dark:text-slate-400">{{ $li->item?->internal_id }}</span>
                                                 </td>
                                                 <td class="px-2 py-2.5 text-slate-600 dark:text-slate-300">{{ $li->item?->room?->code ?: '—' }}</td>
-                                                <td class="px-2 py-2.5 text-center">
+                                                <td class="px-2 py-3 text-center">
                                                     <span class="block font-semibold text-slate-800 dark:text-slate-100">{{ $li->qty_borrowed }}</span>
                                                     <span class="mt-0.5 block text-[10px] text-slate-500 dark:text-slate-400">
                                                         @if ($li->qty_returned === null)
@@ -508,12 +516,14 @@
                                                         <span class="mt-1 inline-flex rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-300">HILANG {{ $li->missingQuantity() }}</span>
                                                     @endif
                                                 </td>
-                                                <td class="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300">{{ $li->condition_out->label() }}</td>
-                                                <td class="px-2 py-2.5 text-center">
+                                                <td class="px-2 py-3 text-center text-slate-600 dark:text-slate-300">
+                                                    <span class="inline-flex justify-center rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $li->condition_out->label() }}</span>
+                                                </td>
+                                                <td class="px-2 py-3 text-center">
                                                     @if ($li->condition_in)
-                                                        <span class="text-xs font-semibold {{ $li->condition_in->isDamaged() ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-300' }}">{{ $li->condition_in->label() }}</span>
+                                                        <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-semibold {{ $li->condition_in->isDamaged() ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300' : 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' }}">{{ $li->condition_in->label() }}</span>
                                                         @if ($li->damage_photo_path && $canViewDamagePhotos)
-                                                            <a href="{{ route('files.show', ['path' => $li->damage_photo_path]) }}" target="_blank" rel="noopener" class="mt-1 block text-[10px] text-brand-700 underline dark:text-brand-300">Foto bukti</a>
+                                                            <a href="{{ route('files.show', ['path' => $li->damage_photo_path]) }}" target="_blank" rel="noopener" class="mt-1 inline-flex min-h-7 items-center justify-center rounded-md bg-brand-600 px-2 py-0.5 text-[9px] font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:focus:ring-offset-slate-900">Foto bukti</a>
                                                         @endif
                                                     @else
                                                         <span class="text-slate-400 dark:text-slate-500">—</span>
@@ -795,7 +805,7 @@
                         @if ($loan->event->start_date || $loan->event->end_date)
                             <div class="text-xs text-slate-600 dark:text-slate-300">{{ $loan->event->start_date->format('d/m/Y') }} — {{ $loan->event->end_date->format('d/m/Y') }}</div>
                         @endif
-                        <a href="{{ route('events.show', $loan->event) }}" class="inline-flex min-h-8 items-center text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">Lihat rekap kegiatan →</a>
+                        <a href="{{ route('events.show', $loan->event) }}" class="mt-2 inline-flex min-h-8 items-center justify-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">Lihat rekap kegiatan</a>
                     </div>
                 @endif
                 @if ($loan->status === \App\Enums\LoanStatus::DITOLAK && $loan->reject_reason)

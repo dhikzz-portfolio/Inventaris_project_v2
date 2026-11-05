@@ -102,7 +102,7 @@
                             <span class="mt-1 block">Kata kunci pencarian bukan pembuatan barang. Barang baru harus diajukan
                                 melalui pengadaan dengan nama &amp; kategori yang sah — bukan dibuat otomatis dari teks pencarian.</span>
                             @if (auth()->user()->isSuperAdmin())
-                                <a href="{{ route('masters.index') }}" class="mt-1 inline-block font-semibold text-blue-700 hover:underline dark:text-blue-300">Kelola kategori di Data Sekolah →</a>
+                                <a href="{{ route('masters.index') }}" class="mt-2 inline-flex min-h-8 items-center justify-center rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">Kelola kategori di Data Sekolah</a>
                             @endif
                         </li>
                     </ul>
@@ -320,7 +320,7 @@
                 Ajukan Pengadaan
             </x-primary-button>
             <a href="{{ route('catalogs.index') }}"
-                class="text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300">Batal</a>
+                class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:focus:ring-offset-slate-900">Batal</a>
         </div>
     </form>
 

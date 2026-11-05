@@ -13,7 +13,7 @@
                     {{ $catalog->category?->name }} • {{ $catalog->name }} • Daftar unit inventaris
                 </p>
             </div>
-            <a href="{{ route('catalogs.show', $catalog) }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">← Semua spesifikasi</a>
+            <a href="{{ route('catalogs.show', $catalog) }}" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">← Semua spesifikasi</a>
         </div>
     </x-slot>
 

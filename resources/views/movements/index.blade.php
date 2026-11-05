@@ -22,16 +22,16 @@
           class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="mb-3">
             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Filter Unit</h3>
-            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Cari kode unit atau gunakan filter lanjutan.</p>
+            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Cari nama barang atau kode unit, atau gunakan filter lanjutan.</p>
         </div>
 
         <div class="flex items-end gap-2">
             <div class="min-w-0 flex-1">
-                <label for="movement-search" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Cari kode unit</label>
+                <label for="movement-search" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Cari kode unit atau nama barang</label>
                 <div class="relative">
                     <span class="material-icons-round pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true">search</span>
-                    <input id="movement-search" type="search" name="search" value="{{ $filters['search'] }}" placeholder="Cari kode unit, contoh: G1-02-12"
-                           class="min-h-10 w-full rounded-xl border-slate-200 bg-white py-2 pl-10 pr-3 font-mono text-sm uppercase text-slate-800 placeholder:font-sans placeholder:normal-case placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                    <input id="movement-search" type="search" name="search" value="{{ $filters['search'] }}" placeholder="Cari nama barang atau kode unit, contoh: Server Rack / G1-02-12"
+                           class="min-h-10 w-full rounded-xl border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                 </div>
             </div>
             <button type="button" @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen.toString()"
@@ -136,36 +136,44 @@
                     <p class="w-full text-[11px] font-normal text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
                 </div>
                 <div class="max-h-[60vh] overflow-auto">
-                    <table class="w-full min-w-[760px] text-sm">
-                        <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                    <table class="w-full min-w-[820px] table-fixed text-sm">
+                        <colgroup>
+                            <col class="w-[6%]">
+                            <col class="w-[20%]">
+                            <col class="w-[24%]">
+                            <col class="w-[23%]">
+                            <col class="w-[14%]">
+                            <col class="w-[13%]">
+                        </colgroup>
+                        <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                             <tr>
-                                <th class="w-10 px-3 py-2.5"></th>
-                                <th class="px-3 py-2.5 text-left">Kode Inventaris</th>
-                                <th class="px-3 py-2.5 text-left">Barang</th>
-                                <th class="px-3 py-2.5 text-left">Lokasi Asal</th>
-                                <th class="px-3 py-2.5 text-left">Kondisi</th>
-                                <th class="px-3 py-2.5 text-left">Status</th>
+                                <th scope="col" class="px-2 py-3 text-center"></th>
+                                <th scope="col" class="px-3 py-3 text-left">Kode Inventaris</th>
+                                <th scope="col" class="px-3 py-3 text-left">Barang</th>
+                                <th scope="col" class="px-3 py-3 text-left">Lokasi Asal</th>
+                                <th scope="col" class="px-2 py-3 text-center">Kondisi</th>
+                                <th scope="col" class="px-2 py-3 text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                             @forelse ($units as $unit)
                                 <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                                    <td class="px-3 py-2.5">
+                                    <td class="px-2 py-3 text-center">
                                         <input type="checkbox" value="{{ $unit->id }}" x-model="selected"
                                                aria-label="Pilih unit {{ $unit->inventory_code }}"
                                                class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600">
                                     </td>
-                                    <td class="px-3 py-2.5 font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
-                                    <td class="px-3 py-2.5">
+                                    <td class="whitespace-nowrap px-3 py-3 font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
+                                    <td class="px-3 py-3">
                                         <div class="font-medium text-slate-700 dark:text-slate-200">{{ $unit->catalog?->name }}</div>
                                         <div class="text-[10px] text-slate-400 dark:text-slate-500">{{ $unit->catalog?->category?->name }}</div>
                                     </td>
-                                    <td class="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">{{ $unit->locationLabel() }}</td>
-                                    <td class="px-3 py-2.5">
-                                        <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300' }}">{{ $unit->condition->label() }}</span>
+                                    <td class="truncate px-3 py-3 text-xs text-slate-500 dark:text-slate-400" title="{{ $unit->locationLabel() }}">{{ $unit->locationLabel() }}</td>
+                                    <td class="px-2 py-3 text-center">
+                                        <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' }}">{{ $unit->condition->label() }}</span>
                                     </td>
-                                    <td class="px-3 py-2.5">
-                                        <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
+                                    <td class="px-2 py-3 text-center">
+                                        <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
                                     </td>
                                 </tr>
                             @empty
@@ -221,13 +229,13 @@
                                     <p class="text-xs font-bold text-slate-800 dark:text-slate-100">
                                         Tujuan: <span x-text="roomLabels[group.roomId] || group.roomId"></span>
                                     </p>
-                                    <button type="button" @click="removeGroup(groupIndex)" class="text-[11px] font-semibold text-red-600 hover:underline dark:text-red-400">Hapus</button>
+                                    <button type="button" @click="removeGroup(groupIndex)" class="inline-flex min-h-7 items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[10px] font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">Hapus</button>
                                 </div>
                                 <div class="flex flex-wrap gap-1">
                                     <template x-for="unitId in group.unitIds" :key="`${group.roomId}-${unitId}`">
                                         <span class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-200">
                                             <span x-text="unitOptions[unitId]?.code || unitId"></span>
-                                            <button type="button" @click="removeUnit(groupIndex, unitId)" class="text-slate-400 hover:text-red-600" aria-label="Keluarkan unit dari tujuan">×</button>
+                                            <button type="button" @click="removeUnit(groupIndex, unitId)" class="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-100 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 dark:hover:bg-red-950/50 dark:hover:text-red-300" aria-label="Keluarkan unit dari tujuan">×</button>
                                         </span>
                                     </template>
                                 </div>

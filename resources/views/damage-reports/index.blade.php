@@ -104,35 +104,44 @@
 
     <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[860px] text-sm">
-                <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            <table class="w-full min-w-[900px] table-fixed text-sm">
+                <colgroup>
+                    <col class="w-[15%]">
+                    <col class="w-[22%]">
+                    <col class="w-[12%]">
+                    <col class="w-[14%]">
+                    <col class="w-[14%]">
+                    <col class="w-[12%]">
+                    <col class="w-[11%]">
+                </colgroup>
+                <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                     <tr>
-                        <th class="px-4 py-2.5 text-left">Unit</th>
-                        <th class="px-4 py-2.5 text-left">Barang</th>
-                        <th class="px-4 py-2.5 text-left">Lokasi</th>
-                        <th class="px-4 py-2.5 text-left">Klasifikasi</th>
-                        <th class="px-4 py-2.5 text-left">Status</th>
-                        <th class="px-4 py-2.5 text-left">Pelapor</th>
-                        <th class="px-4 py-2.5 text-left">Tanggal</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Unit</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Barang</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Lokasi</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Klasifikasi</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Status</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Pelapor</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Tanggal</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     @forelse ($reports as $report)
-                        <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                            <td class="px-4 py-2.5 font-mono text-xs text-slate-700 dark:text-slate-200">{{ $report->unit?->inventory_code }}</td>
-                            <td class="px-4 py-2.5">
+                        <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
+                            <td class="whitespace-nowrap px-3 py-4 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">{{ $report->unit?->inventory_code }}</td>
+                            <td class="px-3 py-4">
                                 <a href="{{ route('damage-reports.show', $report) }}" class="font-semibold text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $report->unit?->catalog?->name }}</a>
-                                <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ $report->unit?->specification?->displayName() }}</div>
+                                <div class="truncate text-[11px] text-slate-500 dark:text-slate-400" title="{{ $report->unit?->specification?->displayName() }}">{{ $report->unit?->specification?->displayName() }}</div>
                             </td>
-                            <td class="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300">{{ $report->unit?->room?->code }}</td>
-                            <td class="px-4 py-2.5">
-                                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $report->classification->badgeClass() }}">{{ $report->classification->label() }}</span>
+                            <td class="px-3 py-4 text-xs text-slate-600 dark:text-slate-300">{{ $report->unit?->room?->code }}</td>
+                            <td class="px-2 py-4 text-center">
+                                <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $report->classification->badgeClass() }}">{{ $report->classification->label() }}</span>
                             </td>
-                            <td class="px-4 py-2.5">
-                                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $report->status->badgeClass() }}">{{ $report->status->label() }}</span>
+                            <td class="px-2 py-4 text-center">
+                                <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $report->status->badgeClass() }}">{{ $report->status->label() }}</span>
                             </td>
-                            <td class="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300">{{ $report->reporter?->name }}</td>
-                            <td class="px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400">{{ $report->created_at->format('d M Y H:i') }}</td>
+                            <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $report->reporter?->name }}">{{ $report->reporter?->name }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-xs text-slate-500 dark:text-slate-400">{{ $report->created_at->format('d M Y H:i') }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">Belum ada laporan kerusakan pada ruang lingkup Anda.</td></tr>

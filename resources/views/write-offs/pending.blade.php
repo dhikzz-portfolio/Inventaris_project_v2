@@ -132,39 +132,48 @@
                 @endforeach
             </div>
             <div class="hidden overflow-x-auto xl:block">
-            <table class="w-full min-w-[820px] text-sm">
-                <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
+            <table class="w-full min-w-[860px] table-fixed text-sm">
+                <colgroup>
+                    <col class="w-[25%]">
+                    <col class="w-[10%]">
+                    <col class="w-[14%]">
+                    <col class="w-[25%]">
+                    <col class="w-[26%]">
+                </colgroup>
+                <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-400">
                     <tr>
-                        <th class="text-left px-5 py-2.5">Barang</th>
-                        <th class="text-center px-5 py-2.5">Qty</th>
-                        <th class="text-center px-5 py-2.5">Status</th>
-                        <th class="text-left px-5 py-2.5">Catatan</th>
-                        <th class="text-left px-5 py-2.5">Keputusan</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Barang</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Qty</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Status</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Catatan</th>
+                        <th scope="col" class="px-3 py-3.5 text-left">Keputusan</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     @foreach ($decided as $wo)
-                        <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                            <td class="px-5 py-2.5">
+                        <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
+                            <td class="px-3 py-4">
                                 @if ($wo->item)
-                                    <a href="{{ route('items.show', $wo->item) }}" class="font-medium text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $wo->item->name }}</a>
+                                    <a href="{{ route('items.show', $wo->item) }}" class="font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $wo->item->name }}</a>
                                     <div class="font-mono text-[11px] text-slate-400 dark:text-slate-500">{{ $wo->item->internal_id }}</div>
                                 @else
                                     <span class="text-slate-500">Pengajuan inventaris keluar</span>
                                 @endif
                             </td>
-                            <td class="px-5 py-2.5 text-center text-xs text-slate-600 dark:text-slate-300">{{ $wo->quantity }}</td>
-                            <td class="px-5 py-2.5 text-center">
+                            <td class="px-2 py-4 text-center">
+                                <span class="inline-flex min-w-9 justify-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $wo->quantity }}</span>
+                            </td>
+                            <td class="px-2 py-4 text-center">
                                 @if ($wo->status === 'APPROVED')
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300">DIHAPUS</span>
+                                    <span class="inline-flex justify-center rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-300">DIHAPUS</span>
                                 @else
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">DITOLAK</span>
+                                    <span class="inline-flex justify-center rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">DITOLAK</span>
                                 @endif
                             </td>
-                            <td class="max-w-[220px] px-5 py-2.5 text-xs text-slate-500 dark:text-slate-400">{{ $wo->decision_note ?: '—' }}</td>
-                            <td class="px-5 py-2.5 text-xs text-slate-500 dark:text-slate-400">
+                            <td class="max-w-[220px] px-3 py-4 text-xs text-slate-600 dark:text-slate-300">{{ $wo->decision_note ?: '—' }}</td>
+                            <td class="px-3 py-4 text-xs text-slate-600 dark:text-slate-300">
                                 {{ $wo->approver?->name }}
-                                <div class="text-slate-400 dark:text-slate-500">{{ $wo->updated_at->format('d M Y H:i') }}</div>
+                                <div class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">{{ $wo->updated_at->format('d M Y H:i') }}</div>
                             </td>
                         </tr>
                     @endforeach

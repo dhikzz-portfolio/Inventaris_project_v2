@@ -5,7 +5,7 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Distribusi barang</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Bagikan unit berdasarkan katalog, merek, dan tipe/model ke lokasi tujuan.</p>
             </div>
-            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">← Katalog barang</a>
+            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">← Katalog barang</a>
         </div>
     </x-slot>
 

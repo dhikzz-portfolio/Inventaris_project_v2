@@ -23,7 +23,7 @@ class MovementController extends Controller
 {
     /**
      * Mutasi dilakukan per unit fisik. Daftar unit mendukung pencarian kode
-     * dan filter jenis, gedung, lantai, ruangan, kondisi, serta status.
+     * atau nama barang dan filter jenis, gedung, lantai, ruangan, kondisi, serta status.
      */
     public function index(Request $request): View
     {
@@ -37,7 +37,11 @@ class MovementController extends Controller
             ->with(['catalog.category', 'room.building'])
             ->when($filters['search'] !== '', function ($query) use ($filters) {
                 $term = strtoupper(trim($filters['search']));
-                $query->where('inventory_code', 'like', $term.'%');
+                $query->where(function ($searchQuery) use ($term): void {
+                    $searchQuery->where('inventory_code', 'like', $term.'%')
+                        ->orWhereHas('catalog', fn ($catalog) => $catalog
+                            ->whereRaw('UPPER(name) LIKE ?', ['%'.$term.'%']));
+                });
             })
             ->when($filters['catalog'] !== '', fn ($query) => $query->where('item_catalog_id', (int) $filters['catalog']))
             ->when($filters['building'] !== '', fn ($query) => $query->whereHas(

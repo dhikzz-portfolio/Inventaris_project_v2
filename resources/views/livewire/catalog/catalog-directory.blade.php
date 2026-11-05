@@ -1,49 +1,64 @@
 <div>
-    <div class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            <div class="relative col-span-full">
+    @php($selectedFilterCount = collect([$category, $building, $floor, $room, $availability])->filter(fn ($value) => $value !== '')->count())
+
+    <div x-data="{ filtersOpen: false }" class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <div class="relative min-w-0 flex-1">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">search</span>
                 <input type="text" wire:model.live.debounce.400ms="search"
                        placeholder="Cari nama barang atau kode unit"
                        aria-label="Cari katalog barang"
                        class="w-full rounded-xl border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
+            <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen" aria-controls="catalog-filter-panel"
+                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
+                <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
+                Filter
+                @if ($selectedFilterCount > 0)
+                    <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $selectedFilterCount }}</span>
+                @endif
+            </button>
+        </div>
 
-            <select wire:model.live="category" aria-label="Filter kategori" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua kategori</option>
-                @foreach ($categories as $category)
-                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                @endforeach
-            </select>
+        <div id="catalog-filter-panel" x-show="filtersOpen" x-cloak x-transition
+             class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <select wire:model.live="category" aria-label="Filter kategori" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua kategori</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                    @endforeach
+                </select>
 
-            <select wire:model.live="building" aria-label="Filter gedung" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua gedung</option>
-                @foreach ($buildings as $buildingOption)
-                    <option value="{{ $buildingOption['code'] }}">{{ $buildingOption['name'] }}</option>
-                @endforeach
-            </select>
+                <select wire:model.live="building" aria-label="Filter gedung" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua gedung</option>
+                    @foreach ($buildings as $buildingOption)
+                        <option value="{{ $buildingOption['code'] }}">{{ $buildingOption['name'] }}</option>
+                    @endforeach
+                </select>
 
-            <select wire:model.live="floor" aria-label="Filter lantai" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua lantai</option>
-                @foreach ($floors as $floor)
-                    <option value="{{ $floor }}">Lantai {{ $floor }}</option>
-                @endforeach
-            </select>
+                <select wire:model.live="floor" aria-label="Filter lantai" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua lantai</option>
+                    @foreach ($floors as $floor)
+                        <option value="{{ $floor }}">Lantai {{ $floor }}</option>
+                    @endforeach
+                </select>
 
-            <select wire:model.live="room" aria-label="Filter ruangan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua ruangan</option>
-                @foreach ($rooms as $roomOption)
-                    <option value="{{ $roomOption->id }}">
-                        {{ $roomOption->building_letter }}{{ $roomOption->floor }}-{{ str_pad((string) $roomOption->room_no, 2, '0', STR_PAD_LEFT) }} — {{ $roomOption->name }}
-                    </option>
-                @endforeach
-            </select>
+                <select wire:model.live="room" aria-label="Filter ruangan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua ruangan</option>
+                    @foreach ($rooms as $roomOption)
+                        <option value="{{ $roomOption->id }}">
+                            {{ $roomOption->building_letter }}{{ $roomOption->floor }}-{{ str_pad((string) $roomOption->room_no, 2, '0', STR_PAD_LEFT) }} — {{ $roomOption->name }}
+                        </option>
+                    @endforeach
+                </select>
 
-            <select wire:model.live="availability" aria-label="Filter ketersediaan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua ketersediaan</option>
-                <option value="available">Ada unit tersedia</option>
-                <option value="empty">Tidak ada unit tersedia</option>
-            </select>
+                <select wire:model.live="availability" aria-label="Filter ketersediaan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                    <option value="">Semua ketersediaan</option>
+                    <option value="available">Ada unit tersedia</option>
+                    <option value="empty">Tidak ada unit tersedia</option>
+                </select>
+            </div>
         </div>
 
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">

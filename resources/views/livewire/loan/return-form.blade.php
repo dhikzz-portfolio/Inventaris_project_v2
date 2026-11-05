@@ -150,14 +150,26 @@
         </div>
 
         {{-- Pencarian, filter, dan scan untuk menemukan unit --}}
-        <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/40">
-            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                <div class="lg:col-span-2">
+        @php($selectedFilterCount = collect([$filterValidation, $filterCondition, $filterReturnState, $filterRoom])->filter(fn ($value) => $value !== '')->count())
+        <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <div class="min-w-0 flex-1">
                     <label for="return-search" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Cari unit</label>
                     <input id="return-search" type="search" wire:model.live.debounce.300ms="search"
                         placeholder="Barang, spesifikasi, kode, ruangan, catatan…"
                         class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 </div>
+                <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen" aria-controls="return-unit-filter-panel"
+                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 self-end rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
+                    <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
+                    Filter
+                    @if ($selectedFilterCount > 0)
+                        <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $selectedFilterCount }}</span>
+                    @endif
+                </button>
+            </div>
+            <div id="return-unit-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label for="return-filter-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status pemeriksaan</label>
                     <select id="return-filter-validation" wire:model.live="filterValidation"
@@ -197,13 +209,18 @@
                         @endforeach
                     </select>
                 </div>
-            </div>
+              </div>
 
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-                <button type="button" wire:click="resetFilters"
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                @if ($selectedFilterCount > 0 || $search !== '')
+                    <button type="button" wire:click="resetFilters"
                     class="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
-                    Hapus filter
-                </button>
+                        Hapus filter
+                    </button>
+                @endif
+              </div>
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
                 <button type="button" x-on:click="toggleScan()"
                     class="inline-flex min-h-8 items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
                     <span class="material-icons-round text-sm">qr_code_scanner</span> Pindai QR untuk Menemukan Unit
@@ -261,7 +278,7 @@
     @if ($visibleUnitCount === 0)
         <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             Tidak ada unit yang cocok dengan pencarian/filter.
-            <button type="button" wire:click="resetFilters" class="font-semibold text-brand-700 underline dark:text-brand-300">Hapus filter</button>
+            <button type="button" wire:click="resetFilters" class="ms-1 inline-flex min-h-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 transition hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300 dark:hover:bg-brand-900/50">Hapus filter</button>
         </div>
     @endif
 

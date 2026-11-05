@@ -4,19 +4,31 @@
 ])>
     {{-- Kiri: cari barang + keranjang --}}
     <div class="contents lg:col-span-3 lg:block lg:space-y-5">
-        <div class="order-1 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
+        @php($selectedFilterCount = collect([$category, $building, $room, $availability])->filter(fn ($value) => $value !== '')->count())
+        <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="order-1 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
             <h3 class="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">add_shopping_cart</span> 1. Pilih barang dari katalog
             </h3>
-            <div class="relative">
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <div class="relative min-w-0 flex-1">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">search</span>
                 <input type="text" wire:model.live.debounce.300ms="search"
                        placeholder="Cari nama, spesifikasi, atau kode inventaris"
                        aria-label="Cari barang"
                        class="w-full rounded-xl border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+              </div>
+              <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen" aria-controls="loan-request-filter-panel"
+                      class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
+                  <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
+                  Filter
+                  @if ($selectedFilterCount > 0)
+                      <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $selectedFilterCount }}</span>
+                  @endif
+              </button>
             </div>
 
-            <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <div id="loan-request-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+              <div class="grid grid-cols-2 gap-2 text-xs">
                 <select wire:model.live="category" aria-label="Filter kategori" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
                     <option value="">Semua kategori</option>
                     @foreach ($categories as $c)
@@ -40,14 +52,15 @@
                     <option value="available">Ada unit tersedia</option>
                     <option value="unavailable">Tidak ada unit tersedia</option>
                 </select>
-            </div>
-            @if ($activeFilters > 0)
-                <div class="mt-2 text-right">
-                    <button wire:click="resetFilters" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-300">
+              </div>
+              @if ($activeFilters > 0)
+                <div class="mt-2 flex justify-end">
+                    <button wire:click="resetFilters" class="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 transition hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300 dark:hover:bg-brand-900/50">
                         <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
                     </button>
                 </div>
-            @endif
+              @endif
+            </div>
 
             @if ($items->isNotEmpty())
                 <ul class="mt-3 max-h-80 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
@@ -343,7 +356,7 @@
                                 @if ($borrower_user_id !== '')
                                     <div class="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[11px] dark:bg-slate-950">
                                         <span class="text-slate-600 dark:text-slate-300">Terhubung ke akun #{{ $borrower_user_id }}</span>
-                                        <button type="button" wire:click="clearBorrower" class="font-semibold text-red-600 hover:underline">Lepas</button>
+                                        <button type="button" wire:click="clearBorrower" class="inline-flex min-h-7 items-center justify-center rounded-md border border-red-200 bg-red-50 px-2 text-[10px] font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">Lepas</button>
                                     </div>
                                 @endif
                                 <p class="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">Peminjam tanpa akun tetap dapat dicatat. Data identitas disimpan sebagai snapshot pada transaksi.</p>

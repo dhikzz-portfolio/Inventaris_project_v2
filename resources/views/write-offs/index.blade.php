@@ -13,8 +13,8 @@
                 <p class="text-sm text-slate-500 dark:text-slate-400">Ajukan penghapusan unit tertentu atau seluruh unit dalam satu katalog.</p>
             </div>
             @if (auth()->user()->isApproverLevel2())
-                <a href="{{ route('write-offs.pending') }}" class="inline-flex min-h-10 items-center gap-1 self-start rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 sm:self-auto dark:text-brand-300 dark:hover:bg-slate-800">
-                    Permintaan untuk disetujui <span aria-hidden="true">→</span>
+                <a href="{{ route('write-offs.pending') }}" class="inline-flex min-h-10 items-center justify-center gap-1 self-start rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 sm:self-auto dark:focus:ring-offset-slate-900">
+                    Permintaan untuk disetujui
                 </a>
             @endif
         </div>
@@ -309,42 +309,51 @@
                         </div>
 
                         <div class="hidden max-h-[60vh] overflow-auto overscroll-contain 2xl:block">
-                            <table class="w-full min-w-[820px] text-sm">
-                                <thead class="sticky top-0 z-10 bg-white text-[11px] font-bold uppercase tracking-wide text-slate-500 shadow-[inset_0_-1px_0_0_#e2e8f0] dark:bg-slate-900 dark:text-slate-400 dark:shadow-[inset_0_-1px_0_0_#334155]">
+                            <table class="w-full min-w-[900px] table-fixed text-sm">
+                                <colgroup>
+                                    <col class="w-[5%]">
+                                    <col class="w-[17%]">
+                                    <col class="w-[20%]">
+                                    <col class="w-[18%]">
+                                    <col class="w-[18%]">
+                                    <col class="w-[11%]">
+                                    <col class="w-[11%]">
+                                </colgroup>
+                                <thead class="sticky top-0 z-10 border-b border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
                                     <tr>
-                                        <th class="w-10 px-3 py-3"></th>
-                                        <th class="whitespace-nowrap px-3 py-3 text-left">Kode</th>
-                                        <th class="whitespace-nowrap px-3 py-3 text-left">Barang</th>
-                                        <th class="whitespace-nowrap px-3 py-3 text-left">Merek / Tipe</th>
-                                        <th class="whitespace-nowrap px-3 py-3 text-left">Lokasi</th>
-                                        <th class="whitespace-nowrap px-3 py-3 text-left">Kondisi</th>
-                                        <th class="whitespace-nowrap px-3 py-3 text-left">Status</th>
+                                        <th scope="col" class="px-2 py-3 text-center"></th>
+                                        <th scope="col" class="px-3 py-3 text-left">Kode</th>
+                                        <th scope="col" class="px-3 py-3 text-left">Barang</th>
+                                        <th scope="col" class="px-3 py-3 text-left">Merek / Tipe</th>
+                                        <th scope="col" class="px-3 py-3 text-left">Lokasi</th>
+                                        <th scope="col" class="px-2 py-3 text-center">Kondisi</th>
+                                        <th scope="col" class="px-2 py-3 text-center">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                                     @forelse ($units as $unit)
                                         @php($blocked = $unit->is_on_loan || $unit->has_pending_write_off || $unit->status === \App\Enums\UnitStatus::DIPINJAM)
-                                        <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                                            <td class="px-3 py-2.5">
+                                        <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
+                                            <td class="px-2 py-4 text-center">
                                                 <input type="checkbox" value="{{ $unit->id }}" x-model="selected"
                                                        @disabled($blocked)
                                                        aria-label="Pilih unit {{ $unit->inventory_code }}"
                                                        class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40">
                                             </td>
-                                            <td class="px-3 py-2.5 font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
-                                            <td class="px-3 py-2.5">
-                                                <div class="font-medium text-slate-700 dark:text-slate-200">{{ $unit->catalog?->name }}</div>
-                                                <div class="text-[10px] text-slate-400">{{ $unit->catalog?->category?->name }}</div>
+                                            <td class="whitespace-nowrap px-3 py-4 font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</td>
+                                            <td class="px-3 py-4">
+                                                <div class="truncate font-semibold text-slate-700 dark:text-slate-200" title="{{ $unit->catalog?->name }}">{{ $unit->catalog?->name }}</div>
+                                                <div class="mt-0.5 truncate text-[10px] text-slate-400" title="{{ $unit->catalog?->category?->name }}">{{ $unit->catalog?->category?->name }}</div>
                                             </td>
-                                            <td class="px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300">
+                                            <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $unit->specification?->displayName() ?: '—' }}">
                                                 {{ $unit->specification?->displayName() ?: '—' }}
                                             </td>
-                                            <td class="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">{{ $unit->locationLabel() }}</td>
-                                            <td class="px-3 py-2.5">
-                                                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300' }}">{{ $unit->condition->label() }}</span>
+                                            <td class="truncate px-3 py-4 text-xs text-slate-500 dark:text-slate-400" title="{{ $unit->locationLabel() }}">{{ $unit->locationLabel() }}</td>
+                                            <td class="px-2 py-4 text-center">
+                                                <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' }}">{{ $unit->condition->label() }}</span>
                                             </td>
-                                            <td class="px-3 py-2.5">
-                                                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
+                                            <td class="px-2 py-4 text-center">
+                                                <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
                                                 @if ($unit->is_on_loan || $unit->status === \App\Enums\UnitStatus::DIPINJAM)
                                                     <div class="mt-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">sedang dipinjam</div>
                                                 @elseif ($unit->has_pending_write_off)
@@ -513,21 +522,29 @@
                 @endforeach
             </div>
             <div class="hidden overflow-x-auto xl:block">
-                <table class="w-full min-w-[880px] text-sm">
-                    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                <table class="w-full min-w-[900px] table-fixed text-sm">
+                    <colgroup>
+                        <col class="w-[23%]">
+                        <col class="w-[12%]">
+                        <col class="w-[10%]">
+                        <col class="w-[27%]">
+                        <col class="w-[14%]">
+                        <col class="w-[14%]">
+                    </colgroup>
+                    <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                         <tr>
-                            <th class="px-3 py-2.5 text-left">Barang</th>
-                            <th class="px-3 py-2.5 text-center">Mode</th>
-                            <th class="px-3 py-2.5 text-center">Unit</th>
-                            <th class="px-3 py-2.5 text-left">Alasan</th>
-                            <th class="px-3 py-2.5 text-center">Status</th>
-                            <th class="px-3 py-2.5 text-left">Pengajuan</th>
+                            <th scope="col" class="px-3 py-3.5 text-left">Barang</th>
+                            <th scope="col" class="px-2 py-3.5 text-center">Mode</th>
+                            <th scope="col" class="px-2 py-3.5 text-center">Unit</th>
+                            <th scope="col" class="px-3 py-3.5 text-left">Alasan</th>
+                            <th scope="col" class="px-2 py-3.5 text-center">Status</th>
+                            <th scope="col" class="px-3 py-3.5 text-left">Pengajuan</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         @forelse ($history as $wo)
-                            <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                                <td class="px-3 py-2.5">
+                            <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
+                                <td class="px-3 py-4">
                                     @php($catalogNames = $wo->units->pluck('catalog.name')->filter()->unique())
                                     @if ($catalogNames->isNotEmpty())
                                         <span class="font-medium text-slate-800 dark:text-slate-100">{{ $catalogNames->take(2)->implode(', ') }}</span>
@@ -543,26 +560,30 @@
                                         @endif
                                     @endif
                                 </td>
-                                <td class="px-3 py-2.5 text-center text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">{{ $wo->mode ?: 'CATALOG' }}</td>
-                                <td class="px-3 py-2.5 text-center text-xs text-slate-600 dark:text-slate-300">{{ $wo->units_count ?: $wo->quantity }}</td>
-                                <td class="max-w-[220px] px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300">
+                                <td class="px-2 py-4 text-center">
+                                    <span class="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $wo->mode ?: 'CATALOG' }}</span>
+                                </td>
+                                <td class="px-2 py-4 text-center">
+                                    <span class="inline-flex min-w-9 justify-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $wo->units_count ?: $wo->quantity }}</span>
+                                </td>
+                                <td class="max-w-[220px] px-3 py-4 text-xs text-slate-600 dark:text-slate-300">
                                     {{ \Illuminate\Support\Str::limit($wo->reason, 80) }}
                                     @if ($wo->decision_note)
                                         <div class="mt-0.5 text-red-600 dark:text-red-300">Penolakan: {{ $wo->decision_note }}</div>
                                     @endif
                                 </td>
-                                <td class="px-3 py-2.5 text-center">
+                                <td class="px-2 py-4 text-center">
                                     @if ($wo->status === 'PENDING')
-                                        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">MENUNGGU</span>
+                                        <span class="inline-flex justify-center rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">MENUNGGU</span>
                                     @elseif ($wo->status === 'APPROVED')
-                                        <span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:bg-red-950/50 dark:text-red-300">DIHAPUS</span>
+                                        <span class="inline-flex justify-center rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-bold text-red-700 dark:bg-red-950/50 dark:text-red-300">DIHAPUS</span>
                                     @else
-                                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">DITOLAK</span>
+                                        <span class="inline-flex justify-center rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">DITOLAK</span>
                                     @endif
                                 </td>
-                                <td class="px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300">
+                                <td class="px-3 py-4 text-xs text-slate-600 dark:text-slate-300">
                                     {{ $wo->requester?->name }}
-                                    <div class="text-slate-400">{{ $wo->created_at->format('d M Y') }}</div>
+                                    <div class="mt-0.5 text-[11px] text-slate-400">{{ $wo->created_at->format('d M Y') }}</div>
                                 </td>
                             </tr>
                         @empty

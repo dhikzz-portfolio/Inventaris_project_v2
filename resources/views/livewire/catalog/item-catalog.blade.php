@@ -1,31 +1,45 @@
 <div>
     {{-- Toolbar pencarian & filter --}}
-    <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="relative col-span-full">
+    @php($selectedFilterCount = collect([$status, $category, $room])->filter(fn ($value) => $value !== '')->count())
+    <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <div class="relative min-w-0 flex-1">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                 <input type="text" wire:model.live.debounce.400ms="search"
                        placeholder="Cari nama, ID internal, kode unit, register..."
                        class="w-full rounded-xl border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
-            <select wire:model.live="status" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                <option value="">Semua Status</option>
-                @foreach ($statuses as $s)
-                    <option value="{{ $s->value }}">{{ $s->label() }}</option>
-                @endforeach
-            </select>
-            <select wire:model.live="category" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                <option value="">Semua Kategori</option>
-                @foreach ($categories as $c)
-                    <option value="{{ $c->id }}">{{ $c->name }}</option>
-                @endforeach
-            </select>
-            <select wire:model.live="room" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                <option value="">Semua Ruangan</option>
-                @foreach ($rooms as $r)
-                    <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
-                @endforeach
-            </select>
+            <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen" aria-controls="item-catalog-filter-panel"
+                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
+                <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
+                Filter
+                @if ($selectedFilterCount > 0)
+                    <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $selectedFilterCount }}</span>
+                @endif
+            </button>
+        </div>
+
+        <div id="item-catalog-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <select wire:model.live="status" aria-label="Filter status" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <option value="">Semua Status</option>
+                    @foreach ($statuses as $s)
+                        <option value="{{ $s->value }}">{{ $s->label() }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="category" aria-label="Filter kategori" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <option value="">Semua Kategori</option>
+                    @foreach ($categories as $c)
+                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="room" aria-label="Filter ruangan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <option value="">Semua Ruangan</option>
+                    @foreach ($rooms as $r)
+                        <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300">
@@ -39,7 +53,7 @@
                 @endif
             </div>
             @if (\Illuminate\Support\Facades\Auth::user()->managesInventory())
-                <a href="{{ route('items.create') }}" class="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline dark:text-brand-300">
+                <a href="{{ route('items.create') }}" class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                     <span class="material-icons-round text-base">add_box</span> Tambah Barang (Pengadaan)
                 </a>
             @endif

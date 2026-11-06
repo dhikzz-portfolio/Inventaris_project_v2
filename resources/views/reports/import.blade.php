@@ -30,7 +30,7 @@
                 <span class="material-icons-round shrink-0 text-blue-600">upload_file</span>
                 <div>
                     <p class="text-sm font-bold text-slate-800 dark:text-slate-100">1. Pilih berkas</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Gunakan file CSV atau XLSX yang datanya rapi per baris.</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Gunakan template XLSX (sheet Data Unit + Petunjuk) atau CSV yang datanya rapi per baris.</p>
                 </div>
             </div>
             <div class="flex items-start gap-2.5">
@@ -98,7 +98,8 @@
                     <p><strong class="text-slate-800 dark:text-slate-100">Opsional:</strong> tahun, sumber dana, no. register.</p>
                     <p class="pt-1">Judul kolom dari ekspor Excel (Kode Inventaris, Nama Barang, Gedung, Lantai, No. Ruangan, Kondisi, Status) juga dikenali.</p>
                     <p class="break-words rounded-lg bg-white px-2 py-1.5 font-mono text-[10px] text-slate-500 dark:bg-slate-950 dark:text-slate-400">kode_inventaris, nama_barang, gedung, lantai, no_ruangan, kondisi, status, tahun, sumber_dana, no_register</p>
-                    <p><strong class="text-slate-800 dark:text-slate-100">Format nilai:</strong> kondisi <em>Baik</em>, <em>Rusak Ringan</em>, atau <em>Rusak Berat</em>; status <em>Aktif</em> atau <em>Hilang</em>; tahun berupa angka 4 digit (contoh 2024); gedung berupa huruf kode gedung; lantai dan no. ruangan berupa angka.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Format nilai:</strong> kondisi <em>Baik</em>, <em>Rusak Ringan</em>, atau <em>Rusak Berat</em>; status <em>Aktif</em>, <em>Sedang Dipinjam</em>, atau <em>Hilang</em>; tahun berupa angka 4 digit (contoh 2024); gedung berupa huruf kode gedung; lantai dan no. ruangan berupa angka.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Impor balik file ekspor:</strong> file Excel laporan bulanan dapat diimpor kembali. Sistem memakai sheet <em>Unit</em> (sheet pertama) dan mengabaikan sheet Peminjaman, Kerusakan, Mutasi, Penghapusan, Pengadaan, serta Laporan Kerusakan.</p>
                     <p><strong class="text-slate-800 dark:text-slate-100">Relasi master data:</strong> menambah unit baru memerlukan nama katalog yang sudah ada dan ruangan yang cocok dengan gedung/lantai/no. ruangan. Kode unit harus mengikuti pola lokasi, misalnya <span class="font-mono">G1-02-012-01</span> untuk Gedung G, lantai 1, ruang 02, kode jenis barang 012, unit 01.</p>
                     <p><strong class="text-slate-800 dark:text-slate-100">Hasil validasi:</strong> setiap baris ditandai siap, perlu diperbaiki, atau ditolak; kode duplikat dan relasi yang tidak ditemukan diblokir. Impor hanya dijalankan bila seluruh baris valid, dalam satu transaksi — bila terjadi kegagalan seluruh perubahan dibatalkan.</p>
                 </div>

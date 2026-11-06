@@ -3,15 +3,19 @@
 namespace Tests\Feature;
 
 use App\Enums\Condition;
+use App\Exports\MonthlyReportExport;
 use App\Models\AssetUnit;
 use App\Models\Item;
 use App\Models\Report;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\InventoryCodeService;
+use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Excel as ExcelWriter;
+use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class ReportImportAndArchiveTest extends TestCase
@@ -158,6 +162,44 @@ class ReportImportAndArchiveTest extends TestCase
             'item_catalog_id' => $catalog->id,
         ]);
         $this->assertDatabaseHas('asset_unit_codes', ['inventory_code' => $code]);
+    }
+
+    public function test_contoh_file_impor_tersedia_dalam_format_excel(): void
+    {
+        $this->actingAs($this->wakasek)
+            ->get(route('reports.import.template'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+
+    public function test_file_excel_laporan_bulanan_dapat_diimpor_kembali(): void
+    {
+        $unit = AssetUnit::query()->firstOrFail();
+        $unit->forceFill(['status' => 'DIPINJAM'])->save();
+
+        $data = app(ReportService::class)->data(now()->format('Y-m'), 'SEMUA', null, $this->wakasek);
+        $this->assertTrue($data['units']->contains(
+            fn (AssetUnit $row) => $row->inventory_code === $unit->inventory_code
+        ));
+
+        $binary = Excel::raw(new MonthlyReportExport($data), ExcelWriter::XLSX);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => UploadedFile::fake()->createWithContent('laporan-bulanan.xlsx', $binary),
+            'mode' => 'update',
+        ])->assertRedirect(route('reports.import.form'));
+
+        $preview = session('report_import_preview')['analysis'];
+
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+        $this->assertSame($data['units']->count(), $preview['summary']['total']);
+        $this->assertSame($data['units']->count(), $preview['summary']['update']);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'))->assertSessionHas('success');
+
+        $this->assertSame('DIPINJAM', $unit->refresh()->status->value);
     }
 
     public function test_format_berkas_tidak_didukung_ditolak(): void

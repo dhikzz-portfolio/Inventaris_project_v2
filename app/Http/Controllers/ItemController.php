@@ -462,17 +462,22 @@ class ItemController extends Controller
             $sum += $groupSum;
 
             // Ruangan yang sama boleh muncul beberapa kali dalam satu kelompok
-            // selama kondisinya berbeda. Kombinasi ruangan + kondisi tidak boleh
-            // duplikat, dan ruangan tetap boleh dipakai kelompok spesifikasi lain.
+            // selama kondisi atau keterangannya berbeda. Kombinasi ruangan +
+            // kondisi + keterangan tidak boleh duplikat, dan ruangan tetap boleh
+            // dipakai kelompok spesifikasi lain.
             $duplicateRooms = collect($group['allocations'])
-                ->groupBy(fn (array $allocation): string => $allocation['room_id'].'|'.$allocation['condition'])
+                ->groupBy(fn (array $allocation): string => implode('|', [
+                    $allocation['room_id'],
+                    $allocation['condition'],
+                    mb_strtolower(trim((string) ($allocation['note'] ?? ''))),
+                ]))
                 ->contains(fn (Collection $rows): bool => $rows->count() > 1);
 
             if ($duplicateRooms) {
                 $key = $hasSpecGroups ? "spec_groups.{$index}.allocations" : 'allocations';
 
                 throw ValidationException::withMessages([
-                    $key => 'Ruangan yang sama boleh muncul lebih dari sekali dalam satu kelompok, tetapi kondisinya harus berbeda.',
+                    $key => 'Ruangan yang sama boleh muncul lebih dari sekali dalam satu kelompok, tetapi kondisi atau keterangannya harus berbeda.',
                 ]);
             }
 

@@ -47,9 +47,21 @@ class ReportImportService
             ]);
         }
 
-        $rows = collect($sheets)->first() ?? [];
+        $sheets = collect($sheets)
+            ->filter(fn ($sheet) => is_array($sheet) && $sheet !== [])
+            ->values();
 
-        $this->assertHeaders(collect($rows)->first());
+        // Pilih sheet pertama yang memiliki seluruh header wajib. File ekspor
+        // laporan bulanan memakai sheet "Unit" di posisi pertama; template
+        // impor memakai sheet "Data Unit" di posisi pertama dan "Petunjuk" di
+        // posisi kedua yang tidak boleh dianggap sebagai data.
+        $rows = $sheets->first(fn (array $sheet) => $this->hasRequiredHeaders(collect($sheet)->first()));
+
+        if ($rows === null) {
+            $this->assertHeaders($sheets->first() !== null ? collect($sheets->first())->first() : null);
+
+            return [];
+        }
 
         return collect($rows)
             ->filter(fn ($row) => is_array($row) && collect($row)->filter(fn ($value) => filled($value))->isNotEmpty())
@@ -68,19 +80,41 @@ class ReportImportService
     {
         $available = $row !== null ? array_keys($row) : [];
 
-        $required = [
-            'kode_inventaris' => ['kode_inventaris', 'kode', 'inventory_code', 'kode_unit'],
-            'kondisi' => ['kondisi', 'condition'],
-            'status' => ['status'],
-        ];
-
-        foreach ($required as $label => $aliases) {
+        foreach ($this->requiredHeaders() as $label => $aliases) {
             if (array_intersect($aliases, $available) === []) {
                 throw ValidationException::withMessages([
                     'file' => "Header kolom tidak sesuai template: kolom \"{$label}\" tidak ditemukan. Unduh Contoh File dan Panduan Impor, lalu gunakan header yang sama.",
                 ]);
             }
         }
+    }
+
+    /** @param array<string, mixed>|null $row */
+    private function hasRequiredHeaders(?array $row): bool
+    {
+        if ($row === null) {
+            return false;
+        }
+
+        $available = array_keys($row);
+
+        foreach ($this->requiredHeaders() as $aliases) {
+            if (array_intersect($aliases, $available) === []) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @return array<string, list<string>> */
+    private function requiredHeaders(): array
+    {
+        return [
+            'kode_inventaris' => ['kode_inventaris', 'kode', 'inventory_code', 'kode_unit'],
+            'kondisi' => ['kondisi', 'condition'],
+            'status' => ['status'],
+        ];
     }
 
     /**
@@ -117,7 +151,7 @@ class ReportImportService
 
             $status = $this->resolveStatus((string) ($row['status'] ?? ''));
             if ($status === null) {
-                $errors[] = 'Status tidak dikenali. Gunakan Aktif atau Hilang.';
+                $errors[] = 'Status tidak dikenali. Gunakan Aktif, Sedang Dipinjam, atau Hilang.';
             }
 
             $existing = $code !== '' ? AssetUnit::where('inventory_code', $code)->first() : null;
@@ -375,7 +409,7 @@ class ReportImportService
             return UnitStatus::AKTIF;
         }
 
-        $allowed = [UnitStatus::AKTIF, UnitStatus::HILANG];
+        $allowed = [UnitStatus::AKTIF, UnitStatus::DIPINJAM, UnitStatus::HILANG];
 
         foreach ($allowed as $status) {
             if (strcasecmp($status->value, $value) === 0 || strcasecmp($status->label(), $value) === 0) {

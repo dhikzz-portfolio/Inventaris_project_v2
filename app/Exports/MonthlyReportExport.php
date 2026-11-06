@@ -49,7 +49,7 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                     $row->specification?->modelLabel() ?: $row->catalog?->model_type,
                     $specificationName($row),
                     $row->room?->name,
-                    $row->room?->building_letter,
+                    $row->room?->buildingCode(),
                     $row->room?->floor,
                     $row->room?->room_no,
                     $row->condition->label(),

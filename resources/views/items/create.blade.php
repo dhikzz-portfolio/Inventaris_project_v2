@@ -353,7 +353,7 @@
             </div>
 
             <p class="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-                Ruangan yang sama boleh muncul beberapa kali dalam satu kelompok selama kondisinya berbeda.
+                Ruangan yang sama boleh muncul beberapa kali dalam satu kelompok selama kondisi atau keterangannya berbeda (boleh berbeda salah satu, boleh keduanya).
                 Setiap baris juga memiliki status operasional sendiri (aktif, hilang, dipinjam, dan lainnya).
                 Total alokasi setiap kelompok harus sama dengan jumlah kelompok tersebut, dan total seluruh kelompok menjadi jumlah pengadaan.
                 Kode inventaris diterbitkan otomatis oleh backend.

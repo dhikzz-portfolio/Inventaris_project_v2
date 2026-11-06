@@ -561,3 +561,12 @@ H. Remaining Issues
 I. Final Status
 
 COMPLETED WITH KNOWN ISSUES — seluruh kebutuhan fungsional utama terimplementasi dan seluruh 402 tes lulus; masalah yang tersisa adalah keterbatasan verifikasi lingkungan (MySQL/E2E/responsif) dan satu tes migrasi pembersihan scope yang belum dibuat langsung, bukan fitur yang belum diimplementasikan.
+
+
+Selesai. Ringkasan perubahan:
+- Cakupan laporan admin: ditambahkan opsi Per gedung (GEDUNG) di samping Seluruh sekolah (semua gedung). Filter gedung diterapkan konsisten ke unit, peminjaman, kerusakan, mutasi, penghapusan, pengadaan, dan laporan kerusakan, termasuk PDF/Excel/pratinjau/arsip.
+- Template impor unit: kini XLSX dengan sheet Data Unit berformat tabel Excel (header berwarna, filter, freeze pane) + sheet Petunjuk berisi aturan kolom dan contoh valid.
+- Impor balik ekspor bulanan: sekarang bisa. Sistem memilih sheet yang memiliki header valid (sheet Unit), mengabaikan sheet lain, dan menerima status Sedang Dipinjam.
+- Mode Perbarui hanya memperbarui kondisi, status, tahun, sumber dana, dan no. register unit yang sudah ada.
+- Mode Tambah unit baru tetap memerlukan katalog/ruangan yang sudah ada dan kode yang belum terpakai.
+- Verifikasi: pint bersih dan seluruh test terkait laporan/impor lulus (42 test).

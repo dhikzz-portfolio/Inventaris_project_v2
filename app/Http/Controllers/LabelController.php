@@ -90,8 +90,19 @@ class LabelController extends Controller
         $unitId = $request->query('u');
         $release = $request->query('r');
 
+        $scannedUnits = [];
+        if ($request->has('scanned')) {
+            $scannedUnits = collect($request->query('scanned', []))
+                ->map(fn ($item) => is_array($item) ? ($item['code'] ?? null) : $item)
+                ->filter()
+                ->values()
+                ->unique()
+                ->all();
+        }
+
         return view('labels.scan', [
             'code' => $code,
+            'scannedUnits' => $scannedUnits,
             'result' => $this->scanResult($request->user(), $code, $unitId, $release),
             'qrRelease' => LabelService::QR_RELEASE,
         ]);
@@ -102,6 +113,7 @@ class LabelController extends Controller
     {
         return view('labels.scan', [
             'code' => $internalId,
+            'scannedUnits' => [],
             'result' => $this->scanResult($request->user(), $internalId, null, null),
             'qrRelease' => LabelService::QR_RELEASE,
         ]);

@@ -158,6 +158,11 @@ class ReportController extends Controller
             'preview' => $preview['analysis'] ?? null,
             'token' => $preview['token'] ?? null,
             'filename' => $preview['filename'] ?? null,
+            'hasRooms' => Room::query()
+                ->whereNotNull('room_no')
+                ->where('room_no', '>', 0)
+                ->where('floor', '>', 0)
+                ->exists(),
         ]);
     }
 

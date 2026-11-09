@@ -2,10 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\AcquisitionStatus;
 use App\Enums\Condition;
+use App\Enums\ItemStatus;
 use App\Enums\UnitStatus;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
+use App\Models\Category;
+use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\Room;
 use App\Models\User;
@@ -111,7 +115,6 @@ class ReportImportService
     private function requiredHeaders(): array
     {
         return [
-            'kode_inventaris' => ['kode_inventaris', 'kode', 'inventory_code', 'kode_unit'],
             'kondisi' => ['kondisi', 'condition'],
             'status' => ['status'],
         ];
@@ -127,13 +130,18 @@ class ReportImportService
     {
         $seen = [];
         $analyzed = [];
+        $unitCounters = [];
+        $newCatalogCodes = [];
 
         foreach ($rows as $index => $row) {
             $errors = [];
             $code = $this->normalizeCode((string) ($row['kode_inventaris'] ?? ''));
+            $autoCode = false;
 
             if ($code === '') {
-                $errors[] = 'Kode inventaris kosong.';
+                if ($mode !== 'create') {
+                    $errors[] = 'Kode inventaris kosong.';
+                }
             } elseif (! preg_match(InventoryCodeService::PATTERN, $code)) {
                 $errors[] = "Format kode tidak valid: {$code} (contoh: G1-02-012-01).";
             } elseif (isset($seen[$code])) {
@@ -165,11 +173,17 @@ class ReportImportService
 
             $action = $existing ? 'PERBARUI' : 'BUAT';
             $catalog = null;
+            $catalogName = '';
+            $categoryName = '';
+            $itemTypeCode = null;
             $room = null;
             $unitNo = null;
+            $autoCatalog = false;
 
             if ($mode === 'update' && ! $existing) {
-                $errors[] = "Mode perbarui: unit {$code} tidak ditemukan.";
+                if ($code !== '') {
+                    $errors[] = "Mode perbarui: unit {$code} tidak ditemukan.";
+                }
             }
 
             if ($mode === 'create' && $existing) {
@@ -179,19 +193,78 @@ class ReportImportService
 
             if ($mode === 'create' && ! $existing) {
                 $catalogName = trim((string) ($row['nama_barang'] ?? ''));
+                $categoryName = trim((string) ($row['kategori'] ?? ''));
+
+                if ($catalogName !== '' && str_contains(mb_strtolower($catalogName), '(contoh)')) {
+                    $errors[] = 'Baris contoh template masih ada. Ganti nama barang "(contoh)" dengan data sebenarnya atau hapus baris ini.';
+                }
+
                 $catalog = $catalogName !== ''
                     ? Item::query()->whereRaw('LOWER(name) = ?', [mb_strtolower($catalogName)])->first()
                     : null;
 
-                if ($catalog === null) {
-                    $errors[] = $catalogName === ''
-                        ? 'Nama barang wajib diisi untuk membuat unit baru.'
-                        : "Katalog \\\"{$catalogName}\\\" tidak ditemukan; buat katalog terlebih dahulu.";
+                if ($catalogName === '') {
+                    $errors[] = 'Nama barang wajib diisi untuk membuat unit baru.';
                 }
+
+                $autoCatalog = $catalog === null && $catalogName !== '';
 
                 $room = $this->resolveRoom($row);
                 if ($room === null) {
-                    $errors[] = 'Ruangan tidak ditemukan. Isi Gedung (huruf), Lantai, dan No. Ruangan yang sesuai master data.';
+                    $hints = $this->availableRoomHints();
+                    $errors[] = 'Ruangan tidak ditemukan. Isi Gedung (huruf), Lantai, dan No. Ruangan yang sesuai master data.'
+                        .($hints !== '' ? " Ruangan tersedia: {$hints}." : ' Belum ada ruangan dengan identitas lengkap di master data.');
+                }
+
+                $parts = preg_match(InventoryCodeService::PATTERN, $code) ? explode('-', $code) : [];
+                if ($parts !== []) {
+                    $itemTypeCode = $parts[2];
+                }
+
+                if ($catalog !== null) {
+                    if ($catalog->item_type_code !== null) {
+                        $itemTypeCode = $catalog->item_type_code;
+                    } else {
+                        $key = mb_strtolower($catalog->name);
+                        $itemTypeCode = $newCatalogCodes[$key] ?? $itemTypeCode;
+
+                        if ($itemTypeCode === null) {
+                            try {
+                                $itemTypeCode = app(ItemTypeCodeService::class)->generate($catalog->name, array_values($newCatalogCodes));
+                            } catch (Throwable $exception) {
+                                $errors[] = 'Kode jenis barang tidak dapat dibuat: '.$exception->getMessage();
+                            }
+                        }
+
+                        if ($itemTypeCode !== null) {
+                            $newCatalogCodes[$key] = $itemTypeCode;
+                        }
+                    }
+                } elseif ($autoCatalog) {
+                    $key = mb_strtolower($catalogName);
+                    $itemTypeCode = $newCatalogCodes[$key] ?? $itemTypeCode;
+
+                    if ($itemTypeCode === null) {
+                        try {
+                            $itemTypeCode = app(ItemTypeCodeService::class)->generate($catalogName, array_values($newCatalogCodes));
+                        } catch (Throwable $exception) {
+                            $errors[] = 'Kode jenis barang tidak dapat dibuat: '.$exception->getMessage();
+                        }
+                    }
+
+                    if ($itemTypeCode !== null) {
+                        $newCatalogCodes[$key] = $itemTypeCode;
+                    }
+                }
+
+                if ($code === '' && $room !== null && $itemTypeCode !== null) {
+                    try {
+                        $code = $this->generateUnitCode($room, $itemTypeCode, $unitCounters, $seen);
+                        $autoCode = true;
+                        $seen[$code] = $index;
+                    } catch (Throwable $exception) {
+                        $errors[] = 'Kode inventaris tidak dapat dibuat otomatis: '.$exception->getMessage();
+                    }
                 }
 
                 if ($room !== null && preg_match(InventoryCodeService::PATTERN, $code)) {
@@ -199,11 +272,15 @@ class ReportImportService
                     $parts = explode('-', $code);
                     $unitNo = (int) end($parts);
 
-                    if ($parts[0] !== $expectedPrefix || (int) $parts[1] !== (int) $room->room_no) {
+                    if (! $autoCode && $itemTypeCode !== null && $parts[2] !== $itemTypeCode) {
+                        $errors[] = "Kode {$code} memakai kode jenis {$parts[2]}, berbeda dengan katalog {$catalogName} ({$itemTypeCode}).";
+                    }
+
+                    if (! $autoCode && ($parts[0] !== $expectedPrefix || (int) $parts[1] !== (int) $room->room_no)) {
                         $errors[] = "Kode {$code} tidak sesuai dengan lokasi ruangan {$room->code}.";
                     }
 
-                    if (AssetUnitCode::where('room_id', $room->id)->where('unit_no', $unitNo)->exists()) {
+                    if (! $autoCode && AssetUnitCode::where('room_id', $room->id)->where('unit_no', $unitNo)->exists()) {
                         $errors[] = "Nomor unit {$unitNo} di ruangan {$room->code} sudah pernah dipakai.";
                     }
                 }
@@ -212,6 +289,9 @@ class ReportImportService
             if ($existing) {
                 $room = $existing->room;
                 $catalog = $existing->catalog;
+                $catalogName = $catalog?->name ?? $catalogName;
+                $itemTypeCode = $catalog?->item_type_code
+                    ?? (preg_match(InventoryCodeService::PATTERN, $code) ? explode('-', $code)[2] : $itemTypeCode);
                 $unitNo = (int) $existing->unit_no;
             }
 
@@ -224,6 +304,11 @@ class ReportImportService
                 'status' => $status?->label(),
                 'action' => $action,
                 'catalog_id' => $catalog?->id,
+                'catalog_name' => $catalog?->name ?? $catalogName,
+                'category_name' => $categoryName,
+                'item_type_code' => $itemTypeCode,
+                'auto_code' => $autoCode,
+                'auto_catalog' => $autoCatalog,
                 'room_id' => $room?->id,
                 'unit_no' => $unitNo,
                 'condition_value' => $condition?->value,
@@ -268,7 +353,31 @@ class ReportImportService
         $created = 0;
         $updated = 0;
 
-        DB::transaction(function () use ($analysis, $actor, $filename, &$created, &$updated) {
+        $newCatalogs = collect($analysis['rows'])
+            ->filter(fn (array $row) => ($row['auto_catalog'] ?? false) && filled($row['catalog_name'] ?? null))
+            ->groupBy(fn (array $row) => mb_strtolower((string) $row['catalog_name']))
+            ->map(function ($rows) {
+                $first = $rows->first();
+
+                return [
+                    'name' => (string) $first['catalog_name'],
+                    'category' => filled($first['category_name'] ?? null) ? (string) $first['category_name'] : 'Tanpa Kategori',
+                    'item_type_code' => $first['item_type_code'] ?? null,
+                    'acquisition_year' => $first['acquisition_year'] ?? (int) now()->year,
+                    'funding_source' => $first['funding_source'] ?? '-',
+                    'quantity' => $rows->count(),
+                    'damaged' => $rows->filter(fn (array $row) => in_array(
+                        $row['condition_value'],
+                        [Condition::RUSAK_RINGAN->value, Condition::RUSAK_BERAT->value],
+                        true,
+                    ))->count(),
+                    'lost' => $rows->where('status_value', UnitStatus::HILANG->value)->count(),
+                ];
+            });
+
+        DB::transaction(function () use ($analysis, $actor, $filename, $newCatalogs, &$created, &$updated) {
+            $createdCatalogs = [];
+
             foreach ($analysis['rows'] as $row) {
                 if (($row['errors'] ?? []) !== []) {
                     throw ValidationException::withMessages([
@@ -303,8 +412,74 @@ class ReportImportService
                     ]);
                 }
 
+                $catalogId = $row['catalog_id'] ?? null;
+                $catalog = $catalogId !== null ? Item::find($catalogId) : null;
+
+                if (($row['auto_catalog'] ?? false) && filled($row['catalog_name'] ?? null)) {
+                    $key = mb_strtolower((string) $row['catalog_name']);
+                    $catalog = $createdCatalogs[$key] ?? null;
+
+                    if ($catalog === null) {
+                        $stats = $newCatalogs[$key] ?? null;
+
+                        if ($stats === null) {
+                            throw ValidationException::withMessages([
+                                'file' => "Data katalog untuk baris {$row['code']} tidak lengkap.",
+                            ]);
+                        }
+
+                        $category = Category::query()
+                            ->whereRaw('LOWER(name) = ?', [mb_strtolower($stats['category'])])
+                            ->first()
+                            ?? Category::create(['name' => $stats['category']]);
+
+                        $room = Room::find($row['room_id']);
+
+                        $catalog = Item::create([
+                            'internal_id' => $room !== null ? IdGenerator::internalId($room) : IdGenerator::stockInternalId(),
+                            'location_code' => InstitutionSetting::current()->location_code,
+                            'register_no' => IdGenerator::register()['register_no'],
+                            'name' => $stats['name'],
+                            'category_id' => $category->id,
+                            'room_id' => $row['room_id'],
+                            'acquisition_year' => $stats['acquisition_year'],
+                            'funding_source' => $stats['funding_source'],
+                            'quantity' => $stats['quantity'],
+                            'qty_damaged' => $stats['damaged'],
+                            'qty_lost' => $stats['lost'],
+                            'unit' => 'unit',
+                            'status' => ItemStatus::BAIK->value,
+                            'acquisition_status' => AcquisitionStatus::INVENTARIS_TERCATAT->value,
+                            'acquisition_requested_by' => $actor->id,
+                            'acquisition_approved_by' => $actor->id,
+                            'acquisition_decided_at' => now(),
+                            'acquisition_received_by' => $actor->id,
+                            'acquisition_received_at' => now(),
+                            'acquisition_received_quantity' => $stats['quantity'],
+                        ]);
+
+                        $createdCatalogs[$key] = $catalog;
+                    }
+
+                    $catalogId = $catalog->id;
+                }
+
+                if ($catalog !== null) {
+                    if (blank($catalog->item_type_code) && filled($row['item_type_code'] ?? null)) {
+                        $catalog->forceFill(['item_type_code' => $row['item_type_code']])->save();
+                    }
+
+                    app(ItemTypeCodeService::class)->ensureCode($catalog);
+                }
+
+                if ($catalogId === null) {
+                    throw ValidationException::withMessages([
+                        'file' => "Katalog untuk baris {$row['code']} tidak tersedia.",
+                    ]);
+                }
+
                 $unit = AssetUnit::create([
-                    'item_catalog_id' => $row['catalog_id'],
+                    'item_catalog_id' => $catalogId,
                     'inventory_code' => $row['code'],
                     'room_id' => $row['room_id'],
                     'unit_no' => $row['unit_no'],
@@ -320,6 +495,7 @@ class ReportImportService
                     'asset_unit_id' => $unit->id,
                     'inventory_code' => $row['code'],
                     'room_id' => $row['room_id'],
+                    'item_type_code' => $row['item_type_code'] ?? null,
                     'unit_no' => $row['unit_no'],
                     'issued_at' => now(),
                     'reason' => 'IMPOR',
@@ -340,6 +516,28 @@ class ReportImportService
         });
 
         return ['created' => $created, 'updated' => $updated];
+    }
+
+    /**
+     * Buat kode unit berikutnya yang belum dipakai di ruangan tersebut.
+     *
+     * @param  array<string, int>  $counters
+     * @param  array<string, int>  $seen
+     */
+    private function generateUnitCode(Room $room, string $itemTypeCode, array &$counters, array $seen): string
+    {
+        $key = (string) $room->id;
+        $counters[$key] ??= app(InventoryCodeService::class)->nextUnitNo($room);
+
+        do {
+            $unitNo = $counters[$key]++;
+            $code = app(InventoryCodeService::class)->format($room, $unitNo, $itemTypeCode);
+        } while (isset($seen[$code])
+            || AssetUnit::where('inventory_code', $code)->exists()
+            || AssetUnit::where('room_id', $room->id)->where('unit_no', $unitNo)->exists()
+            || AssetUnitCode::where('room_id', $room->id)->where('unit_no', $unitNo)->exists());
+
+        return $code;
     }
 
     /**
@@ -420,6 +618,20 @@ class ReportImportService
         return null;
     }
 
+    private function availableRoomHints(): string
+    {
+        return Room::query()
+            ->whereNotNull('room_no')
+            ->where('room_no', '>', 0)
+            ->where('floor', '>', 0)
+            ->orderBy('floor')
+            ->orderBy('room_no')
+            ->limit(5)
+            ->get()
+            ->map(fn (Room $room): string => "{$room->locationCode()} ({$room->name})")
+            ->implode('; ');
+    }
+
     /** @param array<string, mixed> $row */
     private function resolveRoom(array $row): ?Room
     {
@@ -429,8 +641,15 @@ class ReportImportService
         $roomNo = (int) ($row['no_ruangan'] ?? 0);
 
         if ($building !== '' && $floor > 0 && $roomNo > 0) {
+            $letter = substr($building, 0, 1);
+
             $room = Room::query()
-                ->whereHas('building', fn ($query) => $query->whereRaw('UPPER(code) = ?', [substr($building, 0, 1)]))
+                ->where(function ($query) use ($letter): void {
+                    $query->whereHas('building', fn ($buildingQuery) => $buildingQuery->whereRaw('UPPER(code) = ?', [$letter]))
+                        ->orWhere(fn ($legacyQuery) => $legacyQuery
+                            ->whereNull('building_id')
+                            ->whereRaw('UPPER(building_letter) = ?', [$letter]));
+                })
                 ->where('floor', $floor)
                 ->where('room_no', $roomNo)
                 ->first();

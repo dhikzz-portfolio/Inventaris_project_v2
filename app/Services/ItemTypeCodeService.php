@@ -9,7 +9,11 @@ use Illuminate\Validation\ValidationException;
 
 class ItemTypeCodeService
 {
-    public function generate(string $name): string
+    /**
+     * @param  list<string>  $reservedCodes  Kode yang sudah dipakai dalam proses
+     *                                       yang sama tetapi belum tersimpan.
+     */
+    public function generate(string $name, array $reservedCodes = []): string
     {
         $normalized = Str::upper(Str::ascii(Str::squish($name)));
         $normalized = preg_replace('/[^A-Z0-9]/', '', $normalized) ?? '';
@@ -23,7 +27,10 @@ class ItemTypeCodeService
         $digest = hash('sha256', $normalized, true);
         $start = unpack('N', substr($digest, 0, 4))[1] % 1000;
         $usedCodes = array_fill_keys(
-            Item::query()->whereNotNull('item_type_code')->pluck('item_type_code')->all(),
+            array_merge(
+                Item::query()->whereNotNull('item_type_code')->pluck('item_type_code')->all(),
+                $reservedCodes,
+            ),
             true
         );
         $candidate = $this->firstAvailableCode($start, $usedCodes);

@@ -32,9 +32,8 @@ class ReportImportAndArchiveTest extends TestCase
         $this->wakasek = User::where('email', 'wakasek@gmail.com')->firstOrFail();
     }
 
-    private function csv(array $rows): UploadedFile
+    private function csv(array $rows, string $header = 'kode_inventaris,nama_barang,gedung,lantai,no_ruangan,kondisi,status'): UploadedFile
     {
-        $header = 'kode_inventaris,nama_barang,gedung,lantai,no_ruangan,kondisi,status';
         $lines = array_map(fn (array $row) => implode(',', array_map(fn ($value) => '"'.str_replace('"', '""', (string) $value).'"', $row)), $rows);
 
         return UploadedFile::fake()->createWithContent('laporan-unit.csv', $header."\n".implode("\n", $lines)."\n");
@@ -162,6 +161,197 @@ class ReportImportAndArchiveTest extends TestCase
             'item_catalog_id' => $catalog->id,
         ]);
         $this->assertDatabaseHas('asset_unit_codes', ['inventory_code' => $code]);
+    }
+
+    public function test_mode_buat_membuat_kode_otomatis_saat_kode_dikosongkan(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $catalog = Item::approved()->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([['', $catalog->name, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif']]),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $row = $preview['rows'][0];
+
+        $this->assertTrue($preview['can_import'], json_encode($row));
+        $this->assertTrue($row['auto_code']);
+        $this->assertMatchesRegularExpression(InventoryCodeService::PATTERN, $row['code']);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'))->assertSessionHas('success');
+
+        $this->assertDatabaseHas('asset_units', [
+            'inventory_code' => $row['code'],
+            'room_id' => $room->id,
+            'item_catalog_id' => $catalog->id,
+        ]);
+        $this->assertDatabaseHas('asset_unit_codes', [
+            'inventory_code' => $row['code'],
+            'item_type_code' => $catalog->item_type_code,
+        ]);
+    }
+
+    public function test_mode_buat_membuat_katalog_baru_saat_nama_barang_belum_terdaftar(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $name = 'Proyektor Impor Uji';
+        $category = 'Elektronik Uji';
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [['', $name, $category, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif']],
+                'kode_inventaris,nama_barang,kategori,gedung,lantai,no_ruangan,kondisi,status',
+            ),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $row = $preview['rows'][0];
+
+        $this->assertTrue($preview['can_import'], json_encode($row));
+        $this->assertTrue($row['auto_catalog']);
+        $this->assertTrue($row['auto_code']);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'))->assertSessionHas('success');
+
+        $catalog = Item::where('name', $name)->firstOrFail();
+        $this->assertSame($category, $catalog->category->name);
+        $this->assertSame(1, $catalog->quantity);
+        $this->assertNotNull($catalog->item_type_code);
+        $this->assertSame($catalog->item_type_code, explode('-', $row['code'])[2]);
+
+        $this->assertDatabaseHas('asset_units', [
+            'inventory_code' => $row['code'],
+            'item_catalog_id' => $catalog->id,
+        ]);
+    }
+
+    public function test_mode_buat_memberi_nomor_unit_berurutan_untuk_beberapa_baris(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $catalog = Item::approved()->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([
+                ['', $catalog->name, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif'],
+                ['', $catalog->name, $room->buildingCode(), $room->floor, $room->room_no, 'Rusak Ringan', 'Aktif'],
+            ]),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+
+        $first = (int) explode('-', $preview['rows'][0]['code'])[3];
+        $second = (int) explode('-', $preview['rows'][1]['code'])[3];
+        $this->assertSame($first + 1, $second);
+        $this->assertNotSame($preview['rows'][0]['code'], $preview['rows'][1]['code']);
+    }
+
+    public function test_mode_buat_menerima_berkas_tanpa_kolom_kode_inventaris(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $catalog = Item::approved()->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [[$catalog->name, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif']],
+                'nama_barang,gedung,lantai,no_ruangan,kondisi,status',
+            ),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+        $this->assertTrue($preview['rows'][0]['auto_code']);
+        $this->assertMatchesRegularExpression(InventoryCodeService::PATTERN, $preview['rows'][0]['code']);
+    }
+
+    public function test_mode_buat_memakai_kode_jenis_sama_untuk_katalog_tanpa_kode_jenis(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $catalog = Item::approved()->firstOrFail();
+        $catalog->forceFill(['item_type_code' => null])->save();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([
+                ['', $catalog->name, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif'],
+                ['', $catalog->name, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif'],
+            ]),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+
+        $firstType = explode('-', $preview['rows'][0]['code'])[2];
+        $secondType = explode('-', $preview['rows'][1]['code'])[2];
+        $this->assertSame($firstType, $secondType);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'));
+
+        $this->assertSame($firstType, $catalog->refresh()->item_type_code);
+    }
+
+    public function test_mode_buat_menemukan_ruangan_legacy_berdasarkan_huruf_gedung(): void
+    {
+        $room = Room::create([
+            'name' => 'Ruang Legacy',
+            'code' => 'Z3-04',
+            'building_letter' => 'Z',
+            'floor' => 3,
+            'room_no' => 4,
+        ]);
+        $catalog = Item::approved()->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([['', $catalog->name, 'Z', 3, 4, 'Baik', 'Aktif']]),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+        $this->assertSame($room->id, $preview['rows'][0]['room_id']);
+        $this->assertTrue($preview['rows'][0]['auto_code']);
+    }
+
+    public function test_mode_buat_menolak_baris_contoh_template(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $catalog = Item::approved()->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([['', $catalog->name.' (contoh)', $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif']]),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+
+        $this->assertFalse($preview['can_import']);
+        $this->assertStringContainsString('Baris contoh template', $preview['rows'][0]['errors'][0]);
+    }
+
+    public function test_mode_perbarui_menolak_kode_inventaris_kosong(): void
+    {
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([['', 'Komputer', 'G', 1, 1, 'Baik', 'Aktif']]),
+            'mode' => 'update',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+
+        $this->assertFalse($preview['can_import']);
+        $this->assertStringContainsString('Kode inventaris kosong', $preview['rows'][0]['errors'][0]);
     }
 
     public function test_contoh_file_impor_tersedia_dalam_format_excel(): void

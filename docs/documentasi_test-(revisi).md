@@ -570,3 +570,50 @@ Selesai. Ringkasan perubahan:
 - Mode Perbarui hanya memperbarui kondisi, status, tahun, sumber dana, dan no. register unit yang sudah ada.
 - Mode Tambah unit baru tetap memerlukan katalog/ruangan yang sudah ada dan kode yang belum terpakai.
 - Verifikasi: pint bersih dan seluruh test terkait laporan/impor lulus (42 test).
+
+Masalahnya bukan di tombol impor, tapi di data contoh template: baris contoh memakai barang Komputer Lab (contoh) dan ruangan G1-01 yang tidak ada di master data Anda. Impor butuh ruangan nyata (gedung + lantai + no. ruangan). Selain itu, database yang sedang aktif di .env (inventaris_sekolah_v2) saat ini belum punya data ruangan sama sekali, jadi impor pasti gagal.
+Yang sudah saya perbaiki:
+- Template contoh sekarang memakai ruangan nyata dari master data dan menampilkan daftar ruangan + katalog tersedia di sheet Petunjuk.
+- Baris contoh ditandai (contoh) dan sekarang ditolak dengan pesan jelas: "Baris contoh template masih ada...".
+- Pesan error ruangan sekarang menyebutkan ruangan yang tersedia.
+- Form impor menampilkan peringatan jika belum ada ruangan.
+- Ruangan lama yang hanya punya building_letter (tanpa relasi gedung) sekarang tetap bisa ditemukan.
+Panduan penggunaan
+1. Siapkan ruangan dulu  
+Buka Master Data → Ruangan (atau seed data). Pastikan minimal ada satu ruangan dengan gedung (huruf), lantai, dan no. ruangan.  
+Di database inventaris_sekolah_v2 saat ini belum ada ruangan, jadi langkah ini wajib.
+2. Unduh template baru  
+Klik Unduh Contoh File. Jangan pakai file lama yang sudah terunduh. Hard-refresh dulu (Ctrl+Shift+R).
+3. Isi sheet Data Unit  
+Hapus 2 baris contoh, lalu isi data Anda. Contoh:
+kode_inventaris	nama_barang	kategori	gedung	lantai	no_ruangan	kondisi
+(kosongkan)	PC	Elektronik	F	1	2	Baik
+(kosongkan)	Proyektor	Elektronik	F	1	2	Baik
+- kode_inventaris dikosongkan → sistem membuat kode otomatis.
+- nama_barang boleh nama baru → katalog dibuat otomatis.
+- kondisi: Baik / Rusak Ringan / Rusak Berat.
+- status: Aktif / Sedang Dipinjam / Hilang.
+- tahun, sumber_dana, no_register opsional.
+Daftar ruangan dan katalog yang valid ada di sheet Petunjuk.
+4. Impor  
+Buka Laporan Bulanan → Impor Data Unit, pilih "Tambahkan unit baru", unggah file, klik Periksa Berkas. Jika semua baris hijau, klik Impor Sekarang.
+Arti error yang muncul
+- "Baris contoh template masih ada" → hapus/ganti baris contoh (contoh).
+- "Ruangan tidak ditemukan" → gedung/lantai/no. ruangan tidak cocok dengan master data. Lihat sheet Petunjuk atau tambahkan ruangan dulu.
+- "Kode inventaris kosong" → Anda memilih mode Perbarui; ganti ke Tambahkan unit baru atau isi kodenya.
+Tes impor: 18 lulus, Pint bersih.
+
+
+Selesai. Ruangan dari DB lama sudah disalin ke inventaris_sekolah_v2:
+- 18 ruangan masuk, termasuk G1-01, H1-01, I1-07.
+- 2 gedung baru dibuat: H dan I (total 9 gedung).
+- Sudah diverifikasi: logika impor kini menemukan G1-01 Lab Teknik Pengelasan 1, H1-01 Lab RPL 1, dan I1-07 Gudang Sarana Prasarana.
+- Template baru otomatis memakai G1-01 sebagai contoh, bukan ruangan fiktif lagi.
+- Tes impor: 18 lulus.
+Catatan: katalog/barang masih kosong (0), jadi baris contoh katalog memakai Contoh Barang (contoh) dan tetap ditolak saat pratinjau. Isi nama_barang dengan nama nyata—katalog akan dibuat otomatis. Kalau mau, saya bisa salin juga katalog/barang dari DB lama.
+Panduan singkat
+1. Hard-refresh browser (Ctrl+Shift+R), lalu unduh template baru.
+2. Buka sheet Data Unit, hapus 2 baris contoh.
+3. Isi data nyata; kode_inventaris boleh kosong. Contoh: PC | Elektronik | G | 1 | 1 | Baik | Aktif.
+4. Pilih Tambahkan unit baru → Periksa Berkas → Impor Sekarang.
+5. Daftar ruangan valid ada di sheet Petunjuk.

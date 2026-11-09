@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\Condition;
 use App\Exports\MonthlyReportExport;
 use App\Models\AssetUnit;
+use App\Models\AssetUnitCode;
 use App\Models\Item;
 use App\Models\Report;
 use App\Models\Room;
@@ -362,6 +363,58 @@ class ReportImportAndArchiveTest extends TestCase
         ])->assertRedirect(route('reports.index'));
 
         $this->assertSame($firstType, $catalog->refresh()->item_type_code);
+    }
+
+    public function test_mode_buat_menyesuaikan_kode_jenis_yang_bentrok_dengan_katalog_lain(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $existing = Item::approved()->whereNotNull('item_type_code')->firstOrFail();
+        $name = 'Alat Ukur Bentrok Uji';
+        $providedCode = app(InventoryCodeService::class)->preview($room, null, $existing);
+        $oldTypeCode = $existing->item_type_code;
+        $secondProvidedCode = app(InventoryCodeService::class)->format(
+            $room,
+            (int) AssetUnitCode::query()->where('room_id', $room->id)->max('unit_no') + 2,
+            $oldTypeCode,
+        );
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([
+                [$providedCode, $name, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif'],
+                [$secondProvidedCode, $name, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif'],
+            ]),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $row = $preview['rows'][0];
+        $secondRow = $preview['rows'][1];
+
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+        $this->assertTrue($row['auto_code']);
+        $this->assertTrue($secondRow['auto_code']);
+        $this->assertNotSame($providedCode, $row['code']);
+        $this->assertNotSame($secondProvidedCode, $secondRow['code']);
+        $this->assertNotSame($oldTypeCode, explode('-', $row['code'])[2]);
+        $this->assertSame(explode('-', $row['code'])[2], explode('-', $secondRow['code'])[2]);
+        $this->assertStringContainsString('sudah dipakai', implode(' ', $row['warnings']));
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'))->assertSessionHas('success');
+
+        $catalog = Item::where('name', $name)->firstOrFail();
+
+        $this->assertSame(explode('-', $row['code'])[2], $catalog->item_type_code);
+        $this->assertSame($oldTypeCode, $existing->refresh()->item_type_code);
+        $this->assertDatabaseHas('asset_units', [
+            'inventory_code' => $row['code'],
+            'item_catalog_id' => $catalog->id,
+        ]);
+        $this->assertDatabaseHas('asset_units', [
+            'inventory_code' => $secondRow['code'],
+            'item_catalog_id' => $catalog->id,
+        ]);
     }
 
     public function test_mode_buat_menemukan_ruangan_legacy_berdasarkan_huruf_gedung(): void

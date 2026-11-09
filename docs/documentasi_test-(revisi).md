@@ -764,3 +764,44 @@ Verifikasi
 - Assertion riwayat edit ditambahkan: deskripsi perubahan, merek/tipe baru, dan nama Admin tampil di halaman detail.
 -  vendor/bin/pint --dirty --format agent : passed.
 
+Penyebab error
+
+Error terjadi karena kode jenis barang  360  sudah dipakai katalog lain, yaitu Theodolite:
+
+// text
+item_type_code = 360
+katalog pemilik = Theodolite
+
+Saat impor, ada baris dengan nama barang baru tetapi kode inventarisnya memakai segmen kode jenis  360 . Sistem membuat katalog baru, lalu mencoba memberi katalog itu kode  360  juga. Database menolak karena kolom  item_catalogs.item_type_code  bersifat unik.
+
+Dari stack trace, kegagalan tepat terjadi di:
+
+// text
+app/Services/ReportImportService.php:486
+
+Penyebabnya: kode jenis diambil langsung dari segmen ketiga kode inventaris, tanpa memeriksa apakah kode tersebut sudah dimiliki katalog lain. Katalog baru dengan  id = 79  adalah katalog yang dibuat di dalam transaksi impor, lalu transaksi dibatalkan seluruhnya.
+
+Yang diperbaiki
+
+1. Pratinjau impor sekarang mendeteksi konflik kode jenis.
+Jika kode  360  sudah dipakai Theodolite, sistem otomatis menerbitkan kode jenis baru yang belum dipakai.
+2. Kode inventaris baris tersebut disesuaikan otomatis.
+Misalnya kode awal memakai  360 , setelah penyesuaian memakai kode jenis baru. Peringatan ditampilkan di kolom Catatan pada pratinjau, misalnya:
+> Kode jenis 360 sudah dipakai katalog Theodolite. Sistem menerbitkan kode jenis baru...
+> Kode inventaris ... disesuaikan menjadi ... agar sesuai dengan kode jenis baru.
+3. Konflik antar-katalog baru dalam satu berkas juga ditangani.
+Semua baris dengan nama barang yang sama tetap memakai satu kode jenis baru yang konsisten.
+4. Pengaman tambahan saat menyimpan.
+Jika ternyata kode sudah dipakai karena perubahan data bersamaan, impor sekarang menampilkan pesan validasi yang jelas, bukan error 500, dan seluruh transaksi tetap dibatalkan.
+
+Yang perlu dilakukan
+
+Silakan unggah ulang file impor yang tadi gagal. Pada pratinjau, periksa kolom Catatan: baris yang disesuaikan akan diberi peringatan kuning. Setelah itu impor bisa dilanjutkan.
+
+Karena kode inventaris baris tersebut berubah otomatis, cek kembali apakah label fisik perlu dicetak ulang.
+
+Verifikasi
+
+-  ReportImportAndArchiveTest : 21 passed, 121 assertions.
+- Test baru mereproduksi konflik kode jenis dengan dua baris sekaligus dan memastikan impor berhasil serta katalog lama tidak berubah.
+-  vendor/bin/pint --dirty --format agent : passed.

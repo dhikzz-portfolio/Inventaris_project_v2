@@ -244,13 +244,17 @@
                                         <span class="inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold {{ $badgeStyle }}">{{ $badgeLabel }}</span>
                                     </td>
                                     <td class="px-3 py-2">
-                                        @forelse ($row['errors'] as $error)
+                                        @foreach ($row['errors'] as $error)
                                             <div class="text-red-600 dark:text-red-300">• {{ $error }}</div>
-                                        @empty
+                                        @endforeach
+                                        @foreach ($row['warnings'] ?? [] as $warning)
+                                            <div class="text-amber-700 dark:text-amber-300">• {{ $warning }}</div>
+                                        @endforeach
+                                        @if ($row['errors'] === [] && ($row['warnings'] ?? []) === [])
                                             <span class="inline-flex items-center gap-1 font-semibold text-green-700 dark:text-green-300">
                                                 <span class="material-icons-round text-sm">check</span> Siap
                                             </span>
-                                        @endforelse
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

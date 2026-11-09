@@ -14,6 +14,7 @@ use App\Models\Item;
 use App\Models\Room;
 use App\Models\Specification;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -133,9 +134,14 @@ class ReportImportService
         $analyzed = [];
         $unitCounters = [];
         $newCatalogCodes = [];
+        $catalogCodeOwners = Item::query()
+            ->whereNotNull('item_type_code')
+            ->pluck('name', 'item_type_code')
+            ->all();
 
         foreach ($rows as $index => $row) {
             $errors = [];
+            $warnings = [];
             $code = $this->normalizeCode((string) ($row['kode_inventaris'] ?? ''));
             $autoCode = false;
 
@@ -218,51 +224,54 @@ class ReportImportService
                 }
 
                 $parts = preg_match(InventoryCodeService::PATTERN, $code) ? explode('-', $code) : [];
-                if ($parts !== []) {
-                    $itemTypeCode = $parts[2];
-                }
+                $importedTypeCode = $parts[2] ?? null;
+                $itemTypeCode = $importedTypeCode;
+                $canReissueUnitCode = $catalog === null || $catalog->item_type_code === null;
 
-                if ($catalog !== null) {
-                    if ($catalog->item_type_code !== null) {
-                        $itemTypeCode = $catalog->item_type_code;
-                    } else {
-                        $key = mb_strtolower($catalog->name);
-                        $itemTypeCode = $newCatalogCodes[$key] ?? $itemTypeCode;
+                if ($catalog !== null && $catalog->item_type_code !== null) {
+                    $itemTypeCode = $catalog->item_type_code;
+                } elseif ($catalog !== null || $autoCatalog) {
+                    $key = mb_strtolower($catalog?->name ?? $catalogName);
+                    $candidate = $newCatalogCodes[$key] ?? $itemTypeCode;
+                    $codeOwner = $candidate !== null
+                        ? $this->existingTypeCodeOwner($candidate, $newCatalogCodes, $catalogCodeOwners, $key)
+                        : null;
 
-                        if ($itemTypeCode === null) {
-                            try {
-                                $itemTypeCode = app(ItemTypeCodeService::class)->generate($catalog->name, array_values($newCatalogCodes));
-                            } catch (Throwable $exception) {
-                                $errors[] = 'Kode jenis barang tidak dapat dibuat: '.$exception->getMessage();
-                            }
-                        }
-
-                        if ($itemTypeCode !== null) {
-                            $newCatalogCodes[$key] = $itemTypeCode;
-                        }
+                    if ($codeOwner !== null) {
+                        $warnings[] = "Kode jenis {$candidate} sudah dipakai katalog {$codeOwner}. Sistem menerbitkan kode jenis baru untuk {$catalogName}.";
+                        $candidate = null;
                     }
-                } elseif ($autoCatalog) {
-                    $key = mb_strtolower($catalogName);
-                    $itemTypeCode = $newCatalogCodes[$key] ?? $itemTypeCode;
 
-                    if ($itemTypeCode === null) {
+                    if ($candidate === null) {
                         try {
-                            $itemTypeCode = app(ItemTypeCodeService::class)->generate($catalogName, array_values($newCatalogCodes));
+                            $candidate = app(ItemTypeCodeService::class)->generate($catalogName !== '' ? $catalogName : $catalog->name, array_values($newCatalogCodes));
                         } catch (Throwable $exception) {
                             $errors[] = 'Kode jenis barang tidak dapat dibuat: '.$exception->getMessage();
                         }
                     }
+
+                    $itemTypeCode = $candidate;
 
                     if ($itemTypeCode !== null) {
                         $newCatalogCodes[$key] = $itemTypeCode;
                     }
                 }
 
-                if ($code === '' && $room !== null && $itemTypeCode !== null) {
+                $parsedTypeCode = $parts[2] ?? null;
+                $needsGeneratedCode = $code === ''
+                    || ($canReissueUnitCode && $parsedTypeCode !== null && $parsedTypeCode !== $itemTypeCode);
+
+                if ($needsGeneratedCode && $room !== null && $itemTypeCode !== null) {
+                    $originalCode = $code;
+
                     try {
                         $code = $this->generateUnitCode($room, $itemTypeCode, $unitCounters, $seen);
                         $autoCode = true;
                         $seen[$code] = $index;
+
+                        if ($originalCode !== '') {
+                            $warnings[] = "Kode inventaris {$originalCode} disesuaikan menjadi {$code} agar sesuai dengan kode jenis baru.";
+                        }
                     } catch (Throwable $exception) {
                         $errors[] = 'Kode inventaris tidak dapat dibuat otomatis: '.$exception->getMessage();
                     }
@@ -321,6 +330,7 @@ class ReportImportService
                 'model_type' => trim((string) ($row['model_type'] ?? '')) ?: null,
                 'notes' => null,
                 'errors' => $errors,
+                'warnings' => $warnings,
             ];
         }
 
@@ -378,168 +388,209 @@ class ReportImportService
                 ];
             });
 
-        DB::transaction(function () use ($analysis, $actor, $filename, $newCatalogs, &$created, &$updated) {
-            $createdCatalogs = [];
+        try {
+            DB::transaction(function () use ($analysis, $actor, $filename, $newCatalogs, &$created, &$updated) {
+                $createdCatalogs = [];
 
-            foreach ($analysis['rows'] as $row) {
-                if (($row['errors'] ?? []) !== []) {
-                    throw ValidationException::withMessages([
-                        'file' => 'Impor dibatalkan: masih ada baris bermasalah. Perbaiki berkas lalu ulangi pratinjau.',
-                    ]);
-                }
-
-                $existing = AssetUnit::where('inventory_code', $row['code'])->lockForUpdate()->first();
-
-                if ($existing && $analysis['mode'] === 'create') {
-                    throw ValidationException::withMessages([
-                        'file' => "Mode buat tidak boleh mengubah unit yang sudah ada ({$row['code']}).",
-                    ]);
-                }
-
-                if ($existing) {
-                    $existing->update([
-                        'condition' => $row['condition_value'],
-                        'status' => $row['status_value'],
-                        'acquisition_year' => $row['acquisition_year'] ?? $existing->acquisition_year,
-                        'funding_source' => $row['funding_source'] ?? $existing->funding_source,
-                        'register_no' => $row['register_no'] ?? $existing->register_no,
-                    ]);
-
-                    // Unit lama hasil impor sebelumnya bisa belum memiliki
-                    // spesifikasi sehingga tidak muncul di daftar merek katalog.
-                    // Lengkapi tanpa menimpa spesifikasi yang sudah ada.
-                    if ($existing->specification_id === null && $existing->catalog !== null) {
-                        $existing->forceFill([
-                            'specification_id' => Specification::resolveFor(
-                                $existing->catalog,
-                                filled($row['brand'] ?? null) ? $row['brand'] : $existing->catalog->brand,
-                                filled($row['model_type'] ?? null) ? $row['model_type'] : $existing->catalog->model_type,
-                            )->id,
-                        ])->save();
+                foreach ($analysis['rows'] as $row) {
+                    if (($row['errors'] ?? []) !== []) {
+                        throw ValidationException::withMessages([
+                            'file' => 'Impor dibatalkan: masih ada baris bermasalah. Perbaiki berkas lalu ulangi pratinjau.',
+                        ]);
                     }
 
-                    $updated++;
+                    $existing = AssetUnit::where('inventory_code', $row['code'])->lockForUpdate()->first();
 
-                    continue;
-                }
+                    if ($existing && $analysis['mode'] === 'create') {
+                        throw ValidationException::withMessages([
+                            'file' => "Mode buat tidak boleh mengubah unit yang sudah ada ({$row['code']}).",
+                        ]);
+                    }
 
-                if ($analysis['mode'] !== 'create') {
-                    throw ValidationException::withMessages([
-                        'file' => "Mode perbarui tidak boleh membuat unit baru ({$row['code']}).",
-                    ]);
-                }
-
-                $catalogId = $row['catalog_id'] ?? null;
-                $catalog = $catalogId !== null ? Item::find($catalogId) : null;
-
-                if (($row['auto_catalog'] ?? false) && filled($row['catalog_name'] ?? null)) {
-                    $key = mb_strtolower((string) $row['catalog_name']);
-                    $catalog = $createdCatalogs[$key] ?? null;
-
-                    if ($catalog === null) {
-                        $stats = $newCatalogs[$key] ?? null;
-
-                        if ($stats === null) {
-                            throw ValidationException::withMessages([
-                                'file' => "Data katalog untuk baris {$row['code']} tidak lengkap.",
-                            ]);
-                        }
-
-                        $category = Category::query()
-                            ->whereRaw('LOWER(name) = ?', [mb_strtolower($stats['category'])])
-                            ->first()
-                            ?? Category::create(['name' => $stats['category']]);
-
-                        $room = Room::find($row['room_id']);
-
-                        $catalog = Item::create([
-                            'internal_id' => $room !== null ? IdGenerator::internalId($room) : IdGenerator::stockInternalId(),
-                            'location_code' => InstitutionSetting::current()->location_code,
-                            'register_no' => IdGenerator::register()['register_no'],
-                            'name' => $stats['name'],
-                            'category_id' => $category->id,
-                            'room_id' => $row['room_id'],
-                            'acquisition_year' => $stats['acquisition_year'],
-                            'funding_source' => $stats['funding_source'],
-                            'quantity' => $stats['quantity'],
-                            'qty_damaged' => $stats['damaged'],
-                            'qty_lost' => $stats['lost'],
-                            'unit' => 'unit',
-                            'status' => ItemStatus::BAIK->value,
-                            'acquisition_status' => AcquisitionStatus::INVENTARIS_TERCATAT->value,
-                            'acquisition_requested_by' => $actor->id,
-                            'acquisition_approved_by' => $actor->id,
-                            'acquisition_decided_at' => now(),
-                            'acquisition_received_by' => $actor->id,
-                            'acquisition_received_at' => now(),
-                            'acquisition_received_quantity' => $stats['quantity'],
+                    if ($existing) {
+                        $existing->update([
+                            'condition' => $row['condition_value'],
+                            'status' => $row['status_value'],
+                            'acquisition_year' => $row['acquisition_year'] ?? $existing->acquisition_year,
+                            'funding_source' => $row['funding_source'] ?? $existing->funding_source,
+                            'register_no' => $row['register_no'] ?? $existing->register_no,
                         ]);
 
-                        $createdCatalogs[$key] = $catalog;
+                        // Unit lama hasil impor sebelumnya bisa belum memiliki
+                        // spesifikasi sehingga tidak muncul di daftar merek katalog.
+                        // Lengkapi tanpa menimpa spesifikasi yang sudah ada.
+                        if ($existing->specification_id === null && $existing->catalog !== null) {
+                            $existing->forceFill([
+                                'specification_id' => Specification::resolveFor(
+                                    $existing->catalog,
+                                    filled($row['brand'] ?? null) ? $row['brand'] : $existing->catalog->brand,
+                                    filled($row['model_type'] ?? null) ? $row['model_type'] : $existing->catalog->model_type,
+                                )->id,
+                            ])->save();
+                        }
+
+                        $updated++;
+
+                        continue;
                     }
 
-                    $catalogId = $catalog->id;
-                }
-
-                if ($catalog !== null) {
-                    if (blank($catalog->item_type_code) && filled($row['item_type_code'] ?? null)) {
-                        $catalog->forceFill(['item_type_code' => $row['item_type_code']])->save();
+                    if ($analysis['mode'] !== 'create') {
+                        throw ValidationException::withMessages([
+                            'file' => "Mode perbarui tidak boleh membuat unit baru ({$row['code']}).",
+                        ]);
                     }
 
-                    app(ItemTypeCodeService::class)->ensureCode($catalog);
-                }
+                    $catalogId = $row['catalog_id'] ?? null;
+                    $catalog = $catalogId !== null ? Item::find($catalogId) : null;
 
-                if ($catalogId === null) {
-                    throw ValidationException::withMessages([
-                        'file' => "Katalog untuk baris {$row['code']} tidak tersedia.",
+                    if (($row['auto_catalog'] ?? false) && filled($row['catalog_name'] ?? null)) {
+                        $key = mb_strtolower((string) $row['catalog_name']);
+                        $catalog = $createdCatalogs[$key] ?? null;
+
+                        if ($catalog === null) {
+                            $stats = $newCatalogs[$key] ?? null;
+
+                            if ($stats === null) {
+                                throw ValidationException::withMessages([
+                                    'file' => "Data katalog untuk baris {$row['code']} tidak lengkap.",
+                                ]);
+                            }
+
+                            $category = Category::query()
+                                ->whereRaw('LOWER(name) = ?', [mb_strtolower($stats['category'])])
+                                ->first()
+                                ?? Category::create(['name' => $stats['category']]);
+
+                            $room = Room::find($row['room_id']);
+
+                            $catalog = Item::create([
+                                'internal_id' => $room !== null ? IdGenerator::internalId($room) : IdGenerator::stockInternalId(),
+                                'location_code' => InstitutionSetting::current()->location_code,
+                                'register_no' => IdGenerator::register()['register_no'],
+                                'name' => $stats['name'],
+                                'category_id' => $category->id,
+                                'room_id' => $row['room_id'],
+                                'acquisition_year' => $stats['acquisition_year'],
+                                'funding_source' => $stats['funding_source'],
+                                'quantity' => $stats['quantity'],
+                                'qty_damaged' => $stats['damaged'],
+                                'qty_lost' => $stats['lost'],
+                                'unit' => 'unit',
+                                'status' => ItemStatus::BAIK->value,
+                                'acquisition_status' => AcquisitionStatus::INVENTARIS_TERCATAT->value,
+                                'acquisition_requested_by' => $actor->id,
+                                'acquisition_approved_by' => $actor->id,
+                                'acquisition_decided_at' => now(),
+                                'acquisition_received_by' => $actor->id,
+                                'acquisition_received_at' => now(),
+                                'acquisition_received_quantity' => $stats['quantity'],
+                            ]);
+
+                            $createdCatalogs[$key] = $catalog;
+                        }
+
+                        $catalogId = $catalog->id;
+                    }
+
+                    if ($catalog !== null) {
+                        if (blank($catalog->item_type_code) && filled($row['item_type_code'] ?? null)) {
+                            $owner = Item::query()
+                                ->where('item_type_code', $row['item_type_code'])
+                                ->whereKeyNot($catalog->getKey())
+                                ->value('name');
+
+                            if ($owner !== null) {
+                                throw ValidationException::withMessages([
+                                    'file' => "Kode jenis {$row['item_type_code']} sudah dipakai katalog {$owner}. Unggah ulang berkas agar pratinjau menyesuaikan kode.",
+                                ]);
+                            }
+
+                            $catalog->forceFill(['item_type_code' => $row['item_type_code']])->save();
+                        }
+
+                        app(ItemTypeCodeService::class)->ensureCode($catalog);
+                    }
+
+                    if ($catalogId === null) {
+                        throw ValidationException::withMessages([
+                            'file' => "Katalog untuk baris {$row['code']} tidak tersedia.",
+                        ]);
+                    }
+
+                    $specification = Specification::resolveFor(
+                        $catalog,
+                        filled($row['brand'] ?? null) ? $row['brand'] : $catalog->brand,
+                        filled($row['model_type'] ?? null) ? $row['model_type'] : $catalog->model_type,
+                    );
+
+                    $unit = AssetUnit::create([
+                        'item_catalog_id' => $catalogId,
+                        'specification_id' => $specification->id,
+                        'inventory_code' => $row['code'],
+                        'room_id' => $row['room_id'],
+                        'unit_no' => $row['unit_no'],
+                        'condition' => $row['condition_value'],
+                        'status' => $row['status_value'],
+                        'acquisition_year' => $row['acquisition_year'],
+                        'funding_source' => $row['funding_source'],
+                        'register_no' => $row['register_no'],
+                        'notes' => 'Dipulihkan melalui impor laporan '.$filename,
                     ]);
+
+                    AssetUnitCode::create([
+                        'asset_unit_id' => $unit->id,
+                        'inventory_code' => $row['code'],
+                        'room_id' => $row['room_id'],
+                        'item_type_code' => $row['item_type_code'] ?? null,
+                        'unit_no' => $row['unit_no'],
+                        'issued_at' => now(),
+                        'reason' => 'IMPOR',
+                    ]);
+
+                    $created++;
                 }
 
-                $specification = Specification::resolveFor(
-                    $catalog,
-                    filled($row['brand'] ?? null) ? $row['brand'] : $catalog->brand,
-                    filled($row['model_type'] ?? null) ? $row['model_type'] : $catalog->model_type,
-                );
+                activity('laporan')
+                    ->causedBy($actor)
+                    ->withProperties([
+                        'file' => $filename,
+                        'mode' => $analysis['mode'],
+                        'created' => $created,
+                        'updated' => $updated,
+                    ])
+                    ->log('Impor laporan unit');
+            });
+        } catch (UniqueConstraintViolationException $exception) {
+            report($exception);
 
-                $unit = AssetUnit::create([
-                    'item_catalog_id' => $catalogId,
-                    'specification_id' => $specification->id,
-                    'inventory_code' => $row['code'],
-                    'room_id' => $row['room_id'],
-                    'unit_no' => $row['unit_no'],
-                    'condition' => $row['condition_value'],
-                    'status' => $row['status_value'],
-                    'acquisition_year' => $row['acquisition_year'],
-                    'funding_source' => $row['funding_source'],
-                    'register_no' => $row['register_no'],
-                    'notes' => 'Dipulihkan melalui impor laporan '.$filename,
-                ]);
-
-                AssetUnitCode::create([
-                    'asset_unit_id' => $unit->id,
-                    'inventory_code' => $row['code'],
-                    'room_id' => $row['room_id'],
-                    'item_type_code' => $row['item_type_code'] ?? null,
-                    'unit_no' => $row['unit_no'],
-                    'issued_at' => now(),
-                    'reason' => 'IMPOR',
-                ]);
-
-                $created++;
-            }
-
-            activity('laporan')
-                ->causedBy($actor)
-                ->withProperties([
-                    'file' => $filename,
-                    'mode' => $analysis['mode'],
-                    'created' => $created,
-                    'updated' => $updated,
-                ])
-                ->log('Impor laporan unit');
-        });
+            throw ValidationException::withMessages([
+                'file' => 'Impor dibatalkan karena ada kode yang sudah dipakai data lain. Periksa kembali kode inventaris dan kode jenis barang, lalu unggah ulang berkas.',
+            ]);
+        }
 
         return ['created' => $created, 'updated' => $updated];
+    }
+
+    /**
+     * Cari katalog yang sudah memakai kode jenis tersebut, baik di database
+     * maupun katalog baru lain dalam berkas yang sedang dianalisis.
+     *
+     * @param  array<string, string>  $newCatalogCodes
+     * @param  array<string, string>  $catalogCodeOwners
+     */
+    private function existingTypeCodeOwner(
+        string $candidate,
+        array $newCatalogCodes,
+        array $catalogCodeOwners,
+        string $currentKey,
+    ): ?string {
+        foreach ($newCatalogCodes as $catalogKey => $code) {
+            if ($catalogKey !== $currentKey && $code === $candidate) {
+                return $catalogKey;
+            }
+        }
+
+        return $catalogCodeOwners[$candidate] ?? null;
     }
 
     /**

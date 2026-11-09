@@ -125,15 +125,61 @@ class MultiLocationProcurementTest extends TestCase
         $this->assertDatabaseMissing('item_catalogs', ['name' => $payload['name']]);
     }
 
-    public function test_ruangan_duplikat_pada_alokasi_ditolak(): void
+    public function test_ruangan_duplikat_dengan_kondisi_dan_keterangan_sama_pada_alokasi_ditolak(): void
     {
         $payload = $this->payload([
-            ['room_id' => $this->rooms[0]->id, 'quantity' => 1],
-            ['room_id' => $this->rooms[0]->id, 'quantity' => 1],
+            ['room_id' => $this->rooms[0]->id, 'quantity' => 1, 'condition' => 'BAIK', 'note' => 'Sama', 'status' => 'AKTIF'],
+            ['room_id' => $this->rooms[0]->id, 'quantity' => 1, 'condition' => 'BAIK', 'note' => 'Sama', 'status' => 'HILANG'],
         ], 2);
 
         $this->actingAs($this->wakasek)->post(route('items.store'), $payload)
-            ->assertSessionHasErrors();
+            ->assertSessionHasErrors('allocations');
+    }
+
+    public function test_ruangan_sama_boleh_berulang_bila_keterangan_berbeda(): void
+    {
+        $payload = $this->payload([
+            ['room_id' => $this->rooms[0]->id, 'quantity' => 1, 'condition' => 'BAIK', 'note' => 'Baru'],
+            ['room_id' => $this->rooms[0]->id, 'quantity' => 1, 'condition' => 'BAIK', 'note' => 'Bekas display'],
+        ], 2);
+
+        $this->actingAs($this->wakasek)->post(route('items.store'), $payload)
+            ->assertRedirect(route('catalogs.index'))
+            ->assertSessionHasNoErrors();
+
+        $catalog = Item::where('name', $payload['name'])->firstOrFail();
+
+        $this->assertSame(2, $catalog->allocations()->where('room_id', $this->rooms[0]->id)->count());
+        $this->assertDatabaseHas('acquisition_allocations', [
+            'item_catalog_id' => $catalog->id,
+            'room_id' => $this->rooms[0]->id,
+            'condition' => 'BAIK',
+            'note' => 'Bekas display',
+        ]);
+    }
+
+    public function test_ruangan_sama_boleh_berulang_bila_kondisi_berbeda_dan_status_unit_mengikuti_alokasi(): void
+    {
+        $payload = $this->payload([
+            ['room_id' => $this->rooms[0]->id, 'quantity' => 1, 'condition' => 'BAIK', 'status' => 'AKTIF'],
+            ['room_id' => $this->rooms[0]->id, 'quantity' => 1, 'condition' => 'RUSAK_RINGAN', 'status' => 'HILANG'],
+        ], 2);
+
+        $this->actingAs($this->wakasek)->post(route('items.store'), $payload)
+            ->assertRedirect(route('catalogs.index'))
+            ->assertSessionHasNoErrors();
+
+        $catalog = Item::where('name', $payload['name'])->firstOrFail();
+
+        $this->assertSame(2, $catalog->allocations()->where('room_id', $this->rooms[0]->id)->count());
+        $this->assertSame(1, $catalog->units()->where('status', 'AKTIF')->count());
+        $this->assertSame(1, $catalog->units()->where('status', 'HILANG')->count());
+        $this->assertDatabaseHas('acquisition_allocations', [
+            'item_catalog_id' => $catalog->id,
+            'room_id' => $this->rooms[0]->id,
+            'condition' => 'RUSAK_RINGAN',
+            'status' => 'HILANG',
+        ]);
     }
 
     public function test_pengadaan_operator_divalidasi_lalu_disetujui_admin_sesuai_alokasi(): void

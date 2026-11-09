@@ -48,6 +48,20 @@ class MasterDataTest extends TestCase
         $this->actingAs($this->superAdmin)->get(route('masters.index'))->assertForbidden();
     }
 
+    public function test_menu_master_data_tampil_di_sidebar_admin(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Master Data')
+            ->assertSee(route('masters.index'));
+
+        $this->actingAs($this->member)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee(route('masters.index'));
+    }
+
     public function test_admin_mengelola_seluruh_master_data(): void
     {
         $this->actingAs($this->admin)->get(route('masters.index'))->assertOk();

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\AcquisitionStatus;
 use App\Enums\Condition;
 use App\Enums\ItemStatus;
+use App\Enums\UnitStatus;
 use App\Models\AcquisitionAllocation;
 use App\Models\Building;
 use App\Models\Category;
@@ -123,6 +124,7 @@ class ItemController extends Controller
         return view('items.create', [
             'categories' => Category::orderBy('name')->get(),
             'conditions' => Condition::cases(),
+            'statuses' => UnitStatus::cases(),
             'catalogs' => $catalogs,
             'catalogMap' => $catalogMap,
             'brands' => Specification::query()
@@ -152,9 +154,10 @@ class ItemController extends Controller
             // Kompatibilitas form lama satu ruangan.
             'room_id' => ['nullable', $this->roomRule($request->user())],
             'allocations' => ['nullable', 'array'],
-            'allocations.*.room_id' => ['required_with:allocations', 'integer', 'distinct', $this->roomRule($request->user())],
+            'allocations.*.room_id' => ['required_with:allocations', 'integer', $this->roomRule($request->user())],
             'allocations.*.quantity' => ['required_with:allocations', 'integer', 'min:1'],
             'allocations.*.condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
+            'allocations.*.status' => ['nullable', Rule::in(array_column(UnitStatus::cases(), 'value'))],
             'allocations.*.note' => ['nullable', 'string', 'max:500'],
             // Kelompok spesifikasi: satu katalog dapat berisi beberapa merek/tipe
             // dengan tahun, sumber dana, dan jumlah masing-masing.
@@ -168,9 +171,9 @@ class ItemController extends Controller
             'spec_groups.*.allocations.*.room_id' => ['required', 'integer', $this->roomRule($request->user())],
             'spec_groups.*.allocations.*.quantity' => ['required', 'integer', 'min:1'],
             'spec_groups.*.allocations.*.condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
+            'spec_groups.*.allocations.*.status' => ['nullable', Rule::in(array_column(UnitStatus::cases(), 'value'))],
             'spec_groups.*.allocations.*.note' => ['nullable', 'string', 'max:500'],
         ], [
-            'allocations.*.room_id.distinct' => 'Satu ruangan hanya boleh muncul sekali pada daftar alokasi.',
             'allocations.*.quantity.min' => 'Jumlah alokasi setiap lokasi minimal 1 unit.',
         ]);
 
@@ -319,6 +322,7 @@ class ItemController extends Controller
                         'room_id' => $allocation['room_id'],
                         'quantity' => $allocation['quantity'],
                         'condition' => $allocation['condition'] ?? Condition::BAIK->value,
+                        'status' => $allocation['status'] ?? UnitStatus::AKTIF->value,
                         'note' => $allocation['note'] ?? null,
                         'acquisition_year' => $group['acquisition_year'] ?? $data['acquisition_year'],
                         'funding_source' => $group['funding_source'] ?? $data['funding_source'],
@@ -362,7 +366,7 @@ class ItemController extends Controller
      * Form lama tanpa alokasi diperlakukan sebagai satu alokasi.
      *
      * @param  array<string, mixed>  $data
-     * @return Collection<int, array{room_id: int, quantity: int, condition: string, note: ?string}>
+     * @return Collection<int, array{room_id: int, quantity: int, condition: string, status: string, note: ?string}>
      */
     private function normalizeAllocations(Request $request, array $data, int $total): Collection
     {
@@ -372,6 +376,7 @@ class ItemController extends Controller
                 'room_id' => (int) $row['room_id'],
                 'quantity' => (int) $row['quantity'],
                 'condition' => (string) ($row['condition'] ?? Condition::BAIK->value),
+                'status' => (string) ($row['status'] ?? UnitStatus::AKTIF->value),
                 'note' => filled($row['note'] ?? null) ? trim((string) $row['note']) : null,
             ])
             ->values();
@@ -381,6 +386,7 @@ class ItemController extends Controller
                 'room_id' => (int) $data['room_id'],
                 'quantity' => $total,
                 'condition' => Condition::BAIK->value,
+                'status' => UnitStatus::AKTIF->value,
                 'note' => null,
             ]]);
         }
@@ -399,7 +405,7 @@ class ItemController extends Controller
      * `spec_groups`; form lama tetap didukung sebagai satu kelompok.
      *
      * @param  array<string, mixed>  $data
-     * @return Collection<int, array{brand: ?string, model_type: ?string, acquisition_year: int, funding_source: ?string, quantity: int, allocations: list<array{room_id: int, quantity: int, condition: string, note: ?string}>}>
+     * @return Collection<int, array{brand: ?string, model_type: ?string, acquisition_year: int, funding_source: ?string, quantity: int, allocations: list<array{room_id: int, quantity: int, condition: string, status: string, note: ?string}>}>
      */
     private function normalizeSpecGroups(Request $request, array $data, int $total): Collection
     {
@@ -422,6 +428,7 @@ class ItemController extends Controller
                         'room_id' => (int) $row['room_id'],
                         'quantity' => (int) $row['quantity'],
                         'condition' => (string) ($row['condition'] ?? Condition::BAIK->value),
+                        'status' => (string) ($row['status'] ?? UnitStatus::AKTIF->value),
                         'note' => filled($row['note'] ?? null) ? trim((string) $row['note']) : null,
                     ])
                     ->values()
@@ -454,14 +461,23 @@ class ItemController extends Controller
             $groupSum = (int) collect($group['allocations'])->sum('quantity');
             $sum += $groupSum;
 
-            // `distinct` pada wildcard bersarang berlaku lintas kelompok, sehingga
-            // duplikasi ruangan diperiksa per kelompok di sini. Ruangan yang sama
-            // tetap boleh dipakai oleh kelompok spesifikasi yang berbeda.
-            if (collect($group['allocations'])->pluck('room_id')->duplicates()->isNotEmpty()) {
+            // Ruangan yang sama boleh muncul beberapa kali dalam satu kelompok
+            // selama kondisi atau keterangannya berbeda. Kombinasi ruangan +
+            // kondisi + keterangan tidak boleh duplikat, dan ruangan tetap boleh
+            // dipakai kelompok spesifikasi lain.
+            $duplicateRooms = collect($group['allocations'])
+                ->groupBy(fn (array $allocation): string => implode('|', [
+                    $allocation['room_id'],
+                    $allocation['condition'],
+                    mb_strtolower(trim((string) ($allocation['note'] ?? ''))),
+                ]))
+                ->contains(fn (Collection $rows): bool => $rows->count() > 1);
+
+            if ($duplicateRooms) {
                 $key = $hasSpecGroups ? "spec_groups.{$index}.allocations" : 'allocations';
 
                 throw ValidationException::withMessages([
-                    $key => 'Satu ruangan hanya boleh muncul sekali dalam satu kelompok spesifikasi.',
+                    $key => 'Ruangan yang sama boleh muncul lebih dari sekali dalam satu kelompok, tetapi kondisi atau keterangannya harus berbeda.',
                 ]);
             }
 
@@ -779,6 +795,7 @@ class ItemController extends Controller
                     'specification_id' => $allocation->specification_id
                         ?: ($defaultSpecificationId ??= Specification::resolveFor($item, $item->brand, $item->model_type)->id),
                     'condition' => $allocation->conditionEnum(),
+                    'status' => $allocation->statusEnum(),
                     'acquisition_year' => $allocation->acquisition_year,
                     'funding_source' => $allocation->funding_source,
                     'notes' => $allocation->note,

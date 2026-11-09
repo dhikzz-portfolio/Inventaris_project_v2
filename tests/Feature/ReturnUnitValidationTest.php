@@ -404,7 +404,7 @@ class ReturnUnitValidationTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_foto_kerusakan_unit_sebelumnya_tidak_memenuhi_unit_berikutnya(): void
+    public function test_foto_kerusakan_unit_sebelumnya_tidak_menempel_ke_unit_berikutnya(): void
     {
         Storage::fake('local');
         Storage::fake('public');
@@ -429,24 +429,22 @@ class ReturnUnitValidationTest extends TestCase
 
         $second = LoanItemUnit::where('asset_unit_id', $units[1]->id)->firstOrFail();
 
-        try {
-            $service->processReturn($loan->refresh(), $this->laboran, [[
-                'loan_item_id' => $loanItem->id,
-                'assignment_id' => $second->id,
-                'unit_id' => $units[1]->id,
-                'qty_returned' => 1,
-                'condition_in' => Condition::RUSAK_RINGAN->value,
-                'returned_room_id' => $this->room->id,
-                'return_notes' => 'Baret pada unit kedua',
-            ]]);
-            $this->fail('Unit rusak tanpa foto sendiri seharusnya ditolak meskipun unit lain sudah punya foto.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('rows', $exception->errors());
-            $this->assertStringContainsString('setiap unit rusak', $exception->errors()['rows'][0]);
-        }
+        // Foto kini opsional; unit kedua tetap dapat dikembalikan tanpa foto,
+        // tetapi foto unit pertama tidak boleh ikut menempel padanya.
+        $service->processReturn($loan->refresh(), $this->laboran, [[
+            'loan_item_id' => $loanItem->id,
+            'assignment_id' => $second->id,
+            'unit_id' => $units[1]->id,
+            'qty_returned' => 1,
+            'condition_in' => Condition::RUSAK_RINGAN->value,
+            'returned_room_id' => $this->room->id,
+            'return_notes' => 'Baret pada unit kedua',
+        ]]);
 
-        $this->assertNull($second->refresh()->returned_at);
-        $this->assertSame(1, LoanItemUnit::where('loan_item_id', $loanItem->id)->whereNotNull('returned_at')->count());
+        $this->assertNotNull($second->refresh()->returned_at);
+        $this->assertNull($second->damage_photo_path);
+        $this->assertNotNull($first->refresh()->damage_photo_path);
+        $this->assertSame(2, LoanItemUnit::where('loan_item_id', $loanItem->id)->whereNotNull('returned_at')->count());
     }
 
     public function test_unit_yang_sudah_dikonfirmasi_tidak_dapat_dikonfirmasi_dua_kali(): void

@@ -24,6 +24,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class RevisionV5Test extends TestCase
@@ -257,8 +258,14 @@ class RevisionV5Test extends TestCase
     public function test_import_template_is_downloadable_and_wrong_headers_are_rejected(): void
     {
         $response = $this->actingAs($this->wakasek)->get(route('reports.import.template'));
-        $response->assertOk();
-        $this->assertStringContainsString('kode_inventaris', $response->streamedContent());
+        $response->assertOk()->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        $path = tempnam(sys_get_temp_dir(), 'template').'.xlsx';
+        file_put_contents($path, $response->streamedContent());
+        $headers = IOFactory::load($path)->getSheet(0)->rangeToArray('A1:K1')[0];
+        @unlink($path);
+
+        $this->assertContains('kode_inventaris', $headers);
 
         $bad = UploadedFile::fake()->createWithContent('salah-header.csv', "foo,bar\n1,2\n");
 

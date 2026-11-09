@@ -46,17 +46,25 @@ class WriteOffController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        // Daftar katalog harus mencakup setiap katalog yang unitnya muncul pada
+        // daftar unit, termasuk katalog yang sudah diarsipkan atau berstatus
+        // DIHAPUS tetapi unitnya belum dihapus, agar dua mode penghapusan
+        // menawarkan cakupan yang sama.
         $catalogs = Item::query()
             ->approved()
-            ->notArchived()
             ->visibleTo($user)
+            ->whereHas('units', fn (Builder $query) => $query
+                ->visibleTo($user)
+                ->where('status', '!=', UnitStatus::DIHAPUS->value))
             ->withCount([
                 'units as active_units_count' => fn (Builder $query) => $query
+                    ->visibleTo($user)
                     ->where('status', '!=', UnitStatus::DIHAPUS->value),
             ])
             ->with([
                 'specifications' => fn ($query) => $query->withCount([
                     'units as active_units_count' => fn (Builder $unit) => $unit
+                        ->visibleTo($user)
                         ->where('status', '!=', UnitStatus::DIHAPUS->value),
                 ]),
             ])
@@ -100,7 +108,7 @@ class WriteOffController extends Controller
             'item_id' => ['nullable', 'required_without:mode', 'exists:item_catalogs,id'],
             'quantity' => ['nullable', 'required_without:mode', 'integer', 'min:1'],
             'reason' => ['required', 'string', 'max:1000'],
-            'berita_acara' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'berita_acara' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
         ], [
             'catalog_id.required_if' => 'Pilih katalog yang akan dihapus seluruh unitnya.',
         ]);
@@ -125,9 +133,10 @@ class WriteOffController extends Controller
                 ]);
             }
 
+            // Katalog yang diarsipkan tetap boleh dihapus unitnya karena
+            // daftar katalog pada halaman ini memang menampilkannya.
             $catalog = Item::query()
                 ->approved()
-                ->notArchived()
                 ->visibleTo($user)
                 ->whereKey($data['catalog_id'])
                 ->first();
@@ -136,7 +145,7 @@ class WriteOffController extends Controller
                 abort(404);
             }
 
-            $unitIds = $this->eligibleCatalogUnits($catalog)->pluck('id')->all();
+            $unitIds = $this->eligibleCatalogUnits($catalog, $user)->pluck('id')->all();
             $itemId = $catalog->id;
 
             if ($unitIds === []) {
@@ -175,7 +184,10 @@ class WriteOffController extends Controller
             $itemId = (int) AssetUnit::query()->whereKey($unitIds[0])->value('item_catalog_id');
         }
 
-        $path = $request->file('berita_acara')->store('write-offs', 'local');
+        // Dokumen berita acara bersifat opsional.
+        $path = $request->hasFile('berita_acara')
+            ? $request->file('berita_acara')->store('write-offs', 'local')
+            : null;
         // Admin adalah pemegang kewenangan akhir penghapusan (pengganti
         // Wakasek), sehingga pengajuannya langsung sah dan tercatat.
         $direct = $user->isApproverLevel2();
@@ -276,7 +288,7 @@ class WriteOffController extends Controller
             'item_id' => ['required', 'exists:item_catalogs,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             'reason' => ['required', 'string', 'max:1000'],
-            'berita_acara' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'berita_acara' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
         ]);
 
         $item = Item::findOrFail($data['item_id']);
@@ -302,7 +314,9 @@ class WriteOffController extends Controller
                 'quantity' => $data['quantity'],
                 'mode' => 'CATALOG',
                 'reason' => $data['reason'],
-                'berita_acara_path' => $request->file('berita_acara')->store('write-offs', 'local'),
+                'berita_acara_path' => $request->hasFile('berita_acara')
+                    ? $request->file('berita_acara')->store('write-offs', 'local')
+                    : null,
                 'status' => $direct ? 'APPROVED' : 'PENDING',
                 'requested_by' => $user->id,
                 'approved_by' => $direct ? $user->id : null,
@@ -598,12 +612,14 @@ class WriteOffController extends Controller
     }
 
     /**
-     * Unit yang dapat dihapus pada satu katalog: bukan unit terhapus, tidak
-     * sedang dipinjam, dan belum masuk pengajuan yang masih menunggu.
+     * Unit yang dapat dihapus pada satu katalog: berada dalam cakupan pengguna,
+     * bukan unit terhapus, tidak sedang dipinjam, dan belum masuk pengajuan yang
+     * masih menunggu.
      */
-    private function eligibleCatalogUnits(Item $catalog): Builder
+    private function eligibleCatalogUnits(Item $catalog, User $user): Builder
     {
         return AssetUnit::query()
+            ->visibleTo($user)
             ->where('item_catalog_id', $catalog->id)
             ->whereNotIn('status', [UnitStatus::DIHAPUS->value, UnitStatus::DIPINJAM->value])
             ->whereNull('archived_at')
@@ -643,11 +659,12 @@ class WriteOffController extends Controller
     {
         $codes = app(InventoryCodeService::class);
 
+        // Status katalog sengaja tidak difilter: unit yang masih hidup pada
+        // katalog berstatus DIHAPUS/arsip harus tetap dapat dihapus dari sini
+        // (mode per katalog juga menampilkan katalog tersebut).
         return AssetUnit::query()
             ->visibleTo($user)
-            ->whereHas('catalog', fn (Builder $query) => $query
-                ->approved()
-                ->where('status', '!=', ItemStatus::DIHAPUS->value))
+            ->whereHas('catalog', fn (Builder $query) => $query->approved())
             ->where('status', '!=', UnitStatus::DIHAPUS->value)
             ->when($filters['search'] !== '', function (Builder $query) use ($filters, $codes) {
                 $term = '%'.mb_strtoupper(trim($filters['search'])).'%';
@@ -699,7 +716,7 @@ class WriteOffController extends Controller
         $summaries = [];
 
         foreach ($catalogs as $catalog) {
-            $eligible = $this->eligibleCatalogUnits($catalog)->with('room.building')->get();
+            $eligible = $this->eligibleCatalogUnits($catalog, $user)->with('room.building')->get();
 
             $summaries[$catalog->id] = [
                 'id' => $catalog->id,

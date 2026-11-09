@@ -16,11 +16,8 @@ use App\Models\WriteOff;
 use App\Services\IdGenerator;
 use App\Services\LoanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class CriticalBusinessRulesTest extends TestCase
@@ -160,9 +157,10 @@ class CriticalBusinessRulesTest extends TestCase
 
     /**
      * R3: Kondisi akhir wajib diisi
-     * Jika "Rusak": wajib foto bukti, dan sistem mencatat riwayat peminjam terakhir.
+     * Jika "Rusak": foto bukti opsional, dan sistem mencatat riwayat
+     * peminjam terakhir.
      */
-    public function test_r3_kondisi_rusak_wajib_foto_dan_catat_riwayat_peminjam_terakhir(): void
+    public function test_r3_kondisi_rusak_tanpa_foto_tetap_mencatat_riwayat_peminjam_terakhir(): void
     {
         Storage::fake('public');
         Storage::fake('local');
@@ -178,27 +176,12 @@ class CriticalBusinessRulesTest extends TestCase
         $loan->update(['status' => LoanStatus::DIPINJAM]);
         $loanItem = $loan->loanItems()->firstOrFail();
 
-        // 1) Rusak tanpa foto harus gagal (HttpException 422)
-        try {
-            $service->processReturn($loan, $this->laboranTkj, [[
-                'loan_item_id' => $loanItem->id,
-                'qty_returned' => 1,
-                'condition_in' => Condition::RUSAK_RINGAN->value,
-                'returned_room_id' => $this->normalItem->room_id,
-            ]]);
-            $this->fail('Harus gagal jika kondisi rusak tanpa foto');
-        } catch (ValidationException $e) {
-            $this->assertTrue($e->validator->errors()->has('rows'));
-        }
-
-        // 2) Rusak dengan foto harus sukses dan mencatat riwayat peminjam terakhir
-        $photo = UploadedFile::fake()->image('bukti_rusak.jpg');
+        // Rusak tanpa foto tetap diproses dan mencatat riwayat peminjam terakhir.
         $service->processReturn($loan, $this->laboranTkj, [[
             'loan_item_id' => $loanItem->id,
             'qty_returned' => 1,
             'condition_in' => Condition::RUSAK_RINGAN->value,
             'returned_room_id' => $this->normalItem->room_id,
-            'damage_photo' => $photo,
         ]]);
 
         $this->assertSame(ItemStatus::RUSAK_RINGAN, $this->normalItem->refresh()->status);
@@ -283,28 +266,26 @@ class CriticalBusinessRulesTest extends TestCase
 
     /**
      * R7: Write-off (Penghapusan inventaris)
-     * Wajib Berita Acara; hanya efektif setelah APPROVED oleh Wakasek.
+     * Berita acara opsional; hanya efektif setelah APPROVED oleh Wakasek.
      */
-    public function test_r7_write_off_wajib_berita_acara_dan_approval_wakasek(): void
+    public function test_r7_write_off_tanpa_berita_acara_dan_approval_wakasek(): void
     {
         Storage::fake('public');
         Storage::fake('local');
 
-        // Permohonan write-off oleh Admin operasional.
-        $file = UploadedFile::fake()->create('berita_acara.pdf', 100, 'application/pdf');
-
+        // Permohonan write-off oleh Admin operasional tanpa dokumen wajib.
         $this->actingAs($this->wakasek)
             ->post(route('write-offs.store'), [
                 'item_id' => $this->normalItem->id,
                 'quantity' => 1,
                 'reason' => 'Barang rusak total tidak bisa diperbaiki',
-                'berita_acara' => $file,
             ])
             ->assertRedirect(route('write-offs.index'));
 
         $writeOff = WriteOff::where('item_id', $this->normalItem->id)->firstOrFail();
         // Admin memegang kewenangan akhir penghapusan.
         $this->assertSame('APPROVED', $writeOff->status);
+        $this->assertNull($writeOff->berita_acara_path);
         $this->assertSame(ItemStatus::DIHAPUS, $this->normalItem->refresh()->status);
         $this->assertSame(ItemStatus::DIHAPUS, $this->normalItem->refresh()->status);
         $this->assertSame(0, $this->normalItem->quantity);

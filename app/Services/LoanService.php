@@ -858,28 +858,15 @@ class LoanService
                     ]);
                 }
 
-                // Foto bukti wajib jika ada unit yang benar-benar kembali dalam kondisi rusak.
-                // Pada alur unit fisik, setiap unit rusak wajib membawa fotonya sendiri;
-                // foto unit sebelumnya tidak boleh dianggap sebagai bukti unit berikutnya.
+                // Foto bukti kerusakan bersifat opsional. Bila petugas
+                // mengunggahnya, foto disimpan terikat pada unit yang diperiksa.
                 $hasUploadedPhoto = isset($row['damage_photo'])
                     && $row['damage_photo']
                     && $row['damage_photo']->isValid();
                 $damagePath = $loanItem->damage_photo_path;
 
-                if ($qtyNow > 0 && $condition->isDamaged() && $hasUnitAssignments && ! $hasUploadedPhoto) {
-                    throw ValidationException::withMessages([
-                        'rows' => "Foto bukti kerusakan wajib diunggah untuk setiap unit rusak pada \"{$loanItem->item->name}\".",
-                    ]);
-                }
-
                 if ($qtyNow > 0 && $condition->isDamaged() && $hasUploadedPhoto) {
                     $damagePath = $this->storeDamageFile($row['damage_photo'], $loan->id);
-                }
-
-                if ($qtyNow > 0 && $condition->isDamaged() && ! $damagePath) {
-                    throw ValidationException::withMessages([
-                        'rows' => "Foto bukti kerusakan wajib diunggah untuk \"{$loanItem->item->name}\".",
-                    ]);
                 }
 
                 $cumulative = $alreadyReturned + $qtyNow;
@@ -942,7 +929,7 @@ class LoanService
                         $qtyNow,
                         $condition,
                         $returner,
-                        $condition->isDamaged() ? $damagePath : null,
+                        $condition->isDamaged() && $hasUploadedPhoto ? $damagePath : null,
                         $room,
                         isset($row['assignment_id']) ? (int) $row['assignment_id'] : null,
                         isset($row['unit_id']) ? (int) $row['unit_id'] : null,

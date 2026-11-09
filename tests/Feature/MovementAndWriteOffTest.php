@@ -14,6 +14,7 @@ use App\Models\WriteOff;
 use App\Services\AssetUnitService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -96,6 +97,55 @@ class MovementAndWriteOffTest extends TestCase
             ->assertViewHas('units', function ($units) use ($unit): bool {
                 return $units->getCollection()->contains('id', $unit->id);
             });
+    }
+
+    public function test_navigasi_mutasi_menampilkan_lima_halaman_dan_panah_melompat_per_kelompok(): void
+    {
+        $units = app(AssetUnitService::class);
+
+        for ($index = 0; $index < 275; $index++) {
+            $units->create($this->item, $this->room1);
+        }
+
+        $firstGroup = $this->actingAs($this->admin)->get(route('movements.index'));
+
+        $firstGroup->assertOk()
+            ->assertSee('aria-label="Ke halaman 5"', false)
+            ->assertSee('aria-label="Halaman 6 sampai 10"', false)
+            ->assertSee('page=6', false)
+            ->assertDontSee('aria-label="Ke halaman 7"', false)
+            ->assertDontSee('aria-label="Ke halaman 10"', false);
+
+        $secondGroup = $this->actingAs($this->admin)->get(route('movements.index', ['page' => 6]));
+
+        $secondGroup->assertOk()
+            ->assertSee('aria-label="Halaman 1 sampai 5"', false)
+            ->assertSee('aria-current="page" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-600 bg-brand-600 text-sm font-semibold text-white">6</span>', false)
+            ->assertSee('aria-label="Ke halaman 10"', false)
+            ->assertSee('aria-label="Halaman 11 sampai 15"', false)
+            ->assertSee('page=11', false)
+            ->assertDontSee('aria-label="Ke halaman 5"', false)
+            ->assertDontSee('aria-label="Ke halaman 11"', false);
+    }
+
+    public function test_template_paginasi_default_memakai_kelompok_lima_halaman_dan_mempertahankan_filter(): void
+    {
+        $paginator = new LengthAwarePaginator(
+            range(126, 150),
+            275,
+            25,
+            6,
+            ['path' => '/items', 'query' => ['search' => 'server']],
+        );
+
+        $html = view('vendor.pagination.tailwind', ['paginator' => $paginator])->render();
+
+        $this->assertStringContainsString('aria-label="Halaman 1 sampai 5"', $html);
+        $this->assertStringContainsString('aria-label="Halaman 11 sampai 11"', $html);
+        $this->assertStringContainsString('/items?search=server&amp;page=11', $html);
+        $this->assertStringNotContainsString('aria-label="Ke halaman 5"', $html);
+        $this->assertStringNotContainsString('aria-label="Ke halaman 11"', $html);
+        $this->assertSame(4, substr_count($html, 'aria-label="Ke halaman '));
     }
 
     public function test_write_off_form_submits_selected_units_from_responsive_views(): void

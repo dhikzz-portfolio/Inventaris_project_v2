@@ -48,24 +48,64 @@
                     <p class="mt-2 text-center text-xs" :class="error ? 'text-red-600 dark:text-red-300' : 'text-slate-500 dark:text-slate-400'"
                         x-text="message || error"></p>
                 </div>
+            </div>
+        </div>
 
-                <div>
-                    <h3 class="mb-2 text-base font-bold text-slate-900 dark:text-slate-100">Input Manual (Kode Inventaris)</h3>
-                    <form method="GET" action="{{ route('scan') }}" class="flex gap-2" @submit="running = false">
-                        <input type="text" name="code" value="{{ $code }}" inputmode="text"
-                            autocomplete="off" placeholder="Contoh: G1-02-12"
-                            class="min-w-0 flex-1 rounded-xl border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <button
-                            class="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Cari</button>
-                    </form>
-                    <p class="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                        Masukkan kode unit <span class="font-mono">G1-02-12</span> (kode lama tetap diterima). Kamera
-                        hanya diperlukan bila perangkat mendukung; input manual selalu tersedia.
-                    </p>
-                    <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                        Pemindaian hanya membaca data inventaris. Informasi detail mengikuti kewenangan akun Anda.
+        {{-- Daftar barang hasil scan --}}
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900" x-show="scannedUnits.length > 0">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Barang siap dipindahkan</h3>
+                <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
+                    <span x-text="scannedUnits.length"></span> unit
+                </span>
+            </div>
+            <div class="max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <template x-for="item in scannedUnits" :key="item.code">
+                    <div class="flex items-center justify-between gap-2 py-2 border-b border-slate-200 last:border-0 dark:border-slate-700">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-mono text-xs font-bold text-slate-800 dark:text-slate-100" x-text="item.code"></div>
+                            <div class="text-[11px] text-slate-500 truncate dark:text-slate-400" x-text="item.name || 'Unit'"></div>
+                        </div>
+                        <button type="button" @click="removeScannedUnit(item.code)"
+                                class="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200">
+                            <span class="material-icons-round text-base">delete</span>
+                            <span class="sr-only">Hapus</span>
+                        </button>
                     </div>
-                </div>
+                </template>
+                <p x-show="scannedUnits.length === 0" class="py-3 text-center text-xs text-slate-400">Tidak ada barang yang dipindahkan.</p>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900" x-show="scannedUnits.length > 0">
+            <div class="flex flex-wrap items-center gap-3">
+                <?php $moveCodes = collect($scannedUnits)->pluck('code')->filter()->implode(','); ?>
+                <a href="{{ route('movements.index') }}?moveCodes={{ urlencode($moveCodes) }}"
+                   class="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:bg-brand-500 dark:hover:bg-brand-600 dark:focus:ring-brand-400 dark:focus:ring-offset-slate-900">
+                    <span class="material-icons-round text-base">move_to_inbox</span> Lanjutkan ke tujuan perpindahan
+                </a>
+                <button type="button" @click="clearScannedUnits()"
+                        class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+                    <span class="material-icons-round text-base">delete_sweep</span> Kosongkan daftar
+                </button>        </div>
+    </div>
+</div>
+
+        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <h3 class="mb-2 text-base font-bold text-slate-900 dark:text-slate-100">Input Manual (Kode Inventaris)</h3>
+            <form method="GET" action="{{ route('scan') }}" class="flex gap-2" @submit="running = false">
+                <input type="text" name="code" value="{{ $code }}" inputmode="text"
+                    autocomplete="off" placeholder="Contoh: G1-02-12"
+                    class="min-w-0 flex-1 rounded-xl border-slate-300 bg-white font-mono text-sm uppercase text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                <button
+                    class="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Cari</button>
+            </form>
+            <p class="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                Masukkan kode unit <span class="font-mono">G1-02-12</span> (kode lama tetap diterima). Kamera
+                hanya diperlukan bila perangkat mendukung; input manual selalu tersedia.
+            </p>
+            <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                Pemindaian hanya membaca data inventaris. Informasi detail mengikuti kewenangan akun Anda.
             </div>
         </div>
 
@@ -165,17 +205,16 @@
                         </div>
                     @endif
 
-                    <div class="mt-4 flex items-center gap-3">
+                    <div class="mt-4 flex flex-wrap items-start gap-3">
                         <a href="{{ $result['url'] }}"
                             class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold">
                             <span class="material-icons-round text-sm">open_in_new</span> Buka detail unit
                         </a>
-                        @if (auth()->user()->canApproveLoans())
-                            <a href="{{ route('units.label', $result['unit_id']) }}" target="_blank"
-                                class="inline-flex min-h-8 items-center justify-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
-                                <span class="material-icons-round text-sm" aria-hidden="true">print</span> Cetak ulang label
-                            </a>
-                        @endif
+                        <a href="{{ route('movements.index') }}?move={{ urlencode($result['code']) }}"
+                           class="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:bg-brand-500 dark:hover:bg-brand-600 dark:focus:ring-brand-400 dark:focus:ring-offset-slate-900"
+                           aria-label="Pindahkan unit ini ke tujuan perpindahan">
+                            <span class="material-icons-round text-base" aria-hidden="true">swap_horiz</span> Pindahkan
+                        </a>
                     </div>
                 @elseif ($result['status'] === 'catalog')
                     <div class="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-900">
@@ -204,6 +243,16 @@
                     running: false,
                     message: '',
                     error: '',
+                    scannedUnits: [],
+                    initScannedUnits() {
+                        this.scannedUnits = [];
+                    },
+                    removeScannedUnit(code) {
+                        this.scannedUnits = this.scannedUnits.filter((item) => item.code !== code);
+                    },
+                    clearScannedUnits() {
+                        this.scannedUnits = [];
+                    },
                     async init() {
                         this.error = '';
                         this.message = '';

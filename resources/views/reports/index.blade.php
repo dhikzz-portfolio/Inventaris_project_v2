@@ -3,7 +3,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporan Bulanan</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per kategori, ruangan, atau jurusan</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per gedung, kategori, ruangan, atau jurusan</p>
             </div>
             @if (auth()->user()->managesInventory())
                 <a href="{{ route('reports.import.form') }}"
@@ -36,7 +36,8 @@
             <div>
                 <x-input-label for="report-scope" value="Cakupan" />
                 <select id="report-scope" x-model="scope" x-on:change="scopeId = ''" class="mt-1 block min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="SEMUA">{{ auth()->user()->isSuperAdmin() ? 'Seluruh sekolah' : 'Seluruh laboratorium' }}</option>
+                    <option value="SEMUA">{{ auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() ? 'Seluruh sekolah (semua gedung)' : 'Seluruh laboratorium' }}</option>
+                    <option value="GEDUNG">Per gedung</option>
                     <option value="KATEGORI">Per kategori</option>
                     <option value="RUANGAN">Per ruangan</option>
                     <option value="JURUSAN">Per jurusan</option>
@@ -52,9 +53,16 @@
                 </select>
             </div>
             <div x-show="scope !== 'SEMUA'" x-cloak>
-                <label for="report-scope-id" class="block text-sm font-medium text-slate-700 dark:text-slate-300" x-text="scope === 'KATEGORI' ? 'Kategori' : (scope === 'RUANGAN' ? 'Ruangan' : 'Jurusan')"></label>
+                <label for="report-scope-id" class="block text-sm font-medium text-slate-700 dark:text-slate-300" x-text="scope === 'GEDUNG' ? 'Gedung' : (scope === 'KATEGORI' ? 'Kategori' : (scope === 'RUANGAN' ? 'Ruangan' : 'Jurusan'))"></label>
                 <select id="report-scope-id" x-model="scopeId" class="mt-1 block min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                     <option value="">— pilih —</option>
+                    <template x-if="scope === 'GEDUNG'">
+                        <optgroup label="Gedung">
+                            @foreach ($buildings as $building)
+                                <option value="{{ $building->id }}">{{ $building->code }} — {{ $building->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    </template>
                     <template x-if="scope === 'KATEGORI'">
                         <optgroup label="Kategori">
                             @foreach ($categories as $category)

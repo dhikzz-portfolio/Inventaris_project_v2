@@ -9,6 +9,7 @@ use App\Enums\LoanStatus;
 use App\Enums\UnitStatus;
 use App\Exports\MonthlyReportExport;
 use App\Models\AssetUnit;
+use App\Models\Building;
 use App\Models\Category;
 use App\Models\DamageReport;
 use App\Models\InstitutionSetting;
@@ -55,6 +56,8 @@ class ReportService
             ? (string) $condition
             : null;
 
+        $buildingScope = $scope === 'GEDUNG' && $scopeId ? Building::query()->find($scopeId) : null;
+
         $items = Item::approved()
             ->with(['room.major', 'category'])
             ->when($labOnly, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('is_lab', true)))
@@ -62,6 +65,7 @@ class ReportService
             ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->where('category_id', $scopeId))
             ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
             ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
+            ->when($scope === 'GEDUNG' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $this->applyBuildingScope($r, $scopeId)))
             ->where('status', '!=', 'DIHAPUS')
             ->orderBy('name')
             ->get();
@@ -75,6 +79,7 @@ class ReportService
                 ->when($scope === 'JURUSAN' && $scopeId, fn ($qq) => $qq->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
             )
             ->when($scope === 'RUANGAN' && $scopeId, fn ($query) => $query->where('room_id', $scopeId))
+            ->when($scope === 'GEDUNG' && $scopeId, fn ($query) => $query->whereHas('room', fn ($r) => $this->applyBuildingScope($r, $scopeId)))
             ->when($conditionFilter !== null, fn ($query) => $query->where('condition', $conditionFilter))
             ->with(['catalog.category', 'room', 'specification'])
             ->orderBy('inventory_code')
@@ -98,7 +103,8 @@ class ReportService
             $loansInPeriod->whereHas('loanItems.item', function ($q) use ($scope, $scopeId) {
                 $q->when($scope === 'KATEGORI', fn ($qq) => $qq->where('category_id', $scopeId))
                     ->when($scope === 'RUANGAN', fn ($qq) => $qq->where('room_id', $scopeId))
-                    ->when($scope === 'JURUSAN', fn ($qq) => $qq->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)));
+                    ->when($scope === 'JURUSAN', fn ($qq) => $qq->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
+                    ->when($scope === 'GEDUNG', fn ($qq) => $qq->whereHas('room', fn ($r) => $this->applyBuildingScope($r, $scopeId)));
             });
         }
 
@@ -113,7 +119,8 @@ class ReportService
             ->when($scope !== 'SEMUA' && $scopeId, fn ($q) => $q->whereHas('item', function ($qq) use ($scope, $scopeId) {
                 $qq->when($scope === 'KATEGORI', fn ($q3) => $q3->where('category_id', $scopeId))
                     ->when($scope === 'RUANGAN', fn ($q3) => $q3->where('room_id', $scopeId))
-                    ->when($scope === 'JURUSAN', fn ($q3) => $q3->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)));
+                    ->when($scope === 'JURUSAN', fn ($q3) => $q3->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
+                    ->when($scope === 'GEDUNG', fn ($q3) => $q3->whereHas('room', fn ($r) => $this->applyBuildingScope($r, $scopeId)));
             }))
             ->with('item')
             ->get();
@@ -124,7 +131,8 @@ class ReportService
             ->when($scope !== 'SEMUA' && $scopeId, fn ($q) => $q->whereHas('item', function ($qq) use ($scope, $scopeId) {
                 $qq->when($scope === 'KATEGORI', fn ($q3) => $q3->where('category_id', $scopeId))
                     ->when($scope === 'RUANGAN', fn ($q3) => $q3->where('room_id', $scopeId))
-                    ->when($scope === 'JURUSAN', fn ($q3) => $q3->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)));
+                    ->when($scope === 'JURUSAN', fn ($q3) => $q3->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
+                    ->when($scope === 'GEDUNG', fn ($q3) => $q3->whereHas('room', fn ($r) => $this->applyBuildingScope($r, $scopeId)));
             }))
             ->with(['item', 'fromRoom', 'toRoom', 'mover'])
             ->get();
@@ -137,7 +145,8 @@ class ReportService
                 ->when($roomScopedIds !== null, fn ($q) => $q->whereIn('room_id', $roomScopedIds))
                 ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->whereHas('catalog', fn ($c) => $c->where('category_id', $scopeId)))
                 ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
-                ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('catalog.room', fn ($r) => $r->where('major_id', $scopeId)));
+                ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('catalog.room', fn ($r) => $r->where('major_id', $scopeId)))
+                ->when($scope === 'GEDUNG' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $this->applyBuildingScope($r, $scopeId)));
         };
 
         $legacyScope = function ($query) use ($scope, $scopeId, $labOnly, $roomScopedIds): void {
@@ -145,7 +154,8 @@ class ReportService
                 ->when($roomScopedIds !== null, fn ($q) => $q->whereIn('room_id', $roomScopedIds))
                 ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->where('category_id', $scopeId))
                 ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
-                ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)));
+                ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
+                ->when($scope === 'GEDUNG' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $this->applyBuildingScope($r, $scopeId)));
         };
 
         $writeOffs = WriteOff::where('status', 'APPROVED')
@@ -195,6 +205,10 @@ class ReportService
                     }
 
                     if ($scope === 'JURUSAN' && $scopeId && (int) $row->catalog?->room?->major_id !== (int) $scopeId) {
+                        continue;
+                    }
+
+                    if ($scope === 'GEDUNG' && $scopeId && ! $this->roomMatchesBuilding($row->room, $buildingScope)) {
                         continue;
                     }
 
@@ -254,6 +268,7 @@ class ReportService
             ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->where('category_id', $scopeId))
             ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->where('room_id', $scopeId))
             ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $r->where('major_id', $scopeId)))
+            ->when($scope === 'GEDUNG' && $scopeId, fn ($q) => $q->whereHas('room', fn ($r) => $this->applyBuildingScope($r, $scopeId)))
             ->orderBy('created_at')
             ->get();
 
@@ -265,6 +280,7 @@ class ReportService
             ->when($scope === 'KATEGORI' && $scopeId, fn ($q) => $q->whereHas('unit.catalog', fn ($c) => $c->where('category_id', $scopeId)))
             ->when($scope === 'RUANGAN' && $scopeId, fn ($q) => $q->whereHas('unit', fn ($u) => $u->where('room_id', $scopeId)))
             ->when($scope === 'JURUSAN' && $scopeId, fn ($q) => $q->whereHas('unit.room', fn ($r) => $r->where('major_id', $scopeId)))
+            ->when($scope === 'GEDUNG' && $scopeId, fn ($q) => $q->whereHas('unit.room', fn ($r) => $this->applyBuildingScope($r, $scopeId)))
             ->with(['unit.catalog.category', 'unit.room', 'unit.specification', 'reporter'])
             ->orderBy('created_at')
             ->get();
@@ -279,6 +295,7 @@ class ReportService
                     'KATEGORI' => 'Kategori: '.(Category::find($scopeId)?->name ?? '-'),
                     'RUANGAN' => 'Ruangan: '.(Room::find($scopeId)?->name ?? '-'),
                     'JURUSAN' => 'Jurusan: '.(Major::find($scopeId)?->name ?? '-'),
+                    'GEDUNG' => 'Gedung: '.($buildingScope?->name ?? '-'),
                     default => $labOnly ? 'Seluruh laboratorium' : 'Seluruh sekolah',
                 },
                 $conditionFilter !== null
@@ -363,6 +380,45 @@ class ReportService
             ['period' => $period, 'scope' => $scope, 'scope_id' => $scopeId],
             ['pdf_path' => $pdfPath, 'excel_path' => $xlsxPath, 'generated_by' => $userId, 'generated_at' => now()]
         );
+    }
+
+    /**
+     * Batasi query ruangan ke gedung terpilih. Ruangan lama yang belum tertaut
+     * master gedung tetap ikut lewat kecocokan `building_letter`.
+     */
+    private function applyBuildingScope($query, ?int $buildingId): void
+    {
+        if ($buildingId === null) {
+            return;
+        }
+
+        $building = Building::query()->find($buildingId);
+
+        if ($building === null) {
+            return;
+        }
+
+        $query->where(function ($room) use ($building): void {
+            $room->where('building_id', $building->id)
+                ->orWhere(function ($legacy) use ($building): void {
+                    $legacy->whereNull('building_id')
+                        ->whereRaw('UPPER(building_letter) = ?', [strtoupper((string) $building->code)]);
+                });
+        });
+    }
+
+    private function roomMatchesBuilding(?Room $room, ?Building $building): bool
+    {
+        if ($room === null || $building === null) {
+            return false;
+        }
+
+        if ((int) $room->building_id === (int) $building->id) {
+            return true;
+        }
+
+        return $room->building_id === null
+            && strtoupper((string) $room->building_letter) === strtoupper((string) $building->code);
     }
 
     /** Stream PDF laporan on-the-fly. */

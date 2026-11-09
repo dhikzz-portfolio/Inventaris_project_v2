@@ -383,7 +383,7 @@
                         </span>
                         <div class="min-w-0 pt-0.5">
                             <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Pengajuan Penghapusan</h3>
-                            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Lengkapi alasan dan berita acara untuk melanjutkan.</p>
+                            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Lengkapi alasan untuk melanjutkan. Berita acara bersifat opsional.</p>
                         </div>
                     </div>
 
@@ -404,9 +404,9 @@
 
                     <div class="space-y-1.5" x-data="{ fileName: '' }">
                         <label class="block">
-                            <span class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Berita Acara (PDF/Gambar) *</span>
+                            <span class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Berita Acara (PDF/Gambar, opsional)</span>
                             <span class="mt-1.5 flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:border-red-300 hover:bg-red-50/60 focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-red-800 dark:hover:bg-red-950/20 dark:focus-within:border-red-700 dark:focus-within:ring-red-950/50">
-                                <input type="file" name="berita_acara" accept=".pdf,.jpg,.jpeg,.png" required
+                                <input type="file" name="berita_acara" accept=".pdf,.jpg,.jpeg,.png"
                                        x-on:change="fileName = $event.target.files.length ? $event.target.files[0].name : ''"
                                        class="peer sr-only">
                                 <span class="material-icons-round text-lg text-red-600 dark:text-red-400" aria-hidden="true">upload_file</span>
@@ -414,7 +414,7 @@
                                 <span class="shrink-0 text-xs font-bold text-red-700 dark:text-red-300">Pilih</span>
                             </span>
                         </label>
-                        <p class="text-[11px] text-slate-400 dark:text-slate-500">PDF, JPG, atau PNG · Maksimal 4 MB</p>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500">Opsional · PDF, JPG, atau PNG · Maksimal 4 MB</p>
                         <x-input-error class="mt-1" :messages="$errors->get('berita_acara')" />
                     </div>
 

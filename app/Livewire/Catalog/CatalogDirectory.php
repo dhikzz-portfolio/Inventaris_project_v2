@@ -8,7 +8,6 @@ use App\Models\Building;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Room;
-use App\Models\Specification;
 use App\Services\InventoryCodeService;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -27,10 +26,6 @@ class CatalogDirectory extends Component
 
     public string $room = '';
 
-    public string $brand = '';
-
-    public string $model = '';
-
     public string $condition = '';
 
     public string $status = '';
@@ -45,8 +40,6 @@ class CatalogDirectory extends Component
         'building' => ['except' => ''],
         'floor' => ['except' => ''],
         'room' => ['except' => ''],
-        'brand' => ['except' => ''],
-        'model' => ['except' => ''],
         'condition' => ['except' => ''],
         'status' => ['except' => ''],
         'availability' => ['except' => ''],
@@ -75,22 +68,16 @@ class CatalogDirectory extends Component
         $this->resetPage();
     }
 
-    public function updatedBrand(): void
-    {
-        $this->model = '';
-        $this->resetPage();
-    }
-
     public function updating($property, $value): void
     {
-        if (in_array($property, ['search', 'category', 'building', 'floor', 'room', 'brand', 'model', 'condition', 'status', 'availability'], true)) {
+        if (in_array($property, ['search', 'category', 'building', 'floor', 'room', 'condition', 'status', 'availability'], true)) {
             $this->resetPage();
         }
     }
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'category', 'building', 'floor', 'room', 'brand', 'model', 'condition', 'status', 'availability']);
+        $this->reset(['search', 'category', 'building', 'floor', 'room', 'condition', 'status', 'availability']);
         $this->resetPage();
     }
 
@@ -130,10 +117,10 @@ class CatalogDirectory extends Component
 
             $query->where(function ($where) use ($term, $normalized, $looksLikeCode, $user) {
                 $like = '%'.$term.'%';
+                // Pencarian katalog hanya memakai nama katalog dan kategori.
+                // Merek/model dicari saat masuk ke detail katalog.
                 $where->where('name', 'like', $like)
-                    ->orWhere('specification', 'like', $like)
-                    ->orWhere('brand', 'like', $like)
-                    ->orWhere('model_type', 'like', $like);
+                    ->orWhereHas('category', fn ($category) => $category->where('name', 'like', $like));
 
                 if ($looksLikeCode) {
                     $where->orWhereHas('units', fn ($unit) => $unit
@@ -146,9 +133,9 @@ class CatalogDirectory extends Component
         $query->when($this->category, fn ($q) => $q->where('category_id', $this->category));
 
         // Filter fisik mengikuti hierarki yang sama di semua modul:
-        // gedung → lantai → ruangan → merek → model → kondisi → status.
+        // gedung → lantai → ruangan → kondisi → status.
         $hasUnitFilters = $this->building !== '' || $this->floor !== '' || $this->room !== ''
-            || $this->brand !== '' || $this->model !== '' || $this->condition !== '' || $this->status !== '';
+            || $this->condition !== '' || $this->status !== '';
 
         if ($hasUnitFilters) {
             $query->whereHas('units', function ($unit) use ($user) {
@@ -163,17 +150,6 @@ class CatalogDirectory extends Component
                         }
                         if ($this->floor !== '') {
                             $room->where('floor', $this->floor);
-                        }
-                    });
-                }
-
-                if ($this->brand !== '' || $this->model !== '') {
-                    $unit->whereHas('specification', function ($specification) {
-                        if ($this->brand !== '') {
-                            $specification->where('brand', $this->brand);
-                        }
-                        if ($this->model !== '') {
-                            $specification->where('model_type', 'like', '%'.$this->model.'%');
                         }
                     });
                 }
@@ -212,18 +188,9 @@ class CatalogDirectory extends Component
             'floors' => Room::query()
                 ->when($this->building !== '', fn ($q) => $q->where('building_letter', $this->building))
                 ->select('floor')->distinct()->orderBy('floor')->pluck('floor'),
-            'brands' => Specification::query()
-                ->whereHas('itemCatalog', fn ($catalog) => $catalog->visibleTo($user))
-                ->whereHas('units', fn ($unit) => $unit->visibleTo($user)->where('status', '!=', UnitStatus::DIHAPUS->value))
-                ->select('brand')->distinct()->orderBy('brand')->pluck('brand'),
-            'models' => Specification::query()
-                ->whereHas('itemCatalog', fn ($catalog) => $catalog->visibleTo($user))
-                ->whereHas('units', fn ($unit) => $unit->visibleTo($user)->where('status', '!=', UnitStatus::DIHAPUS->value))
-                ->when($this->brand !== '', fn ($query) => $query->where('brand', $this->brand))
-                ->select('model_type')->distinct()->orderBy('model_type')->pluck('model_type'),
             'conditions' => Condition::cases(),
             'statuses' => UnitStatus::cases(),
-            'activeFilters' => collect(['search', 'category', 'building', 'floor', 'room', 'brand', 'model', 'condition', 'status', 'availability'])
+            'activeFilters' => collect(['search', 'category', 'building', 'floor', 'room', 'condition', 'status', 'availability'])
                 ->filter(fn ($field) => $this->$field !== '')->count(),
             'scopeMissing' => $user->isOperator() && ! $user->roomScopes()->exists(),
         ]);

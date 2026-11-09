@@ -23,6 +23,12 @@
     @if ($errors->any())
         <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
+    @unless ($hasRooms ?? true)
+        <div role="alert" class="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <span class="material-icons-round text-base">warning</span>
+            <span>Belum ada ruangan dengan identitas lengkap (gedung, lantai, no. ruangan). Tambahkan ruangan di <strong>Master Data</strong> sebelum menambah unit lewat impor.</span>
+        </div>
+    @endunless
 
     <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -30,7 +36,7 @@
                 <span class="material-icons-round shrink-0 text-blue-600">upload_file</span>
                 <div>
                     <p class="text-sm font-bold text-slate-800 dark:text-slate-100">1. Pilih berkas</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Gunakan file CSV atau XLSX yang datanya rapi per baris.</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Gunakan template XLSX (sheet Data Unit + Petunjuk) atau CSV yang datanya rapi per baris.</p>
                 </div>
             </div>
             <div class="flex items-start gap-2.5">
@@ -66,23 +72,29 @@
                 </div>
 
                 <div>
-                    <x-input-label value="Pilih tindakan *" />
+                    <x-input-label for="mode-update" value="Pilih tindakan *" />
                     <div class="mt-1 space-y-2">
-                        <label class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/30">
-                            <input type="radio" name="mode" value="update" checked class="mt-0.5 h-4 w-4 border-slate-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900">
+                        <label for="mode-update"
+                               class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-blue-300 hover:bg-blue-50/40 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/70 has-[:checked]:ring-2 has-[:checked]:ring-blue-200 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 dark:has-[:checked]:border-blue-500 dark:has-[:checked]:bg-blue-950/40 dark:has-[:checked]:ring-blue-900">
+                            <input id="mode-update" type="radio" name="mode" value="update" checked class="mt-0.5 h-4 w-4 border-slate-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900">
                             <span>
                                 <strong class="block text-sm text-slate-800 dark:text-slate-100">Perbarui data yang sudah ada</strong>
                                 <span class="text-slate-500 dark:text-slate-400">Hanya mengubah unit yang kodenya sudah terdaftar. Tidak membuat unit baru.</span>
                             </span>
                         </label>
-                        <label class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/30">
-                            <input type="radio" name="mode" value="create" class="mt-0.5 h-4 w-4 border-slate-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900">
+                        <label for="mode-create"
+                               class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-blue-300 hover:bg-blue-50/40 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/70 has-[:checked]:ring-2 has-[:checked]:ring-blue-200 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 dark:has-[:checked]:border-blue-500 dark:has-[:checked]:bg-blue-950/40 dark:has-[:checked]:ring-blue-900">
+                            <input id="mode-create" type="radio" name="mode" value="create" class="mt-0.5 h-4 w-4 border-slate-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900">
                             <span>
                                 <strong class="block text-sm text-slate-800 dark:text-slate-100">Tambahkan unit baru</strong>
-                                <span class="text-slate-500 dark:text-slate-400">Dipakai saat memulihkan data. Katalog dan ruangan harus sudah ada di master data.</span>
+                                <span class="text-slate-500 dark:text-slate-400">Dipakai untuk menambahkan banyak unit. Ruangan harus sudah ada; katalog baru dibuat otomatis bila belum terdaftar.</span>
                             </span>
                         </label>
                     </div>
+                    <p class="mt-2 flex items-start gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2 text-[11px] text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
+                        <span class="material-icons-round text-sm">info</span>
+                        <span>Pilihan tindakan dipakai saat menekan <strong>Periksa Berkas</strong>. Pada mode tambah, kosongkan kolom kode inventaris agar sistem membuat kodenya otomatis dari lokasi dan katalog.</span>
+                    </p>
                 </div>
 
                 <button class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
@@ -93,13 +105,16 @@
             <details class="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/40">
                 <summary class="cursor-pointer px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200">Kolom apa saja yang dibutuhkan?</summary>
                 <div class="space-y-2 border-t border-slate-200 px-3 py-3 text-[11px] text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                    <p><strong class="text-slate-800 dark:text-slate-100">Wajib untuk semua baris:</strong> kode inventaris, kondisi, status.</p>
-                    <p><strong class="text-slate-800 dark:text-slate-100">Wajib bila menambah unit baru:</strong> nama barang, gedung, lantai, no. ruangan.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Wajib untuk semua baris:</strong> kondisi dan status.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Kode inventaris opsional saat menambah unit baru.</strong> Kosongkan sel agar sistem membuat kode otomatis; isi bila unit sudah memiliki kode. Pada mode perbarui, kode tetap wajib karena dipakai untuk mencocokkan unit.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Wajib bila menambah unit baru:</strong> nama barang, gedung, lantai, no. ruangan. Nama barang yang belum terdaftar akan dibuatkan katalog baru secara otomatis.</p>
                     <p><strong class="text-slate-800 dark:text-slate-100">Opsional:</strong> tahun, sumber dana, no. register.</p>
+                    <p class="text-amber-700 dark:text-amber-300"><strong>Baris contoh template memakai nama "(contoh)" dan akan ditolak.</strong> Ganti dengan data sebenarnya atau hapus barisnya. Daftar ruangan dan katalog yang tersedia ada di sheet <em>Petunjuk</em> pada file contoh.</p>
                     <p class="pt-1">Judul kolom dari ekspor Excel (Kode Inventaris, Nama Barang, Gedung, Lantai, No. Ruangan, Kondisi, Status) juga dikenali.</p>
                     <p class="break-words rounded-lg bg-white px-2 py-1.5 font-mono text-[10px] text-slate-500 dark:bg-slate-950 dark:text-slate-400">kode_inventaris, nama_barang, gedung, lantai, no_ruangan, kondisi, status, tahun, sumber_dana, no_register</p>
-                    <p><strong class="text-slate-800 dark:text-slate-100">Format nilai:</strong> kondisi <em>Baik</em>, <em>Rusak Ringan</em>, atau <em>Rusak Berat</em>; status <em>Aktif</em> atau <em>Hilang</em>; tahun berupa angka 4 digit (contoh 2024); gedung berupa huruf kode gedung; lantai dan no. ruangan berupa angka.</p>
-                    <p><strong class="text-slate-800 dark:text-slate-100">Relasi master data:</strong> menambah unit baru memerlukan nama katalog yang sudah ada dan ruangan yang cocok dengan gedung/lantai/no. ruangan. Kode unit harus mengikuti pola lokasi, misalnya <span class="font-mono">G1-02-012-01</span> untuk Gedung G, lantai 1, ruang 02, kode jenis barang 012, unit 01.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Format nilai:</strong> kondisi <em>Baik</em>, <em>Rusak Ringan</em>, atau <em>Rusak Berat</em>; status <em>Aktif</em>, <em>Sedang Dipinjam</em>, atau <em>Hilang</em>; tahun berupa angka 4 digit (contoh 2024); gedung berupa huruf kode gedung; lantai dan no. ruangan berupa angka.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Impor balik file ekspor:</strong> file Excel laporan bulanan dapat diimpor kembali. Sistem memakai sheet <em>Unit</em> (sheet pertama) dan mengabaikan sheet Peminjaman, Kerusakan, Mutasi, Penghapusan, Pengadaan, serta Laporan Kerusakan.</p>
+                    <p><strong class="text-slate-800 dark:text-slate-100">Relasi master data:</strong> ruangan harus cocok dengan gedung/lantai/no. ruangan. Nama barang dicocokkan ke katalog; bila belum ada, katalog baru dibuat otomatis. Kode otomatis mengikuti pola lokasi, misalnya <span class="font-mono">G1-02-012-01</span> untuk Gedung G, lantai 1, ruang 02, kode jenis barang 012, unit 01.</p>
                     <p><strong class="text-slate-800 dark:text-slate-100">Hasil validasi:</strong> setiap baris ditandai siap, perlu diperbaiki, atau ditolak; kode duplikat dan relasi yang tidak ditemukan diblokir. Impor hanya dijalankan bila seluruh baris valid, dalam satu transaksi — bila terjadi kegagalan seluruh perubahan dibatalkan.</p>
                 </div>
             </details>
@@ -212,8 +227,16 @@
                                 @endphp
                                 <tr class="{{ $isBlocked ? 'bg-red-50/60 dark:bg-red-950/20' : 'bg-white dark:bg-slate-900' }}">
                                     <td class="px-3 py-2 text-slate-400 dark:text-slate-500">{{ $row['line'] }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2 font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $row['code'] ?: '—' }}</td>
-                                    <td class="px-3 py-2 text-slate-700 dark:text-slate-200">{{ $row['name'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2 font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $row['code'] ?: '—' }}
+                                        @if ($row['auto_code'] ?? false)
+                                            <span class="ms-1 rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-blue-700 dark:bg-blue-950/60 dark:text-blue-200">otomatis</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-2 text-slate-700 dark:text-slate-200">{{ $row['name'] ?: '—' }}
+                                        @if ($row['auto_catalog'] ?? false)
+                                            <span class="ms-1 rounded bg-green-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-green-700 dark:bg-green-950/60 dark:text-green-200">katalog baru</span>
+                                        @endif
+                                    </td>
                                     <td class="px-3 py-2 text-slate-500 dark:text-slate-400">{{ $row['room_label'] }}</td>
                                     <td class="px-3 py-2 text-slate-500 dark:text-slate-400">{{ $row['condition'] ?: '—' }}</td>
                                     <td class="px-3 py-2 text-slate-500 dark:text-slate-400">{{ $row['status'] ?: '—' }}</td>

@@ -11,6 +11,9 @@ use App\Models\Category;
 use App\Models\Item;
 use App\Models\Room;
 use App\Services\InventoryCodeService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -21,6 +24,8 @@ use Illuminate\View\View;
 
 class MovementController extends Controller
 {
+    use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+
     /**
      * Mutasi dilakukan per unit fisik. Daftar unit mendukung pencarian kode
      * atau nama barang dan filter jenis, gedung, lantai, ruangan, kondisi, serta status.
@@ -34,7 +39,7 @@ class MovementController extends Controller
             ->visibleTo($user)
             ->whereHas('catalog', fn ($query) => $query->approved())
             ->where('status', '!=', UnitStatus::DIHAPUS->value)
-            ->with(['catalog.category', 'room.building'])
+            ->with(['catalog.category', 'room.building', 'specification'])
             ->when($filters['search'] !== '', function ($query) use ($filters) {
                 $term = strtoupper(trim($filters['search']));
                 $query->where(function ($searchQuery) use ($term): void {
@@ -65,8 +70,34 @@ class MovementController extends Controller
             ->orderBy('code')
             ->get();
 
+        $catalogGroups = $units->getCollection()
+            ->groupBy(fn (AssetUnit $unit): int => $unit->item_catalog_id)
+            ->map(fn (Collection $group): array => [
+                'catalogId' => $group->first()->item_catalog_id,
+                'catalogName' => $group->first()->catalog?->name ?? 'Tanpa Katalog',
+                'categoryName' => $group->first()->catalog?->category?->name ?? '',
+                'unitCount' => $group->count(),
+                'specs' => $group->mapWithKeys(fn (AssetUnit $unit): array => [
+                    (string) $unit->id => [
+                        'spec' => $unit->specification?->displayName() ?? 'Tanpa Merek',
+                        'brand' => $unit->specification?->brandLabel(),
+                        'model' => $unit->specification?->modelLabel(),
+                        'codes' => $unit->codes->isEmpty()
+                            ? []
+                            : $unit->codes->map(fn ($code): array => [
+                                'code' => $code->inventory_code,
+                                'unit_no' => $code->unit_no,
+                            ])->all(),
+                        'unitNo' => $unit->unit_no,
+                        'inventoryCode' => $unit->inventory_code,
+                    ],
+                ])->all(),
+            ])->values()
+            ->toArray();
+
         return view('movements.index', [
             'units' => $units,
+            'scanCodes' => (array) $request->input('scanCodes', []),
             'movements' => AssetUnitMovement::with(['unit.catalog', 'fromRoom', 'toRoom', 'mover'])
                 ->latest('moved_at')
                 ->latest('id')
@@ -93,6 +124,7 @@ class MovementController extends Controller
             'roomLabels' => $rooms->mapWithKeys(fn (Room $room): array => [
                 (string) $room->id => $room->code.' — '.$room->name,
             ])->all(),
+            'catalogGroups' => $catalogGroups,
         ]);
     }
 
@@ -111,17 +143,28 @@ class MovementController extends Controller
             'to_room_id' => ['nullable', 'integer', Rule::exists('rooms', 'id')],
             'destinations' => ['nullable', 'array', 'min:1'],
             'destinations.*.room_id' => ['required', 'integer', Rule::exists('rooms', 'id')],
-            'destinations.*.unit_ids' => ['required', 'array', 'min:1'],
+            'destinations.*.unit_ids' => ['required', 'array', 'min:1', 'max:10'],
             'destinations.*.unit_ids.*' => ['required', 'integer', Rule::exists('asset_units', 'id')],
             'note' => ['nullable', 'string', 'max:500'],
         ], [
             'destinations.*.room_id.required' => 'Setiap kelompok tujuan wajib memiliki ruangan tujuan.',
             'destinations.*.unit_ids.required' => 'Setiap kelompok tujuan wajib berisi minimal satu unit.',
             'destinations.*.unit_ids.min' => 'Setiap kelompok tujuan wajib berisi minimal satu unit.',
+            'destinations.*.unit_ids.max' => 'Setiap ruangan tujuan hanya boleh berisi maksimal 10 unit per pindahan.',
         ]);
 
         $groups = $this->destinationGroups($data);
         $allUnitIds = $groups->flatMap(fn (array $group): array => $group['unit_ids'])->values();
+
+        if (filled($data['destinations'] ?? null) && array_key_exists('unit_ids', $data)) {
+            $selectedUnitIds = collect($data['unit_ids'])->map(fn ($id): int => (int) $id)->sort()->values();
+
+            if ($selectedUnitIds->isEmpty() || $selectedUnitIds->all() !== $allUnitIds->sort()->values()->all()) {
+                throw ValidationException::withMessages([
+                    'destinations' => 'Jumlah unit pada distribusi lokasi harus tepat sama dengan unit yang dipilih.',
+                ]);
+            }
+        }
 
         if ($allUnitIds->duplicates()->isNotEmpty()) {
             throw ValidationException::withMessages([

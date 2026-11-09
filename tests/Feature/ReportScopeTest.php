@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AssetUnit;
+use App\Models\Building;
 use App\Models\DamageReport;
 use App\Models\Item;
 use App\Models\Room;
@@ -61,6 +62,27 @@ class ReportScopeTest extends TestCase
 
         $this->assertCount(0, $data['units']);
         $this->assertCount(0, $data['movements']);
+    }
+
+    public function test_admin_dapat_membatasi_laporan_pada_satu_gedung(): void
+    {
+        $building = Building::query()->whereHas('rooms.units')->firstOrFail();
+
+        $data = app(ReportService::class)->data(now()->format('Y-m'), 'GEDUNG', $building->id, $this->wakasek);
+
+        $this->assertNotEmpty($data['units']);
+        $this->assertTrue($data['units']->every(function (AssetUnit $unit) use ($building): bool {
+            $room = $unit->room;
+
+            if ($room === null) {
+                return false;
+            }
+
+            return (int) $room->building_id === (int) $building->id
+                || ($room->building_id === null
+                    && strtoupper((string) $room->building_letter) === strtoupper((string) $building->code));
+        }));
+        $this->assertStringContainsString('Gedung: '.$building->name, $data['scopeLabel']);
     }
 
     public function test_laporan_memuat_pengadaan_dan_laporan_kerusakan(): void

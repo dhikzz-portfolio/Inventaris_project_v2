@@ -361,9 +361,9 @@
                         <div class="h-full rounded-full bg-brand-600 transition-all duration-200" :style="`width: ${progressPercent}%`"></div>
                     </div>
                     <p class="mt-1.5 text-[11px] font-semibold" :class="remaining === 0 && totalCount > 0 ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'">
-                        Terpakai <span x-text="assignedCount">0</span> / <span x-text="totalCount">0</span> •
-                        <span x-show="remaining > 0">Sisa <span x-text="remaining">0</span> unit belum dialokasikan</span>
-                        <span x-show="remaining === 0 && totalCount > 0">Semua unit sudah dialokasikan</span>
+                        Terpakai <span x-text="assignedCount">0</span> / <span x-text="totalCount">0</span>
+                        <span x-show="remaining > 0">• Sisa <span x-text="remaining">0</span> unit belum dialokasikan</span>
+                        <span x-show="remaining === 0 && totalCount > 0">• Semua unit sudah dialokasikan</span>
                     </p>
                 </div>
 
@@ -577,6 +577,7 @@
             return {
                 unitOptions: config.unitOptions || {},
                 roomLabels: config.roomLabels || {},
+                moveCode: config.moveCode || '',
                 selected: [],
                 destinations: [],
                 nextKey: 1,
@@ -825,4 +826,5 @@
         };
     }
 </script>
+    @endpush
 </x-app-layout>

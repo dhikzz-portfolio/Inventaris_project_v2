@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+page.on('console', (m) => console.log('console:', m.type(), m.text()));
+page.on('pageerror', (e) => console.log('pageerror:', String(e)));
+await page.goto('http://127.0.0.1:8000/login', { waitUntil: 'domcontentloaded' });
+await page.fill('input[name="email"]', 'laboran.rpl@gmail.com');
+await page.fill('input[name="password"]', 'laboran123');
+await page.click('button[type="submit"]');
+await page.waitForTimeout(3000);
+console.log('URL:', page.url());
+const body = await page.locator('body').innerText();
+console.log(body.slice(0, 1200));
+await page.screenshot({ path: 'tmp/shots-mutasi/debug-login.png', fullPage: true });
+await browser.close();

@@ -93,9 +93,6 @@ abstract class NormalizesBackedEnum implements CastsAttributes
         $this->raiseWrongType($value);
     }
 
-    /**
-     * @param  BackedEnum  $value
-     */
     private function raiseWrongEnum(BackedEnum $value): void
     {
         throw new InvalidArgumentException(

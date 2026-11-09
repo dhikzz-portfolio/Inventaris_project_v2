@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\Condition;
-use App\Enums\UnitStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;

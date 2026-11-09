@@ -32,7 +32,6 @@ class AssetUnit extends Model
         ];
     }
 
-
     public function catalog(): BelongsTo
     {
         return $this->belongsTo(Item::class, 'item_catalog_id');

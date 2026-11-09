@@ -105,6 +105,8 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($master
 
         // Label & Scan QR
         Route::patch('/units/{unit}', [UnitController::class, 'update'])->middleware('permission:inventory.edit')->name('units.update');
+        Route::get('/units/{unit}/edit', [UnitController::class, 'edit'])->middleware('permission:inventory.edit')->name('units.edit');
+        Route::patch('/units/{unit}/detail', [UnitController::class, 'updateDetails'])->middleware('permission:inventory.edit')->name('units.update-details');
         Route::get('/label', [LabelController::class, 'index'])->middleware('permission:unit_labels.view')->name('labels.index');
         Route::post('/label/cetak', [LabelController::class, 'print'])->middleware('permission:unit_labels.print')->name('labels.print');
 

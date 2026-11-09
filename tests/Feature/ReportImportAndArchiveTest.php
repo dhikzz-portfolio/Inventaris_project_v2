@@ -195,6 +195,68 @@ class ReportImportAndArchiveTest extends TestCase
         ]);
     }
 
+    public function test_mode_buat_menyimpan_merek_dan_tipe_unit_sebagai_spesifikasi_katalog(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $catalog = Item::approved()->firstOrFail();
+        $code = app(InventoryCodeService::class)->preview($room, null, $catalog);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [[$code, $catalog->name, 'Epson', 'EB-X51', $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif']],
+                'kode_inventaris,nama_barang,merek,tipe_model,gedung,lantai,no_ruangan,kondisi,status',
+            ),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'));
+
+        $unit = AssetUnit::where('inventory_code', $code)->firstOrFail();
+        $this->assertNotNull($unit->specification_id);
+        $this->assertSame('Epson', $unit->specification->brand);
+        $this->assertSame('EB-X51', $unit->specification->model_type);
+
+        // Merek per unit harus muncul di daftar merek halaman katalog.
+        $this->actingAs($this->wakasek)
+            ->get(route('catalogs.show', $catalog))
+            ->assertOk()
+            ->assertSee('Epson')
+            ->assertSee('EB-X51');
+    }
+
+    public function test_mode_perbarui_melengkapi_spesifikasi_unit_lama_yang_kosong(): void
+    {
+        $unit = AssetUnit::query()->whereNotNull('specification_id')->firstOrFail();
+        $unit->forceFill(['specification_id' => null])->save();
+
+        $room = $unit->room;
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [[$unit->inventory_code, $unit->catalog->name, 'Merek Impor', 'Tipe Impor', $room->buildingCode(), $room->floor, $room->room_no, $unit->condition->label(), $unit->status->label()]],
+                'kode_inventaris,nama_barang,merek,tipe_model,gedung,lantai,no_ruangan,kondisi,status',
+            ),
+            'mode' => 'update',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'));
+
+        $unit->refresh();
+        $this->assertNotNull($unit->specification_id);
+        $this->assertSame('Merek Impor', $unit->specification->brand);
+        $this->assertSame('Tipe Impor', $unit->specification->model_type);
+    }
+
     public function test_mode_buat_membuat_katalog_baru_saat_nama_barang_belum_terdaftar(): void
     {
         $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();

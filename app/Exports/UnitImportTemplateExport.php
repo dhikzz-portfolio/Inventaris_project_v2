@@ -64,8 +64,8 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
         $sampleCatalog = $catalogs[0] ?? ['name' => 'Contoh Barang', 'category' => 'Elektronik'];
 
         $sampleRows = [
-            ['', $sampleCatalog['name'].' (contoh)', $sampleCatalog['category'], $sampleRoom['building'], $sampleRoom['floor'], $sampleRoom['room_no'], 'Baik', 'Aktif', now()->year, '', ''],
-            ['', $sampleCatalog['name'].' (contoh)', $sampleCatalog['category'], $sampleRoom['building'], $sampleRoom['floor'], $sampleRoom['room_no'], 'Rusak Ringan', 'Aktif', now()->year, '', ''],
+            ['', $sampleCatalog['name'].' (contoh)', $sampleCatalog['category'], '', '', $sampleRoom['building'], $sampleRoom['floor'], $sampleRoom['room_no'], 'Baik', 'Aktif', now()->year, '', ''],
+            ['', $sampleCatalog['name'].' (contoh)', $sampleCatalog['category'], '', '', $sampleRoom['building'], $sampleRoom['floor'], $sampleRoom['room_no'], 'Rusak Ringan', 'Aktif', now()->year, '', ''],
         ];
 
         return [
@@ -78,7 +78,7 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
                 public function headings(): array
                 {
                     return [
-                        'kode_inventaris', 'nama_barang', 'kategori', 'gedung', 'lantai', 'no_ruangan',
+                        'kode_inventaris', 'nama_barang', 'kategori', 'merek', 'tipe_model', 'gedung', 'lantai', 'no_ruangan',
                         'kondisi', 'status', 'tahun', 'sumber_dana', 'no_register',
                     ];
                 }
@@ -109,7 +109,7 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
                         AfterSheet::class => function (AfterSheet $event): void {
                             $sheet = $event->sheet->getDelegate();
 
-                            $table = new Table('A1:K3');
+                            $table = new Table('A1:M3');
                             $table->setShowHeaderRow(true);
                             $table->setStyle(new TableStyle(TableStyle::TABLE_STYLE_MEDIUM2));
 
@@ -152,6 +152,8 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
                         ['kode_inventaris', 'Opsional saat menambah unit baru. Kosongkan agar sistem membuat kode otomatis dari lokasi dan katalog. Wajib saat memperbarui unit yang sudah ada. Format: Gedung+Lantai-Ruang-Kode Jenis-Nomor Unit, contoh G1-01-001-01.'],
                         ['nama_barang', 'Wajib saat menambah unit baru. Dicocokkan ke katalog yang ada; bila belum terdaftar, katalog baru dibuat otomatis.'],
                         ['kategori', 'Opsional. Dipakai sebagai kategori bila katalog baru dibuat; jika kosong memakai kategori "Tanpa Kategori".'],
+                        ['merek', 'Opsional. Merek barang untuk unit ini. Bila kosong memakai merek katalog, atau "Tanpa Merek" bila katalog juga tidak punya merek.'],
+                        ['tipe_model', 'Opsional. Tipe/model barang untuk unit ini. Bila kosong memakai tipe katalog, atau "Tidak Ditentukan" bila katalog juga tidak punya tipe.'],
                         ['gedung', 'Wajib saat menambah unit baru. Kode huruf gedung, contoh F.'],
                         ['lantai', 'Wajib saat menambah unit baru. Berupa angka, contoh 1.'],
                         ['no_ruangan', 'Wajib saat menambah unit baru. Berupa angka, contoh 2.'],
@@ -172,6 +174,7 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
                         ['Sistem membuat kode otomatis berdasarkan gedung, lantai, no. ruangan, kode jenis barang, dan nomor unit berikutnya. Nama barang yang belum ada di katalog juga dibuatkan katalog baru secara otomatis.'],
                         ['File Excel laporan bulanan juga dapat diimpor kembali. Sistem memakai sheet "Unit" (sheet pertama) dan mengabaikan sheet lain seperti Peminjaman, Kerusakan, Mutasi, Penghapusan, Pengadaan, dan Laporan Kerusakan.'],
                         ['Mode "Perbarui data yang sudah ada" hanya mengubah kondisi, status, tahun, sumber dana, dan nomor register unit yang sudah terdaftar. Mode "Tambahkan unit baru" membuat unit baru beserta katalog dan kodenya bila diperlukan.'],
+                        ['Merek dan tipe per unit disimpan sebagai spesifikasi katalog. Kolom merek/tipe_model juga dikenali dari berkas ekspor laporan bulanan, sehingga unit lama yang belum punya spesifikasi akan dilengkapi saat impor mode perbarui.'],
                         ['Impor ini bukan pengganti backup database.'],
                         [''],
                         ['Data master saat ini'],
@@ -190,10 +193,10 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
                     return [
                         1 => ['font' => ['bold' => true, 'size' => 14]],
                         3 => ['font' => ['bold' => true]],
-                        16 => ['font' => ['bold' => true]],
-                        22 => ['font' => ['bold' => true]],
-                        27 => ['font' => ['bold' => true]],
-                        'B1:B31' => ['alignment' => ['wrap' => true, 'vertical' => 'top']],
+                        18 => ['font' => ['bold' => true]],
+                        25 => ['font' => ['bold' => true]],
+                        32 => ['font' => ['bold' => true]],
+                        'B1:B32' => ['alignment' => ['wrap' => true, 'vertical' => 'top']],
                     ];
                 }
             },

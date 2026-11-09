@@ -464,6 +464,100 @@ class InventoryCoreTest extends TestCase
         $this->assertSame(UnitStatus::HILANG, $unit->refresh()->status);
     }
 
+    public function test_admin_dapat_mengoreksi_data_unit_dan_merek_per_unit(): void
+    {
+        $unit = AssetUnit::query()
+            ->where('status', UnitStatus::AKTIF->value)
+            ->whereHas('room', fn ($query) => $query->where('code', 'G1-01'))
+            ->firstOrFail();
+
+        $oldSpecificationId = $unit->specification_id;
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('units.edit', $unit))
+            ->assertOk()
+            ->assertSee('Edit Data Unit')
+            ->assertSee($unit->inventory_code);
+
+        $this->actingAs($this->superAdmin)
+            ->patch(route('units.update-details', $unit), [
+                'brand' => 'Merek Koreksi',
+                'model_type' => 'Tipe Koreksi',
+                'condition' => Condition::RUSAK_RINGAN->value,
+                'status' => UnitStatus::AKTIF->value,
+                'acquisition_date' => '2024-01-15',
+                'acquisition_year' => 2024,
+                'acquisition_value' => 4500000,
+                'funding_source' => 'BOS',
+                'acquisition_source' => 'Pembelian',
+                'register_no' => 'REG-KOREKSI-01',
+                'notes' => 'Koreksi salah input',
+            ])
+            ->assertRedirect(route('units.show', $unit))
+            ->assertSessionHasNoErrors();
+
+        $unit->refresh()->load('specification');
+
+        $this->assertNotSame($oldSpecificationId, $unit->specification_id);
+        $this->assertSame('Merek Koreksi', $unit->specification->brand);
+        $this->assertSame('Tipe Koreksi', $unit->specification->model_type);
+        $this->assertSame(Condition::RUSAK_RINGAN, $unit->condition);
+        $this->assertSame('2024-01-15', $unit->acquisition_date?->toDateString());
+        $this->assertSame(2024, $unit->acquisition_year);
+        $this->assertEquals(4500000, (float) $unit->acquisition_value);
+        $this->assertSame('BOS', $unit->funding_source);
+        $this->assertSame('Pembelian', $unit->acquisition_source);
+        $this->assertSame('REG-KOREKSI-01', $unit->register_no);
+        $this->assertSame('Koreksi salah input', $unit->notes);
+
+        $activity = Activity::query()
+            ->where('subject_type', AssetUnit::class)
+            ->where('subject_id', $unit->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame('Memperbarui data unit '.$unit->inventory_code, $activity->description);
+
+        $this->actingAs($this->superAdmin)
+            ->get(route('units.show', $unit))
+            ->assertOk()
+            ->assertSee('Merek Koreksi')
+            ->assertSee('Tipe Koreksi')
+            ->assertSee('Edit Data')
+            ->assertSee('Riwayat Edit Data')
+            ->assertSee('Memperbarui data unit '.$unit->inventory_code)
+            ->assertSee('Merek Koreksi — Tipe Koreksi')
+            ->assertSee('oleh '.$this->superAdmin->name);
+    }
+
+    public function test_hanya_admin_yang_dapat_membuka_dan_menyimpan_edit_data_unit(): void
+    {
+        $unit = AssetUnit::query()
+            ->whereHas('room', fn ($query) => $query->where('code', 'G1-01'))
+            ->firstOrFail();
+
+        foreach ([$this->ketuaLaboran, $this->laboranTkj] as $user) {
+            $this->actingAs($user)->get(route('units.edit', $unit))->assertForbidden();
+
+            $this->actingAs($user)
+                ->patch(route('units.update-details', $unit), [
+                    'brand' => 'Merek Tidak Sah',
+                    'model_type' => 'Tipe Tidak Sah',
+                    'condition' => Condition::BAIK->value,
+                    'status' => UnitStatus::AKTIF->value,
+                ])
+                ->assertForbidden();
+        }
+
+        $unit->refresh()->load('specification');
+        $this->assertNotSame('Merek Tidak Sah', $unit->specification?->brand);
+
+        $this->actingAs($this->ketuaLaboran)
+            ->get(route('units.show', $unit))
+            ->assertOk()
+            ->assertDontSee(route('units.edit', $unit));
+    }
+
     public function test_perintah_verify_codes_mendeteksi_ledger_tidak_sinkron(): void
     {
         $unit = AssetUnit::query()->firstOrFail();

@@ -12,6 +12,7 @@ use App\Models\Category;
 use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\Room;
+use App\Models\Specification;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -316,6 +317,8 @@ class ReportImportService
                 'acquisition_year' => is_numeric($row['tahun'] ?? null) ? (int) $row['tahun'] : null,
                 'funding_source' => trim((string) ($row['sumber_dana'] ?? '')) ?: null,
                 'register_no' => trim((string) ($row['no_register'] ?? '')) ?: null,
+                'brand' => trim((string) ($row['brand'] ?? '')) ?: null,
+                'model_type' => trim((string) ($row['model_type'] ?? '')) ?: null,
                 'notes' => null,
                 'errors' => $errors,
             ];
@@ -401,6 +404,20 @@ class ReportImportService
                         'funding_source' => $row['funding_source'] ?? $existing->funding_source,
                         'register_no' => $row['register_no'] ?? $existing->register_no,
                     ]);
+
+                    // Unit lama hasil impor sebelumnya bisa belum memiliki
+                    // spesifikasi sehingga tidak muncul di daftar merek katalog.
+                    // Lengkapi tanpa menimpa spesifikasi yang sudah ada.
+                    if ($existing->specification_id === null && $existing->catalog !== null) {
+                        $existing->forceFill([
+                            'specification_id' => Specification::resolveFor(
+                                $existing->catalog,
+                                filled($row['brand'] ?? null) ? $row['brand'] : $existing->catalog->brand,
+                                filled($row['model_type'] ?? null) ? $row['model_type'] : $existing->catalog->model_type,
+                            )->id,
+                        ])->save();
+                    }
+
                     $updated++;
 
                     continue;
@@ -478,8 +495,15 @@ class ReportImportService
                     ]);
                 }
 
+                $specification = Specification::resolveFor(
+                    $catalog,
+                    filled($row['brand'] ?? null) ? $row['brand'] : $catalog->brand,
+                    filled($row['model_type'] ?? null) ? $row['model_type'] : $catalog->model_type,
+                );
+
                 $unit = AssetUnit::create([
                     'item_catalog_id' => $catalogId,
+                    'specification_id' => $specification->id,
                     'inventory_code' => $row['code'],
                     'room_id' => $row['room_id'],
                     'unit_no' => $row['unit_no'],
@@ -559,6 +583,8 @@ class ReportImportService
             'tahun' => ['tahun', 'tahun_perolehan', 'acquisition_year'],
             'sumber_dana' => ['sumber_dana', 'funding_source'],
             'no_register' => ['no_register', 'nomor_register', 'register_no'],
+            'brand' => ['merek', 'brand'],
+            'model_type' => ['tipe_model', 'tipe', 'model', 'model_type'],
         ];
 
         $normalized = [];

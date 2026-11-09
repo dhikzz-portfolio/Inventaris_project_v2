@@ -684,3 +684,83 @@ Verifikasi
 Total 3 test passed (22 assertions). Tidak ada perubahan kode pada alur penghapusan kali ini — cukup menyelaraskan skema database dengan migrasi yang sudah ada.
 
 Catatan: jika Anda menjalankan aplikasi ini di mesin/deploy lain yang database-nya dibuat sebelum migrasi tersebut, jalankan juga  php artisan migrate  di sana agar error yang sama tidak muncul.
+
+
+Akar masalah
+
+Dugaan Anda benar. Merek/tipe memang disimpan per unit di tabel  specifications , sedangkan kolom  brand / model_type  di tabel katalog ( item_catalogs ) hanya data lama.
+
+Halaman katalog membangun daftar merek dari relasi  specifications  yang memiliki unit. Masalahnya,  ReportImportService  membuat  AssetUnit  langsung tanpa mengisi  specification_id , dan baris hasil impor juga tidak pernah membaca kolom  merek  /  tipe_model . Akibatnya:
+- unit hasil impor tetap tercatat dan muncul di detail/daftar unit,
+- tetapi unit tersebut tidak terhubung ke spesifikasi mana pun,
+- sehingga tidak ada baris merek yang muncul di daftar merek katalog.
+
+Perbaikan
+
+1.  app/Services/ReportImportService.php 
+- Menambahkan pengenalan kolom  merek / brand  dan  tipe_model / tipe / model .
+- Saat membuat unit baru, sistem sekarang memanggil  Specification::resolveFor($catalog, $brand, $model_type)  dan menyimpan  specification_id  pada unit. Jika kolom merek/tipe kosong, dipakai merek/tipe katalog; jika katalog juga kosong, masuk grup “Tanpa Merek / Tidak Ditentukan”.
+- Saat mode perbarui, unit lama yang  specification_id -nya masih kosong akan dilengkapi dari data impor tanpa menimpa spesifikasi yang sudah ada.
+2.  app/Exports/UnitImportTemplateExport.php 
+- Template impor kini punya kolom  merek  dan  tipe_model , sehingga penambahan barang lewat impor bisa langsung mencatat merek/tipe per unit.
+- Panduan dan format tabel template disesuaikan.
+3. Test regresi ditambahkan di  tests/Feature/ReportImportAndArchiveTest.php :
+- impor mode buat menyimpan merek/tipe sebagai spesifikasi dan merek tampil di halaman katalog;
+- impor mode perbarui melengkapi spesifikasi unit lama yang kosong.
+
+Verifikasi
+
+-  ReportImportAndArchiveTest : 20 passed (106 assertions), termasuk dua test baru.
+-  import_template_is_downloadable_and_wrong_headers_are_rejected : passed.
+-  vendor/bin/pint --dirty --format agent : passed.
+
+Untuk data yang sudah terlanjur diimpor sebelum perbaikan ini, jalankan impor ulang file laporan bulanan dengan mode “Perbarui data yang sudah ada”. Unit lama yang belum punya spesifikasi akan otomatis dipetakan dan mereknya muncul di katalog.
+
+Fitur edit per unit sudah selesai
+
+Tombol Edit Data sekarang muncul di halaman detail unit, tetapi hanya untuk role Admin. Role lain — termasuk Ketua Laboran, Laboran/K3, Operator, dan Super Admin — tidak melihat tombolnya dan tetap ditolak di backend meskipun membuka URL langsung.
+
+Yang bisa diedit
+
+- Merek dan tipe/model per unit. Perubahan akan memindahkan unit ke spesifikasi yang sesuai tanpa mengubah unit lain.
+- Kondisi dan status (Aktif/Hilang). Perubahan status wajib disertai alasan dan tercatat di riwayat status.
+- Tanggal perolehan, tahun perolehan, nilai perolehan.
+- Sumber dana, sumber perolehan, nomor register, dan catatan.
+
+Kode inventaris, katalog, dan lokasi sengaja tidak diubah dari form ini. Perpindahan ruangan tetap lewat menu Mutasi, sedangkan nama/kategori katalog diubah dari halaman katalog agar kode dan riwayat tetap konsisten.
+
+Perubahan teknis
+
+- Menambahkan halaman  units.edit  dan endpoint  units.update-details  di  UnitController .
+- Pengecekan  isAdmin()  dilakukan di controller untuk halaman maupun penyimpanan.
+- Menambahkan tombol Edit di  units/show.blade.php .
+- Halaman detail unit sekarang juga menampilkan Merek dan Tipe/Model.
+- Setiap penyimpanan dicatat ke audit log dengan data sebelum/sesudah.
+- Status unit yang sedang dipinjam dikunci; perubahannya hanya melalui proses pengembalian.
+
+Verifikasi
+
+-  InventoryCoreTest : 21 passed (134 assertions), termasuk dua test baru:
+- Admin dapat mengoreksi data dan merek/tipe per unit.
+- Hanya Admin yang dapat membuka dan menyimpan halaman edit.
+-  vendor/bin/pint --dirty --format agent : passed.
+- Route  units.edit  dan  units.update-details  terdaftar dengan benar.
+
+Riwayat edit data unit sudah ditambahkan
+
+Di halaman detail unit sekarang ada bagian Riwayat Edit Data yang menampilkan:
+- Waktu perubahan dan nama Admin/pengguna yang mengubah.
+- Deskripsi perubahan, misalnya “Memperbarui data unit G1-01-...”.
+- Daftar field yang benar-benar berubah, lengkap dengan nilai sebelum → sesudah.
+- Nilai kondisi dan status ditampilkan dalam label yang mudah dibaca, misalnya  Baik → Rusak Ringan .
+- Nilai perolehan diformat rupiah dan tanggal perolehan diformat  dd/mm/yyyy .
+- Maksimal 50 perubahan terbaru ditampilkan.
+
+Riwayat ini mencakup koreksi data Admin sekaligus perubahan kondisi/catatan yang dilakukan Laboran, karena keduanya memakai audit log unit yang sama. Bagian ini hanya tampil untuk pengguna non-anggota, sama seperti riwayat status dan perpindahan.
+
+Verifikasi
+
+-  InventoryCoreTest : 21 passed (138 assertions).
+- Assertion riwayat edit ditambahkan: deskripsi perubahan, merek/tipe baru, dan nama Admin tampil di halaman detail.
+-  vendor/bin/pint --dirty --format agent : passed.
+

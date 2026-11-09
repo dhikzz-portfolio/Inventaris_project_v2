@@ -19,6 +19,12 @@
                     {{ $unit->condition->label() }}
                 </span>
                 <span class="inline-flex min-h-8 items-center rounded-full px-3 text-[11px] font-bold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
+                @if (auth()->user()->isAdmin() && $unit->status !== \App\Enums\UnitStatus::DIHAPUS)
+                    <a href="{{ route('units.edit', $unit) }}"
+                       class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-brand-700 dark:hover:bg-slate-800 dark:hover:text-brand-300">
+                        <span class="material-icons-round text-base" aria-hidden="true">edit</span> Edit Data
+                    </a>
+                @endif
                 @if (auth()->user()->canApproveLoans())
                     <a href="{{ route('units.label', $unit) }}" target="_blank" rel="noopener"
                        class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
@@ -52,6 +58,8 @@
                 <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                     <div class="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60"><dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Kode inventaris</dt><dd class="mt-0.5 break-all font-mono text-sm font-bold text-slate-900 dark:text-slate-100">{{ $unit->inventory_code }}</dd></div>
                     <div class="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60"><dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Katalog</dt><dd class="mt-0.5 break-words font-semibold text-slate-800 dark:text-slate-100">{{ $unit->catalog?->name ?: '—' }}</dd></div>
+                    <div class="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60"><dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Merek</dt><dd class="mt-0.5 break-words font-semibold text-slate-800 dark:text-slate-100">{{ $unit->specification?->brandLabel() ?: '—' }}</dd></div>
+                    <div class="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60"><dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Tipe / model</dt><dd class="mt-0.5 break-words font-medium text-slate-800 dark:text-slate-100">{{ $unit->specification?->modelLabel() ?: '—' }}</dd></div>
                     <div class="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60"><dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Kategori</dt><dd class="mt-0.5 break-words font-medium text-slate-800 dark:text-slate-100">{{ $unit->catalog?->category?->name ?: '—' }}</dd></div>
                     <div class="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60"><dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Gedung / Lantai / Ruangan</dt><dd class="mt-0.5 break-words font-medium text-slate-800 dark:text-slate-100">{{ $unit->locationLabel() }}</dd></div>
                     <div class="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60"><dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Jurusan</dt><dd class="mt-0.5 break-words font-medium text-slate-800 dark:text-slate-100">{{ $unit->room?->major?->name ?: '—' }}</dd></div>
@@ -195,6 +203,51 @@
                             </li>
                         @endforeach
                     </ul>
+                @endif
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <h3 class="mb-3 flex items-center gap-2.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                        <span class="material-icons-round" aria-hidden="true">edit_note</span>
+                    </span>
+                    Riwayat Edit Data
+                </h3>
+                @if ($editHistory->isEmpty())
+                    <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-800/50">
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200">Belum ada riwayat edit</p>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Koreksi data dan perubahan kondisi akan tercatat di bagian ini.</p>
+                    </div>
+                @else
+                    <ul class="space-y-2 text-xs">
+                        @foreach ($editHistory as $entry)
+                            <li class="rounded-xl border border-slate-200 p-2.5 dark:border-slate-700">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <p class="font-semibold leading-5 text-slate-800 dark:text-slate-100">{{ $entry['description'] }}</p>
+                                    <span class="shrink-0 text-[11px] text-slate-500 dark:text-slate-400">{{ $entry['created_at'] }}</span>
+                                </div>
+                                <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">oleh {{ $entry['actor'] }}</p>
+
+                                @if ($entry['changes'] === [])
+                                    <p class="mt-2 text-[11px] italic text-slate-500 dark:text-slate-400">Tidak ada perubahan nilai yang tercatat.</p>
+                                @else
+                                    <dl class="mt-2 space-y-1">
+                                        @foreach ($entry['changes'] as $change)
+                                            <div class="rounded-lg bg-slate-50 px-2.5 py-1.5 dark:bg-slate-800/70">
+                                                <dt class="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ $change['label'] }}</dt>
+                                                <dd class="mt-0.5 flex flex-wrap items-center gap-1.5 break-words text-[11px] leading-5 text-slate-600 dark:text-slate-300">
+                                                    <span class="text-slate-500 line-through decoration-slate-400/70 dark:text-slate-400">{{ $change['before'] }}</span>
+                                                    <span class="text-slate-400" aria-hidden="true">→</span>
+                                                    <span class="font-semibold text-slate-800 dark:text-slate-100">{{ $change['after'] }}</span>
+                                                </dd>
+                                            </div>
+                                        @endforeach
+                                    </dl>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                    <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Maksimal 50 perubahan terakhir ditampilkan di sini.</p>
                 @endif
             </section>
 

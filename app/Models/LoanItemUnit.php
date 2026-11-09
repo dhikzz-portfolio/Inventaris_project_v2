@@ -33,8 +33,8 @@ class LoanItemUnit extends Model
         return [
             'assigned_at' => 'datetime',
             'returned_at' => 'datetime',
-            'condition_out' => Condition::class,
-            'condition_in' => Condition::class,
+            'condition_out' => ConditionCast::class,
+            'condition_in' => ConditionCast::class,
             'return_status' => ReturnStatus::class,
             'confirmed_at' => 'datetime',
             'opened_at' => 'datetime',

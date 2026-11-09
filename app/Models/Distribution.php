@@ -26,8 +26,8 @@ class Distribution extends Model
     {
         return [
             'quantity' => 'integer',
-            'condition' => Condition::class,
-            'status' => UnitStatus::class,
+            'condition' => ConditionCast::class,
+            'status' => UnitStatusCast::class,
             'distributed_at' => 'datetime',
         ];
     }

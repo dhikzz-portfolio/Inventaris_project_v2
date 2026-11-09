@@ -27,8 +27,8 @@ class DamageReport extends Model
     {
         return [
             'classification' => DamageClassification::class,
-            'previous_condition' => Condition::class,
-            'reported_condition' => Condition::class,
+            'previous_condition' => ConditionCast::class,
+            'reported_condition' => ConditionCast::class,
             'status' => DamageReportStatus::class,
             'handled_at' => 'datetime',
         ];

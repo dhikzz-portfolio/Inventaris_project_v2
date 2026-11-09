@@ -319,7 +319,7 @@ class Item extends Model
 
     public function acquisitionStatusEnum(): ?AcquisitionStatus
     {
-        return AcquisitionStatus::tryFrom((string) $this->acquisition_status);
+        return AcquisitionStatus::tryFrom((string) ($this->acquisition_status ?? ''));
     }
 
     /** Peminjaman terakhir barang ini. */

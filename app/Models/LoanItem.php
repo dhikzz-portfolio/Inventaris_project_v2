@@ -25,8 +25,8 @@ class LoanItem extends Model
             'qty_returned' => 'integer',
             'qty_damaged' => 'integer',
             'qty_lost' => 'integer',
-            'condition_out' => Condition::class,
-            'condition_in' => Condition::class,
+            'condition_out' => ConditionCast::class,
+            'condition_in' => ConditionCast::class,
         ];
     }
 

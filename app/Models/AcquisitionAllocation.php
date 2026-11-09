@@ -19,7 +19,7 @@ class AcquisitionAllocation extends Model
         return [
             'quantity' => 'integer',
             'received_quantity' => 'integer',
-            'condition' => Condition::class,
+            'condition' => ConditionCast::class,
             'acquisition_year' => 'integer',
             'provisioned_at' => 'datetime',
         ];

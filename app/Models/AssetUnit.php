@@ -22,8 +22,8 @@ class AssetUnit extends Model
     protected function casts(): array
     {
         return [
-            'condition' => Condition::class,
-            'status' => UnitStatus::class,
+            'condition' => ConditionCast::class,
+            'status' => UnitStatusCast::class,
             'acquisition_date' => 'date',
             'acquisition_year' => 'integer',
             'acquisition_value' => 'decimal:2',
@@ -31,6 +31,7 @@ class AssetUnit extends Model
             'archived_at' => 'datetime',
         ];
     }
+
 
     public function catalog(): BelongsTo
     {

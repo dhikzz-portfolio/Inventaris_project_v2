@@ -26,8 +26,8 @@ class AssetUnitStatusLog extends Model
     protected function casts(): array
     {
         return [
-            'from_status' => UnitStatus::class,
-            'to_status' => UnitStatus::class,
+            'from_status' => UnitStatusCast::class,
+            'to_status' => UnitStatusCast::class,
         ];
     }
 

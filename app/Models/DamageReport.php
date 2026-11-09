@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\ConditionCast;
 use App\Enums\DamageClassification;
 use App\Enums\DamageReportStatus;
 use Illuminate\Database\Eloquent\Builder;

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\ConditionCast;
 use App\Enums\Condition;
 use App\Enums\ReturnStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

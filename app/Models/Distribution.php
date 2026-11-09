@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Casts\ConditionCast;
+use App\Casts\UnitStatusCast;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;

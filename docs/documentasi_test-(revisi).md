@@ -617,3 +617,70 @@ Panduan singkat
 3. Isi data nyata; kode_inventaris boleh kosong. Contoh: PC | Elektronik | G | 1 | 1 | Baik | Aktif.
 4. Pilih Tambahkan unit baru → Periksa Berkas → Impor Sekarang.
 5. Daftar ruangan valid ada di sheet Petunjuk.
+
+Selesai. Berikut temuan dan perbaikannya.
+
+Penyebab error
+
+Error terjadi saat membuka/memproses fitur penghapusan barang (write-off):
+
+InvalidCastException: Call to undefined cast [App\Models\ConditionCast]
+on column [condition] in model [App\Models\AssetUnit]
+
+(Model lain sempat memunculkan  App\Models\UnitStatusCast .)
+
+Akar masalahnya: class cast sudah dibuat di  app/Casts/ConditionCast.php  dan  app/Casts/UnitStatusCast.php , tetapi model-model yang memakainya tidak mengimpor namespace  App\Casts . Karena model berada di namespace  App\Models , PHP/Laravel mengira cast-nya ada di  App\Models\UnitStatusCast  /  App\Models\ConditionCast , yang tidak pernah ada. Akibatnya setiap kali unit inventaris dibaca (termasuk di halaman penghapusan), Eloquent melempar error 500.
+
+Ini juga terbukti dari hasil test: seluruh 12 test  MovementAndWriteOffTest  gagal dengan  InvalidCastException  sebelum diperbaiki.
+
+Perbaikan
+
+Menambahkan import yang hilang pada model yang memakai cast tersebut:
+-  app/Models/AssetUnit.php  →  ConditionCast ,  UnitStatusCast 
+-  app/Models/AssetUnitStatusLog.php  →  UnitStatusCast 
+-  app/Models/Distribution.php  →  ConditionCast ,  UnitStatusCast 
+-  app/Models/DamageReport.php  →  ConditionCast 
+-  app/Models/LoanItem.php  →  ConditionCast 
+-  app/Models/LoanItemUnit.php  →  ConditionCast 
+
+Verifikasi
+
+-  MovementAndWriteOffTest : 12 passed (83 assertions) — termasuk pengajuan, persetujuan, pengarsipan unit, dan sinkronisasi katalog.
+-  StockDistributionTest ,  DamageReportTest ,  ReturnUnitValidationTest : 35 passed (248 assertions) untuk memastikan model lain yang ikut diperbaiki tidak bermasalah.
+-  vendor/bin/pint --dirty --format agent : passed.
+
+Tidak ada perubahan pada logika bisnis penghapusan — hanya perbaikan resolusi class cast yang membuat fitur bisa berjalan kembali
+
+Penyebab error
+
+Dari log  storage/logs/laravel.log  (9 Nov 16:10) saat Anda mencoba hapus per katalog:
+
+SQLSTATE[23000]: Integrity constraint violation: 1048
+Column 'berita_acara_path' cannot be null
+... insert into `write_offs` (... mode, CATALOG, reason, ?, ...)
+
+Controller memang mengirim  berita_acara_path = null  karena berita acara bersifat opsional. Masalahnya, di database lokal Anda kolom  berita_acara_path  masih  NOT NULL .
+
+Penyebabnya: migrasi  2026_11_05_000003_make_write_off_document_optional  (yang mengubah kolom tersebut menjadi nullable) statusnya masih Pending dan belum pernah dijalankan. Jadi kode aplikasinya sudah benar, hanya skema database lokal yang tertinggal.
+
+Perbaikan
+
+Menjalankan migrasi yang tertunda:
+
+php artisan migrate --force
+
+Dua migrasi berhasil dijalankan:
+-  2026_11_05_000003_make_write_off_document_optional  →  berita_acara_path  sekarang nullable
+-  2026_11_05_211148_add_status_to_acquisition_allocations_table 
+
+Saya verifikasi langsung ke database: kolom  berita_acara_path  sekarang  Null: YES .
+
+Verifikasi
+
+-  r7 write off tanpa berita acara dan approval wakasek  → passed
+-  catalog write off requires explicit confirmation...  → passed
+-  catalog write off without eligible units is rejected  → passed
+
+Total 3 test passed (22 assertions). Tidak ada perubahan kode pada alur penghapusan kali ini — cukup menyelaraskan skema database dengan migrasi yang sudah ada.
+
+Catatan: jika Anda menjalankan aplikasi ini di mesin/deploy lain yang database-nya dibuat sebelum migrasi tersebut, jalankan juga  php artisan migrate  di sana agar error yang sama tidak muncul.

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Casts\ConditionCast;
+use App\Casts\UnitStatusCast;
 use App\Enums\Condition;
 use App\Enums\UnitStatus;
 use Illuminate\Database\Eloquent\Builder;

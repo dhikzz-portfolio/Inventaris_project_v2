@@ -96,6 +96,10 @@
                         Reset
                     </a>
                 @endif
+                <button type="submit"
+                        class="inline-flex min-h-9 items-center justify-center rounded-xl bg-slate-800 px-4 text-xs font-semibold text-white transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
+                    Terapkan
+                </button>
             </div>
         </div>
     </form>

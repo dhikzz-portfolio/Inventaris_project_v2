@@ -805,3 +805,50 @@ Verifikasi
 -  ReportImportAndArchiveTest : 21 passed, 121 assertions.
 - Test baru mereproduksi konflik kode jenis dengan dua baris sekaligus dan memastikan impor berhasil serta katalog lama tidak berubah.
 -  vendor/bin/pint --dirty --format agent : passed.
+
+
+Penyebabnya
+
+1. Pengajuan operator tidak pernah sampai ke validator. Saat operator membuat pengadaan, record disimpan sebagai  DRAFT  dan harus diklik manual "Kirim ke Editor/Validator". Kalau tombol itu terlewat, pengajuan tidak muncul di antrean validator dan tidak ada notifikasi ke validator. Ini yang membuat status terasa "tidak ada kabar".
+2. Validator tidak punya aksi menolak. Di antrean validasi hanya ada satu tombol "Konfirmasi diketahui" (tidak bisa menolak), dan menunya cuma "Pengadaan Barang" yang sama seperti role lain — bukan antrean tugas validasi.
+
+Yang saya kerjakan
+
+Alur pengajuan
+- Pengadaan baru dari operator sekarang langsung diajukan (status  MENUNGGU_KONFIRMASI ) saat disimpan, dan notifikasi langsung dikirim ke Editor/Validator. Draft manual tetap didukung untuk data lama (tombol kirim masih ada).
+- Pesan sukses setelah simpan diperbaiki agar tidak lagi menyesatkan ("disimpan sebagai stok" padahal masih draft).
+
+Status yang jelas untuk operator
+- Label status diperbarui sesuai role: "Menunggu validasi Editor/Validator", "Menunggu persetujuan Admin", "Disetujui Admin", dst.
+- Setiap pengajuan di daftar kini menampilkan badge status + keterangan siapa yang sedang memegang pengajuan (mis. "Pengajuan sedang diajukan dan menunggu validasi Editor/Validator").
+- Halaman detail barang sekarang punya panel Status Pengadaan berisi status, keterangan tahap, pengaju/validator/pemutus beserta waktunya, alasan penolakan, dan tautan ke daftar pengadaan.
+
+Tugas validator
+- Menu baru "Validasi Pengadaan" (dengan badge jumlah pengajuan menunggu) yang membuka antrean  ?status=MENUNGGU_KONFIRMASI . Menu "Pengadaan Barang" berubah menjadi "Riwayat Pengadaan" untuk validator.
+- Di antrean ada tombol "Terima & teruskan ke Admin" dan "Tolak" dengan alasan wajib. Penolakan menghentikan alur sebelum ke Admin, dan pengaju + Admin mendapat notifikasi berisi alasan.
+- Route baru  POST /pengadaan/{item}/tolak-validasi , dijaga permission  procurement.validate ; halaman & filter status juga dijaga permission yang ada.
+
+Verifikasi
+
+-  vendor/bin/pint --dirty --format agent  — passed.
+-  php artisan view:cache  — semua Blade terkompilasi.
+-  php artisan test --compact tests/Feature/AcquisitionWorkflowTest.php  — 11 passed (120 assertions), termasuk 2 tes baru: status yang dilihat operator dan antrean validator dengan tombol terima/tolak.
+- Tes terkait pengadaan lain juga lulus:  MultiLocationProcurementTest ,  InventoryCatalogTest ,  RevisionV8Test  (27 passed saat dijalankan bersama).
+
+Catatan: pengajuan lama yang masih berstatus draft tidak otomatis terkirim — buka daftar pengadaan sebagai operator/pengaju dan klik "Kirim ke Editor/Validator" sekali.
+
+
+Yang ditambahkan
+-  DashboardController::procurementTaskItems()  mengambil maksimal 5 pengajuan terbaru (urut waktu diajukan) sesuai peran:
+- Operator — pengajuannya sendiri yang masih berjalan (menunggu validasi / menunggu persetujuan Admin).
+- Editor/Validator — antrean yang menunggu validasinya, dalam cakupan laboratorium.
+- Admin — antrean yang menunggu persetujuan akhirnya, seluruh sekolah.
+- Di bawah kartu jumlah pada panel ada bagian "Pengajuan terbaru" berisi: nama barang, pengaju, jumlah + satuan, kategori, waktu pengajuan ("x menit lalu"), dan badge status. Setiap baris menaut ke halaman detail barang.
+- Jika tidak ada yang menunggu tindakan, muncul keterangan "Tidak ada pengajuan pengadaan yang menunggu tindakan."
+
+Verifikasi
+-  vendor/bin/pint --dirty --format agent  — passed.
+-  php artisan view:cache  — Blade terkompilasi.
+-  php artisan test --compact tests/Feature/DashboardAndReportingTest.php  — 7 passed (44 assertions). Tes ringkasan dashboard juga diperluas untuk memastikan daftar "Pengajuan terbaru" memuat pengajuan yang baru dibuat.
+
+Catatan: tes performa dashboard ( < 1 detik ) di file itu tetap flaky pada run pertama setelah kompilasi Blade di Windows (mencatat ~14 detik untuk warmup), dan lulus pada run berikutnya. Ini perilaku environment yang sudah ada, bukan berasal dari query daftar pengajuan baru

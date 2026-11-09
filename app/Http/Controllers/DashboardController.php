@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AcquisitionStatus;
 use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\LoanStatus;
@@ -154,6 +155,8 @@ class DashboardController extends Controller
 
         return [
             'mode' => 'operational',
+            'procurementTasks' => $this->procurementTasks($user),
+            'procurementTaskItems' => $this->procurementTaskItems($user),
             'scopeLabel' => match (true) {
                 $user->isSuperAdmin(), $user->isAdmin() => 'seluruh sekolah',
                 $user->isEditorValidator() => 'semua laboratorium',
@@ -178,6 +181,85 @@ class DashboardController extends Controller
                 ->limit(8)
                 ->get(),
         ];
+    }
+
+    /**
+     * Ringkasan tugas pengadaan sesuai peran pengguna.
+     *
+     * Operator melihat status pengajuannya sendiri, Editor/Validator melihat
+     * antrean validasi, dan Admin melihat antrean persetujuan akhir.
+     *
+     * @return list<array{label: string, description: string, count: int, url: string, status: AcquisitionStatus, icon: string}>
+     */
+    private function procurementTasks(User $user): array
+    {
+        $definitions = match (true) {
+            $user->isOperator() => [
+                [AcquisitionStatus::MENUNGGU_KONFIRMASI, 'Menunggu validasi', 'Pengajuan Anda yang sedang divalidasi Editor/Validator.', 'fact_check'],
+                [AcquisitionStatus::MENUNGGU_PERSETUJUAN, 'Menunggu persetujuan Admin', 'Pengajuan Anda sudah divalidasi dan menunggu keputusan Admin.', 'pending_actions'],
+            ],
+            $user->isEditorValidator() => [
+                [AcquisitionStatus::MENUNGGU_KONFIRMASI, 'Menunggu validasi Anda', 'Pengajuan Operator yang perlu Anda terima atau tolak.', 'fact_check'],
+                [AcquisitionStatus::MENUNGGU_PERSETUJUAN, 'Menunggu persetujuan Admin', 'Pengajuan yang sudah Anda validasi dan menunggu keputusan Admin.', 'pending_actions'],
+            ],
+            default => [
+                [AcquisitionStatus::MENUNGGU_PERSETUJUAN, 'Menunggu persetujuan Anda', 'Pengajuan yang sudah divalidasi dan menunggu keputusan Anda.', 'pending_actions'],
+                [AcquisitionStatus::MENUNGGU_KONFIRMASI, 'Menunggu validasi Editor/Validator', 'Pengajuan Operator yang belum divalidasi.', 'fact_check'],
+            ],
+        };
+
+        return array_map(function (array $definition) use ($user): array {
+            [$status, $label, $description, $icon] = $definition;
+
+            $query = Item::query()->where('acquisition_status', $status->value);
+
+            if ($user->isOperator()) {
+                $query->where('acquisition_requested_by', $user->id);
+            } else {
+                $query->visibleTo($user);
+            }
+
+            return [
+                'label' => $label,
+                'description' => $description,
+                'count' => $query->count(),
+                'url' => route('items.acquisitions', ['status' => $status->value]),
+                'status' => $status,
+                'icon' => $icon,
+            ];
+        }, $definitions);
+    }
+
+    /**
+     * Pengajuan pengadaan terbaru yang relevan dengan tugas pengguna.
+     *
+     * Operator melihat pengajuan miliknya yang masih berjalan, Editor/Validator
+     * melihat antrean validasi, dan Admin melihat antrean persetujuan akhir.
+     *
+     * @return Collection<int, Item>
+     */
+    private function procurementTaskItems(User $user): Collection
+    {
+        $statuses = match (true) {
+            $user->isOperator() => [AcquisitionStatus::MENUNGGU_KONFIRMASI, AcquisitionStatus::MENUNGGU_PERSETUJUAN],
+            $user->isEditorValidator() => [AcquisitionStatus::MENUNGGU_KONFIRMASI],
+            default => [AcquisitionStatus::MENUNGGU_PERSETUJUAN],
+        };
+
+        $query = Item::query()
+            ->with(['requester:id,name', 'category:id,name'])
+            ->whereIn('acquisition_status', array_map(fn (AcquisitionStatus $status): string => $status->value, $statuses))
+            ->latest('acquisition_submitted_at')
+            ->latest('id')
+            ->limit(5);
+
+        if ($user->isOperator()) {
+            $query->where('acquisition_requested_by', $user->id);
+        } else {
+            $query->visibleTo($user);
+        }
+
+        return $query->get();
     }
 
     /** Hitung peminjaman 6 bulan terakhir dengan satu query. */

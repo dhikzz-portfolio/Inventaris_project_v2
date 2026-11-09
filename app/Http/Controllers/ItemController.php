@@ -45,6 +45,7 @@ class ItemController extends Controller
         $item->load([
             'room.major', 'category', 'movements.mover', 'movements.fromRoom', 'movements.toRoom',
             'allocations.room', 'allocations.specification',
+            'requester', 'confirmer', 'approver',
         ]);
 
         $loanHistory = $item->loanItems()
@@ -136,7 +137,7 @@ class ItemController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AcquisitionService $acquisitions): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['nullable', 'required_without:catalog_id', 'string', 'max:255'],
@@ -248,8 +249,9 @@ class ItemController extends Controller
         $category = $existingCatalog?->category ?? Category::findOrFail($data['category_id']);
 
         $createdAllocations = collect();
+        $createdItem = null;
 
-        DB::transaction(function () use ($data, $category, $firstRoom, $total, $groups, $request, $existingCatalog, $usesAllocations, &$createdAllocations) {
+        DB::transaction(function () use ($data, $category, $firstRoom, $total, $groups, $request, $existingCatalog, $usesAllocations, &$createdAllocations, &$createdItem) {
             $isWakasek = $request->user()->isApproverLevel2();
             $isNewCatalog = $existingCatalog === null;
 
@@ -345,20 +347,37 @@ class ItemController extends Controller
             if ($recordsImmediately && $item->isRecordedInInventory()) {
                 $this->provisionAllocations($item->fresh(), $createdAllocations, $request->user());
             }
+
+            $createdItem = $item;
         });
 
-        if (! $usesAllocations) {
-            return redirect()->route('items.acquisitions')
-                ->with('success', 'Pengadaan disimpan sebagai stok. Catat penerimaan setelah barang datang, lalu distribusikan untuk menentukan spesifikasi dan lokasi unit.');
+        // Pengadaan baru dari Operator langsung diajukan ke Editor/Validator.
+        // Tanpa langkah ini pengajuan tetap berstatus draft dan tidak pernah
+        // muncul di antrean validasi.
+        $submitted = false;
+
+        if ($existingCatalog === null && ! $request->user()->isApproverLevel2() && $createdItem !== null) {
+            $acquisitions->submit($createdItem, $request->user());
+            $submitted = true;
         }
 
         if ($request->user()->isApproverLevel2()) {
+            if (! $usesAllocations) {
+                return redirect()->route('items.acquisitions')
+                    ->with('success', 'Pengadaan disimpan sebagai stok. Catat penerimaan setelah barang datang, lalu distribusikan untuk menentukan spesifikasi dan lokasi unit.');
+            }
+
             return redirect()->route('catalogs.index')
                 ->with('success', 'Barang berhasil ditambahkan. Kode inventaris unit diterbitkan otomatis sesuai alokasi lokasi.');
         }
 
+        if ($submitted) {
+            return redirect()->route('items.acquisitions')
+                ->with('success', 'Pengajuan pengadaan berhasil diajukan. Status terbaru dapat dilihat pada daftar pengadaan.');
+        }
+
         return redirect()->route('items.acquisitions')
-            ->with('success', 'Pengajuan tersimpan sebagai draft. Kirim pengajuan kepada Ketua Laboran untuk diproses.');
+            ->with('success', 'Stok pengadaan berhasil ditambahkan pada katalog yang sudah ada.');
     }
 
     /**
@@ -573,12 +592,15 @@ class ItemController extends Controller
         $user = $request->user();
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', Rule::enum(AcquisitionStatus::class)],
         ]);
         $search = trim($validated['search'] ?? '');
+        $statusFilter = $validated['status'] ?? null;
 
         $requests = Item::query()
             ->with(['room', 'category', 'requester', 'confirmer', 'approver', 'receiver', 'allocations'])
             ->whereIn('acquisition_status', AcquisitionStatus::values())
+            ->when($statusFilter !== null, fn ($query) => $query->where('acquisition_status', $statusFilter))
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
                 $like = "%{$search}%";
 
@@ -608,10 +630,21 @@ class ItemController extends Controller
             'statuses' => AcquisitionStatus::cases(),
             'user' => $user,
             'search' => $search,
+            'statusFilter' => $statusFilter,
+            'pendingValidationCount' => $this->pendingValidationCount($user),
         ]);
     }
 
-    /** Tahap 1 — kirim draft kepada Ketua Laboran. */
+    /** Jumlah pengajuan yang menunggu validasi dalam cakupan pengguna. */
+    private function pendingValidationCount(User $user): int
+    {
+        return Item::query()
+            ->where('acquisition_status', AcquisitionStatus::MENUNGGU_KONFIRMASI->value)
+            ->visibleTo($user)
+            ->count();
+    }
+
+    /** Tahap 1 — kirim draft kepada Editor/Validator. */
     public function submitAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
     {
         $this->ensureVisible($item);
@@ -620,7 +653,7 @@ class ItemController extends Controller
         return back()->with('success', "Pengajuan \"{$item->name}\" dikirim ke Editor/Validator.");
     }
 
-    /** Tahap 2 — konfirmasi Ketua Laboran (bukan persetujuan akhir). */
+    /** Tahap 2 — validasi Editor/Validator (bukan persetujuan akhir). */
     public function confirmAcquisition(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
     {
         abort_unless($request->user()->isEditorValidator(), 403);
@@ -628,6 +661,17 @@ class ItemController extends Controller
         $acquisitions->confirm($item, $request->user());
 
         return back()->with('success', "Pengajuan \"{$item->name}\" dikonfirmasi dan diteruskan ke Admin.");
+    }
+
+    /** Tahap 2 — Editor/Validator menolak pengajuan sebelum diteruskan ke Admin. */
+    public function rejectAcquisitionByValidator(Request $request, Item $item, AcquisitionService $acquisitions): RedirectResponse
+    {
+        abort_unless($request->user()->isEditorValidator(), 403);
+
+        $note = (string) $request->validate(['note' => ['required', 'string', 'max:500']])['note'];
+        $acquisitions->rejectByValidator($item, $request->user(), $note);
+
+        return back()->with('success', "Pengajuan \"{$item->name}\" ditolak dan dikembalikan ke pengaju.");
     }
 
     /** Tahap 3 — persetujuan akhir Admin. */

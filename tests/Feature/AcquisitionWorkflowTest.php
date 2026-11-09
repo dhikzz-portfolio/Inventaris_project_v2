@@ -69,7 +69,6 @@ class AcquisitionWorkflowTest extends TestCase
 
     private function toWaitingApproval(Item $item): void
     {
-        $this->actingAs($this->laboran)->post(route('items.acquisitions.submit', $item))->assertRedirect();
         $this->actingAs($this->ketua)->post(route('items.acquisitions.confirm', $item))->assertRedirect();
     }
 
@@ -119,18 +118,11 @@ class AcquisitionWorkflowTest extends TestCase
     {
         $item = $this->createDraft();
 
-        $this->assertSame('DRAFT', $item->acquisition_status);
+        // Tahap 1 — pengajuan Operator langsung masuk antrean validasi.
+        $this->assertSame('MENUNGGU_KONFIRMASI', $item->acquisition_status);
+        $this->assertNotNull($item->acquisition_submitted_at);
         $this->assertSame(0, $item->units()->count());
         $this->assertSame(Role::OPERATOR->value, $item->requester->role);
-
-        // Tahap 1 — kirim ke Ketua Laboran.
-        $this->actingAs($this->laboran)
-            ->post(route('items.acquisitions.submit', $item))
-            ->assertRedirect()
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame('MENUNGGU_KONFIRMASI', $item->refresh()->acquisition_status);
-        $this->assertNotNull($item->acquisition_submitted_at);
         $this->assertTrue(AppNotification::where('user_id', $this->ketua->id)
             ->where('type', 'PENGADAAN')->exists());
 
@@ -229,16 +221,67 @@ class AcquisitionWorkflowTest extends TestCase
             ->assertSee('Anggaran belum tersedia');
     }
 
+    public function test_operator_melihat_status_pengajuan_sedang_divalidasi(): void
+    {
+        $item = $this->createDraft();
+
+        $this->actingAs($this->laboran)
+            ->get(route('items.acquisitions'))
+            ->assertOk()
+            ->assertSeeText($item->name)
+            ->assertSeeText('Menunggu validasi Editor/Validator')
+            ->assertSeeText('Pengajuan sedang diajukan dan menunggu validasi Editor/Validator.');
+    }
+
+    public function test_antrean_validasi_menampilkan_tombol_terima_dan_tolak(): void
+    {
+        $item = $this->createDraft();
+
+        $this->actingAs($this->ketua)
+            ->get(route('items.acquisitions', ['status' => 'MENUNGGU_KONFIRMASI']))
+            ->assertOk()
+            ->assertSeeText('Validasi Pengadaan')
+            ->assertSeeText($item->name)
+            ->assertSee('Terima & teruskan ke Admin', false)
+            ->assertSee('Tolak', false);
+    }
+
+    public function test_editor_validator_dapat_menolak_pengajuan_sebelum_sampai_ke_admin(): void
+    {
+        $item = $this->createDraft();
+
+        $this->actingAs($this->ketua)
+            ->post(route('items.acquisitions.reject', $item), ['note' => ''])
+            ->assertSessionHasErrors('note');
+
+        $this->assertSame('MENUNGGU_KONFIRMASI', $item->refresh()->acquisition_status);
+
+        $this->actingAs($this->ketua)
+            ->post(route('items.acquisitions.reject', $item), ['note' => 'Spesifikasi belum jelas'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $item->refresh();
+        $this->assertSame('DITOLAK', $item->acquisition_status);
+        $this->assertSame('Spesifikasi belum jelas', $item->acquisition_note);
+        $this->assertSame($this->ketua->id, $item->acquisition_confirmed_by);
+
+        // Pengajuan yang sudah ditolak tidak dapat diteruskan ke Admin.
+        $this->actingAs($this->wakasek)
+            ->post(route('items.approve', $item))
+            ->assertSessionHasErrors('acquisition');
+    }
+
     public function test_transisi_tidak_sah_dan_akses_lintas_ruang_ditolak(): void
     {
         $item = $this->createDraft();
 
-        // Tidak dapat menyetujui draft sebelum dikirim & dikonfirmasi.
+        // Tidak dapat menyetujui sebelum divalidasi Editor/Validator.
         $this->actingAs($this->wakasek)
             ->post(route('items.approve', $item))
             ->assertSessionHasErrors('acquisition');
 
-        $this->assertSame('DRAFT', $item->refresh()->acquisition_status);
+        $this->assertSame('MENUNGGU_KONFIRMASI', $item->refresh()->acquisition_status);
 
         // Laboran lain di luar ruang lingkup tidak dapat memproses pengajuan.
         $otherLaboran = User::where('email', 'laboran.dkv@gmail.com')->firstOrFail();

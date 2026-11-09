@@ -2,8 +2,16 @@
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Pengadaan Barang</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Alur tiga tahap: Operator → Editor/Validator → Admin. Barang baru menjadi inventaris setelah diterima dan dicatat.</p>
+                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">
+                    {{ $statusFilter === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value ? 'Validasi Pengadaan' : 'Pengadaan Barang' }}
+                </h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                    @if ($statusFilter === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value)
+                        Pengajuan dari Operator yang menunggu keputusan Anda. Terima untuk diteruskan ke Admin, atau tolak dengan alasan yang jelas.
+                    @else
+                        Alur tiga tahap: Operator → Editor/Validator → Admin. Barang baru menjadi inventaris setelah diterima dan dicatat.
+                    @endif
+                </p>
             </div>
             @if (auth()->user()->can('procurement.create'))
                 <a href="{{ route('items.create') }}" class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950">
@@ -22,14 +30,24 @@
         <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
 
+    @if ($statusFilter === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value)
+        <div role="status" class="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">pending_actions</span>
+            <span>{{ $pendingValidationCount }} pengajuan menunggu validasi Anda. <a href="{{ route('items.acquisitions') }}" class="font-semibold underline">Lihat seluruh riwayat pengadaan</a>.</span>
+        </div>
+    @endif
+
     <div class="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 sm:grid-cols-3">
-        <div class="flex items-start gap-2"><span class="material-icons-round text-base text-blue-600">edit_note</span><span>Operator menyusun draft lalu mengirimkannya.</span></div>
+        <div class="flex items-start gap-2"><span class="material-icons-round text-base text-blue-600">edit_note</span><span>Operator membuat pengajuan; statusnya langsung tercatat di daftar ini.</span></div>
         <div class="flex items-start gap-2"><span class="material-icons-round text-base text-amber-600">how_to_reg</span><span>Editor/Validator memvalidasi — bukan persetujuan akhir.</span></div>
         <div class="flex items-start gap-2"><span class="material-icons-round text-base text-green-700">verified</span><span>Admin memutuskan menyetujui atau menolak.</span></div>
     </div>
 
     <form method="GET" action="{{ route('items.acquisitions') }}" role="search"
           class="mb-5 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row">
+        @if ($statusFilter !== null)
+            <input type="hidden" name="status" value="{{ $statusFilter }}">
+        @endif
         <label for="acquisition-search" class="sr-only">Cari pengadaan</label>
         <div class="relative min-w-0 flex-1">
             <span class="material-icons-round pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true">search</span>
@@ -42,7 +60,7 @@
                 <span class="material-icons-round text-base" aria-hidden="true">search</span> Cari
             </button>
             @if ($search !== '')
-                <a href="{{ route('items.acquisitions') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                <a href="{{ route('items.acquisitions', array_filter(['status' => $statusFilter])) }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                     Hapus
                 </a>
             @endif
@@ -71,6 +89,9 @@
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
                                 <a href="{{ route('catalogs.show', $item) }}" class="font-semibold text-slate-900 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $item->name }}</a>
+                                @if ($item->acquisitionStatusEnum())
+                                    <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $item->acquisitionStatusEnum()->badgeClass() }}">{{ $item->acquisitionStatusEnum()->label() }}</span>
+                                @endif
                                 @if ($item->is_high_value)
                                     <span class="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800">NILAI TINGGI</span>
                                 @endif
@@ -99,6 +120,10 @@
                                 @endif
                             </div>
 
+                            @if ($item->acquisitionStatusEnum())
+                                <p class="mt-2 text-[11px] text-slate-600 dark:text-slate-300">{{ $item->acquisitionStatusEnum()->hint() }}</p>
+                            @endif
+
                             @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::DITOLAK->value)
                                 <div class="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
                                     <strong>Alasan penolakan:</strong> {{ $item->acquisition_note ?: '—' }}
@@ -125,8 +150,16 @@
                             @if ($item->acquisition_status === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value && $user->can('procurement.validate'))
                                 <form method="POST" action="{{ route('items.acquisitions.confirm', $item) }}" x-data="{ submitting: false }" @submit="submitting = true">
                                     @csrf
-                                    <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60">
-                                        <span class="material-icons-round text-sm">how_to_reg</span> <span x-text="submitting ? 'Mengonfirmasi…' : 'Konfirmasi diketahui'"></span>
+                                    <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-60">
+                                        <span class="material-icons-round text-sm">how_to_reg</span> <span x-text="submitting ? 'Menerima…' : 'Terima & teruskan ke Admin'"></span>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('items.acquisitions.reject', $item) }}" class="flex flex-wrap items-center gap-2" x-data="{ submitting: false }" @submit="submitting = true">
+                                    @csrf
+                                    <input type="text" name="note" required placeholder="Alasan penolakan (wajib)"
+                                           class="w-full grow rounded-xl border-slate-300 bg-white text-xs text-slate-800 focus:border-red-500 focus:ring-red-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 sm:w-40 sm:grow-0">
+                                    <button :disabled="submitting" class="inline-flex min-h-9 items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-60">
+                                        <span class="material-icons-round text-sm">cancel</span> <span x-text="submitting ? 'Menolak…' : 'Tolak' "></span>
                                     </button>
                                 </form>
                             @endif
@@ -198,7 +231,11 @@
         <div class="rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <span class="material-icons-round text-3xl text-slate-300 dark:text-slate-600" aria-hidden="true">{{ $search !== '' ? 'search_off' : 'inventory_2' }}</span>
             <p class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {{ $search !== '' ? 'Pengadaan tidak ditemukan' : 'Belum ada pengajuan pengadaan' }}
+                {{ $search !== ''
+                    ? 'Pengadaan tidak ditemukan'
+                    : ($statusFilter === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value
+                        ? 'Tidak ada pengajuan yang menunggu validasi'
+                        : 'Belum ada pengajuan pengadaan') }}
             </p>
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {{ $search !== '' ? 'Coba kata kunci lain atau hapus pencarian.' : 'Pengajuan pada ruang lingkup Anda akan tampil di sini.' }}

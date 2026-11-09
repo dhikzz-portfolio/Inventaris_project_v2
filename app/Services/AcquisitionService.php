@@ -35,7 +35,7 @@ class AcquisitionService
 {
     public function __construct(private readonly AssetUnitService $units) {}
 
-    /** Tahap 1 — Laboran mengirim draft kepada Ketua Laboran. */
+    /** Tahap 1 — Operator mengirim draft kepada Editor/Validator. */
     public function submit(Item $item, User $actor): Item
     {
         $this->assert($this->isRequesterOrAdmin($item, $actor), 'Hanya pembuat pengajuan atau Admin yang dapat mengirim pengajuan ini.');
@@ -62,7 +62,7 @@ class AcquisitionService
         return $submitted;
     }
 
-    /** Tahap 2 — Ketua Laboran mengonfirmasi (bukan menyetujui). */
+    /** Tahap 2 — Editor/Validator memvalidasi (bukan persetujuan akhir). */
     public function confirm(Item $item, User $actor): Item
     {
         $this->assert($actor->isEditorValidator(), 'Hanya Editor/Validator yang dapat mengonfirmasi pengajuan ini.');
@@ -87,6 +87,43 @@ class AcquisitionService
             "Pengajuan \"{$confirmed->name}\" telah divalidasi Editor/Validator; menunggu keputusan Admin.");
 
         return $confirmed;
+    }
+
+    /**
+     * Tahap 2 — Editor/Validator menolak pengajuan.
+     *
+     * Penolakan pada tahap validasi menghentikan alur sebelum sampai ke Admin;
+     * pengaju menerima notifikasi beserta alasan yang wajib diisi.
+     */
+    public function rejectByValidator(Item $item, User $actor, ?string $note): Item
+    {
+        $this->assert($actor->isEditorValidator(), 'Hanya Editor/Validator yang dapat menolak pengajuan ini.');
+
+        $reason = trim((string) $note);
+        $this->assert($reason !== '', 'Alasan penolakan wajib diisi.');
+
+        $rejected = $this->transition(
+            $item,
+            [AcquisitionStatus::MENUNGGU_KONFIRMASI],
+            AcquisitionStatus::DITOLAK,
+            $actor,
+            'Menolak pengajuan pada tahap validasi',
+            [
+                'acquisition_confirmed_by' => $actor->id,
+                'acquisition_confirmed_at' => now(),
+                'acquisition_note' => $reason,
+            ],
+            $reason,
+        );
+
+        NotifyApp::toRoles(['ADMIN'], NotificationType::PENGADAAN,
+            "Pengajuan \"{$rejected->name}\" ditolak Editor/Validator — {$reason}.",
+            route('items.acquisitions'));
+
+        $this->notifyRequester($rejected,
+            "Pengajuan \"{$rejected->name}\" DITOLAK Editor/Validator — {$reason}.");
+
+        return $rejected;
     }
 
     /** Tahap 3 — Admin menyetujui. */

@@ -69,6 +69,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($master
         Route::middleware('permission:inventory.view')->group(function () {
             Route::get('/scan', [LabelController::class, 'scan'])->name('scan');
             Route::get('/scan/{internalId}', [LabelController::class, 'scanResolve'])->name('scan.resolve')->where('internalId', '.*');
+            Route::get('/scan/lookup', [LabelController::class, 'scanLookup'])->name('scan.lookup');
         });
 
         // ================= PEMINJAMAN =================

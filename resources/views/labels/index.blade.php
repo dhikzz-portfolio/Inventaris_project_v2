@@ -5,14 +5,6 @@
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Cetak Label Barang</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Pilih unit yang ingin dicetak labelnya atau cetak semua hasil filter.</p>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:bg-brand-500 dark:hover:bg-brand-600 dark:focus:ring-brand-400 dark:focus:ring-offset-slate-900">
-                    <span class="material-icons-round text-base" aria-hidden="true">inventory_2</span> Katalog
-                </a>
-                <a href="{{ route('scan') }}" class="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:border-slate-600 dark:focus:ring-brand-400 dark:focus:ring-offset-slate-900">
-                    <span class="material-icons-round text-base" aria-hidden="true">qr_code_scanner</span> Scan QR
-                </a>
-            </div>
         </div>
     </x-slot>
 
@@ -36,7 +28,7 @@
         @endphp
         <div x-data="{ filtersOpen: {{ $activeFilterCount > 0 ? 'true' : 'false' }} }"
              class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <form method="GET" action="{{ route('labels.index') }}">
+            <form method="GET" action="{{ route('labels.index') }}" onchange="this.requestSubmit()">
                 <div class="flex flex-col gap-2 p-4 sm:flex-row">
                     <label for="label-search" class="sr-only">Cari kode unit atau nama barang</label>
                     <div class="relative min-w-0 flex-1">
@@ -114,10 +106,6 @@
                                     Hapus filter
                                 </a>
                             @endif
-                            <button type="submit" x-on:click="filtersOpen = false"
-                                    class="inline-flex min-h-9 items-center justify-center rounded-xl bg-brand-600 px-4 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                                Terapkan filter
-                            </button>
                         </div>
                     </div>
                 </div>

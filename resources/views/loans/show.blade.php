@@ -145,7 +145,7 @@
 
                 <div class="p-3 sm:p-4" x-data="{ filtersOpen: false }">
                   <div class="space-y-3">
-                    <form method="GET" action="{{ route('loans.show', $loan) }}">
+                    <form method="GET" action="{{ route('loans.show', $loan) }}" onchange="this.requestSubmit()">
                         <div class="flex flex-col gap-2 sm:flex-row">
                             <label for="item-search" class="sr-only">Cari unit atau catatan kondisi</label>
                             <input id="item-search" type="search" name="item_search" value="{{ $itemFilters['search'] }}"
@@ -294,10 +294,7 @@
                                        class="inline-flex min-h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                                         Hapus filter
                                     </a>
-                                    <button type="submit" x-on:click="filtersOpen = false"
-                                            class="inline-flex min-h-9 items-center justify-center rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white transition hover:bg-brand-700">
-                                        Terapkan
-                                    </button>
+
                                 </div>
                             </div>
                         </div>

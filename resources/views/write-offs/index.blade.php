@@ -43,6 +43,7 @@
 
         <form method="GET" action="{{ route('write-offs.index') }}"
               x-data="{ filterOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }} }"
+              onchange="this.requestSubmit()"
               class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="mb-3">
                 <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pilih Unit Inventaris Keluar</h3>
@@ -165,9 +166,6 @@
                                 Reset
                             </a>
                         @endif
-                        <button type="submit" class="inline-flex min-h-9 items-center justify-center rounded-xl bg-slate-800 px-4 text-xs font-semibold text-white transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                            Terapkan
-                        </button>
                     </div>
                 </div>
             </div>

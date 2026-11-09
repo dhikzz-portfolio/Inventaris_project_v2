@@ -41,6 +41,7 @@
     @php($selectedFilterCount = collect([$filters['role'], $filters['category'], $filters['status']])->filter(fn ($value) => $value !== '')->count())
     <form method="GET" action="{{ route('users.index') }}"
           x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }"
+          onchange="this.requestSubmit()"
           class="mb-4 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
           <div class="min-w-0 flex-1">
@@ -95,9 +96,6 @@
             @else
                 <span></span>
             @endif
-            <button type="submit" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                Terapkan filter
-            </button>
           </div>
         </div>
     </form>

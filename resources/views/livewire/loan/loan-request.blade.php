@@ -5,8 +5,8 @@
     {{-- Kiri: cari barang + keranjang --}}
     <div class="contents lg:col-span-3 lg:block lg:space-y-5">
         @php($selectedFilterCount = collect([$category, $building, $room, $availability])->filter(fn ($value) => $value !== '')->count())
-        <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="order-1 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
-            <h3 class="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
+        <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="order-1 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
+            <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">add_shopping_cart</span> 1. Pilih barang dari katalog
             </h3>
             <div class="flex flex-col gap-2 sm:flex-row">
@@ -107,8 +107,8 @@
             @endif
         </div>
 
-        <div class="order-2 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
-            <h3 class="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
+        <div class="order-2 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
+            <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">shopping_basket</span> 2. Keranjang peminjaman ({{ count($cart) }} jenis barang)
             </h3>
 
@@ -217,8 +217,8 @@
         </div>
 
         {{-- Kalender ketersediaan --}}
-        <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="mb-3 flex items-center justify-between gap-2">
+        <div class="order-3 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
+            <div class="mb-4 flex items-center justify-between gap-2">
                 <h3 class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600" aria-hidden="true">calendar_month</span> Ketersediaan
                 </h3>
@@ -268,8 +268,8 @@
     </div>
 
     {{-- Kanan: form pengajuan --}}
-    <div class="lg:col-span-2">
-        <div class="sticky top-20 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="order-4 lg:order-none lg:col-span-2 lg:flex" id="loan-request-form">
+        <div class="flex w-full flex-col rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">edit_note</span> 3. Detail pengajuan
             </h3>
@@ -281,7 +281,7 @@
                 </div>
             @endif
 
-            <div class="space-y-4">
+            <div class="flex flex-1 flex-col space-y-4">
                 @if ($canChooseBorrower)
                     <div class="rounded-xl border border-sky-200 bg-sky-50/60 p-3 dark:border-sky-900 dark:bg-sky-950/30">
                         <p class="text-xs font-bold text-slate-800 dark:text-slate-100">Siapa yang meminjam barang? *</p>
@@ -399,13 +399,6 @@
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Peminjaman massal terikat satu kegiatan → satu paket BAST.</p>
                 </div>
 
-                <button wire:click="submit" wire:loading.attr="disabled"
-                        class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-slate-900">
-                    <span wire:loading.remove wire:target="submit" class="material-icons-round text-lg">send</span>
-                    <span wire:loading wire:target="submit" class="material-icons-round text-lg animate-spin">progress_activity</span>
-                    Kirim pengajuan
-                </button>
-
                 <p class="text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                     @if (auth()->user()->isMember())
                         Permintaan akan ditinjau oleh petugas. Barang bernilai tinggi memerlukan persetujuan berjenjang dari Laboran lalu Wakasek. Dokumen dapat dicetak untuk ditandatangani secara fisik.
@@ -413,6 +406,13 @@
                         Barang bernilai tinggi melewati persetujuan Laboran lalu Wakasek. Tanda tangan digital opsional — dokumen dapat ditandatangani secara fisik.
                     @endif
                 </p>
+
+                <button wire:click="submit" wire:loading.attr="disabled"
+                        class="mt-auto inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-slate-900">
+                    <span wire:loading.remove wire:target="submit" class="material-icons-round text-lg">send</span>
+                    <span wire:loading wire:target="submit" class="material-icons-round text-lg animate-spin">progress_activity</span>
+                    Kirim pengajuan
+                </button>
             </div>
         </div>
 

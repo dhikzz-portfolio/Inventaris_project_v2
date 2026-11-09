@@ -7,10 +7,16 @@
     </x-slot>
 
     @if (session('success'))
-        <div role="status" class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">{{ session('success') }}</div>
+        <div role="status" class="mb-4 flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">check_circle</span>
+            <span>{{ session('success') }}</span>
+        </div>
     @endif
     @if ($errors->any())
-        <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
+        <div role="alert" class="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">error_outline</span>
+            <span>{{ $errors->first() }}</span>
+        </div>
     @endif
 
     @php
@@ -18,14 +24,15 @@
         $activeAdditionalFilterCount = collect($filters)->except('search')->filter(fn ($value) => $value !== null && $value !== '')->count();
     @endphp
     <form method="GET" action="{{ route('movements.index') }}"
-          x-data="{ filtersOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }} }"
-          class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          onchange="this.requestSubmit()"
+          x-data="{ filtersOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }}, ...directScanner() }"
+          class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
         <div class="mb-3">
             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Filter Unit</h3>
             <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Cari nama barang atau kode unit, atau gunakan filter lanjutan.</p>
         </div>
 
-        <div class="flex items-end gap-2">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
             <div class="min-w-0 flex-1">
                 <label for="movement-search" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Cari kode unit atau nama barang</label>
                 <div class="relative">
@@ -34,26 +41,73 @@
                            class="min-h-10 w-full rounded-xl border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
                 </div>
             </div>
-            <button type="button" @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen.toString()"
-                    aria-controls="movement-filter-panel"
-                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
-                <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
-                Filter
-                @if ($activeFilterCount > 0)
-                    <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $activeFilterCount }}</span>
-                @endif
-                <span class="material-icons-round text-base text-slate-400 transition-transform" :class="filtersOpen ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
-            </button><button type="button" @click="window.location = '/scan'"
-                class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:border-sky-600 dark:bg-slate-900 dark:text-sky-300 dark:hover:bg-slate-800"
-                title="Scan kode barang">
-                <span class="material-icons-round text-base mr-2" aria-hidden="true">qrcode</span>
-                <span>Scan</span>
-                @if (count($scanCodes) > 0)
-                    <span class="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800 dark:bg-sky-900 dark:text-sky-200">{{ count($scanCodes) }}</span>
-                @endif
-            </button>
+
+            <div class="flex shrink-0 items-center gap-2">
+                <button type="button" @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen.toString()"
+                        aria-controls="movement-filter-panel"
+                        class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30 sm:flex-none">
+                    <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
+                    Filter
+                    @if ($activeFilterCount > 0)
+                        <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $activeFilterCount }}</span>
+                    @endif
+                    <span class="material-icons-round text-base text-slate-400 transition-transform" :class="filtersOpen ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+                </button>
+
+                <button type="button" @click="scanOpen ? closeScanner() : openScanner()" :aria-expanded="scanOpen.toString()"
+                        aria-controls="direct-scan-section"
+                        class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:border-sky-600 dark:bg-slate-900 dark:text-sky-300 dark:hover:bg-slate-800 sm:flex-none"
+                        title="Scan QR code unit untuk mutasi">
+                    <span class="material-icons-round text-base" aria-hidden="true">qr_code_scanner</span>
+                    <span>Scan</span>
+                </button>
+            </div>
+
             <button type="submit" class="sr-only">Cari unit</button>
         </div>
+
+        <!-- Direct Scan Mutasi Section -->
+        <div id="direct-scan-section" x-show="scanOpen" x-cloak x-transition
+             class="mt-4 overflow-hidden rounded-2xl border border-sky-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                <div class="flex items-start gap-2">
+                    <span class="material-icons-round text-lg text-sky-600 dark:text-sky-400" aria-hidden="true">qr_code_scanner</span>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Scan Mutasi Cepat</h3>
+                        <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Hasil scan langsung masuk ke daftar unit mutasi tanpa pindah halaman.</p>
+                    </div>
+                </div>
+                <button type="button" @click="closeScanner()"
+                        class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+                    <span class="material-icons-round text-sm" aria-hidden="true">close</span> Tutup
+                </button>
+            </div>
+
+            <div class="p-4">
+                <div class="relative mx-auto flex min-h-[240px] w-full max-w-sm items-center justify-center overflow-hidden rounded-xl bg-slate-900">
+                    <div id="direct-qr-reader" class="h-full w-full min-h-[240px]"></div>
+                    <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center" x-show="!running">
+                        <span class="material-icons-round text-3xl text-slate-500" aria-hidden="true">photo_camera</span>
+                        <span class="text-sm text-slate-400">Kamera belum aktif</span>
+                    </div>
+                </div>
+
+                <p class="mt-3 text-center text-xs" :class="error ? 'text-red-600 dark:text-red-300' : 'text-slate-500 dark:text-slate-400'"
+                   x-text="message || 'Nyalakan kamera lalu arahkan ke QR code unit.'"></p>
+
+                <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+                    <button type="button" x-show="!running" @click="startCamera()"
+                            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <span class="material-icons-round text-lg" aria-hidden="true">qr_code_scanner</span> Aktifkan Kamera
+                    </button>
+                    <button type="button" x-show="running" @click="closeScanner()"
+                            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">
+                        <span class="material-icons-round text-lg" aria-hidden="true">check</span> Selesai
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- End Direct Scan Mutasi Section -->
 
         <div id="movement-filter-panel" x-show="filtersOpen" x-cloak x-transition
              class="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
@@ -105,19 +159,14 @@
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col-reverse gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-end dark:border-slate-800">
-                <div class="flex justify-end gap-2">
-                    @if ($activeFilterCount > 0)
-                        <a href="{{ route('movements.index') }}"
-                           class="inline-flex min-h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
-                            Hapus filter
-                        </a>
-                    @endif
-                    <button type="submit" class="inline-flex min-h-9 items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                        Terapkan filter
-                    </button>
+            @if ($activeFilterCount > 0)
+                <div class="mt-4 flex justify-end border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <a href="{{ route('movements.index') }}"
+                       class="inline-flex min-h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+                        Hapus filter
+                    </a>
                 </div>
-            </div>
+            @endif
         </div>
     </form>
 
@@ -129,7 +178,7 @@
         <div class="space-y-5">
             {{-- Daftar unit: tinggi dibatasi + header tabel menempel --}}
             <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">
                     <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Unit ({{ $units->total() }})</h3>
                     <div class="flex flex-wrap items-center gap-2">
                         <button type="button" @click="selectAll()" :disabled="selected.length === pageUnitIds.length"
@@ -142,9 +191,63 @@
                         </button>
                         <span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><strong x-text="selected.length"></strong> unit dipilih</span>
                     </div>
-                    <p class="w-full text-[11px] font-normal text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
+                    <p class="w-full text-[11px] font-normal text-slate-400 md:hidden dark:text-slate-500">Ketuk nama barang untuk membuka daftar unitnya.</p>
                 </div>
-                <div class="max-h-[60vh] overflow-auto">
+                @php
+                    $unitGroups = $units->getCollection()->groupBy(fn ($unit) => $unit->item_catalog_id);
+                @endphp
+
+                {{-- Mobile: setiap jenis barang menjadi kartu yang bisa dibuka, tanpa perlu geser tabel. --}}
+                <div class="divide-y divide-slate-100 md:hidden dark:divide-slate-800">
+                    @forelse ($unitGroups as $groupUnits)
+                        @php
+                            $groupId = $groupUnits->first()->item_catalog_id;
+                            $groupCatalog = $groupUnits->first()->catalog;
+                        @endphp
+                        <div>
+                            <button type="button"
+                                    class="flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:hover:bg-slate-800/60"
+                                    :aria-expanded="openGroups[{{ $groupId }}] === true"
+                                    @click="toggleGroup({{ $groupId }})">
+                                <span class="material-icons-round shrink-0 text-base text-brand-600" aria-hidden="true">inventory_2</span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate text-sm font-bold text-slate-800 dark:text-slate-100">{{ $groupCatalog?->name ?? 'Tanpa katalog' }}</span>
+                                    <span class="mt-0.5 block text-[11px] text-slate-500 dark:text-slate-400">
+                                        {{ $groupUnits->count() }} unit{{ $groupCatalog?->category?->name ? ' · '.$groupCatalog->category->name : '' }}
+                                    </span>
+                                </span>
+                                <span class="material-icons-round shrink-0 text-base text-slate-400 transition-transform duration-200 dark:text-slate-500"
+                                      :class="openGroups[{{ $groupId }}] === true ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+                            </button>
+
+                            <div x-show="openGroups[{{ $groupId }}] === true" x-cloak class="space-y-2 px-4 pb-3">
+                                @foreach ($groupUnits as $unit)
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800/60">
+                                        <input type="checkbox" value="{{ $unit->id }}" x-model="selected"
+                                               aria-label="Pilih unit {{ $unit->inventory_code }}"
+                                               class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600">
+                                        <span class="min-w-0 flex-1">
+                                            <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                <span class="font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">{{ $unit->inventory_code }}</span>
+                                                <span class="rounded-md px-1.5 py-0.5 text-[10px] font-bold {{ $unit->condition === \App\Enums\Condition::BAIK ? 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' }}">{{ $unit->condition->label() }}</span>
+                                                <span class="rounded-md px-1.5 py-0.5 text-[10px] font-bold {{ $unit->status->badgeClass() }}">{{ $unit->status->label() }}</span>
+                                            </span>
+                                            <span class="mt-1 block truncate text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                                {{ $unit->specification?->brandLabel() ?? 'Tanpa Merek' }}<span class="font-normal text-slate-400 dark:text-slate-500"> · {{ $unit->specification?->modelLabel() ?? '—' }}</span>
+                                            </span>
+                                            <span class="mt-0.5 block truncate text-[11px] text-slate-500 dark:text-slate-400">{{ $unit->locationLabel() }}</span>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @empty
+                        <p class="px-4 py-10 text-center text-sm text-slate-400">Tidak ada unit yang cocok dengan filter.</p>
+                    @endforelse
+                </div>
+
+                {{-- Desktop/tablet: tabel penuh dengan header menempel. --}}
+                <div class="hidden max-h-[60vh] overflow-auto md:block">
                     <table class="w-full min-w-[820px] table-fixed text-sm">
                         <colgroup>
                             <col class="w-[6%]">
@@ -165,7 +268,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                            @forelse ($units->getCollection()->groupBy(fn ($unit) => $unit->item_catalog_id) as $groupUnits)
+                            @forelse ($unitGroups as $groupUnits)
                                 @php
                                     $groupId = $groupUnits->first()->item_catalog_id;
                                     $groupCatalog = $groupUnits->first()->catalog;
@@ -224,13 +327,13 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="border-t border-slate-100 px-4 py-3 dark:border-slate-800">{{ $units->links() }}</div>
+                <div class="overflow-x-auto border-t border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">{{ $units->links() }}</div>
             </div>
 
             {{-- Panel tujuan: di bawah daftar unit --}}
-            <div class="space-y-4 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-brand-600">move_to_inbox</span> Tujuan perpindahan
+            <div class="space-y-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                <h3 class="flex flex-wrap items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                    <span class="material-icons-round text-brand-600">place</span> Tujuan perpindahan
                     <span class="ml-auto rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                         <span x-text="totalCount">0</span> unit
                     </span>
@@ -266,12 +369,7 @@
 
                 {{-- Distribusi lokasi: bagi jumlah pindah ke beberapa ruangan sampai sisa 0. --}}
                 <div>
-                    <div class="flex items-center justify-between gap-2">
-                        <x-input-label value="Distribusi lokasi" />
-                        <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                            Terpakai <span x-text="assignedCount">0</span> / <span x-text="totalCount">0</span>
-                        </span>
-                    </div>
+                    <x-input-label value="Distribusi lokasi" />
 
                     <div class="mt-1.5 space-y-2">
                         <p x-show="destinations.length === 0" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
@@ -392,9 +490,9 @@
         );
     @endphp
 
-    <div class="mt-6 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+    <div class="mt-6 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5"
          x-data="{ openHistory: {} }">
-        <h3 class="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
+        <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
             <span class="material-icons-round text-brand-600">route</span> Riwayat perpindahan barang ({{ $movements->total() }} unit)
         </h3>
         <p class="mb-2 text-[11px] text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
@@ -579,6 +677,22 @@
                 // Unit yang sudah masuk ke sebuah lokasi tidak boleh kembali ke pilihan,
                 // kalau tidak total dan sisa akan menghitungnya dua kali.
                 init() {
+                    // Pilihan unit dibagikan ke modul scan QR di halaman ini.
+                    window.movementSelectionConfig = { unitOptions: this.unitOptions };
+
+                    // Hasil scan QR masuk ke pilihan unit pada form mutasi.
+                    window.addEventListener('movement:scan-unit', (event) => {
+                        const unitId = String(event.detail && event.detail.unitId ? event.detail.unitId : '');
+
+                        if (!unitId || !this.unitOptions[unitId]) {
+                            return;
+                        }
+
+                        if (!this.selected.map(String).includes(unitId)) {
+                            this.selected.push(unitId);
+                        }
+                    });
+
                     // Jika kode inventaris dibawa dari halaman scan inventaris,
                     // tambahkan unit tersebut ke pilihan agar siap dialokasikan.
                     if (!this.moveCode) {
@@ -622,5 +736,93 @@
             };
         }
     </script>
-    @endpush
+    <script>
+    function directScanner() {
+        return {
+            scanOpen: false,
+            scannerInstance: null,
+            running: false,
+            message: "",
+            error: "",
+
+            openScanner() {
+                this.scanOpen = true;
+                this.error = "";
+
+                if (!this.running) {
+                    this.startCamera();
+                }
+            },
+
+            closeScanner() {
+                this.scanOpen = false;
+                this.stopCamera();
+            },
+
+            async startCamera() {
+                if (this.running) {
+                    return;
+                }
+
+                this.error = "";
+                this.message = "Menghubungkan ke kamera...";
+
+                try {
+                    this.scannerInstance = await window.AppScanner.start("direct-qr-reader", {
+                        onScan: (decoded) => this.onScan(decoded),
+                    });
+
+                    this.running = true;
+                    this.message = "Kamera aktif — arahkan ke QR code unit.";
+                } catch (e) {
+                    this.running = false;
+                    this.error = (e && e.message) ? e.message : "Kamera tidak tersedia.";
+                    this.message = "";
+                    alert("Device tidak memiliki kamera. Fitur scan QR tidak tersedia pada device ini.");
+                }
+            },
+
+            async stopCamera() {
+                const instance = this.scannerInstance;
+
+                this.scannerInstance = null;
+                this.running = false;
+
+                if (!instance) {
+                    return;
+                }
+
+                try {
+                    await window.AppScanner.stop(instance);
+                } catch (e) {
+                    // Abaikan kegagalan saat mematikan kamera.
+                }
+            },
+
+            onScan(text) {
+                const value = (text || "").trim();
+
+                if (!value) {
+                    return;
+                }
+
+                const options = (window.movementSelectionConfig || {}).unitOptions || {};
+                const match = Object.entries(options).find(([, info]) => info && info.code === value);
+
+                if (!match) {
+                    this.message = "Kode " + value + " tidak ditemukan di daftar unit.";
+
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent("movement:scan-unit", {
+                    detail: { unitId: String(match[0]), code: value },
+                }));
+
+                this.error = "";
+                this.message = "Unit " + value + " ditambahkan ke daftar mutasi.";
+            },
+        };
+    }
+</script>
 </x-app-layout>

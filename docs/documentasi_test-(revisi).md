@@ -852,3 +852,36 @@ Verifikasi
 -  php artisan test --compact tests/Feature/DashboardAndReportingTest.php  — 7 passed (44 assertions). Tes ringkasan dashboard juga diperluas untuk memastikan daftar "Pengajuan terbaru" memuat pengajuan yang baru dibuat.
 
 Catatan: tes performa dashboard ( < 1 detik ) di file itu tetap flaky pada run pertama setelah kompilasi Blade di Windows (mencatat ~14 detik untuk warmup), dan lulus pada run berikutnya. Ini perilaku environment yang sudah ada, bukan berasal dari query daftar pengajuan baru
+
+Akar masalah
+
+Waktu Anda mengisi pengajuan, "Katalog barang yang sudah ada" ikut terpilih (kolom pencarian katalog bisa memilih katalog lama saat ditekan Enter). Untuk Operator, jalur  catalog_id  di  ItemController@store  melakukan ini:
+- tidak membuat pengajuan baru (tidak ada status  MENUNGGU_KONFIRMASI ),
+- tidak menerbitkan unit,
+- hanya menulis baris  acquisition_allocations  ke katalog lama yang statusnya sudah  INVENTARIS_TERCATAT ,
+- lalu menampilkan pesan sukses.
+
+Jadi validasi tidak pernah terjadi, dan barang tidak muncul di katalog karena tidak ada unit/pengajuan yang dibuat.
+
+Buktinya di database Anda: log aktivitas  #166  tanggal 10 Nov 19:55 berbunyi "Menambah stok spesifikasi pada katalog yang sudah ada", dengan 3 baris alokasi (5 + 5 + 10 unit) menempel di katalog "pc" yang  provisioned_at  kosong. Tidak ada item berstatus DRAFT/MENUNGGU_KONFIRMASI sama sekali.
+
+Yang saya ubah
+
+1.  app/Http/Controllers/ItemController.php 
+- Operator yang memilih katalog yang sudah tercatat sekarang ditolak dengan pesan jelas (bukan sukses palsu), karena penambahan stok hanya sah lewat penerimaan + distribusi oleh Admin.
+- Operator yang mengetik nama barang yang sudah ada di kategori yang sama juga ditolak dengan pesan jelas, sehingga tidak lagi "menempel" diam-diam ke katalog lama.
+- Pengajuan operator untuk barang baru tetap berjalan: dibuat sebagai draft lalu langsung dikirim ke antrean Editor/Validator, dan pesan suksesnya kini berbunyi "…berhasil diajukan dan menunggu validasi Editor/Validator".
+- Form pengajuan untuk Operator tidak lagi menampilkan pemilih katalog lama (diganti keterangan bahwa pengajuan operator selalu barang baru); pemilih itu tetap tersedia untuk Admin/Wakasek.
+2.  resources/views/items/create.blade.php  — penyesuaian tampilan form sesuai aturan di atas.
+3.  tests/Feature/SearchableCatalogTest.php  — tes lama yang justru mengunci perilaku bermasalah (operator memilih katalog lama) diperbarui ke aktor Wakasek, plus 3 tes baru: operator tidak ditawari katalog lama, operator ditolak saat memilih katalog tercatat, dan operator ditolak saat nama barang sudah ada.
+
+Verifikasi
+
+-  SearchableCatalogTest ,  AcquisitionWorkflowTest ,  MultiLocationProcurementTest ,  RevisionV3Test ,  RevisionV8Test ,  StockDistributionTest  — semuanya lulus (pengecekan terakhir: 2 tes alur inti, 59 assertion; sebelumnya 23 tes/173 assertion dan 36 tes/258 assertion).
+-  vendor/bin/pint --dirty --format agent  — lulus.
+
+Catatan
+
+Percobaan Anda tadi meninggalkan 3 baris alokasi yatim (id 7–9, total 20 unit) di katalog "pc". Data ini tidak memengaruhi stok/unit, tapi bisa terlihat di detail katalog. Kalau mau, saya bisa hapus alokasi sisa percobaan itu.
+
+Setelah ini, silakan coba lagi: buat pengajuan dengan nama barang baru (jangan pilih katalog lama — kolom itu memang sudah tidak muncul untuk operator), lalu cek menu Pengadaan Barang; statusnya harus  Menunggu validasi Editor/Validator , dan setelah validator menerima, barulah diteruskan ke Admin.

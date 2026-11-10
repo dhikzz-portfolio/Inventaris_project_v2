@@ -36,12 +36,21 @@ class SearchableCatalogTest extends TestCase
     {
         $catalog = Item::query()->approved()->firstOrFail();
 
-        $this->actingAs($this->laboran)
+        $this->actingAs($this->wakasek)
             ->get(route('items.create'))
             ->assertOk()
             ->assertSee('catalog_search')
             ->assertSee('Tidak ada katalog yang cocok')
             ->assertSee($catalog->name);
+    }
+
+    public function test_form_pengadaan_operator_tidak_menawarkan_katalog_lama(): void
+    {
+        $this->actingAs($this->laboran)
+            ->get(route('items.create'))
+            ->assertOk()
+            ->assertDontSee('catalog_search')
+            ->assertSee('Pengajuan Operator selalu berupa barang baru');
     }
 
     public function test_pilihan_katalog_direvalidasi_ulang_di_backend(): void
@@ -97,7 +106,7 @@ class SearchableCatalogTest extends TestCase
         $catalog = Item::query()->approved()->firstOrFail();
         $catalogCount = Item::count();
 
-        $this->actingAs($this->laboran)->post(route('items.store'), [
+        $this->actingAs($this->wakasek)->post(route('items.store'), [
             'catalog_id' => $catalog->id,
             'brand' => 'Merek Pencarian Uji',
             'model_type' => 'Tipe Pencarian Uji',
@@ -106,12 +115,44 @@ class SearchableCatalogTest extends TestCase
             'quantity' => 1,
             'unit' => 'unit',
             'allocations' => [['room_id' => $this->room->id, 'quantity' => 1]],
-        ])->assertRedirect(route('items.acquisitions'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('catalogs.index'))->assertSessionHasNoErrors();
 
         $this->assertSame($catalogCount, Item::count());
         $this->assertDatabaseHas('acquisition_allocations', [
             'item_catalog_id' => $catalog->id,
             'room_id' => $this->room->id,
         ]);
+    }
+
+    public function test_operator_tidak_dapat_memilih_katalog_yang_sudah_tercatat(): void
+    {
+        $catalog = Item::query()->approved()->firstOrFail();
+        $allocationCount = $catalog->allocations()->count();
+
+        $this->actingAs($this->laboran)->post(route('items.store'), [
+            'catalog_id' => $catalog->id,
+            'acquisition_year' => now()->year,
+            'funding_source' => 'BOS',
+            'quantity' => 1,
+            'unit' => 'unit',
+            'allocations' => [['room_id' => $this->room->id, 'quantity' => 1]],
+        ])->assertSessionHasErrors('catalog_id');
+
+        $this->assertSame($allocationCount, $catalog->allocations()->count());
+    }
+
+    public function test_operator_tidak_dapat_mengajukan_nama_barang_yang_sudah_ada(): void
+    {
+        $catalog = Item::query()->approved()->firstOrFail();
+
+        $this->actingAs($this->laboran)->post(route('items.store'), [
+            'name' => $catalog->name,
+            'category_id' => $catalog->category_id,
+            'acquisition_year' => now()->year,
+            'funding_source' => 'BOS',
+            'quantity' => 1,
+            'unit' => 'unit',
+            'allocations' => [['room_id' => $this->room->id, 'quantity' => 1]],
+        ])->assertSessionHasErrors('name');
     }
 }

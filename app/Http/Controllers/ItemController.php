@@ -102,12 +102,19 @@ class ItemController extends Controller
             ];
         })->values();
 
-        $catalogs = Item::query()
-            ->whereNull('archived_at')
-            ->approved()
-            ->with(['category:id,name', 'specifications:id,item_catalog_id,brand,model_type'])
-            ->orderBy('name')
-            ->get(['id', 'name', 'category_id']);
+        // Pemilihan katalog lama hanya untuk pengelola (Wakasek/Admin).
+        // Pengajuan Operator selalu berupa barang baru agar masuk antrean
+        // validasi; katalog yang sudah tercatat tidak boleh dipilih.
+        $canSelectExistingCatalog = $request->user()->isApproverLevel2();
+
+        $catalogs = $canSelectExistingCatalog
+            ? Item::query()
+                ->whereNull('archived_at')
+                ->approved()
+                ->with(['category:id,name', 'specifications:id,item_catalog_id,brand,model_type'])
+                ->orderBy('name')
+                ->get(['id', 'name', 'category_id'])
+            : collect();
 
         $catalogMap = $catalogs->mapWithKeys(fn (Item $catalog): array => [
             $catalog->id => [
@@ -134,6 +141,7 @@ class ItemController extends Controller
             'roomOptions' => $roomOptions,
             'buildings' => Building::query()->whereIn('id', $rooms->pluck('building_id')->filter()->unique())
                 ->orderBy('code')->get(),
+            'canSelectExistingCatalog' => $canSelectExistingCatalog,
         ]);
     }
 
@@ -207,6 +215,7 @@ class ItemController extends Controller
             : null;
 
         $existingCatalog = null;
+        $requesterIsApprover = $request->user()->isApproverLevel2();
 
         if (filled($data['catalog_id'] ?? null)) {
             $existingCatalog = Item::query()->with('category')->whereKey($data['catalog_id'])->first();
@@ -215,6 +224,17 @@ class ItemController extends Controller
                 || ! $existingCatalog->isRecordedInInventory()) {
                 throw ValidationException::withMessages([
                     'catalog_id' => 'Katalog yang dipilih tidak tersedia atau sudah diarsipkan.',
+                ]);
+            }
+
+            // Operator tidak dapat menumpang pengajuan pada katalog yang sudah
+            // tercatat: status katalog tidak boleh kembali menunggu validasi dan
+            // penambahan stoknya hanya sah lewat penerimaan + distribusi oleh
+            // pengelola. Sebelumnya jalur ini hanya menulis alokasi tanpa unit
+            // dan menampilkan pesan sukses palsu.
+            if (! $requesterIsApprover) {
+                throw ValidationException::withMessages([
+                    'catalog_id' => "Barang \"{$existingCatalog->name}\" sudah tercatat di katalog. Pengajuan oleh Operator hanya untuk barang baru; penambahan stok katalog yang sudah ada dicatat oleh Admin melalui penerimaan dan distribusi.",
                 ]);
             }
 
@@ -239,11 +259,25 @@ class ItemController extends Controller
 
             $data['name'] = $existingCatalog->name;
             $data['category_id'] = $existingCatalog->category_id;
-        } else {
+        } elseif ($requesterIsApprover) {
             $existingCatalog = Item::query()
                 ->where('category_id', $data['category_id'])
                 ->where('name', $data['name'])
                 ->first();
+        } else {
+            // Nama yang sudah terdaftar tidak boleh diam-diam menempel ke
+            // katalog lama. Tanpa pengecekan ini pengajuan Operator berakhir
+            // sebagai alokasi tanpa unit dan tidak pernah masuk antrean validasi.
+            $duplicate = Item::query()
+                ->where('category_id', $data['category_id'])
+                ->where('name', $data['name'])
+                ->first();
+
+            if ($duplicate !== null) {
+                throw ValidationException::withMessages([
+                    'name' => "Barang \"{$duplicate->name}\" sudah ada di katalog. Pengajuan oleh Operator hanya untuk barang baru; gunakan nama barang yang berbeda atau minta Admin mencatat penambahan stok melalui penerimaan dan distribusi.",
+                ]);
+            }
         }
 
         $category = $existingCatalog?->category ?? Category::findOrFail($data['category_id']);
@@ -373,7 +407,7 @@ class ItemController extends Controller
 
         if ($submitted) {
             return redirect()->route('items.acquisitions')
-                ->with('success', 'Pengajuan pengadaan berhasil diajukan. Status terbaru dapat dilihat pada daftar pengadaan.');
+                ->with('success', 'Pengajuan pengadaan berhasil diajukan dan menunggu validasi Editor/Validator. Status terbaru dapat dilihat pada daftar pengadaan.');
         }
 
         return redirect()->route('items.acquisitions')

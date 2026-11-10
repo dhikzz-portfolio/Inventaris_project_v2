@@ -477,15 +477,61 @@ class ReportImportAndArchiveTest extends TestCase
             ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     }
 
+    public function test_mode_perbarui_menyimpan_kolom_keterangan_ke_catatan_unit(): void
+    {
+        $unit = AssetUnit::query()->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [[$unit->inventory_code, $unit->catalog->name, '', '', '', $unit->condition->label(), $unit->status->label(), 'Catatan ruang laboratorium']],
+                'kode_inventaris,nama_barang,gedung,lantai,no_ruangan,kondisi,status,keterangan',
+            ),
+            'mode' => 'update',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'));
+
+        $this->assertSame('Catatan ruang laboratorium', $unit->refresh()->notes);
+    }
+
+    public function test_mode_perbarui_tidak_mengosongkan_keterangan_bila_sel_kosong(): void
+    {
+        $unit = AssetUnit::query()->firstOrFail();
+        $unit->forceFill(['notes' => 'Keterangan lama'])->save();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([[$unit->inventory_code, $unit->catalog->name, '', '', '', $unit->condition->label(), $unit->status->label(), '']]),
+            'mode' => 'update',
+        ]);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'));
+
+        $this->assertSame('Keterangan lama', $unit->refresh()->notes);
+    }
+
     public function test_file_excel_laporan_bulanan_dapat_diimpor_kembali(): void
     {
         $unit = AssetUnit::query()->firstOrFail();
-        $unit->forceFill(['status' => 'DIPINJAM'])->save();
+        $unit->forceFill(['status' => 'DIPINJAM', 'notes' => 'Catatan ekspor uji'])->save();
 
         $data = app(ReportService::class)->data(now()->format('Y-m'), 'SEMUA', null, $this->wakasek);
         $this->assertTrue($data['units']->contains(
             fn (AssetUnit $row) => $row->inventory_code === $unit->inventory_code
         ));
+
+        $unitTable = MonthlyReportExport::tables($data)[0];
+        $notesIndex = array_search('Keterangan', $unitTable['headings'], true);
+        $exportedRow = collect($unitTable['rows'])->first(fn (array $row) => $row[0] === $unit->inventory_code);
+
+        $this->assertNotFalse($notesIndex);
+        $this->assertSame('Catatan ekspor uji', $exportedRow[$notesIndex]);
 
         $binary = Excel::raw(new MonthlyReportExport($data), ExcelWriter::XLSX);
 
@@ -505,6 +551,7 @@ class ReportImportAndArchiveTest extends TestCase
         ])->assertRedirect(route('reports.index'))->assertSessionHas('success');
 
         $this->assertSame('DIPINJAM', $unit->refresh()->status->value);
+        $this->assertSame('Catatan ekspor uji', $unit->notes);
     }
 
     public function test_format_berkas_tidak_didukung_ditolak(): void

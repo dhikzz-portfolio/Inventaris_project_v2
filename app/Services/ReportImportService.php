@@ -328,7 +328,7 @@ class ReportImportService
                 'register_no' => trim((string) ($row['no_register'] ?? '')) ?: null,
                 'brand' => trim((string) ($row['brand'] ?? '')) ?: null,
                 'model_type' => trim((string) ($row['model_type'] ?? '')) ?: null,
-                'notes' => null,
+                'notes' => trim((string) ($row['notes'] ?? '')) ?: null,
                 'errors' => $errors,
                 'warnings' => $warnings,
             ];
@@ -414,6 +414,7 @@ class ReportImportService
                             'acquisition_year' => $row['acquisition_year'] ?? $existing->acquisition_year,
                             'funding_source' => $row['funding_source'] ?? $existing->funding_source,
                             'register_no' => $row['register_no'] ?? $existing->register_no,
+                            'notes' => filled($row['notes'] ?? null) ? $row['notes'] : $existing->notes,
                         ]);
 
                         // Unit lama hasil impor sebelumnya bisa belum memiliki
@@ -534,7 +535,7 @@ class ReportImportService
                         'acquisition_year' => $row['acquisition_year'],
                         'funding_source' => $row['funding_source'],
                         'register_no' => $row['register_no'],
-                        'notes' => 'Dipulihkan melalui impor laporan '.$filename,
+                        'notes' => filled($row['notes'] ?? null) ? $row['notes'] : 'Dipulihkan melalui impor laporan '.$filename,
                     ]);
 
                     AssetUnitCode::create([
@@ -636,6 +637,7 @@ class ReportImportService
             'no_register' => ['no_register', 'nomor_register', 'register_no'],
             'brand' => ['merek', 'brand'],
             'model_type' => ['tipe_model', 'tipe', 'model', 'model_type'],
+            'notes' => ['keterangan', 'notes'],
         ];
 
         $normalized = [];

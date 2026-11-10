@@ -16,7 +16,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * mutasi, penghapusan, pengadaan, dan laporan kerusakan.
  *
  * `tables()` adalah SATU-SATUNYA sumber bentuk tabel. PDF dan pratinjau Excel
- * memakai definisi yang sama sehingga jumlah baris, kode unit, spesifikasi,
+ * memakai definisi yang sama sehingga jumlah baris, kode unit, keterangan,
  * status, dan lokasi tidak mungkin berbeda antar format.
  */
 class MonthlyReportExport implements Export, WithMultipleSheets
@@ -28,16 +28,11 @@ class MonthlyReportExport implements Export, WithMultipleSheets
      */
     public static function tables(array $data): array
     {
-        $specificationName = fn ($row): string => trim((string) (
-            $row->specification?->displayName()
-            ?: collect([$row->catalog?->brand, $row->catalog?->model_type])->filter()->implode(' / ')
-        )) ?: '—';
-
         return [
             [
                 'title' => 'Unit',
                 'headings' => [
-                    'Kode Inventaris', 'Nama Barang', 'Kategori', 'Merek', 'Tipe/Model', 'Spesifikasi',
+                    'Kode Inventaris', 'Nama Barang', 'Kategori', 'Merek', 'Tipe/Model', 'Keterangan',
                     'Ruangan', 'Gedung', 'Lantai', 'No. Ruangan', 'Kondisi', 'Status', 'Tahun',
                     'Sumber Dana', 'No. Register', 'Nilai Tinggi',
                 ],
@@ -47,7 +42,7 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                     $row->catalog?->category?->name,
                     $row->specification?->brandLabel() ?: $row->catalog?->brand,
                     $row->specification?->modelLabel() ?: $row->catalog?->model_type,
-                    $specificationName($row),
+                    $row->notes,
                     $row->room?->name,
                     $row->room?->buildingCode(),
                     $row->room?->floor,

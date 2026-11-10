@@ -235,7 +235,8 @@ class RevisionV5Test extends TestCase
         $this->assertSame('Unit', $unitTable['title']);
         $this->assertCount($data['units']->count(), $unitTable['rows']);
         $this->assertContains('Kode Inventaris', $unitTable['headings']);
-        $this->assertContains('Spesifikasi', $unitTable['headings']);
+        $this->assertContains('Keterangan', $unitTable['headings']);
+        $this->assertNotContains('Spesifikasi', $unitTable['headings']);
 
         $codes = array_column($unitTable['rows'], 0);
         foreach ($data['units']->take(3) as $unit) {

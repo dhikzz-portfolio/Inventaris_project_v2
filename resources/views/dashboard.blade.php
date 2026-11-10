@@ -135,6 +135,83 @@
             @endforeach
         </div>
 
+        @if ($mode === 'operational' && ! empty($procurementTasks))
+            <div class="mb-4">
+                <x-dashboard.panel title="Tugas pengadaan" description="Ringkasan pengajuan pengadaan yang perlu ditindaklanjuti.">
+                    <x-slot name="actions">
+                        <a href="{{ route('items.acquisitions') }}" class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                            Lihat semua
+                            <span class="material-icons-round text-base" aria-hidden="true">arrow_forward</span>
+                        </a>
+                    </x-slot>
+
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        @foreach ($procurementTasks as $task)
+                            <a href="{{ $task['url'] }}" class="group flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 transition hover:border-brand-200 hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-brand-800 dark:hover:bg-slate-800">
+                                <div class="flex min-w-0 items-start gap-3">
+                                    <span @class([
+                                        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                                        $task['status']->badgeClass() => $task['count'] > 0,
+                                        'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => $task['count'] === 0,
+                                    ])>
+                                        <span class="material-icons-round text-lg" aria-hidden="true">{{ $task['icon'] }}</span>
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $task['label'] }}</p>
+                                        <p class="mt-0.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{{ $task['description'] }}</p>
+                                    </div>
+                                </div>
+                                <span @class([
+                                    'shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums',
+                                    $task['status']->badgeClass() => $task['count'] > 0,
+                                    'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => $task['count'] === 0,
+                                ])>{{ $task['count'] }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+
+                    <div class="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengajuan terbaru</p>
+
+                        @if ($procurementTaskItems->isEmpty())
+                            <p class="mt-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-3 py-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+                                Tidak ada pengajuan pengadaan yang menunggu tindakan.
+                            </p>
+                        @else
+                            <ul class="mt-1 divide-y divide-slate-100 dark:divide-slate-800">
+                                @foreach ($procurementTaskItems as $submission)
+                                    <li class="py-2.5 first:pt-2">
+                                        <a href="{{ route('items.show', $submission) }}" class="flex flex-wrap items-start justify-between gap-2 rounded-lg transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:hover:bg-slate-800/60">
+                                            <div class="min-w-0">
+                                                <p class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $submission->name }}</p>
+                                                <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <span class="material-icons-round text-[13px]" aria-hidden="true">person</span>
+                                                        {{ $submission->requester?->name ?? '—' }}
+                                                    </span>
+                                                    <span>{{ $submission->quantity }} {{ $submission->unit }}</span>
+                                                    @if ($submission->category)
+                                                        <span>• {{ $submission->category->name }}</span>
+                                                    @endif
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <span class="material-icons-round text-[13px]" aria-hidden="true">schedule</span>
+                                                        {{ ($submission->acquisition_submitted_at ?? $submission->updated_at)->diffForHumans() }}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                            @if ($submission->acquisitionStatusEnum())
+                                                <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold {{ $submission->acquisitionStatusEnum()->badgeClass() }}">{{ $submission->acquisitionStatusEnum()->label() }}</span>
+                                            @endif
+                                        </a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                </x-dashboard.panel>
+            </div>
+        @endif
+
         @php
             $borrowChartColors = ['#0875b9', '#169fe0', '#43b9ef', '#83d4f5', '#beeafb'];
             $statusChartColors = ['#0875b9', '#38bdf8', '#f59e0b', '#ef4444', '#64748b'];

@@ -23,14 +23,32 @@ enum AcquisitionStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::DRAFT => 'Draft pengajuan',
-            self::MENUNGGU_KONFIRMASI => 'Menunggu konfirmasi Ketua Laboran',
-            self::MENUNGGU_PERSETUJUAN => 'Menunggu persetujuan Wakasek Sarpras',
-            self::DISETUJUI => 'Disetujui',
-            self::DALAM_PROSES => 'Dalam proses pengadaan',
+            self::DRAFT => 'Draft (belum diajukan)',
+            self::MENUNGGU_KONFIRMASI => 'Menunggu validasi Editor/Validator',
+            self::MENUNGGU_PERSETUJUAN => 'Menunggu persetujuan Admin',
+            self::DISETUJUI => 'Disetujui Admin',
+            self::DALAM_PROSES => 'Sedang diproses pengadaan',
             self::BARANG_DITERIMA => 'Barang diterima',
             self::INVENTARIS_TERCATAT, self::LEGACY_APPROVED => 'Inventaris tercatat',
             self::DITOLAK => 'Ditolak',
+        };
+    }
+
+    /**
+     * Keterangan singkat siapa yang sedang memegang pengajuan, dipakai pada
+     * daftar pengadaan dan halaman detail barang.
+     */
+    public function hint(): string
+    {
+        return match ($this) {
+            self::DRAFT => 'Pengajuan masih berupa draft dan belum dikirim ke Editor/Validator.',
+            self::MENUNGGU_KONFIRMASI => 'Pengajuan sedang diajukan dan menunggu validasi Editor/Validator.',
+            self::MENUNGGU_PERSETUJUAN => 'Pengajuan sudah divalidasi dan sedang menunggu persetujuan Admin.',
+            self::DISETUJUI => 'Pengajuan disetujui Admin. Proses pengadaan dapat dimulai.',
+            self::DALAM_PROSES => 'Barang sedang dalam proses pengadaan.',
+            self::BARANG_DITERIMA => 'Barang sudah diterima dan menunggu pencatatan inventaris atau distribusi.',
+            self::INVENTARIS_TERCATAT, self::LEGACY_APPROVED => 'Pengadaan selesai dan barang sudah tercatat sebagai inventaris.',
+            self::DITOLAK => 'Pengajuan ditolak. Lihat alasan penolakan pada daftar pengadaan.',
         };
     }
 
@@ -38,8 +56,8 @@ enum AcquisitionStatus: string
     {
         return match ($this) {
             self::DRAFT => 'bg-slate-100 text-slate-700',
-            self::MENUNGGU_KONFIRMASI => 'bg-yellow-100 text-yellow-800',
-            self::MENUNGGU_PERSETUJUAN => 'bg-amber-100 text-amber-800',
+            self::MENUNGGU_KONFIRMASI => 'bg-amber-100 text-amber-800',
+            self::MENUNGGU_PERSETUJUAN => 'bg-yellow-100 text-yellow-800',
             self::DISETUJUI => 'bg-sky-100 text-sky-800',
             self::DALAM_PROSES => 'bg-blue-100 text-blue-800',
             self::BARANG_DITERIMA => 'bg-indigo-100 text-indigo-800',

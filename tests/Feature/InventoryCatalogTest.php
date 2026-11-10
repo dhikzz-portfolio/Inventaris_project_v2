@@ -96,14 +96,13 @@ class InventoryCatalogTest extends TestCase
         ])->assertRedirect(route('items.acquisitions'))->assertSessionHasNoErrors();
 
         $item = Item::where('name', 'Laptop Asus ROG Strix')->firstOrFail();
-        $this->assertSame('DRAFT', $item->acquisition_status);
+        $this->assertSame('MENUNGGU_KONFIRMASI', $item->acquisition_status);
         $this->assertNotNull($item->photo_path);
         Storage::disk('public')->assertExists($item->photo_path);
 
         // Alur tiga tahap sebelum keputusan akhir Admin.
         $editor = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
 
-        $this->actingAs($this->admin)->post(route('items.acquisitions.submit', $item))->assertRedirect();
         $this->actingAs($editor)->post(route('items.acquisitions.confirm', $item))->assertRedirect();
         $this->actingAs($this->wakasek)->post(route('items.approve', $item))
             ->assertRedirect();

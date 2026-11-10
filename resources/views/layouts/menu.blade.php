@@ -4,6 +4,12 @@
     $canViewMaster = $user?->hasAnyPermission([
         'master_jurusan.view', 'master_gedung.view', 'master_ruangan.view', 'master_kategori.view',
     ]) ?? false;
+    $pendingValidationCount = $user !== null && $can('procurement.validate')
+        ? \App\Models\Item::query()
+            ->where('acquisition_status', \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value)
+            ->visibleTo($user)
+            ->count()
+        : 0;
 @endphp
 
 <x-menu-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" icon="dashboard" label="Beranda" />
@@ -48,8 +54,15 @@
 
 @if ($can('procurement.view') || $can('damage_report.view'))
     <div class="px-3 pb-1 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Pengadaan &amp; Kondisi</div>
+    @if ($can('procurement.validate'))
+        <x-menu-link :href="route('items.acquisitions', ['status' => \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value])"
+                     :active="request()->routeIs('items.acquisitions*') && request('status') === \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value"
+                     icon="how_to_reg" label="Validasi Pengadaan" :badge="$pendingValidationCount" />
+    @endif
     @if ($can('procurement.view'))
-        <x-menu-link :href="route('items.acquisitions')" :active="request()->routeIs('items.acquisitions*')" icon="shopping_bag" label="Pengadaan Barang" />
+        <x-menu-link :href="route('items.acquisitions')"
+                     :active="request()->routeIs('items.acquisitions*') && request('status') !== \App\Enums\AcquisitionStatus::MENUNGGU_KONFIRMASI->value"
+                     icon="shopping_bag" :label="$can('procurement.create') ? 'Pengadaan Barang' : 'Riwayat Pengadaan'" />
     @endif
     @if ($can('damage_report.view'))
         <x-menu-link :href="route('damage-reports.index')" :active="request()->routeIs('damage-reports.*')" icon="report_problem" label="Laporan Kerusakan" />

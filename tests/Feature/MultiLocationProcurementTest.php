@@ -195,13 +195,10 @@ class MultiLocationProcurementTest extends TestCase
 
         $catalog = Item::where('name', $payload['name'])->firstOrFail();
 
-        $this->assertSame('DRAFT', $catalog->acquisition_status);
+        // Tahap 1 — pengajuan Operator langsung masuk antrean Editor/Validator.
+        $this->assertSame('MENUNGGU_KONFIRMASI', $catalog->acquisition_status);
         $this->assertSame(0, $catalog->units()->count());
         $this->assertSame(5, $catalog->allocations()->sum('quantity'));
-
-        // Tahap 1 — pembuat pengajuan mengirim draft kepada Editor/Validator.
-        $this->actingAs($this->operator)->post(route('items.acquisitions.submit', $catalog))->assertRedirect();
-        $this->assertSame('MENUNGGU_KONFIRMASI', $catalog->refresh()->acquisition_status);
 
         // Tahap 2 — validasi Editor/Validator, bukan persetujuan akhir.
         $this->actingAs($this->ketua)->post(route('items.acquisitions.confirm', $catalog))->assertRedirect();

@@ -6,8 +6,10 @@ use App\Enums\NotificationType;
 use App\Jobs\CheckOverdueLoans;
 use App\Jobs\GenerateMonthlyReport;
 use App\Models\AssetUnit;
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\Report;
+use App\Models\Room;
 use App\Models\User;
 use App\Services\LoanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -82,6 +84,42 @@ class DashboardAndReportingTest extends TestCase
         $wakasekResponse->assertSee('seluruh sekolah');
         $adminResponse->assertSee('semua laboratorium');
         $laboranResponse->assertSee('laboratorium Anda');
+    }
+
+    public function test_dashboard_menampilkan_ringkasan_tugas_pengadaan_sesuai_role(): void
+    {
+        $operator = User::where('email', 'laboran.rpl@gmail.com')->firstOrFail();
+        $editor = User::where('email', 'ketualaboran@gmail.com')->firstOrFail();
+        $admin = User::where('email', 'wakasek@gmail.com')->firstOrFail();
+        $room = Room::where('code', 'H1-01')->firstOrFail();
+        $category = Category::firstOrFail();
+
+        $this->actingAs($operator)->post(route('items.store'), [
+            'name' => 'Proyektor Ringkasan Dashboard',
+            'category_id' => $category->id,
+            'acquisition_year' => now()->year,
+            'funding_source' => 'BOS',
+            'quantity' => 1,
+            'unit' => 'unit',
+            'allocations' => [['room_id' => $room->id, 'quantity' => 1]],
+        ])->assertSessionHasNoErrors();
+
+        $taskCount = fn ($response, string $label): int => (int) (collect($response->viewData('procurementTasks'))->firstWhere('label', $label)['count'] ?? 0);
+
+        // Operator melihat status pengajuannya sendiri.
+        $operatorResponse = $this->actingAs($operator)->get(route('dashboard'))->assertOk();
+        $operatorResponse->assertSee('Tugas pengadaan');
+        $operatorResponse->assertSee('Pengajuan terbaru');
+        $this->assertGreaterThanOrEqual(1, $taskCount($operatorResponse, 'Menunggu validasi'));
+        $this->assertTrue(collect($operatorResponse->viewData('procurementTaskItems'))->pluck('name')->contains('Proyektor Ringkasan Dashboard'));
+
+        // Editor/Validator melihat antrean validasi yang harus diputuskan.
+        $editorResponse = $this->actingAs($editor)->get(route('dashboard'))->assertOk();
+        $this->assertGreaterThanOrEqual(1, $taskCount($editorResponse, 'Menunggu validasi Anda'));
+
+        // Admin melihat antrean persetujuan akhir.
+        $adminResponse = $this->actingAs($admin)->get(route('dashboard'))->assertOk();
+        $adminResponse->assertSee('Menunggu persetujuan Anda');
     }
 
     public function test_menu_mutasi_mengikuti_permission_role(): void

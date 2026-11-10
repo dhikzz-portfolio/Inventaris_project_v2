@@ -168,7 +168,6 @@ class RevisionV8Test extends TestCase
         $goodAllocation = $catalog->allocations()->where('room_id', $lab1->id)->firstOrFail();
         $damagedAllocation = $catalog->allocations()->where('room_id', $lab2->id)->firstOrFail();
 
-        $this->actingAs($this->operator)->post(route('items.acquisitions.submit', $catalog))->assertRedirect();
         $this->actingAs($this->editor)->post(route('items.acquisitions.confirm', $catalog))->assertRedirect();
         $this->actingAs($this->admin)->post(route('items.approve', $catalog))->assertRedirect();
         $this->actingAs($this->operator)->post(route('items.acquisitions.start', $catalog))->assertRedirect();

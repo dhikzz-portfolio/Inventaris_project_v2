@@ -160,6 +160,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($master
         Route::post('/pengadaan', [ItemController::class, 'store'])->middleware('permission:procurement.create')->name('items.store');
         Route::post('/pengadaan/{item}/ajukan', [ItemController::class, 'submitAcquisition'])->middleware('permission:procurement.create')->name('items.acquisitions.submit');
         Route::post('/pengadaan/{item}/konfirmasi', [ItemController::class, 'confirmAcquisition'])->middleware('permission:procurement.validate')->name('items.acquisitions.confirm');
+        Route::post('/pengadaan/{item}/tolak-validasi', [ItemController::class, 'rejectAcquisitionByValidator'])->middleware('permission:procurement.validate')->name('items.acquisitions.reject');
         Route::post('/pengadaan/{item}/setujui', [ItemController::class, 'approveAcquisition'])->middleware('permission:procurement.approve')->name('items.approve');
         Route::post('/pengadaan/{item}/tolak', [ItemController::class, 'rejectAcquisition'])->middleware('permission:procurement.reject')->name('items.reject');
         Route::post('/pengadaan/{item}/proses', [ItemController::class, 'startAcquisition'])->middleware('permission:procurement.edit')->name('items.acquisitions.start');

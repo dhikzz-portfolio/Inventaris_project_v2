@@ -2,8 +2,7 @@
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
-                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporan Bulanan</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per gedung, kategori, ruangan, atau jurusan</p>
+                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporan Bulanan</h2>            <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per gedung, kategori, ruangan, atau jurusan</p>
             </div>
             @if (auth()->user()->managesInventory())
                 <a href="{{ route('reports.import.form') }}"
@@ -93,16 +92,16 @@
                 <span class="material-icons-round mt-0.5 shrink-0 text-sm text-slate-400" aria-hidden="true">info</span>
                 <p>Laporan memuat jumlah barang dan unit, kondisi, peminjaman, kerusakan, mutasi, penghapusan, pengadaan, serta keterlambatan sesuai cakupan pengguna. Laporan bulanan juga dibuat otomatis setiap tanggal 1.</p>
             </div>
-            <div class="mt-4 flex flex-col gap-3 border-t border-slate-200/80 pt-4 dark:border-slate-700 sm:flex-row sm:flex-wrap sm:items-center">
+            <div class="mt-4 flex flex-col gap-3 border-t border-slate-200/80 pt-4 dark:border-slate-700 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                 <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <a :href="exportUrl('pdf')" target="_blank" rel="noopener"
                        class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                         <span class="material-icons-round text-base text-red-600" aria-hidden="true">picture_as_pdf</span> Pratinjau PDF
                     </a>
-                    <button type="button" @click="printReport()"
+                    <a :href="exportUrl('pdf')" download
                        class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-                        <span class="material-icons-round text-base text-slate-500" aria-hidden="true">print</span> Cetak
-                    </button>
+                        <span class="material-icons-round text-base text-red-600" aria-hidden="true">download</span> Unduh PDF
+                    </a>
                     <a :href="previewExcelUrl()" target="_blank" rel="noopener"
                        class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                         <span class="material-icons-round text-base text-emerald-700" aria-hidden="true">grid_on</span> Pratinjau Excel
@@ -263,24 +262,6 @@
                     if (this.condition) params.set('condition', this.condition);
                     return params;
                 },
-                printReport() {
-                    const win = window.open(this.exportUrl('pdf'), '_blank', 'noopener');
-
-                    if (!win) {
-                        alert('Izinkan pop-up untuk mencetak laporan.');
-                        return;
-                    }
-
-                    let printed = false;
-                    const trigger = () => {
-                        if (printed) return;
-                        printed = true;
-                        try { win.focus(); win.print(); } catch (error) { /* pengguna dapat mencetak manual */ }
-                    };
-
-                    win.addEventListener('load', trigger, { once: true });
-                    setTimeout(trigger, 1500);
-                }
             };
         }
     </script>

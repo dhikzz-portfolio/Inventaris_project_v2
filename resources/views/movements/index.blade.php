@@ -24,8 +24,7 @@
         $activeAdditionalFilterCount = collect($filters)->except('search')->filter(fn ($value) => $value !== null && $value !== '')->count();
     @endphp
     <form method="GET" action="{{ route('movements.index') }}"
-          onchange="this.requestSubmit()"
-          x-data="{ filtersOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }}, ...directScanner() }"
+          x-data="{ filtersOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }}, ...directScanner(), submitForm() { this.$el.requestSubmit(); } }"
           class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
         <div class="mb-3">
             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Filter Unit</h3>
@@ -114,7 +113,8 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label for="movement-catalog" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Jenis barang</label>
-                    <select id="movement-catalog" name="catalog" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <select id="movement-catalog" name="catalog" @change="submitForm()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua</option>
                         @foreach ($catalogs as $catalog)
                             <option value="{{ $catalog->id }}" @selected($filters['catalog'] == $catalog->id)>{{ $catalog->name }}</option>
@@ -123,7 +123,8 @@
                 </div>
                 <div>
                     <label for="movement-building" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Gedung</label>
-                    <select id="movement-building" name="building" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <select id="movement-building" name="building" @change="submitForm()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua</option>
                         @foreach ($buildings as $building)
                             <option value="{{ $building->code }}" @selected(strtoupper($filters['building']) === $building->code)>{{ $building->name }}</option>
@@ -132,7 +133,8 @@
                 </div>
                 <div>
                     <label for="movement-floor" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Lantai</label>
-                    <select id="movement-floor" name="floor" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <select id="movement-floor" name="floor" @change="submitForm()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua</option>
                         @for ($floor = 1; $floor <= 9; $floor++)
                             <option value="{{ $floor }}" @selected($filters['floor'] === (string) $floor)>Lantai {{ $floor }}</option>
@@ -141,7 +143,8 @@
                 </div>
                 <div>
                     <label for="movement-room" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Ruangan</label>
-                    <select id="movement-room" name="room" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <select id="movement-room" name="room" @change="submitForm()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua</option>
                         @foreach ($rooms as $room)
                             <option value="{{ $room->id }}" @selected($filters['room'] == $room->id)>{{ $room->code }} — {{ $room->name }}</option>
@@ -150,7 +153,8 @@
                 </div>
                 <div>
                     <label for="movement-condition" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kondisi</label>
-                    <select id="movement-condition" name="condition" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <select id="movement-condition" name="condition" @change="submitForm()"
+                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         <option value="">Semua</option>
                         @foreach ($conditions as $condition)
                             <option value="{{ $condition->value }}" @selected($filters['condition'] === $condition->value)>{{ $condition->label() }}</option>
@@ -166,10 +170,6 @@
                         Hapus filter
                     </a>
                 @endif
-                <button type="submit"
-                        class="inline-flex min-h-9 items-center justify-center rounded-xl bg-brand-600 px-4 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                    Terapkan filter
-                </button>
             </div>
         </div>
     </form>
@@ -286,19 +286,20 @@
                                     :aria-expanded="openGroups[{{ $groupId }}] === true"
                                     @click="toggleGroup({{ $groupId }})"
                                     @keydown.enter.prevent="toggleGroup({{ $groupId }})"
-                                    @keydown.space.prevent="toggleGroup({{ $groupId }})">
+                                    @keydown.space.prevent="toggleGroup({{ $groupId }})"
+                                    class="h-10">
                                     <td colspan="6" class="px-3 py-2">
-                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                            <span class="material-icons-round text-base text-brand-600">inventory_2</span>
-                                            <span class="text-xs font-bold text-slate-800 dark:text-slate-100">{{ $groupCatalog?->name ?? 'Tanpa katalog' }}</span>
-                                            <span class="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700">{{ $groupUnits->count() }} unit</span>
-                                            <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ $groupCatalog?->category?->name }}</span>
-                                            <span class="ml-auto flex flex-wrap items-center gap-1">
+                                        <div class="flex flex-nowrap items-center gap-x-2">
+                                            <span class="material-icons-round shrink-0 text-base text-brand-600">inventory_2</span>
+                                            <span class="truncate min-w-0 flex-1 text-xs font-bold text-slate-800 dark:text-slate-100" title="{{ $groupCatalog?->name }}">{{ $groupCatalog?->name ?? 'Tanpa katalog' }}</span>
+                                            <span class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700">{{ $groupUnits->count() }} unit</span>
+                                            <span class="shrink-0 text-[10px] text-slate-400 dark:text-slate-500">{{ $groupCatalog?->category?->name }}</span>
+                                            <span class="ml-auto flex flex-nowrap items-center gap-1">
                                                 @foreach ($groupBrands as $brandLabel => $brandCount)
-                                                    <span class="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">{{ $brandLabel }} × {{ $brandCount }}</span>
+                                                    <span class="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">{{ $brandLabel }} × {{ $brandCount }}</span>
                                                 @endforeach
                                             </span>
-                                            <span class="material-icons-round text-base text-slate-400 transition-transform duration-200 dark:text-slate-500"
+                                            <span class="shrink-0 material-icons-round text-base text-slate-400 transition-transform duration-200 dark:text-slate-500"
                                                   :class="openGroups[{{ $groupId }}] === true ? 'rotate-180' : ''">expand_more</span>
                                         </div>
                                     </td>

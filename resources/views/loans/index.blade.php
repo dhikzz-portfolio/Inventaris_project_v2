@@ -55,39 +55,23 @@
                 class="h-11 w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500"
             >
         </div>
-        <details class="group relative w-full shrink-0 sm:w-auto">
-            <summary class="inline-flex h-11 w-full cursor-pointer list-none items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 sm:w-auto sm:justify-center">
-                <span class="material-icons-round text-lg text-brand-600 dark:text-brand-300" aria-hidden="true">filter_list</span>
-                <span class="whitespace-nowrap">Filter status</span>
-                <span class="hidden max-w-40 truncate rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300 sm:inline-flex">{{ $activeStatus[0] }}</span>
-                <span class="material-icons-round text-base text-slate-400 transition group-open:rotate-180" aria-hidden="true">expand_more</span>
-            </summary>
-            <div class="absolute right-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                <div class="px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Pilih status peminjaman</div>
+        <div class="shrink-0 sm:w-auto">
+            <label for="loan-status-filter" class="sr-only">Filter status</label>
+            <select id="loan-status-filter" name="status"
+                    class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:w-auto"
+                    @change="this.form.requestSubmit()">
+                <option value="">Semua</option>
                 @foreach ($tabs as $key => [$label, $count])
-                    <a href="{{ route('loans.index', array_filter(['status' => $key, 'search' => $search], fn ($value) => $value !== null && $value !== '')) }}"
-                       @if (($status ?? '') === $key) aria-current="page" @endif
-                       @class([
-                           'flex min-h-10 items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-sm transition',
-                           'bg-brand-50 font-semibold text-brand-700 dark:bg-brand-950/40 dark:text-brand-300' => ($status ?? '') === $key,
-                           'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800' => ($status ?? '') !== $key,
-                       ])>
-                        <span class="min-w-0 truncate">{{ $label }}</span>
-                        <span @class([
-                            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
-                            'bg-brand-100 text-brand-700 dark:bg-brand-900/60 dark:text-brand-300' => ($status ?? '') === $key,
-                            'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' => ($status ?? '') !== $key,
-                        ])>{{ $count }}</span>
-                    </a>
+                    <option value="{{ $key }}" @selected(($status ?? '') === $key)>{{ $label }} ({{ $count }})</option>
                 @endforeach
-            </div>
-        </details>
+            </select>
+        </div>
         <div class="flex w-full gap-2 sm:w-auto">
             <button type="submit" class="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 sm:flex-none">
                 Cari
             </button>
-            @if ($search !== '')
-                <a href="{{ route('loans.index', array_filter(['status' => $status])) }}"
+            @if ($search !== '' || $status !== '')
+                <a href="{{ route('loans.index') }}"
                    class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                     Hapus
                 </a>

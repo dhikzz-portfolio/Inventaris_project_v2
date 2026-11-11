@@ -151,7 +151,7 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
                         ['Kolom', 'Keterangan'],
                         ['kode_inventaris', 'Opsional saat menambah unit baru. Kosongkan agar sistem membuat kode otomatis dari lokasi dan katalog. Wajib saat memperbarui unit yang sudah ada. Format: Gedung+Lantai-Ruang-Kode Jenis-Nomor Unit, contoh G1-01-001-01.'],
                         ['nama_barang', 'Wajib saat menambah unit baru. Dicocokkan ke katalog yang ada; bila belum terdaftar, katalog baru dibuat otomatis.'],
-                        ['kategori', 'Opsional. Dipakai sebagai kategori bila katalog baru dibuat; jika kosong memakai kategori "Tanpa Kategori".'],
+                        ['kategori', 'Opsional. Dicocokkan ke master data tanpa membedakan huruf besar/kecil dan dibuat otomatis bila belum ada. Dipakai saat katalog baru dibuat, atau untuk mengisi kategori katalog yang belum punya kategori; kategori yang sudah terisi tidak ditimpa. Bila kosong memakai "Tanpa Kategori".'],
                         ['merek', 'Opsional. Merek barang untuk unit ini. Bila kosong memakai merek katalog, atau "Tanpa Merek" bila katalog juga tidak punya merek.'],
                         ['tipe_model', 'Opsional. Tipe/model barang untuk unit ini. Bila kosong memakai tipe katalog, atau "Tidak Ditentukan" bila katalog juga tidak punya tipe.'],
                         ['gedung', 'Wajib saat menambah unit baru. Kode huruf gedung, contoh F.'],

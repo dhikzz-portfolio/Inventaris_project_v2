@@ -138,6 +138,10 @@ class ReportImportService
             ->whereNotNull('item_type_code')
             ->pluck('name', 'item_type_code')
             ->all();
+        $knownCategories = Category::query()
+            ->pluck('name')
+            ->map(fn ($name): string => mb_strtolower(trim((string) $name)))
+            ->all();
 
         foreach ($rows as $index => $row) {
             $errors = [];
@@ -181,7 +185,7 @@ class ReportImportService
             $action = $existing ? 'PERBARUI' : 'BUAT';
             $catalog = null;
             $catalogName = '';
-            $categoryName = '';
+            $categoryName = trim((string) ($row['kategori'] ?? ''));
             $itemTypeCode = null;
             $room = null;
             $unitNo = null;
@@ -200,7 +204,6 @@ class ReportImportService
 
             if ($mode === 'create' && ! $existing) {
                 $catalogName = trim((string) ($row['nama_barang'] ?? ''));
-                $categoryName = trim((string) ($row['kategori'] ?? ''));
 
                 if ($catalogName !== '' && str_contains(mb_strtolower($catalogName), '(contoh)')) {
                     $errors[] = 'Baris contoh template masih ada. Ganti nama barang "(contoh)" dengan data sebenarnya atau hapus baris ini.';
@@ -215,6 +218,10 @@ class ReportImportService
                 }
 
                 $autoCatalog = $catalog === null && $catalogName !== '';
+
+                if ($autoCatalog && $categoryName !== '' && ! in_array(mb_strtolower($categoryName), $knownCategories, true)) {
+                    $warnings[] = "Kategori \"{$categoryName}\" belum ada di master data dan akan dibuat otomatis.";
+                }
 
                 $room = $this->resolveRoom($row);
                 if ($room === null) {
@@ -303,6 +310,14 @@ class ReportImportService
                 $itemTypeCode = $catalog?->item_type_code
                     ?? (preg_match(InventoryCodeService::PATTERN, $code) ? explode('-', $code)[2] : $itemTypeCode);
                 $unitNo = (int) $existing->unit_no;
+            }
+
+            // Kolom kategori hanya mengisi katalog yang belum punya kategori;
+            // kategori yang sudah terisi tidak ditimpa oleh berkas.
+            if ($catalog !== null && $categoryName !== '' && $this->hasPlaceholderCategory($catalog)) {
+                $warnings[] = in_array(mb_strtolower($categoryName), $knownCategories, true)
+                    ? "Kategori katalog {$catalog->name} akan diisi menjadi \"{$categoryName}\" dari berkas."
+                    : "Kategori \"{$categoryName}\" belum ada di master data dan akan dibuat otomatis.";
             }
 
             $analyzed[] = [
@@ -408,6 +423,10 @@ class ReportImportService
                     }
 
                     if ($existing) {
+                        if ($existing->catalog !== null) {
+                            $this->ensureCatalogCategory($existing->catalog, $row['category_name'] ?? null);
+                        }
+
                         $existing->update([
                             'condition' => $row['condition_value'],
                             'status' => $row['status_value'],
@@ -457,10 +476,7 @@ class ReportImportService
                                 ]);
                             }
 
-                            $category = Category::query()
-                                ->whereRaw('LOWER(name) = ?', [mb_strtolower($stats['category'])])
-                                ->first()
-                                ?? Category::create(['name' => $stats['category']]);
+                            $category = $this->resolveCategory((string) $stats['category']);
 
                             $room = Room::find($row['room_id']);
 
@@ -494,6 +510,8 @@ class ReportImportService
                     }
 
                     if ($catalog !== null) {
+                        $this->ensureCatalogCategory($catalog, $row['category_name'] ?? null);
+
                         if (blank($catalog->item_type_code) && filled($row['item_type_code'] ?? null)) {
                             $owner = Item::query()
                                 ->where('item_type_code', $row['item_type_code'])
@@ -570,6 +588,60 @@ class ReportImportService
         }
 
         return ['created' => $created, 'updated' => $updated];
+    }
+
+    /**
+     * Isi kategori katalog yang belum punya kategori (atau masih memakai
+     * penanda "Tanpa Kategori") dari kolom kategori pada berkas. Katalog yang
+     * sudah punya kategori tidak ditimpa.
+     */
+    private function ensureCatalogCategory(Item $catalog, ?string $categoryName): void
+    {
+        $categoryName = trim((string) $categoryName);
+
+        if ($categoryName === '' || ! $this->hasPlaceholderCategory($catalog)) {
+            return;
+        }
+
+        $category = $this->resolveCategory($categoryName);
+
+        // Kunci unik katalog (kategori, nama, merek, tipe) dapat bentrok bila
+        // katalog yang sama sudah ada di kategori tujuan. Biarkan katalog tetap
+        // memakai kategorinya sekarang daripada membatalkan seluruh impor.
+        $conflict = Item::query()
+            ->where('category_id', $category->id)
+            ->where('name', $catalog->name)
+            ->where('brand', (string) $catalog->brand)
+            ->where('model_type', (string) $catalog->model_type)
+            ->whereKeyNot($catalog->getKey())
+            ->exists();
+
+        if ($conflict) {
+            return;
+        }
+
+        $catalog->forceFill(['category_id' => $category->id])->save();
+    }
+
+    private function hasPlaceholderCategory(Item $catalog): bool
+    {
+        $current = trim((string) ($catalog->category?->name ?? ''));
+
+        return $current === '' || mb_strtolower($current) === 'tanpa kategori';
+    }
+
+    /**
+     * Ambil kategori berdasarkan nama tanpa membedakan huruf besar/kecil, dan
+     * buat kategori baru bila belum terdaftar.
+     */
+    private function resolveCategory(string $name): Category
+    {
+        $name = trim($name);
+
+        return Category::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->first()
+            ?? Category::create(['name' => $name]);
     }
 
     /**

@@ -885,3 +885,47 @@ Catatan
 Percobaan Anda tadi meninggalkan 3 baris alokasi yatim (id 7–9, total 20 unit) di katalog "pc". Data ini tidak memengaruhi stok/unit, tapi bisa terlihat di detail katalog. Kalau mau, saya bisa hapus alokasi sisa percobaan itu.
 
 Setelah ini, silakan coba lagi: buat pengajuan dengan nama barang baru (jangan pilih katalog lama — kolom itu memang sudah tidak muncul untuk operator), lalu cek menu Pengadaan Barang; statusnya harus  Menunggu validasi Editor/Validator , dan setelah validator menerima, barulah diteruskan ke Admin.
+
+Hasil Tes & Audit Project — Selesai
+
+Laporan lengkap sudah saya buat di:
+ docs/LAPORAN_HASIL_TES_AUDIT_2026-11-11.md 
+
+Ringkasan hasil
+
+┌───────────────────────────────┬───────────────────────────────┐
+│ Pemeriksaan                   │ Hasil                         │
+├───────────────────────────────┼───────────────────────────────┤
+│ Seluruh test suite            │ 452 lulus, 0 gagal (2.601     │
+│                               │ assertions, 12m12s)           │
+│ Pint (gaya kode)              │ Lulus, seluruh file           │
+│ Sintaks PHP (270 file)        │ 0 error                       │
+│ Kompilasi Blade               │ Berhasil                      │
+│ Route aplikasi                │ 126 nama route, semua termuat │
+│ Build Vite                    │ Berhasil (hanya warning       │
+│                               │ ukuran chunk)                 │
+│ Migrasi + seeder dari nol     │ Berhasil, 59 migrasi          │
+│ Cache produksi                │ Berhasil                      │
+│ (config/route/view)           │                               │
+│ composer validate, schedule,  │ Semua normal                  │
+│ migrate:status                │                               │
+└───────────────────────────────┴───────────────────────────────┘
+
+Fitur yang diperbaiki (permintaan sebelumnya)
+
+Kategori dari file impor laporan sekarang diisi otomatis ke database: katalog yang belum punya kategori (termasuk yang masih  Tanpa Kategori ) diisi dari kolom  kategori  pada mode buat maupun perbarui, dan kategori baru dibuat otomatis (pencocokan tanpa membedakan huruf besar/kecil). Katalog yang sudah punya kategori tidak ditimpa, dan pratinjau menampilkan catatan sebelum impor dijalankan. Panduan di file contoh impor juga diperbarui. Verifikasi: 26 tes lulus (150 assertions), termasuk 3 tes baru.
+
+Temuan yang dilaporkan
+
+1. Sedang — DomPDF kehabisan memori ( 512 MB exhausted , 5 kejadian di log 9 Nov) saat membuat PDF laporan besar. Ini kegagalan nyata pada data besar, belum tercatat di  KNOWN_ISSUES .
+2. Rendah — kode mati Breeze: 5 view/partial merujuk route yang tidak terdaftar ( register ,  password.email ,  password.store ,  verification.send ,  profile.destroy ). Saat ini tidak error karena tidak dirender, tapi akan pecah bila fitur auth diaktifkan kembali.
+3. Rendah — artefak ikut ter-commit:  tmp/  (74 file),  test-results/ ,  check_sfcreate.php ,  config_cred_check.sh .
+4. Rendah —  docs/TESTING.md  usang (menyebut 330 tes dan 1 kegagalan; kenyataannya 452 lulus).
+5. Rendah —  laravel.log  8,6 MB tanpa rotasi.
+6. Pengingat —  .env  masih  APP_DEBUG=true  dan akun demo berpassword lemah untuk produksi.
+
+Belum diverifikasi
+
+E2E Playwright penuh, uji beban/konkurensi, cetak fisik label, build Docker, dan PHPStan (tidak terpasang). Ini tercatat sebagai keterbatasan di laporan, bukan sebagai lulus.
+
+Perubahan kode hanya menyentuh 3 file (service impor, template panduan, dan file tes) — tidak ada dependensi atau refactor lain yang diubah.

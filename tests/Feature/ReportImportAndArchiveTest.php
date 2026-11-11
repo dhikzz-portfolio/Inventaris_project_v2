@@ -6,6 +6,7 @@ use App\Enums\Condition;
 use App\Exports\MonthlyReportExport;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\Report;
 use App\Models\Room;
@@ -293,6 +294,88 @@ class ReportImportAndArchiveTest extends TestCase
             'inventory_code' => $row['code'],
             'item_catalog_id' => $catalog->id,
         ]);
+    }
+
+    public function test_mode_buat_mengisi_kategori_katalog_lama_yang_masih_tanpa_kategori(): void
+    {
+        $room = Room::where('is_lab', true)->where('floor', '>', 0)->where('room_no', '>', 0)->firstOrFail();
+        $catalog = Item::approved()->firstOrFail();
+        $placeholder = Category::firstOrCreate(['name' => 'Tanpa Kategori']);
+        $catalog->forceFill(['category_id' => $placeholder->id])->save();
+
+        $categoryName = 'Alat Masak Konvensional Uji';
+        $this->assertDatabaseMissing('categories', ['name' => $categoryName]);
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [['', $catalog->name, $categoryName, $room->buildingCode(), $room->floor, $room->room_no, 'Baik', 'Aktif']],
+                'kode_inventaris,nama_barang,kategori,gedung,lantai,no_ruangan,kondisi,status',
+            ),
+            'mode' => 'create',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+        $this->assertStringContainsString($categoryName, implode(' ', $preview['rows'][0]['warnings']));
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'))->assertSessionHas('success');
+
+        $this->assertSame($categoryName, $catalog->refresh()->category->name);
+        $this->assertDatabaseHas('categories', ['name' => $categoryName]);
+    }
+
+    public function test_mode_perbarui_mengisi_kategori_katalog_dari_kolom_kategori(): void
+    {
+        $unit = AssetUnit::query()->firstOrFail();
+        $placeholder = Category::firstOrCreate(['name' => 'Tanpa Kategori']);
+        $unit->catalog->forceFill(['category_id' => $placeholder->id])->save();
+
+        $categoryName = 'Alat Masak Konvensional Uji';
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [[$unit->inventory_code, $unit->catalog->name, $categoryName, '', '', '', $unit->condition->label(), $unit->status->label()]],
+                'kode_inventaris,nama_barang,kategori,gedung,lantai,no_ruangan,kondisi,status',
+            ),
+            'mode' => 'update',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'))->assertSessionHas('success');
+
+        $this->assertSame($categoryName, $unit->catalog->refresh()->category->name);
+        $this->assertDatabaseHas('categories', ['name' => $categoryName]);
+    }
+
+    public function test_mode_perbarui_tidak_menimpa_kategori_katalog_yang_sudah_terisi(): void
+    {
+        $unit = AssetUnit::query()->firstOrFail();
+        $originalCategory = $unit->catalog->category->name;
+        $newCategory = 'Kategori Lain Uji';
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [[$unit->inventory_code, $unit->catalog->name, $newCategory, '', '', '', $unit->condition->label(), $unit->status->label()]],
+                'kode_inventaris,nama_barang,kategori,gedung,lantai,no_ruangan,kondisi,status',
+            ),
+            'mode' => 'update',
+        ]);
+
+        $preview = session('report_import_preview')['analysis'];
+        $this->assertTrue($preview['can_import'], json_encode($preview['rows']));
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => session('report_import_preview')['token'],
+        ])->assertRedirect(route('reports.index'));
+
+        $this->assertSame($originalCategory, $unit->catalog->refresh()->category->name);
+        $this->assertDatabaseMissing('categories', ['name' => $newCategory]);
     }
 
     public function test_mode_buat_memberi_nomor_unit_berurutan_untuk_beberapa_baris(): void

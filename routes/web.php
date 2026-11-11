@@ -119,6 +119,7 @@ Route::middleware(['auth', 'profile.completed'])->group(function () use ($master
         Route::delete('/laporan/{report}', [ReportController::class, 'destroy'])->middleware('permission:report.delete')->name('reports.destroy');
         Route::get('/laporan/impor/contoh', [ReportController::class, 'importTemplate'])->middleware('permission:report.import')->name('reports.import.template');
         Route::get('/laporan/impor', [ReportController::class, 'importForm'])->middleware('permission:report.import')->name('reports.import.form');
+        Route::get('/laporan/impor/pemeriksaan', [ReportController::class, 'importReview'])->middleware('permission:report.import')->name('reports.import.review');
         Route::post('/laporan/impor/pratinjau', [ReportController::class, 'importPreview'])->middleware('permission:report.import')->name('reports.import.preview');
         Route::post('/laporan/impor', [ReportController::class, 'importConfirm'])->middleware('permission:report.import')->name('reports.import.confirm');
 

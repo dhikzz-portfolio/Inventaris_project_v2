@@ -50,48 +50,33 @@
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
                             <label for="label-catalog" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Katalog</label>
-                            <select id="label-catalog" name="catalog" class="min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua katalog</option>
-                                @foreach ($catalogs as $catalogId => $catalogName)
-                                    <option value="{{ $catalogId }}" @selected(request('catalog') == $catalogId)>{{ $catalogName }}</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-select id="label-catalog" name="catalog" :selected="request('catalog')" submit
+                                :options="collect([['value' => '', 'label' => 'Semua katalog']])->merge(collect($catalogs)->map(fn ($name, $id) => ['value' => $id, 'label' => $name]))->values()->all()"
+                                placeholder="Cari katalog…" class="mt-1 w-full" />
                         </div>
                         <div>
                             <label for="label-room" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Ruangan</label>
-                            <select id="label-room" name="room" class="min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua ruangan</option>
-                                @foreach ($rooms as $room)
-                                    <option value="{{ $room->id }}" @selected(request('room') == $room->id)>{{ $room->code }} — {{ $room->name }}</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-select id="label-room" name="room" :selected="request('room')" submit
+                                :options="collect([['value' => '', 'label' => 'Semua ruangan']])->merge($rooms->map(fn ($room) => ['value' => $room->id, 'label' => $room->code.' — '.$room->name, 'hint' => $room->building?->name]))->values()->all()"
+                                placeholder="Cari ruangan…" class="mt-1 w-full" />
                         </div>
                         <div>
                             <label for="label-category" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kategori</label>
-                            <select id="label-category" name="category" class="min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua kategori</option>
-                                @foreach ($categories as $category)
-                                    <option value="{{ $category->id }}" @selected(request('category') == $category->id)>{{ $category->name }}</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-select id="label-category" name="category" :selected="request('category')" submit
+                                :options="collect([['value' => '', 'label' => 'Semua kategori']])->merge($categories->map(fn ($category) => ['value' => $category->id, 'label' => $category->name]))->values()->all()"
+                                placeholder="Cari kategori…" class="mt-1 w-full" />
                         </div>
                         <div>
                             <label for="label-condition" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kondisi</label>
-                            <select id="label-condition" name="condition" class="min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua kondisi</option>
-                                @foreach ($conditions as $conditionOption)
-                                    <option value="{{ $conditionOption->value }}" @selected(request('condition') == $conditionOption->value)>{{ $conditionOption->label() }}</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-select id="label-condition" name="condition" :selected="request('condition')" submit
+                                :options="collect([['value' => '', 'label' => 'Semua kondisi']])->merge($conditions->map(fn ($conditionOption) => ['value' => $conditionOption->value, 'label' => $conditionOption->label()]))->values()->all()"
+                                placeholder="Cari kondisi…" class="mt-1 w-full" />
                         </div>
                         <div>
                             <label for="label-status" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Status</label>
-                            <select id="label-status" name="status" class="min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">Semua status</option>
-                                @foreach ($statuses as $statusOption)
-                                    <option value="{{ $statusOption->value }}" @selected(request('status') == $statusOption->value)>{{ $statusOption->label() }}</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-select id="label-status" name="status" :selected="request('status')" submit
+                                :options="collect([['value' => '', 'label' => 'Semua status']])->merge($statuses->map(fn ($statusOption) => ['value' => $statusOption->value, 'label' => $statusOption->label()]))->values()->all()"
+                                placeholder="Cari status…" class="mt-1 w-full" />
                         </div>
                     </div>
 

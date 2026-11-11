@@ -81,14 +81,13 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            @if ($canSelectExistingCatalog)
             <div class="md:col-span-2">
-                <x-input-label for="catalog_search" value="Katalog barang yang sudah ada (opsional)" />
+                <x-input-label for="catalog_search" value="Katalog barang *" />
                 <div class="relative mt-1" @click.outside="catalogOpen = false">
                     <input id="catalog_search" type="text" x-model="catalogQuery"
-                        @focus="catalogQuery = ''; catalogOpen = true"
+                        @focus="$event.target.select(); catalogOpen = true"
                         @click="catalogOpen = true; catalogHighlight = 0"
-                        @input="catalogOpen = true; catalogHighlight = 0"
+                        @input="onCatalogInput()"
                         @keydown.arrow-down.prevent="highlightNext()"
                         @keydown.arrow-up.prevent="highlightPrev()"
                         @keydown.enter.prevent="chooseHighlighted()"
@@ -108,10 +107,6 @@
 
                     <ul x-show="catalogOpen" x-cloak id="catalog-options" role="listbox"
                         class="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                        <li role="option" @mousedown.prevent="clearCatalog()" :aria-selected="!catalogId"
-                            class="cursor-pointer px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
-                            — buat katalog baru —
-                        </li>
                         <template x-for="(option, index) in filteredCatalogs" :key="option.id">
                             <li role="option" @mousedown.prevent="selectCatalog(option.id)"
                                 @mouseenter="catalogHighlight = index" :aria-selected="catalogId === option.id"
@@ -123,13 +118,27 @@
                         </template>
                         <li x-show="filteredCatalogs.length === 0" class="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
                             <span class="block font-semibold text-slate-700 dark:text-slate-200">Tidak ada katalog yang cocok.</span>
-                            <span class="mt-1 block">Barang baru diajukan sebagai katalog baru dengan nama &amp; kategori yang sah, bukan dibuat otomatis dari teks pencarian.</span>
+                            <span class="mt-1 block">Ketik nama barang baru di atas untuk membuat katalog baru.</span>
+                        </li>
+                        <li x-show="canCreateNew" role="option" @mousedown.prevent="startNewCatalog()"
+                            class="cursor-pointer border-t border-slate-100 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50 dark:border-slate-800 dark:text-blue-300 dark:hover:bg-blue-950/40">
+                            <span class="flex items-start gap-1.5 font-semibold">
+                                <span class="material-icons-round text-base" aria-hidden="true">add_circle</span>
+                                <span>Buat katalog baru: &ldquo;<span x-text="catalogQuery.trim()"></span>&rdquo;</span>
+                            </span>
+                            <span class="mt-0.5 block text-[11px] font-normal text-slate-500 dark:text-slate-400">Belum ada di daftar — tentukan kategori di bawah.</span>
+                        </li>
+                        <li x-show="exactNameMatch && !catalogId" role="option" aria-disabled="true"
+                            class="cursor-not-allowed border-t border-slate-100 px-3 py-2 text-xs text-amber-800 dark:border-slate-800 dark:text-amber-200">
+                            <span class="block font-semibold">Katalog ini sudah ada.</span>
+                            <span class="mt-0.5 block">Pilih &ldquo;<span x-text="exactNameMatch?.name"></span>&rdquo; dari daftar agar data tidak tergandakan.</span>
                         </li>
                     </ul>
                 </div>
                 <input type="hidden" name="catalog_id" :value="catalogId || ''">
+                <input type="hidden" name="name" :value="catalogId ? (selectedCatalog?.name || '') : catalogQuery.trim()">
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Merek/model diisi per kelompok spesifikasi. Jangan membuat katalog baru hanya karena merek atau tipe berbeda.
+                    Ketik untuk mencari katalog yang sudah ada. Bila nama belum terdaftar, pilih <strong>Buat katalog baru</strong> lalu tentukan kategori — nama katalog yang sudah ada tidak dapat dibuat ulang.
                 </p>
                 <div x-show="catalogId" x-cloak
                     class="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
@@ -137,30 +146,25 @@
                     — kategori otomatis: <span class="font-semibold" x-text="selectedCatalog?.category_name || '—'"></span>.
                 </div>
             </div>
-            @else
+            @unless ($canSelectExistingCatalog)
             <div class="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
                 Pengajuan Operator selalu berupa barang baru dan dikirim ke Editor/Validator. Penambahan stok pada katalog yang sudah tercatat tidak dapat diajukan dari formulir ini.
             </div>
-            @endif
+            @endunless
 
-            <div>
-                <x-input-label for="name" value="Nama katalog barang *" />
-                <input id="name" name="name" type="text" x-model="name" :disabled="!!catalogId"
-                    placeholder="mis. Keyboard"
-                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 dark:disabled:bg-slate-800" />
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400"
-                    x-text="catalogId ? 'Mengikuti katalog terpilih (tidak dapat diubah).' : 'Wajib untuk katalog baru.'"></p>
-            </div>
-
-            <div>
+            <div class="md:col-span-2" x-show="!catalogId" x-cloak>
                 <x-input-label for="category_id" value="Kategori barang *" />
-                <select id="category_id" name="category_id" x-model.number="categoryId" :disabled="!!catalogId"
-                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 dark:disabled:bg-slate-800">
-                    <option value="">— pilih kategori —</option>
-                    @foreach ($categories as $category)
-                        <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>{{ $category->name }}</option>
-                    @endforeach
-                </select>
+                <div class="mt-1">
+                    <x-searchable-select name="category_id" id="category_id" :selected="old('category_id')" x-model="categoryId"
+                        :options="$categories->map(fn ($category) => ['value' => $category->id, 'label' => $category->name])->values()->all()"
+                        placeholder="Cari atau pilih kategori…" />
+                </div>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kategori ditentukan untuk katalog baru. Bila memilih katalog yang sudah ada, kategori terisi otomatis dan tidak dapat diubah.</p>
+            </div>
+            <div class="md:col-span-2" x-show="catalogId" x-cloak>
+                <div class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+                    Katalog terpilih: <strong x-text="selectedCatalog?.name"></strong> — kategori otomatis: <strong x-text="selectedCatalog?.category_name || '—'"></strong>. Nama dan kategori tidak dapat diubah.
+                </div>
             </div>
 
             <div>
@@ -426,6 +430,14 @@
                     categoryId: Number(config.initialCategory) || '',
                     groups: initial.map(makeGroup),
 
+                    init() {
+                        this.$watch('catalogQuery', (value) => {
+                            if (!this.catalogId) {
+                                this.name = (value || '').trim();
+                            }
+                        });
+                    },
+
                     get buildings() {
                         const seen = new Map();
                         this.rooms.forEach((room) => {
@@ -452,6 +464,37 @@
                         );
                     },
 
+                    get exactNameMatch() {
+                        const term = (this.catalogQuery || '').trim().toLowerCase();
+                        if (term === '') return null;
+                        return this.catalogOptions.find((option) => option.name.trim().toLowerCase() === term) || null;
+                    },
+
+                    get canCreateNew() {
+                        return !this.catalogId && (this.catalogQuery || '').trim() !== '' && !this.exactNameMatch;
+                    },
+
+                    onCatalogInput() {
+                        this.catalogOpen = true;
+                        this.catalogHighlight = 0;
+
+                        if (this.catalogId && (this.catalogQuery || '').trim().toLowerCase() !== (this.selectedCatalog?.name || '').trim().toLowerCase()) {
+                            this.catalogId = '';
+                            this.categoryId = '';
+                        }
+
+                        if (!this.catalogId) {
+                            this.name = (this.catalogQuery || '').trim();
+                        }
+                    },
+
+                    startNewCatalog() {
+                        this.catalogId = '';
+                        this.categoryId = '';
+                        this.name = (this.catalogQuery || '').trim();
+                        this.catalogOpen = false;
+                    },
+
                     selectCatalog(id) {
                         this.catalogId = Number(id) || '';
                         this.applyCatalog();
@@ -467,7 +510,9 @@
                     },
 
                     restoreCatalogQuery() {
-                        this.catalogQuery = this.catalogId ? (this.selectedCatalog?.name || '') : '';
+                        if (this.catalogId) {
+                            this.catalogQuery = this.selectedCatalog?.name || '';
+                        }
                     },
 
                     chooseHighlighted() {

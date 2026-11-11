@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use Spatie\Activitylog\Models\Activity;
 
 class ReportController extends Controller
 {
@@ -124,7 +125,7 @@ class ReportController extends Controller
      */
     public function importTemplate()
     {
-        return Excel::download(new UnitImportTemplateExport, 'contoh-impor-unit.xlsx');
+        return Excel::download(new UnitImportTemplateExport, 'template-tabel-impor.xlsx');
     }
 
     /** Simpan snapshot laporan bulanan. */
@@ -155,14 +156,43 @@ class ReportController extends Controller
         $preview = $request->session()->get('report_import_preview');
 
         return view('reports.import', [
-            'preview' => $preview['analysis'] ?? null,
-            'token' => $preview['token'] ?? null,
-            'filename' => $preview['filename'] ?? null,
+            'hasPreview' => is_array($preview) && filled($preview['token'] ?? null),
             'hasRooms' => Room::query()
                 ->whereNotNull('room_no')
                 ->where('room_no', '>', 0)
                 ->where('floor', '>', 0)
                 ->exists(),
+            'importHistory' => Activity::query()
+                ->where('log_name', 'laporan')
+                ->where('event', 'imported')
+                ->latest()
+                ->limit(10)
+                ->get(),
+        ]);
+    }
+
+    /** Halaman khusus pemeriksaan berkas impor (hasil pratinjau). */
+    public function importReview(Request $request): View|RedirectResponse
+    {
+        $preview = $request->session()->get('report_import_preview');
+
+        if (! is_array($preview) || ! isset($preview['analysis'])) {
+            return redirect()->route('reports.import.form')
+                ->withErrors(['file' => 'Belum ada berkas yang diperiksa. Unggah berkas terlebih dahulu.']);
+        }
+
+        $analysis = $preview['analysis'];
+        $filter = $request->query('filter') === 'problems' ? 'problems' : 'all';
+        $rows = $filter === 'problems'
+            ? array_values(array_filter($analysis['rows'], fn (array $row): bool => $row['errors'] !== []))
+            : $analysis['rows'];
+
+        return view('reports.import-review', [
+            'preview' => $analysis,
+            'rows' => $rows,
+            'filter' => $filter,
+            'token' => $preview['token'],
+            'filename' => $preview['filename'],
         ]);
     }
 
@@ -203,7 +233,7 @@ class ReportController extends Controller
             ])
             ->log('Pratinjau impor laporan unit');
 
-        return redirect()->route('reports.import.form')
+        return redirect()->route('reports.import.review')
             ->with('success', 'Pratinjau siap. Periksa baris valid dan bermasalah sebelum mengimpor.');
     }
 
@@ -229,6 +259,18 @@ class ReportController extends Controller
         }
 
         $result = $imports->apply($analysis, $request->user(), $preview['filename']);
+
+        activity('laporan')
+            ->causedBy($request->user())
+            ->event('imported')
+            ->withProperties([
+                'file' => $preview['filename'],
+                'mode' => $analysis['mode'] ?? null,
+                'total' => $analysis['summary']['total'] ?? 0,
+                'created' => $result['created'],
+                'updated' => $result['updated'],
+            ])
+            ->log("Impor laporan unit selesai: {$result['created']} dibuat, {$result['updated']} diperbarui");
 
         $request->session()->forget('report_import_preview');
 

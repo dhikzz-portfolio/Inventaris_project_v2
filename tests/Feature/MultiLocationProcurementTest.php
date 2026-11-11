@@ -99,6 +99,28 @@ class MultiLocationProcurementTest extends TestCase
         $this->assertSame('INVENTARIS_TERCATAT', $catalog->acquisition_status);
     }
 
+    public function test_katalog_dengan_nama_sama_dan_kategori_berbeda_ditolak(): void
+    {
+        $name = 'Kursi Duplikat Kategori '.uniqid();
+        $payload = $this->payload([
+            ['room_id' => $this->rooms[0]->id, 'quantity' => 1],
+        ], 1);
+        $payload['name'] = $name;
+
+        $this->actingAs($this->wakasek)->post(route('items.store'), $payload)
+            ->assertRedirect(route('catalogs.index'))
+            ->assertSessionHasNoErrors();
+
+        $otherCategory = Category::whereKeyNot($this->category->id)->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('items.store'), [
+            ...$payload,
+            'category_id' => $otherCategory->id,
+        ])->assertSessionHasErrors('name');
+
+        $this->assertSame(1, Item::where('name', $name)->count());
+    }
+
     public function test_total_alokasi_melebihi_jumlah_pengadaan_ditolak(): void
     {
         $payload = $this->payload([

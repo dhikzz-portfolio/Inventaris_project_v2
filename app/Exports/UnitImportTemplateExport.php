@@ -21,8 +21,8 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 /**
  * Template impor data unit dalam format XLSX berformat tabel.
  *
- * Sheet "Data Unit" memuat baris header dan dua contoh yang memakai ruangan
- * nyata dari master data. Contoh ditandai dengan akhiran "(contoh)" dan akan
+ * Sheet "Template Tabel Impor" memuat baris header dan dua contoh yang
+ * memakai ruangan nyata dari master data. Contoh ditandai akhiran "(contoh)" dan akan
  * ditolak saat pratinjau agar tidak membuat data palsu. Sheet "Petunjuk"
  * menjelaskan kolom, nilai yang diterima, serta ruangan dan katalog yang
  * tersedia.
@@ -91,7 +91,7 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
 
                 public function title(): string
                 {
-                    return 'Data Unit';
+                    return 'Template Tabel Impor';
                 }
 
                 public function styles(Worksheet $sheet): array
@@ -146,7 +146,7 @@ class UnitImportTemplateExport implements Export, WithMultipleSheets
                         ->implode('; ');
 
                     return [
-                        ['Panduan Impor Data Unit'],
+                        ['Panduan Template Tabel Impor'],
                         [''],
                         ['Kolom', 'Keterangan'],
                         ['kode_inventaris', 'Opsional saat menambah unit baru. Kosongkan agar sistem membuat kode otomatis dari lokasi dan katalog. Wajib saat memperbarui unit yang sudah ada. Format: Gedung+Lantai-Ruang-Kode Jenis-Nomor Unit, contoh G1-01-001-01.'],

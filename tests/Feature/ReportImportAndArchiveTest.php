@@ -51,7 +51,7 @@ class ReportImportAndArchiveTest extends TestCase
                 'file' => $this->csv([[$unit->inventory_code, $unit->catalog->name, '', '', '', 'Rusak Ringan', 'Aktif']]),
                 'mode' => 'update',
             ])
-            ->assertRedirect(route('reports.import.form'))
+            ->assertRedirect(route('reports.import.review'))
             ->assertSessionHas('report_import_preview');
 
         $preview = session('report_import_preview')['analysis'];
@@ -62,10 +62,89 @@ class ReportImportAndArchiveTest extends TestCase
         $this->assertSame($before, $unit->refresh()->only(['condition', 'status']));
 
         $this->actingAs($this->wakasek)
-            ->get(route('reports.import.form'))
+            ->get(route('reports.import.review'))
             ->assertOk()
-            ->assertSee('Hasil Pemeriksaan')
+            ->assertSee('Pemeriksaan Berkas Impor')
             ->assertSee('laporan-unit.csv');
+    }
+
+    public function test_pratinjau_membersihkan_sel_yang_berisi_markup_html(): void
+    {
+        $room = Room::query()
+            ->whereNotNull('room_no')
+            ->where('room_no', '>', 0)
+            ->where('floor', '>', 0)
+            ->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([[
+                '',
+                '<b>Tang</b> <span class="text-slate-100">buaya</span>',
+                $room->buildingCode(),
+                (int) $room->floor,
+                (int) $room->room_no,
+                'Baik',
+                'Aktif',
+            ]]),
+            'mode' => 'create',
+        ])->assertRedirect(route('reports.import.review'));
+
+        $row = session('report_import_preview')['analysis']['rows'][0];
+
+        $this->assertSame('Tang buaya', $row['name']);
+        $this->assertSame($room->roomLabel(), $row['room_label']);
+    }
+
+    public function test_filter_hanya_baris_bermasalah_menyembunyikan_baris_valid(): void
+    {
+        $room = Room::query()
+            ->whereNotNull('room_no')
+            ->where('room_no', '>', 0)
+            ->where('floor', '>', 0)
+            ->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([
+                ['', 'Barang Baik Sekali', $room->buildingCode(), (int) $room->floor, (int) $room->room_no, 'Baik', 'Aktif'],
+                ['', 'Barang Bermasalah', $room->buildingCode(), (int) $room->floor, (int) $room->room_no, 'Rusak Parah', 'Aktif'],
+            ]),
+            'mode' => 'create',
+        ])->assertRedirect(route('reports.import.review'));
+
+        $this->assertSame(1, session('report_import_preview')['analysis']['summary']['invalid']);
+
+        $this->actingAs($this->wakasek)->get(route('reports.import.review'))
+            ->assertOk()
+            ->assertSee('Barang Baik Sekali')
+            ->assertSee('Barang Bermasalah');
+
+        $this->actingAs($this->wakasek)->get(route('reports.import.review', ['filter' => 'problems']))
+            ->assertOk()
+            ->assertSee('Hanya bermasalah')
+            ->assertDontSee('Barang Baik Sekali')
+            ->assertSee('Barang Bermasalah');
+    }
+
+    public function test_halaman_impor_menampilkan_riwayat_impor_terakhir(): void
+    {
+        $unit = AssetUnit::query()->where('condition', Condition::BAIK->value)->firstOrFail();
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([[$unit->inventory_code, $unit->catalog->name, '', '', '', 'Rusak Ringan', 'Aktif']]),
+            'mode' => 'update',
+        ]);
+
+        $preview = session('report_import_preview');
+
+        $this->actingAs($this->wakasek)->post(route('reports.import.confirm'), [
+            'token' => $preview['token'],
+        ])->assertRedirect(route('reports.index'))->assertSessionHas('success');
+
+        $this->actingAs($this->wakasek)->get(route('reports.import.form'))
+            ->assertOk()
+            ->assertSee('Laporan Impor')
+            ->assertSee('laporan-unit.csv')
+            ->assertSee($this->wakasek->name);
     }
 
     public function test_konfirmasi_impor_mode_perbarui_mengubah_unit_cocok(): void
@@ -621,7 +700,7 @@ class ReportImportAndArchiveTest extends TestCase
         $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
             'file' => UploadedFile::fake()->createWithContent('laporan-bulanan.xlsx', $binary),
             'mode' => 'update',
-        ])->assertRedirect(route('reports.import.form'));
+        ])->assertRedirect(route('reports.import.review'));
 
         $preview = session('report_import_preview')['analysis'];
 

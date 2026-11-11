@@ -63,31 +63,32 @@
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <div>
             <label for="user-role" class="sr-only">Filter role</label>
-            <select id="user-role" name="role" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua role</option>
-                @foreach (\App\Enums\Role::cases() as $roleOption)
-                    <option value="{{ $roleOption->value }}" @selected($filters['role'] === $roleOption->value)>{{ $roleOption->label() }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="user-role" name="role" :selected="$filters['role']" submit
+                :options="collect([['value' => '', 'label' => 'Semua role']])->merge(collect(\App\Enums\Role::cases())->map(fn ($roleOption) => ['value' => $roleOption->value, 'label' => $roleOption->label()]))->values()->all()"
+                placeholder="Cari role…" class="mt-1 w-full" />
             </div>
             <div>
             <label for="user-category" class="sr-only">Filter kategori pengguna</label>
-            <select id="user-category" name="category" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua kategori</option>
-                <option value="SISWA" @selected($filters['category'] === 'SISWA')>Siswa</option>
-                <option value="GURU" @selected($filters['category'] === 'GURU')>Guru</option>
-                <option value="STAF" @selected($filters['category'] === 'STAF')>Staf / Tenaga Kependidikan</option>
-                <option value="LABORAN" @selected($filters['category'] === 'LABORAN')>Operator — Laboran</option>
-                <option value="K3" @selected($filters['category'] === 'K3')>Operator — K3</option>
-                <option value="LAINNYA" @selected($filters['category'] === 'LAINNYA')>Lainnya (tanpa kategori)</option>
-            </select>
+            <x-searchable-select id="user-category" name="category" :selected="$filters['category']" submit
+                :options="[
+                    ['value' => '', 'label' => 'Semua kategori'],
+                    ['value' => 'SISWA', 'label' => 'Siswa'],
+                    ['value' => 'GURU', 'label' => 'Guru'],
+                    ['value' => 'STAF', 'label' => 'Staf / Tenaga Kependidikan'],
+                    ['value' => 'LABORAN', 'label' => 'Operator — Laboran'],
+                    ['value' => 'K3', 'label' => 'Operator — K3'],
+                    ['value' => 'LAINNYA', 'label' => 'Lainnya (tanpa kategori)'],
+                ]"
+                placeholder="Cari kategori…" class="mt-1 w-full" />
             </div>
             <div>
-            <select name="status" aria-label="Filter status akun" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua status</option>
-                <option value="active" @selected($filters['status'] === 'active')>Aktif</option>
-                <option value="inactive" @selected($filters['status'] === 'inactive')>Nonaktif</option>
-            </select>
+            <x-searchable-select name="status" :selected="$filters['status']" submit
+                :options="[
+                    ['value' => '', 'label' => 'Semua status'],
+                    ['value' => 'active', 'label' => 'Aktif'],
+                    ['value' => 'inactive', 'label' => 'Nonaktif'],
+                ]"
+                placeholder="Cari status akun…" class="mt-1 w-full" />
             </div>
           </div>
           <div class="mt-3 flex flex-wrap items-center justify-between gap-2">

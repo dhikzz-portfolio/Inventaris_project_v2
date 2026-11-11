@@ -113,53 +113,33 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label for="movement-catalog" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Jenis barang</label>
-                    <select id="movement-catalog" name="catalog" @change="submitForm()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua</option>
-                        @foreach ($catalogs as $catalog)
-                            <option value="{{ $catalog->id }}" @selected($filters['catalog'] == $catalog->id)>{{ $catalog->name }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="movement-catalog" name="catalog" :selected="$filters['catalog']" submit
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($catalogs->map(fn ($catalog) => ['value' => $catalog->id, 'label' => $catalog->name]))->values()->all()"
+                        placeholder="Cari jenis barang…" class="mt-1 w-full" />
                 </div>
                 <div>
                     <label for="movement-building" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Gedung</label>
-                    <select id="movement-building" name="building" @change="submitForm()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua</option>
-                        @foreach ($buildings as $building)
-                            <option value="{{ $building->code }}" @selected(strtoupper($filters['building']) === $building->code)>{{ $building->name }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="movement-building" name="building" :selected="$filters['building']" submit
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($buildings->map(fn ($building) => ['value' => $building->code, 'label' => $building->name, 'hint' => $building->code]))->values()->all()"
+                        placeholder="Cari gedung…" class="mt-1 w-full" />
                 </div>
                 <div>
                     <label for="movement-floor" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Lantai</label>
-                    <select id="movement-floor" name="floor" @change="submitForm()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua</option>
-                        @for ($floor = 1; $floor <= 9; $floor++)
-                            <option value="{{ $floor }}" @selected($filters['floor'] === (string) $floor)>Lantai {{ $floor }}</option>
-                        @endfor
-                    </select>
+                    <x-searchable-select id="movement-floor" name="floor" :selected="$filters['floor']" submit
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge(collect(range(1, 9))->map(fn ($floor) => ['value' => (string) $floor, 'label' => 'Lantai '.$floor]))->values()->all()"
+                        placeholder="Cari lantai…" class="mt-1 w-full" />
                 </div>
                 <div>
                     <label for="movement-room" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Ruangan</label>
-                    <select id="movement-room" name="room" @change="submitForm()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua</option>
-                        @foreach ($rooms as $room)
-                            <option value="{{ $room->id }}" @selected($filters['room'] == $room->id)>{{ $room->code }} — {{ $room->name }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="movement-room" name="room" :selected="$filters['room']" submit
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($rooms->map(fn ($room) => ['value' => $room->id, 'label' => $room->code.' — '.$room->name, 'hint' => $room->building?->name]))->values()->all()"
+                        placeholder="Cari ruangan…" class="mt-1 w-full" />
                 </div>
                 <div>
                     <label for="movement-condition" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kondisi</label>
-                    <select id="movement-condition" name="condition" @change="submitForm()"
-                            class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua</option>
-                        @foreach ($conditions as $condition)
-                            <option value="{{ $condition->value }}" @selected($filters['condition'] === $condition->value)>{{ $condition->label() }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="movement-condition" name="condition" :selected="$filters['condition']" submit
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($conditions->map(fn ($condition) => ['value' => $condition->value, 'label' => $condition->label()]))->values()->all()"
+                        placeholder="Cari kondisi…" class="mt-1 w-full" />
                 </div>
             </div>
 

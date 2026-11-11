@@ -542,7 +542,7 @@ class RevisionV5Test extends TestCase
         $this->actingAs($this->wakasek)
             ->get(route('reports.import.form'))
             ->assertOk()
-            ->assertSee('Unduh Contoh File')
+            ->assertSee('Unduh Template Tabel Impor')
             ->assertSee(route('reports.import.template'), false);
     }
 }

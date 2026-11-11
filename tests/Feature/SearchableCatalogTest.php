@@ -46,11 +46,15 @@ class SearchableCatalogTest extends TestCase
 
     public function test_form_pengadaan_operator_tidak_menawarkan_katalog_lama(): void
     {
+        $existingCatalog = Item::query()->approved()->firstOrFail();
+
         $this->actingAs($this->laboran)
             ->get(route('items.create'))
             ->assertOk()
-            ->assertDontSee('catalog_search')
-            ->assertSee('Pengajuan Operator selalu berupa barang baru');
+            ->assertSee('catalog_search')
+            ->assertSee('Buat katalog baru')
+            ->assertSee('Pengajuan Operator selalu berupa barang baru')
+            ->assertDontSee($existingCatalog->name);
     }
 
     public function test_pilihan_katalog_direvalidasi_ulang_di_backend(): void

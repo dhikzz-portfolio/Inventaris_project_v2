@@ -63,30 +63,21 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <x-input-label for="classification" value="Klasifikasi" />
-                    <select id="classification" name="classification" class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua</option>
-                        @foreach ($classifications as $classification)
-                            <option value="{{ $classification->value }}" @selected(($filters['classification'] ?? '') === $classification->value)>{{ $classification->label() }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="classification" name="classification" :selected="$filters['classification'] ?? ''" submit
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($classifications->map(fn ($classification) => ['value' => $classification->value, 'label' => $classification->label()]))->values()->all()"
+                        placeholder="Cari klasifikasi…" class="mt-1 w-full" />
                 </div>
                 <div>
                     <x-input-label for="status" value="Status Penanganan" />
-                    <select id="status" name="status" class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua</option>
-                        @foreach ($statuses as $status)
-                            <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="status" name="status" :selected="$filters['status'] ?? ''" submit
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($statuses->map(fn ($status) => ['value' => $status->value, 'label' => $status->label()]))->values()->all()"
+                        placeholder="Cari status…" class="mt-1 w-full" />
                 </div>
                 <div>
                     <x-input-label for="room_id" value="Ruangan" />
-                    <select id="room_id" name="room_id" class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua ruangan</option>
-                        @foreach ($rooms as $room)
-                            <option value="{{ $room->id }}" @selected((string) ($filters['room_id'] ?? '') === (string) $room->id)>{{ $room->code }} — {{ $room->name }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="room_id" name="room_id" :selected="$filters['room_id'] ?? ''" submit
+                        :options="collect([['value' => '', 'label' => 'Semua ruangan']])->merge($rooms->map(fn ($room) => ['value' => $room->id, 'label' => $room->code.' — '.$room->name, 'hint' => $room->building?->name]))->values()->all()"
+                        placeholder="Cari ruangan…" class="mt-1 w-full" />
                 </div>
             </div>
             <div class="mt-3 flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">

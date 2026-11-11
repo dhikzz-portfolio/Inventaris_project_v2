@@ -188,6 +188,21 @@ class ItemController extends Controller
 
         $total = (int) $data['quantity'];
 
+        // Nama katalog harus unik lintas kategori. Tanpa pengecekan ini barang
+        // yang sama dapat tercatat dua kali dengan kategori berbeda.
+        if (blank($data['catalog_id'] ?? null) && filled($data['name'] ?? null)) {
+            $duplicateName = Item::query()
+                ->with('category')
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower(trim((string) $data['name']))])
+                ->first();
+
+            if ($duplicateName !== null && (int) $duplicateName->category_id !== (int) $data['category_id']) {
+                throw ValidationException::withMessages([
+                    'name' => "Katalog \"{$duplicateName->name}\" sudah ada dengan kategori \"".($duplicateName->category?->name ?? '—').'". Pilih katalog tersebut dari daftar agar tidak terjadi penggandaan data dengan kategori berbeda.',
+                ]);
+            }
+        }
+
         if ($total < 1) {
             throw ValidationException::withMessages([
                 'quantity' => 'Jumlah pengadaan minimal 1 unit.',

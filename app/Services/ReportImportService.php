@@ -59,8 +59,8 @@ class ReportImportService
 
         // Pilih sheet pertama yang memiliki seluruh header wajib. File ekspor
         // laporan bulanan memakai sheet "Unit" di posisi pertama; template
-        // impor memakai sheet "Data Unit" di posisi pertama dan "Petunjuk" di
-        // posisi kedua yang tidak boleh dianggap sebagai data.
+        // impor memakai sheet "Template Tabel Impor" di posisi pertama dan
+        // "Petunjuk" di posisi kedua yang tidak boleh dianggap sebagai data.
         $rows = $sheets->first(fn (array $sheet) => $this->hasRequiredHeaders(collect($sheet)->first()));
 
         if ($rows === null) {
@@ -89,7 +89,7 @@ class ReportImportService
         foreach ($this->requiredHeaders() as $label => $aliases) {
             if (array_intersect($aliases, $available) === []) {
                 throw ValidationException::withMessages([
-                    'file' => "Header kolom tidak sesuai template: kolom \"{$label}\" tidak ditemukan. Unduh Contoh File dan Panduan Impor, lalu gunakan header yang sama.",
+                    'file' => "Header kolom tidak sesuai template: kolom \"{$label}\" tidak ditemukan. Unduh Template Tabel Impor dan Panduan Impor, lalu gunakan header yang sama.",
                 ]);
             }
         }
@@ -154,9 +154,9 @@ class ReportImportService
                     $errors[] = 'Kode inventaris kosong.';
                 }
             } elseif (! preg_match(InventoryCodeService::PATTERN, $code)) {
-                $errors[] = "Format kode tidak valid: {$code} (contoh: G1-02-012-01).";
+                $errors[] = "Format kode {$code} tidak valid (contoh: G1-02-012-01).";
             } elseif (isset($seen[$code])) {
-                $errors[] = 'Kode duplikat di dalam berkas (baris '.($seen[$code] + 2).').';
+                $errors[] = 'Kode ganda dengan baris '.($seen[$code] + 2).'.';
             }
 
             if ($code !== '') {
@@ -165,12 +165,12 @@ class ReportImportService
 
             $condition = $this->resolveCondition((string) ($row['kondisi'] ?? ''));
             if ($condition === null) {
-                $errors[] = 'Kondisi tidak dikenali. Gunakan Baik / Rusak Ringan / Rusak Berat.';
+                $errors[] = 'Kondisi tidak dikenali (Baik / Rusak Ringan / Rusak Berat).';
             }
 
             $status = $this->resolveStatus((string) ($row['status'] ?? ''));
             if ($status === null) {
-                $errors[] = 'Status tidak dikenali. Gunakan Aktif, Sedang Dipinjam, atau Hilang.';
+                $errors[] = 'Status tidak dikenali (Aktif / Sedang Dipinjam / Hilang).';
             }
 
             $existing = $code !== '' ? AssetUnit::where('inventory_code', $code)->first() : null;
@@ -179,7 +179,7 @@ class ReportImportService
                 : false;
 
             if ($retired) {
-                $errors[] = "Kode {$code} sudah pensiun (pernah dipakai unit lain) dan tidak dapat dipulihkan.";
+                $errors[] = "Kode {$code} sudah pensiun dan tidak bisa dipulihkan.";
             }
 
             $action = $existing ? 'PERBARUI' : 'BUAT';
@@ -193,12 +193,12 @@ class ReportImportService
 
             if ($mode === 'update' && ! $existing) {
                 if ($code !== '') {
-                    $errors[] = "Mode perbarui: unit {$code} tidak ditemukan.";
+                    $errors[] = "Unit {$code} belum terdaftar, tidak bisa diperbarui.";
                 }
             }
 
             if ($mode === 'create' && $existing) {
-                $errors[] = "Mode buat: kode {$code} sudah terdaftar. Gunakan mode perbarui untuk mengubah unit yang ada.";
+                $errors[] = "Kode {$code} sudah terdaftar — pakai mode perbarui.";
                 $action = 'DITOLAK';
             }
 
@@ -206,7 +206,7 @@ class ReportImportService
                 $catalogName = trim((string) ($row['nama_barang'] ?? ''));
 
                 if ($catalogName !== '' && str_contains(mb_strtolower($catalogName), '(contoh)')) {
-                    $errors[] = 'Baris contoh template masih ada. Ganti nama barang "(contoh)" dengan data sebenarnya atau hapus baris ini.';
+                    $errors[] = 'Baris contoh template: ganti nama barang "(contoh)" atau hapus baris.';
                 }
 
                 $catalog = $catalogName !== ''
@@ -214,20 +214,20 @@ class ReportImportService
                     : null;
 
                 if ($catalogName === '') {
-                    $errors[] = 'Nama barang wajib diisi untuk membuat unit baru.';
+                    $errors[] = 'Nama barang wajib diisi.';
                 }
 
                 $autoCatalog = $catalog === null && $catalogName !== '';
 
                 if ($autoCatalog && $categoryName !== '' && ! in_array(mb_strtolower($categoryName), $knownCategories, true)) {
-                    $warnings[] = "Kategori \"{$categoryName}\" belum ada di master data dan akan dibuat otomatis.";
+                    $warnings[] = "Kategori \"{$categoryName}\" belum ada dan akan dibuat.";
                 }
 
                 $room = $this->resolveRoom($row);
                 if ($room === null) {
                     $hints = $this->availableRoomHints();
-                    $errors[] = 'Ruangan tidak ditemukan. Isi Gedung (huruf), Lantai, dan No. Ruangan yang sesuai master data.'
-                        .($hints !== '' ? " Ruangan tersedia: {$hints}." : ' Belum ada ruangan dengan identitas lengkap di master data.');
+                    $errors[] = 'Ruangan tidak ditemukan (cek Gedung, Lantai, No. Ruangan).'
+                        .($hints !== '' ? " Tersedia: {$hints}." : ' Master data ruangan masih kosong.');
                 }
 
                 $parts = preg_match(InventoryCodeService::PATTERN, $code) ? explode('-', $code) : [];
@@ -245,7 +245,7 @@ class ReportImportService
                         : null;
 
                     if ($codeOwner !== null) {
-                        $warnings[] = "Kode jenis {$candidate} sudah dipakai katalog {$codeOwner}. Sistem menerbitkan kode jenis baru untuk {$catalogName}.";
+                        $warnings[] = "Kode jenis {$candidate} sudah dipakai {$codeOwner}; sistem membuat kode jenis baru.";
                         $candidate = null;
                     }
 
@@ -253,7 +253,7 @@ class ReportImportService
                         try {
                             $candidate = app(ItemTypeCodeService::class)->generate($catalogName !== '' ? $catalogName : $catalog->name, array_values($newCatalogCodes));
                         } catch (Throwable $exception) {
-                            $errors[] = 'Kode jenis barang tidak dapat dibuat: '.$exception->getMessage();
+                            $errors[] = 'Kode jenis gagal dibuat: '.$exception->getMessage();
                         }
                     }
 
@@ -277,10 +277,10 @@ class ReportImportService
                         $seen[$code] = $index;
 
                         if ($originalCode !== '') {
-                            $warnings[] = "Kode inventaris {$originalCode} disesuaikan menjadi {$code} agar sesuai dengan kode jenis baru.";
+                            $warnings[] = "Kode {$originalCode} disesuaikan menjadi {$code}.";
                         }
                     } catch (Throwable $exception) {
-                        $errors[] = 'Kode inventaris tidak dapat dibuat otomatis: '.$exception->getMessage();
+                        $errors[] = 'Kode otomatis gagal dibuat: '.$exception->getMessage();
                     }
                 }
 
@@ -290,15 +290,15 @@ class ReportImportService
                     $unitNo = (int) end($parts);
 
                     if (! $autoCode && $itemTypeCode !== null && $parts[2] !== $itemTypeCode) {
-                        $errors[] = "Kode {$code} memakai kode jenis {$parts[2]}, berbeda dengan katalog {$catalogName} ({$itemTypeCode}).";
+                        $errors[] = "Kode {$code} beda jenis dengan katalog {$catalogName} ({$itemTypeCode}).";
                     }
 
                     if (! $autoCode && ($parts[0] !== $expectedPrefix || (int) $parts[1] !== (int) $room->room_no)) {
-                        $errors[] = "Kode {$code} tidak sesuai dengan lokasi ruangan {$room->code}.";
+                        $errors[] = "Kode {$code} tidak cocok dengan ruangan {$room->code}.";
                     }
 
                     if (! $autoCode && AssetUnitCode::where('room_id', $room->id)->where('unit_no', $unitNo)->exists()) {
-                        $errors[] = "Nomor unit {$unitNo} di ruangan {$room->code} sudah pernah dipakai.";
+                        $errors[] = "Nomor unit {$unitNo} di {$room->code} sudah dipakai.";
                     }
                 }
             }
@@ -316,8 +316,8 @@ class ReportImportService
             // kategori yang sudah terisi tidak ditimpa oleh berkas.
             if ($catalog !== null && $categoryName !== '' && $this->hasPlaceholderCategory($catalog)) {
                 $warnings[] = in_array(mb_strtolower($categoryName), $knownCategories, true)
-                    ? "Kategori katalog {$catalog->name} akan diisi menjadi \"{$categoryName}\" dari berkas."
-                    : "Kategori \"{$categoryName}\" belum ada di master data dan akan dibuat otomatis.";
+                    ? "Kategori {$catalog->name} akan diisi \"{$categoryName}\"."
+                    : "Kategori \"{$categoryName}\" belum ada dan akan dibuat.";
             }
 
             $analyzed[] = [
@@ -719,13 +719,27 @@ class ReportImportService
 
             foreach ($keys as $key) {
                 if (array_key_exists($key, $row)) {
-                    $normalized[$target] = $row[$key];
+                    $value = $row[$key];
+                    $normalized[$target] = is_string($value) ? $this->cleanCell($value) : $value;
                     break;
                 }
             }
         }
 
         return $normalized;
+    }
+
+    /**
+     * Bersihkan nilai sel dari sisa salinan halaman (tag HTML dan karakter
+     * tak terlihat) agar nama barang, catatan, dan label tidak menyimpan markup.
+     */
+    private function cleanCell(string $value): string
+    {
+        $value = str_replace(["\u{00A0}", "\u{200B}", "\u{FEFF}"], ' ', $value);
+        $value = strip_tags($value);
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return trim($value);
     }
 
     private function normalizeCode(string $code): string
@@ -779,7 +793,7 @@ class ReportImportService
             ->orderBy('room_no')
             ->limit(5)
             ->get()
-            ->map(fn (Room $room): string => "{$room->locationCode()} ({$room->name})")
+            ->map(fn (Room $room): string => $room->locationCode())
             ->implode('; ');
     }
 

@@ -57,14 +57,9 @@
         </div>
         <div class="shrink-0 sm:w-auto">
             <label for="loan-status-filter" class="sr-only">Filter status</label>
-            <select id="loan-status-filter" name="status"
-                    class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:w-auto"
-                    @change="this.form.requestSubmit()">
-                <option value="">Semua</option>
-                @foreach ($tabs as $key => [$label, $count])
-                    <option value="{{ $key }}" @selected(($status ?? '') === $key)>{{ $label }} ({{ $count }})</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="loan-status-filter" name="status" :selected="$status ?? ''" submit
+                :options="collect([['value' => '', 'label' => 'Semua']])->merge(collect($tabs)->map(fn ($tab, $key) => ['value' => $key, 'label' => $tab[0].' ('.$tab[1].')']))->values()->all()"
+                placeholder="Cari status…" class="w-full sm:w-56" />
         </div>
         <div class="flex w-full gap-2 sm:w-auto">
             <button type="submit" class="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 sm:flex-none">

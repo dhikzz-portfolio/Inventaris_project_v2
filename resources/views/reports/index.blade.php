@@ -1,4 +1,23 @@
 <x-app-layout>
+    @php
+        $reportScopeOptions = [
+            ['value' => 'SEMUA', 'label' => auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() ? 'Seluruh sekolah (semua gedung)' : 'Seluruh laboratorium'],
+            ['value' => 'GEDUNG', 'label' => 'Per gedung'],
+            ['value' => 'KATEGORI', 'label' => 'Per kategori'],
+            ['value' => 'RUANGAN', 'label' => 'Per ruangan'],
+            ['value' => 'JURUSAN', 'label' => 'Per jurusan'],
+        ];
+        $reportConditionOptions = collect($conditions)
+            ->map(fn ($condition) => ['value' => $condition->value, 'label' => $condition->label()])
+            ->prepend(['value' => '', 'label' => 'Semua kondisi'])
+            ->values()
+            ->all();
+        $reportBuildingOptions = $buildings->map(fn ($building) => ['value' => $building->id, 'label' => "{$building->code} — {$building->name}"])->values()->all();
+        $reportCategoryOptions = $categories->map(fn ($category) => ['value' => $category->id, 'label' => $category->name])->values()->all();
+        $reportRoomOptions = $rooms->map(fn ($room) => ['value' => $room->id, 'label' => "{$room->code} — {$room->name}"])->values()->all();
+        $reportMajorOptions = $majors->map(fn ($major) => ['value' => $major->id, 'label' => $major->name])->values()->all();
+    @endphp
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
@@ -34,56 +53,28 @@
             </div>
             <div>
                 <x-input-label for="report-scope" value="Cakupan" />
-                <select id="report-scope" x-model="scope" x-on:change="scopeId = ''" class="mt-1 block min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="SEMUA">{{ auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() ? 'Seluruh sekolah (semua gedung)' : 'Seluruh laboratorium' }}</option>
-                    <option value="GEDUNG">Per gedung</option>
-                    <option value="KATEGORI">Per kategori</option>
-                    <option value="RUANGAN">Per ruangan</option>
-                    <option value="JURUSAN">Per jurusan</option>
-                </select>
+                <x-searchable-select id="report-scope" x-model="scope" x-on:change="scopeId = ''" class="mt-1"
+                    :options="$reportScopeOptions" placeholder="Cari cakupan…" />
             </div>
             <div>
                 <x-input-label for="report-condition" value="Kondisi unit" />
-                <select id="report-condition" x-model="condition" class="mt-1 block min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">Semua kondisi</option>
-                    @foreach ($conditions as $condition)
-                        <option value="{{ $condition->value }}">{{ $condition->label() }}</option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="report-condition" x-model="condition" class="mt-1"
+                    :options="$reportConditionOptions" placeholder="Cari kondisi…" />
             </div>
             <div x-show="scope !== 'SEMUA'" x-cloak>
                 <label for="report-scope-id" class="block text-sm font-medium text-slate-700 dark:text-slate-300" x-text="scope === 'GEDUNG' ? 'Gedung' : (scope === 'KATEGORI' ? 'Kategori' : (scope === 'RUANGAN' ? 'Ruangan' : 'Jurusan'))"></label>
-                <select id="report-scope-id" x-model="scopeId" class="mt-1 block min-h-10 w-full rounded-xl border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">— pilih —</option>
-                    <template x-if="scope === 'GEDUNG'">
-                        <optgroup label="Gedung">
-                            @foreach ($buildings as $building)
-                                <option value="{{ $building->id }}">{{ $building->code }} — {{ $building->name }}</option>
-                            @endforeach
-                        </optgroup>
-                    </template>
-                    <template x-if="scope === 'KATEGORI'">
-                        <optgroup label="Kategori">
-                            @foreach ($categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                            @endforeach
-                        </optgroup>
-                    </template>
-                    <template x-if="scope === 'RUANGAN'">
-                        <optgroup label="Ruangan">
-                            @foreach ($rooms as $room)
-                                <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
-                            @endforeach
-                        </optgroup>
-                    </template>
-                    <template x-if="scope === 'JURUSAN'">
-                        <optgroup label="Jurusan">
-                            @foreach ($majors as $major)
-                                <option value="{{ $major->id }}">{{ $major->name }}</option>
-                            @endforeach
-                        </optgroup>
-                    </template>
-                </select>
+                <div x-show="scope === 'GEDUNG'" x-cloak>
+                    <x-searchable-select id="report-scope-building" x-model="scopeId" :options="$reportBuildingOptions" placeholder="Cari gedung…" class="mt-1" />
+                </div>
+                <div x-show="scope === 'KATEGORI'" x-cloak>
+                    <x-searchable-select id="report-scope-category" x-model="scopeId" :options="$reportCategoryOptions" placeholder="Cari kategori…" class="mt-1" />
+                </div>
+                <div x-show="scope === 'RUANGAN'" x-cloak>
+                    <x-searchable-select id="report-scope-room" x-model="scopeId" :options="$reportRoomOptions" placeholder="Cari ruangan…" class="mt-1" />
+                </div>
+                <div x-show="scope === 'JURUSAN'" x-cloak>
+                    <x-searchable-select id="report-scope-major" x-model="scopeId" :options="$reportMajorOptions" placeholder="Cari jurusan…" class="mt-1" />
+                </div>
             </div>
         </div>
 

@@ -929,3 +929,97 @@ Belum diverifikasi
 E2E Playwright penuh, uji beban/konkurensi, cetak fisik label, build Docker, dan PHPStan (tidak terpasang). Ini tercatat sebagai keterbatasan di laporan, bukan sebagai lulus.
 
 Perubahan kode hanya menyentuh 3 file (service impor, template panduan, dan file tes) — tidak ada dependensi atau refactor lain yang diubah.
+
+
+Semua revisi sudah diterapkan dan diverifikasi.
+
+Yang diubah
+
+1. Impor laporan bulanan
+- Halaman impor sekarang hanya berisi unggah berkas + riwayat impor.
+- Hasil pemeriksaan dipindah ke halaman baru Pemeriksaan Berkas Impor ( /laporan/impor/pemeriksaan ) dengan tabel penuh, bukan lagi card table.
+- Ditambahkan Laporan Impor: 10 riwayat impor terakhir (waktu, berkas, tindakan, jumlah dibuat/diperbarui, dan pengguna).
+- Tombol/berkas contoh diganti menjadi Template Tabel Impor ( template-tabel-impor.xlsx ), dengan sheet  Template Tabel Impor , dan tetap memuat dua baris contoh.
+
+2. Edit ruangan di Master Data
+- Tampilan edit ruangan yang sempit di dalam kolom tabel diganti menjadi list full-width dengan form bertumpuk dan label, mengikuti gaya edit gedung/jurusan/kategori.
+
+3. Filter bisa dicari
+- Dibuat komponen  x-searchable-select  (combobox dengan pencarian, navigasi keyboard, tombol kosongkan).
+- Diterapkan pada filter: Laporan Bulanan, Inventaris Keluar, Label, Mutasi, Peminjaman, Pengguna, dan Laporan Kerusakan.
+- Filter Livewire (katalog, permintaan pinjam, pengembalian, spesifikasi) otomatis mendapat kotak pencarian di atas dropdown, sambil tetap memakai  wire:model.live .
+
+4. Input katalog pengadaan digabung
+- Satu kolom pencarian dipakai untuk memilih katalog lama atau mengetik nama katalog baru.
+- Katalog yang sudah ada muncul di daftar; jika nama sudah persis ada, muncul peringatan dan opsi buat baru disembunyikan.
+- Memilih katalog lama otomatis mengisi kategori dan mengunci nama/kategori.
+- Jika nama belum ada, muncul opsi Buat katalog baru dan pengguna menentukan kategori.
+- Backend menolak katalog dengan nama sama tetapi kategori berbeda agar tidak terjadi penggandaan data.
+
+Verifikasi
+
+-  vendor/bin/pint --dirty --format agent  → bersih.
+-  php artisan view:cache  → semua Blade berhasil dikompilasi.
+-  npm run build  → berhasil.
+- Tes terkait lulus:  ReportImportAndArchiveTest  (termasuk riwayat impor),  RevisionV5Test ,  MultiLocationProcurementTest  (termasuk penolakan nama sama/kategori beda),  BuildingMasterDataTest ,  AcquisitionWorkflowTest ,  SearchableCatalogTest ,  RevisionV8Test , dan  InventoryCatalogTest .
+
+Soal baris yang berantakan
+
+Baris 15 itu isinya bukan data ruangan asli, melainkan potongan markup halaman yang ikut tersalin ke dalam berkas Excel — terlihat dari teks  class="whitespace-nowrap px-3 py-2.5 …">K1-03-251-207 OTOMATIS  yang menempel di kolom ruangan. Sistem sebelumnya menyimpan/menampilkan isi sel apa adanya, jadi baris itu tetap dianggap "Siap".
+
+Yang saya perbaiki di  app/Services/ReportImportService.php :
+- Setiap sel kini dibersihkan sebelum dianalisis: tag HTML dibuang, karakter tak terlihat (NBSP/zero-width/BOM) dinormalkan, spasi/baris baru dirapatkan. Jadi markup hasil salin-tempel tidak lagi masuk ke nama barang, keterangan, katalog, atau label.
+- Data ruangan/katalog tetap diambil dari master data, bukan dari teks bebas sel.
+
+Catatan penting: pratinjau yang aktif sekarang ( laporan-2026-11-ruangan-89.xlsx , 159 baris) sudah bersih semua — 159 valid, 0 bermasalah, dan data gedung/ruangan/katalog di database juga tidak mengandung markup. Jadi tampilan berantakan itu berasal dari berkas unggahan lama. Muat ulang halaman Pemeriksaan Berkas Impor; kalau baris itu masih muncul, unggah ulang berkasnya (sel yang bermasalah di Excel sebaiknya diganti teks biasa).
+
+Kolom pratinjau ditambah
+
+Di  resources/views/reports/import-review.blade.php , tabel pratinjau sekarang menampilkan:
+
+Baris · Kode · Barang · Merek · Tipe · Kategori · Ruangan · Kondisi · Status · Tahun · Sumber Dana · Keterangan · Tindakan · Catatan
+
+Tabel juga dilebarkan dan teks panjang (ruangan/keterangan) dibuat membungkus agar tidak merusak tampilan. Nilai yang kosong tampil sebagai  — .
+
+Verifikasi
+
+-  vendor/bin/pint --dirty --format agent  → bersih.
+-  php artisan test --compact tests/Feature/ReportImportAndArchiveTest.php  → 28 tes lulus (161 assertion), termasuk tes baru  test_pratinjau_membersihkan_sel_yang_berisi_markup_html .
+-  php artisan view:cache  → semua Blade berhasil dikompilasi.
+
+Yang diubah di  resources/views/reports/import-review.blade.php 
+
+- Empat kartu statistik besar diganti satu info bar tipis (border biru muda, teks  text-xs ) seperti bar periode/cakupan di Pratinjau Excel: total baris, siap diimpor, perlu diperbaiki, plus rincian  baru / diperbarui . Banner status jadi lebih pendek ( py-2.5 text-xs ).
+- Tabel dibuat mengikuti pola Pratinjau Excel:
+- kartu  rounded-2xl border-sky-100  dengan header bar judul "Rincian Baris Berkas" + ringkasan  159 baris • 159 siap • 0 perlu diperbaiki ;
+- header kolom  sticky ,  uppercase tracking-wide , padding rapat ( px-3 py-2 );
+- baris ratat ( divide-y ,  py-2 ) dengan efek  hover:bg-slate-50  (baris bermasalah tetap merah, hover-nya ikut merah);
+- warna teks sel diseragamkan ( slate-700  untuk kolom identitas,  slate-500  untuk kondisi/status/tahun/dana) supaya 14 kolom tidak terlihat ramai;
+- lebar minimum diturunkan ke  min-w-[1240px]  (sebelumnya 1500px) sehingga tabel tidak melebar berlebihan, dan kolom Keterangan dibatasi  max-w-[16rem]  agar catatan panjang tidak merusak lebar tabel;
+- catatan kaki  text-[11px]  seperti Pratinjau Excel (pratinjau belum mengubah data, baris merah tidak diproses).
+
+Verifikasi
+
+-  php artisan view:cache  → semua Blade terkompilasi.
+-  php artisan test --compact tests/Feature/ReportImportAndArchiveTest.php --filter=pratinjau  → 2 tes lulus (13 assertion). Tidak ada perubahan PHP, jadi Pint tidak perlu dijalankan ulang.
+
+Perubahan
+
+ app/Http/Controllers/ReportController::importReview 
+- Menerima query  ?filter=problems . Nilai lain dianggap  all .
+- Mengirim  $rows  (baris yang sudah disaring) dan  $filter  ke view.  preview  tetap memuat seluruh analisis agar ringkasan angka tidak berubah.
+
+ resources/views/reports/import-review.blade.php 
+- Di header kartu tabel kini ada dua tab kecil bergaya sama dengan tab sheet di Pratinjau Excel:
+- Semua  159  (aktif biru)
+- Hanya bermasalah  0  (aktif merah)
+Masing-masing dengan angka jumlah barisnya.
+- Di kanan header tampil "Menampilkan X dari Y baris", jadi jelas sedang terfilter.
+- Tabel memakai  $rows  hasil saringan; bila tidak ada baris bermasalah muncul pesan "Tidak ada baris bermasalah — semua baris siap diimpor."
+- Tombol impor, ringkasan, dan banner status tetap memakai angka total (tidak terpengaruh filter).
+
+Verifikasi
+
+- Tes baru  test_filter_hanya_baris_bermasalah_menyembunyikan_baris_valid : mengunggah 2 baris (1 valid, 1 kondisi tidak dikenali), lalu memastikan halaman normal menampilkan keduanya dan  ?filter=problems  hanya menampilkan baris bermasalah.
+-  php artisan test --compact tests/Feature/ReportImportAndArchiveTest.php --filter="filter_hanya_baris_bermasalah|pratinjau"  → 3 tes lulus (23 assertion).
+-  vendor/bin/pint --dirty --format agent  → bersih;  php artisan view:cache  → Blade terkompilasi.

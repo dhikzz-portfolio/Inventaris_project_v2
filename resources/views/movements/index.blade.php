@@ -138,7 +138,7 @@
                 <div>
                     <label for="movement-condition" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kondisi</label>
                     <x-searchable-select id="movement-condition" name="condition" :selected="$filters['condition']" submit
-                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($conditions->map(fn ($condition) => ['value' => $condition->value, 'label' => $condition->label()]))->values()->all()"
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge(collect($conditions)->map(fn ($condition) => ['value' => $condition->value, 'label' => $condition->label()]))->values()->all()"
                         placeholder="Cari kondisi…" class="mt-1 w-full" />
                 </div>
             </div>

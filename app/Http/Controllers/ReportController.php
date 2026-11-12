@@ -62,19 +62,19 @@ class ReportController extends Controller
         $condition = is_string($condition) && Condition::tryFrom($condition) !== null ? $condition : null;
 
         $data = $service->data($period, $scope, $scopeId, $request->user(), $condition);
-        $suffix = $period.'-'.strtolower($scope).($scopeId ? '-'.$scopeId : '');
+        $fileBaseName = Report::fileBaseNameFor($period, $scope, $scopeId, $request->user());
 
         if ($type === 'pdf') {
             activity('laporan')->log("Ekspor laporan PDF periode {$period} ({$scope})");
 
-            return $service->streamPdf($data, 'laporan-'.$suffix.'.pdf');
+            return $service->streamPdf($data, $fileBaseName.'.pdf');
         }
 
         activity('laporan')->log("Ekspor laporan Excel periode {$period} ({$scope})");
 
         return Excel::download(
             new MonthlyReportExport($data),
-            'laporan-'.$suffix.'.xlsx'
+            $fileBaseName.'.xlsx'
         );
     }
 

@@ -1023,3 +1023,41 @@ Verifikasi
 - Tes baru  test_filter_hanya_baris_bermasalah_menyembunyikan_baris_valid : mengunggah 2 baris (1 valid, 1 kondisi tidak dikenali), lalu memastikan halaman normal menampilkan keduanya dan  ?filter=problems  hanya menampilkan baris bermasalah.
 -  php artisan test --compact tests/Feature/ReportImportAndArchiveTest.php --filter="filter_hanya_baris_bermasalah|pratinjau"  → 3 tes lulus (23 assertion).
 -  vendor/bin/pint --dirty --format agent  → bersih;  php artisan view:cache  → Blade terkompilasi.
+
+1. Laporan kerusakan 500
+
+Penyebabnya di  resources/views/damage-reports/index.blade.php : controller mengirim  $classifications  dan  $statuses  sebagai array biasa ( Enum::cases() ), tetapi view memanggil  ->map()  pada array tersebut. Itu memicu:
+
+Error: Call to a member function map() on array
+
+dan berujung HTTP 500. Perbaikannya: bungkus dengan  collect(...)  sebelum  ->map() . Pola bug yang sama ternyata juga ada di halaman label, mutasi, dan inventaris keluar, dan sudah ikut diperbaiki.
+
+Kalau server yang sedang berjalan masih menampilkan 500, itu cache Blade/opcache lama —  php artisan view:clear  sudah dijalankan di sini. Di server/deploy, jalankan  php artisan optimize:clear  (atau restart container) setelah kode baru terpasang.
+
+2. Kolom cakupan laporan bulanan
+
+Kolom Cakupan di arsip sekarang memakai nama parameter laporan, bukan ID:
+-  RUANGAN  → Ruangan: Laboratorium Pengelasan
+-  GEDUNG  → Gedung: ...
+-  KATEGORI  → Kategori: ...
+-  JURUSAN  → Jurusan: ...
+-  SEMUA  → Seluruh sekolah / Seluruh laboratorium sesuai pembuat laporan
+
+Logika label dipusatkan di  App\Models\Report  ( scopeLabel()  /  scopeLabelFor() ) dan dipakai juga oleh  ReportService , jadi tampilan arsip konsisten dengan isi PDF/Excel.
+
+3. Nama file ekspor
+
+Nama file sekarang mengikuti cakupan, contoh:
+-  laporan-2026-11-ruangan-laboratorium-pengelasan.pdf 
+-  laporan-2026-11-ruangan-laboratorium-pengelasan.xlsx 
+-  laporan-2026-11-gedung-gedung-h.xlsx 
+-  laporan-2026-11-seluruh-sekolah.xlsx 
+
+Berlaku untuk ekspor langsung maupun file yang disimpan ke arsip. Arsip lama yang filenya sudah tersimpan tetap memakai nama lamanya; laporan baru memakai format ini.
+
+Verifikasi
+
+-  vendor/bin/pint --dirty : passed
+-  ReportScopeTest : 6 passed (termasuk test baru untuk label arsip + nama file unduhan)
+-  ReportTest  +  ReportImportAndArchiveTest  +  DamageReportTest : 43 passed
+-  php artisan view:clear  dijalankan agar halaman langsung memakai view terbaru.

@@ -151,7 +151,7 @@
                         <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
                             <td class="whitespace-nowrap px-3 py-4 font-semibold text-slate-800 dark:text-slate-100">{{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $report->period)->translatedFormat('F Y') }}</td>
                             <td class="px-3 py-4 text-xs text-slate-500 dark:text-slate-400">
-                                <span class="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $report->scope }}{{ $report->scope_id ? ' #'.$report->scope_id : '' }}</span>
+                                <span class="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $report->scopeLabel() }}</span>
                             </td>
                             <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $report->generator?->name ?: 'Scheduler' }}">{{ $report->generator?->name ?: 'Scheduler' }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-xs text-slate-500 dark:text-slate-400">{{ $report->generated_at->format('d M Y H:i') }}</td>
@@ -169,7 +169,7 @@
                                 @if (auth()->user()->isSuperAdmin() || (int) $report->generated_by === (int) auth()->id())
                                     <form method="POST" action="{{ route('reports.destroy', $report) }}" x-data="{ submitting: false }"
                                           @submit="submitting = true"
-                                          onsubmit="return confirm('Hapus arsip laporan periode {{ $report->period }} ({{ $report->scope }})?\n\nFile PDF/Excel dihapus dan arsip disembunyikan. Data inventaris sumber TIDAK ikut terhapus.')">
+                                          onsubmit="return confirm('Hapus arsip laporan periode {{ $report->period }} ({{ $report->scopeLabel() }})?\n\nFile PDF/Excel dihapus dan arsip disembunyikan. Data inventaris sumber TIDAK ikut terhapus.')">
                                         @csrf
                                         @method('DELETE')
                                         <button :disabled="submitting"
@@ -195,7 +195,7 @@
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
                             <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $report->period)->translatedFormat('F Y') }}</p>
-                            <span class="mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold uppercase text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $report->scope }}{{ $report->scope_id ? ' #'.$report->scope_id : '' }}</span>
+                            <span class="mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold uppercase text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $report->scopeLabel() }}</span>
                         </div>
                         <div class="flex shrink-0 items-center gap-2">
                             @if ($report->pdf_path)
@@ -213,7 +213,7 @@
                         @if (auth()->user()->isSuperAdmin() || (int) $report->generated_by === (int) auth()->id())
                             <form method="POST" action="{{ route('reports.destroy', $report) }}" x-data="{ submitting: false }"
                                   @submit="submitting = true"
-                                  onsubmit="return confirm('Hapus arsip laporan periode {{ $report->period }} ({{ $report->scope }})?\n\nFile PDF/Excel dihapus dan arsip disembunyikan. Data inventaris sumber TIDAK ikut terhapus.')">
+                                  onsubmit="return confirm('Hapus arsip laporan periode {{ $report->period }} ({{ $report->scopeLabel() }})?\n\nFile PDF/Excel dihapus dan arsip disembunyikan. Data inventaris sumber TIDAK ikut terhapus.')">
                                 @csrf
                                 @method('DELETE')
                                 <button :disabled="submitting"

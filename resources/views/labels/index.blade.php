@@ -69,13 +69,13 @@
                         <div>
                             <label for="label-condition" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kondisi</label>
                             <x-searchable-select id="label-condition" name="condition" :selected="request('condition')" submit
-                                :options="collect([['value' => '', 'label' => 'Semua kondisi']])->merge($conditions->map(fn ($conditionOption) => ['value' => $conditionOption->value, 'label' => $conditionOption->label()]))->values()->all()"
+                                :options="collect([['value' => '', 'label' => 'Semua kondisi']])->merge(collect($conditions)->map(fn ($conditionOption) => ['value' => $conditionOption->value, 'label' => $conditionOption->label()]))->values()->all()"
                                 placeholder="Cari kondisi…" class="mt-1 w-full" />
                         </div>
                         <div>
                             <label for="label-status" class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Status</label>
                             <x-searchable-select id="label-status" name="status" :selected="request('status')" submit
-                                :options="collect([['value' => '', 'label' => 'Semua status']])->merge($statuses->map(fn ($statusOption) => ['value' => $statusOption->value, 'label' => $statusOption->label()]))->values()->all()"
+                                :options="collect([['value' => '', 'label' => 'Semua status']])->merge(collect($statuses)->map(fn ($statusOption) => ['value' => $statusOption->value, 'label' => $statusOption->label()]))->values()->all()"
                                 placeholder="Cari status…" class="mt-1 w-full" />
                         </div>
                     </div>

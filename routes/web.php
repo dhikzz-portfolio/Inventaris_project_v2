@@ -7,6 +7,7 @@ use App\Http\Controllers\DistributionController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LabelController;
+use App\Http\Controllers\LiveDataVersionController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\MovementController;
@@ -32,6 +33,9 @@ Route::redirect('/', '/dashboard');
 
 Route::middleware(['auth', 'profile.completed'])->group(function () use ($masterView) {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Sidik jari data untuk refresh otomatis di semua halaman.
+    Route::get('/live-version', LiveDataVersionController::class)->name('live.version');
 
     // File internal (foto bukti, BA, TTD, BAST, laporan) — akses diperiksa per peran.
     Route::get('/files', SecureFileController::class)->name('files.show');

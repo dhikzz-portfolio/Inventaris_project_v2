@@ -1024,6 +1024,7 @@ Verifikasi
 -  php artisan test --compact tests/Feature/ReportImportAndArchiveTest.php --filter="filter_hanya_baris_bermasalah|pratinjau"  → 3 tes lulus (23 assertion).
 -  vendor/bin/pint --dirty --format agent  → bersih;  php artisan view:cache  → Blade terkompilasi.
 
+<<<<<<< HEAD
 
 Apa yang diubah
 -  resources/js/app.js : fungsi yang menyuntikkan kotak "Cari pilihan…" terpisah di atas tiap dropdown saya hapus. Combobox  searchableSelect  sekarang mengirim nilai ke  input / change  pada hidden input, jadi binding Livewire ( wire:model.live ) tetap jalan.
@@ -1038,3 +1039,68 @@ Pengecekan yang dijalankan
 -  vendor/bin/pint --dirty --format agent  → passed.
 
 Batasan: interaksi buka-dropdown/ketik/pilih tidak saya uji di browser (tidak ada harness e2e di repo ini); yang terverifikasi adalah render server-side, kompilasi aset, dan seluruh test di atas. Perubahan belum di-commit, dan perubahan PDF/Chrome dari permintaan sebelumnya masih ada di working tree.
+=======
+1. Laporan kerusakan 500
+
+Penyebabnya di  resources/views/damage-reports/index.blade.php : controller mengirim  $classifications  dan  $statuses  sebagai array biasa ( Enum::cases() ), tetapi view memanggil  ->map()  pada array tersebut. Itu memicu:
+
+Error: Call to a member function map() on array
+
+dan berujung HTTP 500. Perbaikannya: bungkus dengan  collect(...)  sebelum  ->map() . Pola bug yang sama ternyata juga ada di halaman label, mutasi, dan inventaris keluar, dan sudah ikut diperbaiki.
+
+Kalau server yang sedang berjalan masih menampilkan 500, itu cache Blade/opcache lama —  php artisan view:clear  sudah dijalankan di sini. Di server/deploy, jalankan  php artisan optimize:clear  (atau restart container) setelah kode baru terpasang.
+
+2. Kolom cakupan laporan bulanan
+
+Kolom Cakupan di arsip sekarang memakai nama parameter laporan, bukan ID:
+-  RUANGAN  → Ruangan: Laboratorium Pengelasan
+-  GEDUNG  → Gedung: ...
+-  KATEGORI  → Kategori: ...
+-  JURUSAN  → Jurusan: ...
+-  SEMUA  → Seluruh sekolah / Seluruh laboratorium sesuai pembuat laporan
+
+Logika label dipusatkan di  App\Models\Report  ( scopeLabel()  /  scopeLabelFor() ) dan dipakai juga oleh  ReportService , jadi tampilan arsip konsisten dengan isi PDF/Excel.
+
+3. Nama file ekspor
+
+Nama file sekarang mengikuti cakupan, contoh:
+-  laporan-2026-11-ruangan-laboratorium-pengelasan.pdf 
+-  laporan-2026-11-ruangan-laboratorium-pengelasan.xlsx 
+-  laporan-2026-11-gedung-gedung-h.xlsx 
+-  laporan-2026-11-seluruh-sekolah.xlsx 
+
+Berlaku untuk ekspor langsung maupun file yang disimpan ke arsip. Arsip lama yang filenya sudah tersimpan tetap memakai nama lamanya; laporan baru memakai format ini.
+
+Verifikasi
+
+-  vendor/bin/pint --dirty : passed
+-  ReportScopeTest : 6 passed (termasuk test baru untuk label arsip + nama file unduhan)
+-  ReportTest  +  ReportImportAndArchiveTest  +  DamageReportTest : 43 passed
+-  php artisan view:clear  dijalankan agar halaman langsung memakai view terbaru.
+
+Masalahnya
+
+Error-nya:
+
+SQLSTATE[22001]: String data, right truncated: 1406
+Data too long for column 'inventory_code' at row 1
+
+Saat menyimpan penghapusan,  WriteOffController  menyalin kode unit ke tabel snapshot  write_off_units . Kode unit pada error tersebut adalah  F1-02-700-491  (13 karakter), sedangkan kolom  write_off_units.inventory_code  masih  varchar(12) .
+
+Beberapa waktu lalu ada migration  expand_unit_numbering_capacity  yang memperlebar  asset_units.inventory_code  dan  asset_unit_codes.inventory_code  menjadi 32 karakter (karena nomor unit sekarang bisa di atas 99), tetapi tabel snapshot  write_off_units  terlewat dan tetap 12 karakter. Jadi unit dengan nomor 100 ke atas seperti  ...-491  gagal diajukan penghapusan.
+
+Perbaikan
+
+- Migration baru:  database/migrations/2026_11_12_195507_expand_write_off_unit_inventory_code_length.php  — mengubah  write_off_units.inventory_code  menjadi  varchar(32)  (dengan guard  hasTable / hasColumn , dan  down()  mengembalikannya ke 12).
+- Test regresi di  MovementAndWriteOffTest : mengajukan penghapusan unit dengan kode  F1-02-700-491  dan memastikan snapshot tersimpan.
+- Migrasi sudah dijalankan di database lokal ini; kolom sekarang terverifikasi  varchar(32) .
+
+Verifikasi
+
+-  php artisan migrate : migration baru DONE
+-  php artisan test --compact tests/Feature/MovementAndWriteOffTest.php : 13 passed (86 assertions)
+-  vendor/bin/pint --dirty : passed
+- Cek langsung  SHOW COLUMNS FROM write_off_units :  inventory_code  = varchar(32)
+
+Untuk server/deploy lain, cukup jalankan  php artisan migrate  setelah kode ini terpasang. Setelah itu pengajuan inventaris keluar untuk unit dengan nomor besar tidak akan error lagi.
+>>>>>>> 293b943dd7a57c1df4b9c7eb919c38e61bd8c931

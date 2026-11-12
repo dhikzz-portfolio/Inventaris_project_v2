@@ -10,14 +10,12 @@ use App\Enums\UnitStatus;
 use App\Exports\MonthlyReportExport;
 use App\Models\AssetUnit;
 use App\Models\Building;
-use App\Models\Category;
 use App\Models\DamageReport;
 use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\ItemMovement;
 use App\Models\Loan;
 use App\Models\LoanItem;
-use App\Models\Major;
 use App\Models\Report;
 use App\Models\Room;
 use App\Models\User;
@@ -295,13 +293,7 @@ class ReportService
             'periodLabel' => $start->translatedFormat('F Y'),
             'scope' => $scope,
             'scopeLabel' => collect([
-                match ($scope) {
-                    'KATEGORI' => 'Kategori: '.(Category::find($scopeId)?->name ?? '-'),
-                    'RUANGAN' => 'Ruangan: '.(Room::find($scopeId)?->name ?? '-'),
-                    'JURUSAN' => 'Jurusan: '.(Major::find($scopeId)?->name ?? '-'),
-                    'GEDUNG' => 'Gedung: '.($buildingScope?->name ?? '-'),
-                    default => $labOnly ? 'Seluruh laboratorium' : 'Seluruh sekolah',
-                },
+                Report::scopeLabelFor($scope, $scopeId, $user),
                 $conditionFilter !== null
                     ? 'Kondisi: '.(Condition::tryFrom($conditionFilter)?->label() ?? $conditionFilter)
                     : null,
@@ -371,8 +363,9 @@ class ReportService
     ): Report {
         $data = $this->data($period, $scope, $scopeId, $user, $condition);
 
-        $pdfPath = 'reports/'.sprintf('laporan-%s-%s-%d.pdf', $period, strtolower($scope), $scopeId ?? 0);
-        $xlsxPath = 'reports/'.sprintf('laporan-%s-%s-%d.xlsx', $period, strtolower($scope), $scopeId ?? 0);
+        $fileBaseName = Report::fileBaseNameFor($period, $scope, $scopeId, $user);
+        $pdfPath = 'reports/'.$fileBaseName.'.pdf';
+        $xlsxPath = 'reports/'.$fileBaseName.'.xlsx';
 
         \Storage::disk('local')->put($pdfPath, $this->renderPdf($data));
 

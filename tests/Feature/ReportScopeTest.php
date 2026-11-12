@@ -6,10 +6,12 @@ use App\Models\AssetUnit;
 use App\Models\Building;
 use App\Models\DamageReport;
 use App\Models\Item;
+use App\Models\Report;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ReportScopeTest extends TestCase
@@ -83,6 +85,41 @@ class ReportScopeTest extends TestCase
                     && strtoupper((string) $room->building_letter) === strtoupper((string) $building->code));
         }));
         $this->assertStringContainsString('Gedung: '.$building->name, $data['scopeLabel']);
+        $this->assertSame('Gedung: '.$building->name, Report::scopeLabelFor('GEDUNG', $building->id, $this->wakasek));
+    }
+
+    public function test_label_cakupan_arsip_dan_nama_file_ekspor_mengikuti_nama_parameter(): void
+    {
+        $room = Room::query()->where('is_lab', true)->whereNotNull('name')->firstOrFail();
+        $period = now()->format('Y-m');
+        $expectedBase = 'laporan-'.$period.'-ruangan-'.Str::slug($room->name);
+
+        $report = Report::create([
+            'period' => $period,
+            'scope' => 'RUANGAN',
+            'scope_id' => $room->id,
+            'generated_by' => $this->wakasek->id,
+            'generated_at' => now(),
+        ]);
+
+        $this->assertSame('Ruangan: '.$room->name, $report->scopeLabel());
+        $this->assertSame($expectedBase, $report->fileBaseName());
+        $this->assertSame('Seluruh sekolah', Report::scopeLabelFor('SEMUA', null, $this->wakasek));
+
+        $this->actingAs($this->wakasek)
+            ->get(route('reports.index'))
+            ->assertOk()
+            ->assertSee('Ruangan: '.$room->name);
+
+        $this->actingAs($this->wakasek)
+            ->get(route('reports.export', [
+                'type' => 'excel',
+                'period' => $period,
+                'scope' => 'RUANGAN',
+                'scope_id' => $room->id,
+            ]))
+            ->assertOk()
+            ->assertDownload($expectedBase.'.xlsx');
     }
 
     public function test_laporan_memuat_pengadaan_dan_laporan_kerusakan(): void

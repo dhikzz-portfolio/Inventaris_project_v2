@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ItemStatus;
 use App\Enums\UnitStatus;
+use App\Livewire\WriteOff\WriteOffHistory;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitMovement;
 use App\Models\Category;
@@ -15,7 +16,9 @@ use App\Services\AssetUnitService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class MovementAndWriteOffTest extends TestCase
@@ -157,6 +160,30 @@ class MovementAndWriteOffTest extends TestCase
             ->assertSee('type="hidden" name="unit_ids[]" :value="unitId"', false);
     }
 
+    public function test_riwayat_inventaris_keluar_diperbarui_otomatis_tanpa_muat_ulang_halaman(): void
+    {
+        WriteOff::create([
+            'item_id' => $this->item->id,
+            'quantity' => 1,
+            'mode' => 'CATALOG',
+            'reason' => 'Pemantauan riwayat otomatis',
+            'status' => 'PENDING',
+            'requested_by' => $this->editor->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('write-offs.index'))
+            ->assertOk()
+            ->assertSeeLivewire(WriteOffHistory::class)
+            ->assertSee('wire:poll.10s', false)
+            ->assertSee('Pemantauan riwayat otomatis');
+
+        Livewire::actingAs($this->admin)
+            ->test(WriteOffHistory::class)
+            ->assertSee('Pemantauan riwayat otomatis')
+            ->assertSee('Riwayat Inventaris Keluar');
+    }
+
     public function test_mutasi_multi_unit_memperbarui_lokasi_kode_dan_riwayat(): void
     {
         $service = app(AssetUnitService::class);
@@ -235,6 +262,28 @@ class MovementAndWriteOffTest extends TestCase
         $this->assertDatabaseHas('activity_log', [
             'log_name' => 'penghapusan',
             'subject_id' => $writeOff->id,
+        ]);
+    }
+
+    public function test_pengajuan_penghapusan_menerima_kode_inventaris_panjang(): void
+    {
+        Storage::fake('local');
+
+        $unit = app(AssetUnitService::class)->create($this->item, $this->room1);
+        $longCode = 'F1-02-700-491';
+
+        DB::table('asset_units')->where('id', $unit->id)->update(['inventory_code' => $longCode]);
+
+        $this->actingAs($this->admin)->post(route('write-offs.store'), [
+            'mode' => 'UNIT',
+            'unit_ids' => [$unit->id],
+            'confirm_delete' => true,
+            'reason' => 'Rusak berat dan tidak dapat diperbaiki',
+        ])->assertRedirect(route('write-offs.index'));
+
+        $this->assertDatabaseHas('write_off_units', [
+            'asset_unit_id' => $unit->id,
+            'inventory_code' => $longCode,
         ]);
     }
 

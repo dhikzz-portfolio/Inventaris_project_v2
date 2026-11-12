@@ -73,11 +73,6 @@ class WriteOffController extends Controller
 
         return view('write-offs.index', [
             'units' => $units,
-            'history' => WriteOff::with(['item', 'requester', 'approver', 'units.catalog:id,name'])
-                ->withCount('units')
-                ->latest()
-                ->paginate(10, ['*'], 'history_page')
-                ->withQueryString(),
             'catalogs' => $catalogs,
             'catalogSummaries' => $this->catalogSummaries($catalogs, $user),
             'categories' => Category::orderBy('name')->get(),

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ItemStatus;
 use App\Enums\UnitStatus;
+use App\Livewire\WriteOff\WriteOffHistory;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitMovement;
 use App\Models\Category;
@@ -17,6 +18,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class MovementAndWriteOffTest extends TestCase
@@ -156,6 +158,30 @@ class MovementAndWriteOffTest extends TestCase
         $response->assertOk()
             ->assertSee('x-for="unitId in selected"', false)
             ->assertSee('type="hidden" name="unit_ids[]" :value="unitId"', false);
+    }
+
+    public function test_riwayat_inventaris_keluar_diperbarui_otomatis_tanpa_muat_ulang_halaman(): void
+    {
+        WriteOff::create([
+            'item_id' => $this->item->id,
+            'quantity' => 1,
+            'mode' => 'CATALOG',
+            'reason' => 'Pemantauan riwayat otomatis',
+            'status' => 'PENDING',
+            'requested_by' => $this->editor->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('write-offs.index'))
+            ->assertOk()
+            ->assertSeeLivewire(WriteOffHistory::class)
+            ->assertSee('wire:poll.10s', false)
+            ->assertSee('Pemantauan riwayat otomatis');
+
+        Livewire::actingAs($this->admin)
+            ->test(WriteOffHistory::class)
+            ->assertSee('Pemantauan riwayat otomatis')
+            ->assertSee('Riwayat Inventaris Keluar');
     }
 
     public function test_mutasi_multi_unit_memperbarui_lokasi_kode_dan_riwayat(): void

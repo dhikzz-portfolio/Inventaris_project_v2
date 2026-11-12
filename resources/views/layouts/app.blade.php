@@ -97,6 +97,22 @@
             @endif
 
             @include('layouts.bottom-nav')
+
+            @auth
+                {{-- Status refresh otomatis: halaman memuat ulang dirinya saat data berubah. --}}
+                <div data-live-refresh
+                     data-version-url="{{ route('live.version') }}"
+                     data-interval="15000"
+                     class="fixed bottom-20 left-4 z-20 flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/95 py-1 ps-2.5 pe-1 text-[11px] font-semibold text-slate-600 shadow-lg backdrop-blur transition-colors md:bottom-5 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-300">
+                    <span class="relative flex h-2 w-2" aria-hidden="true">
+                        <span data-live-ping class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
+                        <span data-live-core class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                    </span>
+                    <span data-live-label aria-live="polite">Live</span>
+                    <button type="button" data-live-reload class="hidden items-center rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white transition hover:bg-brand-700">Muat ulang</button>
+                    <button type="button" data-live-toggle class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800" title="Jeda pembaruan otomatis">Jeda</button>
+                </div>
+            @endauth
         </div>
 
         @livewireScripts

@@ -119,13 +119,13 @@
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Kondisi</label>
                     <x-searchable-select name="condition" :selected="$filters['condition']" submit
-                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($conditions->map(fn ($condition) => ['value' => $condition->value, 'label' => $condition->label()]))->values()->all()"
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge(collect($conditions)->map(fn ($condition) => ['value' => $condition->value, 'label' => $condition->label()]))->values()->all()"
                         placeholder="Cari kondisi…" class="mt-1 w-full" />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Status</label>
                     <x-searchable-select name="status" :selected="$filters['status']" submit
-                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($statuses->map(fn ($status) => ['value' => $status->value, 'label' => $status->label()]))->values()->all()"
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge(collect($statuses)->map(fn ($status) => ['value' => $status->value, 'label' => $status->label()]))->values()->all()"
                         placeholder="Cari status…" class="mt-1 w-full" />
                 </div>
                 </div>

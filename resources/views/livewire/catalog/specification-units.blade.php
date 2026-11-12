@@ -19,7 +19,17 @@
         </div>
     </div>
 
-    @php($selectedFilterCount = collect([$building, $floor, $room, $condition, $status, $year])->filter(fn ($value) => $value !== '')->count())
+    @php
+        $selectedFilterCount = collect([$building, $floor, $room, $condition, $status, $year])->filter(fn ($value) => $value !== '')->count();
+        $buildingFilterOptions = collect($buildings)->map(fn ($option) => ['value' => (string) $option['code'], 'label' => $option['name']])->values()->all();
+        $floorFilterOptions = collect($floors)->map(fn ($option) => ['value' => (string) $option, 'label' => 'Lantai '.$option])->values()->all();
+        $roomFilterOptions = $rooms->map(fn ($option) => [
+            'value' => (string) $option->id,
+            'label' => 'Gedung '.$option->building_letter.$option->floor.'-'.str_pad((string) $option->room_no, 2, '0', STR_PAD_LEFT).' — '.$option->name,
+        ])->values()->all();
+        $conditionFilterOptions = collect($conditions)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+        $statusFilterOptions = collect($statuses)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+    @endphp
     <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
             <div class="relative min-w-0 flex-1">
@@ -41,44 +51,29 @@
 
         <div id="specification-units-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <select wire:model.live="building" aria-label="Filter gedung" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua gedung</option>
-                @foreach ($buildings as $buildingOption)
-                    <option value="{{ $buildingOption['code'] }}">{{ $buildingOption['name'] }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="unit-filter-building" wire-model="building" :selected="$building"
+                                 :options="$buildingFilterOptions" placeholder="Semua gedung"
+                                 aria-label="Filter gedung" />
 
-            <select wire:model.live="floor" aria-label="Filter lantai" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua lantai</option>
-                @foreach ($floors as $floorOption)
-                    <option value="{{ $floorOption }}">Lantai {{ $floorOption }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="unit-filter-floor" wire-model="floor" :selected="$floor"
+                                 :options="$floorFilterOptions" placeholder="Semua lantai"
+                                 aria-label="Filter lantai" />
 
-            <select wire:model.live="room" aria-label="Filter ruangan" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua ruangan</option>
-                @foreach ($rooms as $roomOption)
-                    <option value="{{ $roomOption->id }}">Gedung {{ $roomOption->building_letter }}{{ $roomOption->floor }}-{{ str_pad((string) $roomOption->room_no, 2, '0', STR_PAD_LEFT) }} — {{ $roomOption->name }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="unit-filter-room" wire-model="room" :selected="$room"
+                                 :options="$roomFilterOptions" placeholder="Semua ruangan"
+                                 aria-label="Filter ruangan" />
 
-            <select wire:model.live="condition" aria-label="Filter kondisi unit" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua kondisi</option>
-                @foreach ($conditions as $conditionOption)
-                    <option value="{{ $conditionOption->value }}">{{ $conditionOption->label() }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="unit-filter-condition" wire-model="condition" :selected="$condition"
+                                 :options="$conditionFilterOptions" placeholder="Semua kondisi"
+                                 aria-label="Filter kondisi unit" />
 
-            <select wire:model.live="status" aria-label="Filter status unit" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua status</option>
-                @foreach ($statuses as $statusOption)
-                    <option value="{{ $statusOption->value }}">{{ $statusOption->label() }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="unit-filter-status" wire-model="status" :selected="$status"
+                                 :options="$statusFilterOptions" placeholder="Semua status"
+                                 aria-label="Filter status unit" />
 
             <input type="number" wire:model.live.debounce.400ms="year" min="1990" max="{{ now()->year + 1 }}"
                    placeholder="Tahun pengadaan" aria-label="Filter tahun pengadaan"
-                   class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                   class="min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
           </div>
         </div>
 

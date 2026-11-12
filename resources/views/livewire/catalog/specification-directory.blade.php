@@ -1,5 +1,15 @@
 <div>
-    @php($selectedFilterCount = collect([$brand, $model, $condition, $status, $building, $room])->filter(fn ($value) => $value !== '')->count())
+    @php
+        $selectedFilterCount = collect([$brand, $model, $condition, $status, $building, $room])->filter(fn ($value) => $value !== '')->count();
+        $brandFilterOptions = collect($brands)->map(fn ($option) => ['value' => (string) $option, 'label' => (string) $option])->values()->all();
+        $conditionFilterOptions = collect($conditions)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+        $statusFilterOptions = collect($statuses)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+        $buildingFilterOptions = collect($buildings)->map(fn ($option) => ['value' => (string) $option['code'], 'label' => $option['name']])->values()->all();
+        $roomFilterOptions = $rooms->map(fn ($option) => [
+            'value' => (string) $option->id,
+            'label' => 'Gedung '.$option->building_letter.$option->floor.'-'.str_pad((string) $option->room_no, 2, '0', STR_PAD_LEFT).' — '.$option->name,
+        ])->values()->all();
+    @endphp
     <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
             <div class="relative min-w-0 flex-1">
@@ -21,43 +31,28 @@
 
         <div id="specification-directory-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <select wire:model.live="brand" aria-label="Filter merek" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua merek</option>
-                @foreach ($brands as $brandOption)
-                    <option value="{{ $brandOption }}">{{ $brandOption }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="specification-filter-brand" wire-model="brand" :selected="$brand"
+                                 :options="$brandFilterOptions" placeholder="Semua merek"
+                                 aria-label="Filter merek" />
 
             <input type="text" wire:model.live.debounce.350ms="model" placeholder="Filter tipe/model" aria-label="Filter tipe model"
-                   class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
+                   class="min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
 
-            <select wire:model.live="condition" aria-label="Filter kondisi unit" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua kondisi</option>
-                @foreach ($conditions as $conditionOption)
-                    <option value="{{ $conditionOption->value }}">{{ $conditionOption->label() }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="specification-filter-condition" wire-model="condition" :selected="$condition"
+                                 :options="$conditionFilterOptions" placeholder="Semua kondisi"
+                                 aria-label="Filter kondisi unit" />
 
-            <select wire:model.live="status" aria-label="Filter status unit" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua status</option>
-                @foreach ($statuses as $statusOption)
-                    <option value="{{ $statusOption->value }}">{{ $statusOption->label() }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="specification-filter-status" wire-model="status" :selected="$status"
+                                 :options="$statusFilterOptions" placeholder="Semua status"
+                                 aria-label="Filter status unit" />
 
-            <select wire:model.live="building" aria-label="Filter gedung" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua gedung</option>
-                @foreach ($buildings as $buildingOption)
-                    <option value="{{ $buildingOption['code'] }}">{{ $buildingOption['name'] }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="specification-filter-building" wire-model="building" :selected="$building"
+                                 :options="$buildingFilterOptions" placeholder="Semua gedung"
+                                 aria-label="Filter gedung" />
 
-            <select wire:model.live="room" aria-label="Filter ruangan" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                <option value="">Semua ruangan</option>
-                @foreach ($rooms as $roomOption)
-                    <option value="{{ $roomOption->id }}">Gedung {{ $roomOption->building_letter }}{{ $roomOption->floor }}-{{ str_pad((string) $roomOption->room_no, 2, '0', STR_PAD_LEFT) }} — {{ $roomOption->name }}</option>
-                @endforeach
-            </select>
+            <x-searchable-select id="specification-filter-room" wire-model="room" :selected="$room"
+                                 :options="$roomFilterOptions" placeholder="Semua ruangan"
+                                 aria-label="Filter ruangan" />
           </div>
         </div>
 

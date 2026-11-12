@@ -180,7 +180,14 @@ window.searchableSelect = (config = {}) => ({
     notifyChange() {
         this.$nextTick(() => {
             const hidden = this.$root.querySelector('input[type="hidden"]');
-            (hidden ?? this.$root).dispatchEvent(new Event('change', { bubbles: true }));
+
+            if (hidden) {
+                hidden.value = String(this.value ?? '');
+                hidden.dispatchEvent(new Event('input', { bubbles: true }));
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                this.$root.dispatchEvent(new Event('change', { bubbles: true }));
+            }
 
             if (this.submit) {
                 const form = this.$root.closest('form');
@@ -192,57 +199,6 @@ window.searchableSelect = (config = {}) => ({
         });
     },
 });
-
-/**
- * Menambahkan kotak pencarian di atas select filter Livewire.
- *
- * Select tetap memakai wire:model.live sehingga nilai terkirim ke server;
- * kotak pencarian hanya menyaring opsi yang tampil. Dijalankan ulang setelah
- * Livewire morph agar input pencarian tidak hilang saat komponen diperbarui.
- */
-const enhanceFilterSelects = () => {
-    document.querySelectorAll('[id$="-filter-panel"] select').forEach((select) => {
-        let input = select.previousElementSibling?.querySelector?.('input[data-filter-search]');
-
-        if (!input) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'relative mb-1.5';
-
-            const icon = document.createElement('span');
-            icon.className = 'material-icons-round pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-slate-400';
-            icon.textContent = 'search';
-            icon.setAttribute('aria-hidden', 'true');
-
-            input = document.createElement('input');
-            input.type = 'text';
-            input.dataset.filterSearch = 'true';
-            input.placeholder = 'Cari pilihan…';
-            input.setAttribute('aria-label', 'Cari pilihan filter');
-            input.className = 'h-8 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-2 text-[11px] text-slate-700 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200';
-
-            wrapper.append(icon, input);
-            select.parentNode.insertBefore(wrapper, select);
-        }
-
-        input.oninput = () => {
-            const term = input.value.trim().toLowerCase();
-
-            Array.from(select.options).forEach((option) => {
-                option.hidden = term !== '' && !option.text.toLowerCase().includes(term);
-            });
-        };
-    });
-};
-
-let filterEnhanceTimer;
-const scheduleFilterEnhance = () => {
-    clearTimeout(filterEnhanceTimer);
-    filterEnhanceTimer = setTimeout(enhanceFilterSelects, 60);
-};
-
-document.addEventListener('DOMContentLoaded', enhanceFilterSelects);
-document.addEventListener('livewire:navigated', scheduleFilterEnhance);
-new MutationObserver(scheduleFilterEnhance).observe(document.documentElement, { childList: true, subtree: true });
 
 // Catatan: Alpine.js sudah dibundel dan dijalankan oleh Livewire 4.
 // Mengimpor & menjalankan Alpine kedua kali membuat directive wire:model

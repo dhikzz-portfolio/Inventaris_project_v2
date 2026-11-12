@@ -4,7 +4,16 @@
 ])>
     {{-- Kiri: cari barang + keranjang --}}
     <div class="contents lg:col-span-3 lg:block lg:space-y-5">
-        @php($selectedFilterCount = collect([$category, $building, $room, $availability])->filter(fn ($value) => $value !== '')->count())
+        @php
+            $selectedFilterCount = collect([$category, $building, $room, $availability])->filter(fn ($value) => $value !== '')->count();
+            $categoryFilterOptions = $categories->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->name])->values()->all();
+            $buildingFilterOptions = collect($buildings)->map(fn ($option) => ['value' => (string) $option['code'], 'label' => $option['name']])->values()->all();
+            $roomFilterOptions = $rooms->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->code.' — '.$option->name])->values()->all();
+            $availabilityFilterOptions = [
+                ['value' => 'available', 'label' => 'Ada unit tersedia'],
+                ['value' => 'unavailable', 'label' => 'Tidak ada unit tersedia'],
+            ];
+        @endphp
         <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="order-1 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
             <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">add_shopping_cart</span> 1. Pilih barang dari katalog
@@ -29,29 +38,18 @@
 
             <div id="loan-request-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
               <div class="grid grid-cols-2 gap-2 text-xs">
-                <select wire:model.live="category" aria-label="Filter kategori" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua kategori</option>
-                    @foreach ($categories as $c)
-                        <option value="{{ $c->id }}">{{ $c->name }}</option>
-                    @endforeach
-                </select>
-                <select wire:model.live="building" aria-label="Filter gedung" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua gedung</option>
-                    @foreach ($buildings as $b)
-                        <option value="{{ $b['code'] }}">{{ $b['name'] }}</option>
-                    @endforeach
-                </select>
-                <select wire:model.live="room" aria-label="Filter ruangan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua ruangan</option>
-                    @foreach ($rooms as $r)
-                        <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
-                    @endforeach
-                </select>
-                <select wire:model.live="availability" aria-label="Filter ketersediaan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua ketersediaan</option>
-                    <option value="available">Ada unit tersedia</option>
-                    <option value="unavailable">Tidak ada unit tersedia</option>
-                </select>
+                <x-searchable-select id="loan-request-filter-category" wire-model="category" :selected="$category"
+                                     :options="$categoryFilterOptions" placeholder="Semua kategori"
+                                     aria-label="Filter kategori" class="min-w-0" />
+                <x-searchable-select id="loan-request-filter-building" wire-model="building" :selected="$building"
+                                     :options="$buildingFilterOptions" placeholder="Semua gedung"
+                                     aria-label="Filter gedung" class="min-w-0" />
+                <x-searchable-select id="loan-request-filter-room" wire-model="room" :selected="$room"
+                                     :options="$roomFilterOptions" placeholder="Semua ruangan"
+                                     aria-label="Filter ruangan" class="min-w-0" />
+                <x-searchable-select id="loan-request-filter-availability" wire-model="availability" :selected="$availability"
+                                     :options="$availabilityFilterOptions" placeholder="Semua ketersediaan"
+                                     aria-label="Filter ketersediaan" class="min-w-0" />
               </div>
               @if ($activeFilters > 0)
                 <div class="mt-2 flex justify-end">

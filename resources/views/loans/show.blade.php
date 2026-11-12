@@ -146,6 +146,20 @@
                 <div class="p-3 sm:p-4" x-data="{ filtersOpen: false }">
                   <div class="space-y-3">
                     <form method="GET" action="{{ route('loans.show', $loan) }}" onchange="this.requestSubmit()">
+                        @php
+                            $itemCategoryOptions = $filterOptions['categories']->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->name])->values()->all();
+                            $itemCatalogOptions = $filterOptions['catalogs']->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->name])->values()->all();
+                            $itemSpecificationOptions = $filterOptions['specifications']->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->displayName()])->values()->all();
+                            $itemBuildingOptions = collect($filterOptions['buildings'])->map(fn ($option) => ['value' => (string) $option, 'label' => 'Gedung '.$option])->values()->all();
+                            $itemRoomOptions = $filterOptions['rooms']->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->code.' — '.$option->name])->values()->all();
+                            $itemConditionOptions = collect($filterOptions['conditions'])->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+                            $itemStatusOptions = collect($filterOptions['statuses'])->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+                            $itemValidationOptions = collect($filterOptions['validations'])->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+                            $itemPhotoOptions = [
+                                ['value' => 'ada', 'label' => 'Ada foto'],
+                                ['value' => 'tidak', 'label' => 'Tanpa foto'],
+                            ];
+                        @endphp
                         <div class="flex flex-col gap-2 sm:flex-row">
                             <label for="item-search" class="sr-only">Cari unit atau catatan kondisi</label>
                             <input id="item-search" type="search" name="item_search" value="{{ $itemFilters['search'] }}"
@@ -172,30 +186,21 @@
                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <div>
                                         <label for="item-category" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Kategori</label>
-                                        <select id="item-category" name="item_category" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua kategori</option>
-                                            @foreach ($filterOptions['categories'] as $category)
-                                                <option value="{{ $category->id }}" @selected($itemFilters['category'] === (string) $category->id)>{{ $category->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-searchable-select id="item-category" name="item_category" :selected="$itemFilters['category']"
+                                                             :options="$itemCategoryOptions" placeholder="Semua kategori"
+                                                             aria-label="Filter kategori" />
                                     </div>
                                     <div>
                                         <label for="item-catalog" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Katalog</label>
-                                        <select id="item-catalog" name="item_catalog" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua katalog</option>
-                                            @foreach ($filterOptions['catalogs'] as $catalog)
-                                                <option value="{{ $catalog->id }}" @selected($itemFilters['catalog'] === (string) $catalog->id)>{{ $catalog->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-searchable-select id="item-catalog" name="item_catalog" :selected="$itemFilters['catalog']"
+                                                             :options="$itemCatalogOptions" placeholder="Semua katalog"
+                                                             aria-label="Filter katalog" />
                                     </div>
                                     <div>
                                         <label for="item-spec" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Spesifikasi</label>
-                                        <select id="item-spec" name="item_spec" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua spesifikasi</option>
-                                            @foreach ($filterOptions['specifications'] as $specification)
-                                                <option value="{{ $specification->id }}" @selected($itemFilters['specification'] === (string) $specification->id)>{{ $specification->displayName() }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-searchable-select id="item-spec" name="item_spec" :selected="$itemFilters['specification']"
+                                                             :options="$itemSpecificationOptions" placeholder="Semua spesifikasi"
+                                                             aria-label="Filter spesifikasi" />
                                     </div>
                                 </div>
                             </section>
@@ -205,21 +210,15 @@
                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <div>
                                         <label for="item-building" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Gedung</label>
-                                        <select id="item-building" name="item_building" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua gedung</option>
-                                            @foreach ($filterOptions['buildings'] as $building)
-                                                <option value="{{ $building }}" @selected($itemFilters['building'] === (string) $building)>Gedung {{ $building }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-searchable-select id="item-building" name="item_building" :selected="$itemFilters['building']"
+                                                             :options="$itemBuildingOptions" placeholder="Semua gedung"
+                                                             aria-label="Filter gedung" />
                                     </div>
                                     <div>
                                         <label for="item-room" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Ruangan</label>
-                                        <select id="item-room" name="item_room" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua ruangan</option>
-                                            @foreach ($filterOptions['rooms'] as $room)
-                                                <option value="{{ $room->id }}" @selected($itemFilters['room'] === (string) $room->id)>{{ $room->code }} — {{ $room->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-searchable-select id="item-room" name="item_room" :selected="$itemFilters['room']"
+                                                             :options="$itemRoomOptions" placeholder="Semua ruangan"
+                                                             aria-label="Filter ruangan" />
                                     </div>
                                 </div>
                             </section>
@@ -229,38 +228,27 @@
                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <div>
                                         <label for="item-condition" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Kondisi unit</label>
-                                        <select id="item-condition" name="item_condition" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua kondisi</option>
-                                            @foreach ($filterOptions['conditions'] as $condition)
-                                                <option value="{{ $condition->value }}" @selected($itemFilters['condition'] === $condition->value)>{{ $condition->label() }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-searchable-select id="item-condition" name="item_condition" :selected="$itemFilters['condition']"
+                                                             :options="$itemConditionOptions" placeholder="Semua kondisi"
+                                                             aria-label="Filter kondisi unit" />
                                     </div>
                                     <div>
                                         <label for="item-status" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Status inventaris</label>
-                                        <select id="item-status" name="item_status" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua status</option>
-                                            @foreach ($filterOptions['statuses'] as $status)
-                                                <option value="{{ $status->value }}" @selected($itemFilters['status'] === $status->value)>{{ $status->label() }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-searchable-select id="item-status" name="item_status" :selected="$itemFilters['status']"
+                                                             :options="$itemStatusOptions" placeholder="Semua status"
+                                                             aria-label="Filter status inventaris" />
                                     </div>
                                     <div>
                                         <label for="item-validation" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Status pemeriksaan</label>
-                                        <select id="item-validation" name="item_validation" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua status</option>
-                                            @foreach ($filterOptions['validations'] as $validation)
-                                                <option value="{{ $validation->value }}" @selected($itemFilters['validation'] === $validation->value)>{{ $validation->label() }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-searchable-select id="item-validation" name="item_validation" :selected="$itemFilters['validation']"
+                                                             :options="$itemValidationOptions" placeholder="Semua status"
+                                                             aria-label="Filter status pemeriksaan" />
                                     </div>
                                     <div>
                                         <label for="item-photo" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Foto bukti kerusakan</label>
-                                        <select id="item-photo" name="item_photo" class="w-full rounded-lg border-slate-200 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-                                            <option value="">Semua unit</option>
-                                            <option value="ada" @selected($itemFilters['photo'] === 'ada')>Ada foto</option>
-                                            <option value="tidak" @selected($itemFilters['photo'] === 'tidak')>Tanpa foto</option>
-                                        </select>
+                                        <x-searchable-select id="item-photo" name="item_photo" :selected="$itemFilters['photo']"
+                                                             :options="$itemPhotoOptions" placeholder="Semua unit"
+                                                             aria-label="Filter foto bukti" />
                                     </div>
                                 </div>
                             </section>

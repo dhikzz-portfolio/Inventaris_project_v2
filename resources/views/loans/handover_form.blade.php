@@ -72,6 +72,13 @@
 
         {{-- Pencarian & filter unit --}}
         <div class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            @php
+                $categoryFilterOptions = $categories->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->name])->values()->all();
+                $catalogFilterOptions = $catalogs->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->name])->values()->all();
+                $specificationFilterOptions = $specifications->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->displayName()])->values()->all();
+                $buildingFilterOptions = collect($buildings)->map(fn ($option) => ['value' => (string) $option, 'label' => 'Gedung '.$option])->values()->all();
+                $roomFilterOptions = $rooms->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->code.' — '.$option->name])->values()->all();
+            @endphp
             <div>
                 <div>
                     <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100">Pilih unit yang akan diserahkan</h3>
@@ -101,53 +108,33 @@
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                         <label for="handover-filter-category" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Kategori</label>
-                        <select id="handover-filter-category" x-model="filters.category" @change="applyFilters()"
-                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                            <option value="">Semua kategori</option>
-                            @foreach ($categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select id="handover-filter-category" x-model="filters.category" x-on:change="applyFilters()"
+                                             :options="$categoryFilterOptions" placeholder="Semua kategori"
+                                             aria-label="Filter kategori" />
                     </div>
                     <div>
                         <label for="handover-filter-catalog" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Katalog</label>
-                        <select id="handover-filter-catalog" x-model="filters.catalog" @change="applyFilters()"
-                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                            <option value="">Semua katalog</option>
-                            @foreach ($catalogs as $catalog)
-                                <option value="{{ $catalog->id }}">{{ $catalog->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select id="handover-filter-catalog" x-model="filters.catalog" x-on:change="applyFilters()"
+                                             :options="$catalogFilterOptions" placeholder="Semua katalog"
+                                             aria-label="Filter katalog" />
                     </div>
                     <div>
                         <label for="handover-filter-spec" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Spesifikasi</label>
-                        <select id="handover-filter-spec" x-model="filters.spec" @change="applyFilters()"
-                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                            <option value="">Semua spesifikasi</option>
-                            @foreach ($specifications as $specification)
-                                <option value="{{ $specification->id }}">{{ $specification->displayName() }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select id="handover-filter-spec" x-model="filters.spec" x-on:change="applyFilters()"
+                                             :options="$specificationFilterOptions" placeholder="Semua spesifikasi"
+                                             aria-label="Filter spesifikasi" />
                     </div>
                     <div>
                         <label for="handover-filter-building" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Gedung</label>
-                        <select id="handover-filter-building" x-model="filters.building" @change="applyFilters()"
-                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                            <option value="">Semua gedung</option>
-                            @foreach ($buildings as $building)
-                                <option value="{{ $building }}">Gedung {{ $building }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select id="handover-filter-building" x-model="filters.building" x-on:change="applyFilters()"
+                                             :options="$buildingFilterOptions" placeholder="Semua gedung"
+                                             aria-label="Filter gedung" />
                     </div>
                     <div>
                         <label for="handover-filter-room" class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Ruangan</label>
-                        <select id="handover-filter-room" x-model="filters.room" @change="applyFilters()"
-                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                            <option value="">Semua ruangan</option>
-                            @foreach ($rooms as $room)
-                                <option value="{{ $room->id }}">{{ $room->code }} — {{ $room->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select id="handover-filter-room" x-model="filters.room" x-on:change="applyFilters()"
+                                             :options="$roomFilterOptions" placeholder="Semua ruangan"
+                                             aria-label="Filter ruangan" />
                     </div>
                 </div>
                 <div class="mt-3 flex justify-end">

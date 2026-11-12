@@ -150,7 +150,16 @@
         </div>
 
         {{-- Pencarian, filter, dan scan untuk menemukan unit --}}
-        @php($selectedFilterCount = collect([$filterValidation, $filterCondition, $filterReturnState, $filterRoom])->filter(fn ($value) => $value !== '')->count())
+        @php
+            $selectedFilterCount = collect([$filterValidation, $filterCondition, $filterReturnState, $filterRoom])->filter(fn ($value) => $value !== '')->count();
+            $validationFilterOptions = collect($returnStatuses)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+            $conditionFilterOptions = collect($conditions)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+            $returnStateFilterOptions = [
+                ['value' => 'belum', 'label' => 'Belum dikonfirmasi'],
+                ['value' => 'sudah', 'label' => 'Sudah dikonfirmasi'],
+            ];
+            $roomFilterOptions = collect($filterRooms)->map(fn ($option) => ['value' => (string) $option['id'], 'label' => $option['label']])->values()->all();
+        @endphp
         <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/40">
             <div class="flex flex-col gap-2 sm:flex-row">
                 <div class="min-w-0 flex-1">
@@ -172,42 +181,27 @@
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label for="return-filter-validation" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Status pemeriksaan</label>
-                    <select id="return-filter-validation" wire:model.live="filterValidation"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua status</option>
-                        @foreach ($returnStatuses as $returnStatus)
-                            <option value="{{ $returnStatus->value }}">{{ $returnStatus->label() }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="return-filter-validation" wire-model="filterValidation"
+                                         :selected="$filterValidation" :options="$validationFilterOptions"
+                                         placeholder="Semua status" />
                 </div>
                 <div>
                     <label for="return-filter-condition" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kondisi unit</label>
-                    <select id="return-filter-condition" wire:model.live="filterCondition"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua kondisi</option>
-                        @foreach ($conditions as $conditionOption)
-                            <option value="{{ $conditionOption->value }}">{{ $conditionOption->label() }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="return-filter-condition" wire-model="filterCondition"
+                                         :selected="$filterCondition" :options="$conditionFilterOptions"
+                                         placeholder="Semua kondisi" />
                 </div>
                 <div>
                     <label for="return-filter-state" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Pengembalian</label>
-                    <select id="return-filter-state" wire:model.live="filterReturnState"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua unit</option>
-                        <option value="belum">Belum dikonfirmasi</option>
-                        <option value="sudah">Sudah dikonfirmasi</option>
-                    </select>
+                    <x-searchable-select id="return-filter-state" wire-model="filterReturnState"
+                                         :selected="$filterReturnState" :options="$returnStateFilterOptions"
+                                         placeholder="Semua unit" />
                 </div>
                 <div>
                     <label for="return-filter-room" class="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">Ruangan asal</label>
-                    <select id="return-filter-room" wire:model.live="filterRoom"
-                        class="w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">Semua ruangan</option>
-                        @foreach ($filterRooms as $roomOption)
-                            <option value="{{ $roomOption['id'] }}">{{ $roomOption['label'] }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="return-filter-room" wire-model="filterRoom"
+                                         :selected="$filterRoom" :options="$roomFilterOptions"
+                                         placeholder="Semua ruangan" />
                 </div>
               </div>
 

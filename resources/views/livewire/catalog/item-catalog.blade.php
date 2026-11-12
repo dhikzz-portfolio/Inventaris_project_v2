@@ -1,6 +1,11 @@
 <div>
     {{-- Toolbar pencarian & filter --}}
-    @php($selectedFilterCount = collect([$status, $category, $room])->filter(fn ($value) => $value !== '')->count())
+    @php
+        $selectedFilterCount = collect([$status, $category, $room])->filter(fn ($value) => $value !== '')->count();
+        $statusFilterOptions = collect($statuses)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+        $categoryFilterOptions = $categories->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->name])->values()->all();
+        $roomFilterOptions = $rooms->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->code.' — '.$option->name])->values()->all();
+    @endphp
     <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
             <div class="relative min-w-0 flex-1">
@@ -21,24 +26,15 @@
 
         <div id="item-catalog-filter-panel" x-show="filtersOpen" x-cloak x-transition class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <select wire:model.live="status" aria-label="Filter status" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">Semua Status</option>
-                    @foreach ($statuses as $s)
-                        <option value="{{ $s->value }}">{{ $s->label() }}</option>
-                    @endforeach
-                </select>
-                <select wire:model.live="category" aria-label="Filter kategori" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">Semua Kategori</option>
-                    @foreach ($categories as $c)
-                        <option value="{{ $c->id }}">{{ $c->name }}</option>
-                    @endforeach
-                </select>
-                <select wire:model.live="room" aria-label="Filter ruangan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">Semua Ruangan</option>
-                    @foreach ($rooms as $r)
-                        <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="item-catalog-filter-status" wire-model="status" :selected="$status"
+                                     :options="$statusFilterOptions" placeholder="Semua Status"
+                                     aria-label="Filter status" class="min-w-0" />
+                <x-searchable-select id="item-catalog-filter-category" wire-model="category" :selected="$category"
+                                     :options="$categoryFilterOptions" placeholder="Semua Kategori"
+                                     aria-label="Filter kategori" class="min-w-0" />
+                <x-searchable-select id="item-catalog-filter-room" wire-model="room" :selected="$room"
+                                     :options="$roomFilterOptions" placeholder="Semua Ruangan"
+                                     aria-label="Filter ruangan" class="min-w-0" />
             </div>
         </div>
 

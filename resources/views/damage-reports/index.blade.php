@@ -64,13 +64,13 @@
                 <div>
                     <x-input-label for="classification" value="Klasifikasi" />
                     <x-searchable-select id="classification" name="classification" :selected="$filters['classification'] ?? ''" submit
-                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($classifications->map(fn ($classification) => ['value' => $classification->value, 'label' => $classification->label()]))->values()->all()"
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge(collect($classifications)->map(fn ($classification) => ['value' => $classification->value, 'label' => $classification->label()]))->values()->all()"
                         placeholder="Cari klasifikasi…" class="mt-1 w-full" />
                 </div>
                 <div>
                     <x-input-label for="status" value="Status Penanganan" />
                     <x-searchable-select id="status" name="status" :selected="$filters['status'] ?? ''" submit
-                        :options="collect([['value' => '', 'label' => 'Semua']])->merge($statuses->map(fn ($status) => ['value' => $status->value, 'label' => $status->label()]))->values()->all()"
+                        :options="collect([['value' => '', 'label' => 'Semua']])->merge(collect($statuses)->map(fn ($status) => ['value' => $status->value, 'label' => $status->label()]))->values()->all()"
                         placeholder="Cari status…" class="mt-1 w-full" />
                 </div>
                 <div>

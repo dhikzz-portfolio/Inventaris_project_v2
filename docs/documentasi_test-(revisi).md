@@ -1023,3 +1023,18 @@ Verifikasi
 - Tes baru  test_filter_hanya_baris_bermasalah_menyembunyikan_baris_valid : mengunggah 2 baris (1 valid, 1 kondisi tidak dikenali), lalu memastikan halaman normal menampilkan keduanya dan  ?filter=problems  hanya menampilkan baris bermasalah.
 -  php artisan test --compact tests/Feature/ReportImportAndArchiveTest.php --filter="filter_hanya_baris_bermasalah|pratinjau"  → 3 tes lulus (23 assertion).
 -  vendor/bin/pint --dirty --format agent  → bersih;  php artisan view:cache  → Blade terkompilasi.
+
+
+Apa yang diubah
+-  resources/js/app.js : fungsi yang menyuntikkan kotak "Cari pilihan…" terpisah di atas tiap dropdown saya hapus. Combobox  searchableSelect  sekarang mengirim nilai ke  input / change  pada hidden input, jadi binding Livewire ( wire:model.live ) tetap jalan.
+-  resources/views/components/searchable-select.blade.php : ditambah dukungan  wire-model  (Livewire) dan  aria-label , plus  wire:key  per nilai supaya tampilan kolom ikut ter-reset saat "Reset filter".
+- Filter diganti ke komponen combobox yang sama di halaman: katalog ( /katalog ), barang, spesifikasi, unit spesifikasi, pengajuan peminjaman, form pengembalian, detail pinjaman, dan serah terima (handover). Satu kolom = satu field: klik lalu ketik, mis. "2" di filter ruangan → opsi ruangan langsung tersaring, tinggal pilih. Placeholder-nya "Semua ruangan" dst., dan ada tombol X untuk mengosongkan.
+- Sekalian saya perbaiki bug filter yang sudah ada sebelumnya di halaman Cetak Label, Laporan Kerusakan, Mutasi, dan Penghapusan:  $conditions->map() / $statuses->map() / $classifications->map()  dipanggil pada array enum sehingga halaman error 500. Sekarang dibungkus  collect() .
+
+Pengecekan yang dijalankan
+-  npm run build  → sukses (setelah semua perubahan Blade).
+-  php artisan test --compact CatalogFilterTest, InventoryCatalogTest, LoanItemDetailTest, HandoverScanTest, ReturnFormLivewireTest, SearchableCatalogTest  → 33 passed.
+-  LabelAndQrTest  → 12 passed;  DamageReportTest  → 7 passed;  LoanApprovalHandoverTest  +  ReturnUnitScanFilterTest  → passed;  MovementAndWriteOffTest  → passed.
+-  vendor/bin/pint --dirty --format agent  → passed.
+
+Batasan: interaksi buka-dropdown/ketik/pilih tidak saya uji di browser (tidak ada harness e2e di repo ini); yang terverifikasi adalah render server-side, kompilasi aset, dan seluruh test di atas. Perubahan belum di-commit, dan perubahan PDF/Chrome dari permintaan sebelumnya masih ada di working tree.

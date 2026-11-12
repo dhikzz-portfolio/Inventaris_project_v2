@@ -1,5 +1,20 @@
 <div>
-    @php($selectedFilterCount = collect([$category, $building, $floor, $room, $condition, $status, $availability])->filter(fn ($value) => $value !== '')->count())
+    @php
+        $selectedFilterCount = collect([$category, $building, $floor, $room, $condition, $status, $availability])->filter(fn ($value) => $value !== '')->count();
+        $categoryFilterOptions = $categories->map(fn ($option) => ['value' => (string) $option->id, 'label' => $option->name])->values()->all();
+        $buildingFilterOptions = collect($buildings)->map(fn ($option) => ['value' => (string) $option['code'], 'label' => $option['name']])->values()->all();
+        $floorFilterOptions = collect($floors)->map(fn ($option) => ['value' => (string) $option, 'label' => 'Lantai '.$option])->values()->all();
+        $roomFilterOptions = $rooms->map(fn ($option) => [
+            'value' => (string) $option->id,
+            'label' => $option->building_letter.$option->floor.'-'.str_pad((string) $option->room_no, 2, '0', STR_PAD_LEFT).' — '.$option->name,
+        ])->values()->all();
+        $conditionFilterOptions = collect($conditions)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+        $statusFilterOptions = collect($statuses)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
+        $availabilityFilterOptions = [
+            ['value' => 'available', 'label' => 'Ada unit tersedia'],
+            ['value' => 'empty', 'label' => 'Tidak ada unit tersedia'],
+        ];
+    @endphp
 
     <div x-data="{ filtersOpen: false }" class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
@@ -23,55 +38,33 @@
         <div id="catalog-filter-panel" x-show="filtersOpen" x-cloak x-transition
              class="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <select wire:model.live="category" aria-label="Filter kategori" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua kategori</option>
-                    @foreach ($categories as $category)
-                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="catalog-filter-category" wire-model="category" :selected="$category"
+                                     :options="$categoryFilterOptions" placeholder="Semua kategori"
+                                     aria-label="Filter kategori" class="min-w-0" />
 
-                <select wire:model.live="building" aria-label="Filter gedung" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua gedung</option>
-                    @foreach ($buildings as $buildingOption)
-                        <option value="{{ $buildingOption['code'] }}">{{ $buildingOption['name'] }}</option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="catalog-filter-building" wire-model="building" :selected="$building"
+                                     :options="$buildingFilterOptions" placeholder="Semua gedung"
+                                     aria-label="Filter gedung" class="min-w-0" />
 
-                <select wire:model.live="floor" aria-label="Filter lantai" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua lantai</option>
-                    @foreach ($floors as $floor)
-                        <option value="{{ $floor }}">Lantai {{ $floor }}</option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="catalog-filter-floor" wire-model="floor" :selected="$floor"
+                                     :options="$floorFilterOptions" placeholder="Semua lantai"
+                                     aria-label="Filter lantai" class="min-w-0" />
 
-                <select wire:model.live="room" aria-label="Filter ruangan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua ruangan</option>
-                    @foreach ($rooms as $roomOption)
-                        <option value="{{ $roomOption->id }}">
-                            {{ $roomOption->building_letter }}{{ $roomOption->floor }}-{{ str_pad((string) $roomOption->room_no, 2, '0', STR_PAD_LEFT) }} — {{ $roomOption->name }}
-                        </option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="catalog-filter-room" wire-model="room" :selected="$room"
+                                     :options="$roomFilterOptions" placeholder="Semua ruangan"
+                                     aria-label="Filter ruangan" class="min-w-0" />
 
-                <select wire:model.live="condition" aria-label="Filter kondisi fisik" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua kondisi</option>
-                    @foreach ($conditions as $conditionOption)
-                        <option value="{{ $conditionOption->value }}">{{ $conditionOption->label() }}</option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="catalog-filter-condition" wire-model="condition" :selected="$condition"
+                                     :options="$conditionFilterOptions" placeholder="Semua kondisi"
+                                     aria-label="Filter kondisi fisik" class="min-w-0" />
 
-                <select wire:model.live="status" aria-label="Filter status operasional" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua status</option>
-                    @foreach ($statuses as $statusOption)
-                        <option value="{{ $statusOption->value }}">{{ $statusOption->label() }}</option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="catalog-filter-status" wire-model="status" :selected="$status"
+                                     :options="$statusFilterOptions" placeholder="Semua status"
+                                     aria-label="Filter status operasional" class="min-w-0" />
 
-                <select wire:model.live="availability" aria-label="Filter ketersediaan" class="w-full min-w-0 rounded-xl border-slate-300 bg-white text-xs text-slate-700 focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200">
-                    <option value="">Semua ketersediaan</option>
-                    <option value="available">Ada unit tersedia</option>
-                    <option value="empty">Tidak ada unit tersedia</option>
-                </select>
+                <x-searchable-select id="catalog-filter-availability" wire-model="availability" :selected="$availability"
+                                     :options="$availabilityFilterOptions" placeholder="Semua ketersediaan"
+                                     aria-label="Filter ketersediaan" class="min-w-0" />
             </div>
         </div>
 

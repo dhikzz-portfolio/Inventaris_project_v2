@@ -9,6 +9,8 @@
     'submit' => false,
     'required' => false,
     'disabled' => false,
+    'wireModel' => null,
+    'ariaLabel' => null,
 ])
 
 @php
@@ -32,6 +34,9 @@
 
 <div
     {{ $attributes->merge(['class' => 'relative']) }}
+    @if ($wireModel)
+        wire:key="{{ $wireModel }}-{{ (string) $currentValue }}"
+    @endif
     x-data="searchableSelect({
         options: {{ Illuminate\Support\Js::from($normalizedOptions) }},
         value: {{ Illuminate\Support\Js::from((string) $currentValue) }},
@@ -40,8 +45,11 @@
     x-modelable="value"
     @keydown.escape="open = false; restoreQuery()"
 >
-    @if ($name)
-        <input type="hidden" name="{{ $name }}" :value="value">
+    @if ($name || $wireModel)
+        <input type="hidden"
+               @if ($name) name="{{ $name }}" @endif
+               @if ($wireModel) wire:model.live="{{ $wireModel }}" @endif
+               :value="value">
     @endif
 
     <div class="relative">
@@ -58,6 +66,7 @@
             @keydown.arrow-up.prevent="highlightPrev()"
             @keydown.enter.prevent="chooseHighlighted()"
             :placeholder="selectedOption ? selectedOption.label : {{ Illuminate\Support\Js::from($placeholder) }}"
+            @if ($ariaLabel) aria-label="{{ $ariaLabel }}" @endif
             autocomplete="off"
             role="combobox"
             aria-autocomplete="list"

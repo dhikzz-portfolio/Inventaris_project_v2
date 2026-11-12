@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 30pt 36pt 40pt; }
-        * { box-sizing: border-box; }
+        @page { size: A4 landscape; margin: 30pt 36pt 40pt; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body { margin: 0; font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #111; }
         .kop { width: 100%; border-bottom: 3px solid #155dfc; padding-bottom: 6px; margin-bottom: 12px; }
         .kop img { max-width: 56px; max-height: 56px; }

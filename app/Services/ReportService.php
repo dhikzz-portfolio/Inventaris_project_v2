@@ -24,7 +24,11 @@ use App\Models\User;
 use App\Models\WriteOff;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Excel;
+use RuntimeException;
 
 class ReportService
 {
@@ -370,8 +374,7 @@ class ReportService
         $pdfPath = 'reports/'.sprintf('laporan-%s-%s-%d.pdf', $period, strtolower($scope), $scopeId ?? 0);
         $xlsxPath = 'reports/'.sprintf('laporan-%s-%s-%d.xlsx', $period, strtolower($scope), $scopeId ?? 0);
 
-        $pdf = Pdf::loadView('pdf.report', $data)->setPaper('a4', 'landscape');
-        \Storage::disk('local')->put($pdfPath, $pdf->output());
+        \Storage::disk('local')->put($pdfPath, $this->renderPdf($data));
 
         $excel = app(Excel::class);
         $excel->store(new MonthlyReportExport($data), $xlsxPath, 'local', Excel::XLSX);
@@ -424,8 +427,117 @@ class ReportService
     /** Stream PDF laporan on-the-fly. */
     public function streamPdf(array $data, ?string $filename = null)
     {
-        return Pdf::loadView('pdf.report', $data)
-            ->setPaper('a4', 'landscape')
-            ->stream($filename ?? 'laporan.pdf');
+        return response($this->renderPdf($data), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.($filename ?? 'laporan.pdf').'"',
+        ]);
+    }
+
+    /**
+     * Render laporan menjadi PDF.
+     *
+     * Chrome/Edge headless dipakai lebih dulu karena dompdf membutuhkan >3 GB
+     * RAM (dan ~3 menit) untuk rincian seluruh sekolah dengan 1.600+ unit,
+     * sementara Chrome menyelesaikannya dalam hitungan detik. dompdf tetap
+     * menjadi cadangan bila tidak ada peramban Chromium di server.
+     */
+    private function renderPdf(array $data): string
+    {
+        $html = view('pdf.report', $data)->render();
+
+        return $this->renderPdfWithChrome($html)
+            ?? Pdf::loadHTML($html)->setPaper('a4', 'landscape')->output();
+    }
+
+    /** Cetak HTML menjadi PDF lewat Chrome/Edge headless; null bila tidak tersedia. */
+    private function renderPdfWithChrome(string $html): ?string
+    {
+        $binary = $this->chromeBinary();
+
+        if ($binary === null) {
+            return null;
+        }
+
+        $directory = storage_path('app/tmp/pdf');
+        File::ensureDirectoryExists($directory);
+
+        $htmlPath = $directory.'/'.Str::uuid().'.html';
+        $pdfPath = substr($htmlPath, 0, -5).'.pdf';
+
+        try {
+            File::put($htmlPath, $html);
+
+            $process = Process::timeout(180)->run([
+                $binary,
+                '--headless=new',
+                '--disable-gpu',
+                '--no-sandbox',
+                '--no-pdf-header-footer',
+                '--print-to-pdf='.$pdfPath,
+                'file://'.$this->fileUrlPath($htmlPath),
+            ]);
+
+            if (! $process->successful()) {
+                throw new RuntimeException('Chrome gagal mencetak PDF laporan: '.$process->errorOutput());
+            }
+
+            $pdf = is_file($pdfPath) ? (string) file_get_contents($pdfPath) : '';
+
+            return $pdf !== '' ? $pdf : null;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        } finally {
+            File::delete([$htmlPath, $pdfPath]);
+        }
+    }
+
+    /** Path berkas menjadi bagian URL file:// yang sah di Windows maupun POSIX. */
+    private function fileUrlPath(string $path): string
+    {
+        $path = str_replace('\\', '/', $path);
+
+        return (str_starts_with($path, '/') ? '' : '/').$path;
+    }
+
+    /** Lokasi Chrome/Edge headless; dapat dipaksa lewat CHROME_PATH. */
+    private function chromeBinary(): ?string
+    {
+        $configured = config('services.chrome.path');
+
+        if (is_string($configured) && $configured !== '' && is_file($configured)) {
+            return $configured;
+        }
+
+        $candidates = [
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/snap/bin/chromium',
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+            'C:/Program Files/Google/Chrome/Application/chrome.exe',
+            'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+            'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
+            'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+        ];
+
+        $localAppData = getenv('LOCALAPPDATA');
+
+        if (is_string($localAppData) && $localAppData !== '') {
+            $localAppData = rtrim(str_replace('\\', '/', $localAppData), '/');
+            $candidates[] = $localAppData.'/Google/Chrome/Application/chrome.exe';
+            $candidates[] = $localAppData.'/Microsoft/Edge/Application/msedge.exe';
+        }
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 }

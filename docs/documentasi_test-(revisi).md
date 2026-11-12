@@ -1061,3 +1061,29 @@ Verifikasi
 -  ReportScopeTest : 6 passed (termasuk test baru untuk label arsip + nama file unduhan)
 -  ReportTest  +  ReportImportAndArchiveTest  +  DamageReportTest : 43 passed
 -  php artisan view:clear  dijalankan agar halaman langsung memakai view terbaru.
+
+Masalahnya
+
+Error-nya:
+
+SQLSTATE[22001]: String data, right truncated: 1406
+Data too long for column 'inventory_code' at row 1
+
+Saat menyimpan penghapusan,  WriteOffController  menyalin kode unit ke tabel snapshot  write_off_units . Kode unit pada error tersebut adalah  F1-02-700-491  (13 karakter), sedangkan kolom  write_off_units.inventory_code  masih  varchar(12) .
+
+Beberapa waktu lalu ada migration  expand_unit_numbering_capacity  yang memperlebar  asset_units.inventory_code  dan  asset_unit_codes.inventory_code  menjadi 32 karakter (karena nomor unit sekarang bisa di atas 99), tetapi tabel snapshot  write_off_units  terlewat dan tetap 12 karakter. Jadi unit dengan nomor 100 ke atas seperti  ...-491  gagal diajukan penghapusan.
+
+Perbaikan
+
+- Migration baru:  database/migrations/2026_11_12_195507_expand_write_off_unit_inventory_code_length.php  — mengubah  write_off_units.inventory_code  menjadi  varchar(32)  (dengan guard  hasTable / hasColumn , dan  down()  mengembalikannya ke 12).
+- Test regresi di  MovementAndWriteOffTest : mengajukan penghapusan unit dengan kode  F1-02-700-491  dan memastikan snapshot tersimpan.
+- Migrasi sudah dijalankan di database lokal ini; kolom sekarang terverifikasi  varchar(32) .
+
+Verifikasi
+
+-  php artisan migrate : migration baru DONE
+-  php artisan test --compact tests/Feature/MovementAndWriteOffTest.php : 13 passed (86 assertions)
+-  vendor/bin/pint --dirty : passed
+- Cek langsung  SHOW COLUMNS FROM write_off_units :  inventory_code  = varchar(32)
+
+Untuk server/deploy lain, cukup jalankan  php artisan migrate  setelah kode ini terpasang. Setelah itu pengajuan inventaris keluar untuk unit dengan nomor besar tidak akan error lagi.

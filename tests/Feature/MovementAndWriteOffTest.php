@@ -15,6 +15,7 @@ use App\Services\AssetUnitService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -235,6 +236,28 @@ class MovementAndWriteOffTest extends TestCase
         $this->assertDatabaseHas('activity_log', [
             'log_name' => 'penghapusan',
             'subject_id' => $writeOff->id,
+        ]);
+    }
+
+    public function test_pengajuan_penghapusan_menerima_kode_inventaris_panjang(): void
+    {
+        Storage::fake('local');
+
+        $unit = app(AssetUnitService::class)->create($this->item, $this->room1);
+        $longCode = 'F1-02-700-491';
+
+        DB::table('asset_units')->where('id', $unit->id)->update(['inventory_code' => $longCode]);
+
+        $this->actingAs($this->admin)->post(route('write-offs.store'), [
+            'mode' => 'UNIT',
+            'unit_ids' => [$unit->id],
+            'confirm_delete' => true,
+            'reason' => 'Rusak berat dan tidak dapat diperbaiki',
+        ])->assertRedirect(route('write-offs.index'));
+
+        $this->assertDatabaseHas('write_off_units', [
+            'asset_unit_id' => $unit->id,
+            'inventory_code' => $longCode,
         ]);
     }
 

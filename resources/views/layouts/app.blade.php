@@ -41,8 +41,8 @@
                 <div class="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 dark:border-slate-800">
                     <div class="flex min-w-0 items-center gap-3">
                         <div class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
-                            @if ($institution->logo_path)
-                                <img src="{{ asset('storage/'.$institution->logo_path) }}" alt="Logo {{ $institution->institution_name }}" class="h-full w-full object-contain p-1">
+                            @if ($institution->logoUrl())
+                                <img src="{{ $institution->logoUrl() }}" alt="Logo {{ $institution->institution_name }}" class="h-full w-full object-contain p-1">
                             @else
                                 <span class="material-icons-round text-xl text-brand-600" aria-hidden="true">school</span>
                             @endif

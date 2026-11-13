@@ -1162,3 +1162,31 @@ Yang sudah ada di kode ( app/Exports/MonthlyReportExport.php )
 Verifikasi ulang: tes  test_kop_excel_memakai_logo_instansi_bila_tersedia  (unggah logo PNG ke disk  public , ekspor XLSX, lalu pastikan ada tepat 1 gambar di sel A1) → 1 passed. Sebelumnya tes pulang-pergi ekspor → impor juga lulus, jadi data tetap terbaca.
 
 Catatan: halaman Pratinjau Excel masih menampilkan kop teks tanpa logo. Perubahan belum di-commit.
+Sudah saya perbaiki kedua hal berikut di  app/Exports/MonthlyReportExport.php  (yang membuat file Excel):
+
+1. Kolom lebih rapat
+
+Excel pakai style  ShouldAutoSize , jadi lebar asli bergantung pada lebar sel di awal (tadi terlalu lega karena kolom disiapkan 30 karakter dan teks seperti  "Dipulihkan melalui impor laporan-2026-11-semua.xlsx"  memaksa lebar besar).
+
+Saya pindahkan dan perpendek "batas lebar kolom" sheet. Perubahan:
+- Semua kolom sekarang dibatasi 8 karakter jelas (header tabel, konten) sambil teks terlalu panjang dicetak terpotong ( croppedOverflow )
+- Judul/kop, blok tanda tangan tetap lebar penuh (agar teks tidak terpotong)
+- Dengan itu, kolom Keterangan yang dulunya terlalu lebar akibat teks impor otomatis, sekarang lebih compact
+
+2. Keterangan "Dipulihkan melalui impor…" dipendekkan
+
+Asal keterangan luar auto muncul begitu panjang atau di-inject panjang setiap impor laporan yang memuat filename panjang. Perubahan di  app/Services/ReportImportService.php :
+- Keterangan default saat unit dibuat ( notes :  'Dipulihkan melalui impor laporan' ) sekarang dirapikan jadi 'Pemulihan: impor laporan ' dan nama filenya dirapikan (format tanggal urai jadi  2026-11 ) supaya tidak memakan kolom.
+- Kolom Keterangan yang datanya terlalu panjang (>120 karakter) di-export tetap dipendekkan ditambah tanda  …  — biar tetap adaptif saat ini kata impor
+
+3. Perilaku lembar kerja
+
+- Halaman tetap landscape, rentang layar lebar otomatis ( setFitToWidth(1) ) supaya tidak melango.
+
+yang sudah diverifikasi:
+-  vendor/bin/pint --dirty --format agent  → passed
+-  php artisan test --compact tests/Feature/ReportImportAndArchiveTest.php  → 35 passed (194 assertions) (test impor, ekspor, logo, kop masih lulus)
+
+catatan: efek ini cuma ketemu bila hasil ekspor baru dibuka (ganti nama file atau unduh ulang). Coba export ulang  laporan-2026-11-seluruh-sekolah  dan buka, lihat kolom lebih rapat + keterangan memendek.
+
+Kalau masih terasa terlalu lebar atau keterangan kurang jelas, wacananya kita tarik minimal lebar tertentu tiap kolom atau potong oleh jumlah kata.

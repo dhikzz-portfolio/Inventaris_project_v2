@@ -252,8 +252,8 @@
                 <div class="inline-block w-full max-w-[320px] border-2 border-slate-800 rounded-lg p-2.5 bg-white text-left">
                     <div class="flex items-center gap-2.5">
                         <div class="shrink-0 w-11 sm:w-14 flex items-center justify-center">
-                            @if (\App\Models\InstitutionSetting::current()->logo_path)
-                                <img src="{{ asset('storage/'.\App\Models\InstitutionSetting::current()->logo_path) }}" class="max-h-12 sm:max-h-14 w-auto object-contain" alt="logo">
+                            @if ($institutionLogo = \App\Models\InstitutionSetting::current()->logoUrl())
+                                <img src="{{ $institutionLogo }}" class="max-h-12 sm:max-h-14 w-auto object-contain" alt="logo">
                             @else
                                 <span class="text-[9px] font-bold text-gray-400">LOGO<br>SEKOLAH</span>
                             @endif

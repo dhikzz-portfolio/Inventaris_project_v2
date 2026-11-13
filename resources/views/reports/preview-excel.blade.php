@@ -70,8 +70,8 @@
             {{-- Kop surat: teks rata tengah selebar tabel, logo menempel di kiri
                  tanpa menggeser titik tengah teks (sama dengan berkas Excel). --}}
             <div class="relative border-b-2 border-brand-600 pb-3">
-                @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
-                    <img src="{{ asset('storage/'.$setting->logo_path) }}"
+                @if ($setting->logoUrl())
+                    <img src="{{ $setting->logoUrl() }}"
                          alt="Logo {{ $setting->institution_name }}"
                          class="absolute left-0 top-0 h-12 w-12 object-contain sm:h-14 sm:w-14">
                 @endif

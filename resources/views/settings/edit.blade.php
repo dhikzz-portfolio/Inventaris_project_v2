@@ -61,8 +61,8 @@
             <div class="border-2 border-slate-800 rounded-lg p-4 max-w-md bg-white">
                 <div class="flex items-center gap-3">
                     <div class="w-14 h-14 flex items-center justify-center border border-gray-200 rounded bg-gray-50 overflow-hidden shrink-0">
-                        @if ($setting->logo_path)
-                            <img src="{{ asset('storage/'.$setting->logo_path) }}" alt="Logo" class="max-w-full max-h-full object-contain">
+                        @if ($setting->logoUrl())
+                            <img src="{{ $setting->logoUrl() }}" alt="Logo" class="max-w-full max-h-full object-contain">
                         @else
                             <span class="material-icons-round text-3xl text-gray-400">image</span>
                         @endif

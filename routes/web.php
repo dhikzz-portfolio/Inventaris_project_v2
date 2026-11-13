@@ -29,6 +29,9 @@ $masterView = 'master_jurusan.view|master_gedung.view|master_ruangan.view|master
 Route::get('/manifest.json', [PwaController::class, 'manifest'])->name('pwa.manifest');
 Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.service-worker');
 
+// Logo instansi tampil di halaman masuk dan seluruh kop dokumen.
+Route::get('/logo-institusi', [SettingController::class, 'logo'])->name('settings.logo');
+
 Route::redirect('/', '/dashboard');
 
 Route::middleware(['auth', 'profile.completed'])->group(function () use ($masterView) {

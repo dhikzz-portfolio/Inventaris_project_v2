@@ -23,9 +23,7 @@
             $subheading = $attributes['subheading'] ?? null;
 
             // PERUBAHAN: Gunakan ikon aplikasi yang tersedia jika logo instansi belum diunggah.
-            $loginLogo = $institution?->logo_path
-                ? asset('storage/'.$institution->logo_path)
-                : asset('icons/icon-192.png');
+            $loginLogo = $institution?->logoUrl() ?: asset('icons/icon-192.png');
             $loginLogoAlt = 'Logo '.$institutionName;
         @endphp
 

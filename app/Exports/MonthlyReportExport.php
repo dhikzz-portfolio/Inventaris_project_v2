@@ -13,6 +13,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -278,9 +279,13 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                             'font' => ['size' => 9],
                             'alignment' => ['horizontal' => 'center'],
                         ],
+                        // Garis biru penutup kop, sama dengan pratinjau Excel.
                         3 => [
                             'font' => ['size' => 9],
                             'alignment' => ['horizontal' => 'center'],
+                            'borders' => [
+                                'bottom' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['rgb' => '155DFC']],
+                            ],
                         ],
                         5 => [
                             'font' => ['bold' => true, 'size' => 12],
@@ -310,20 +315,22 @@ class MonthlyReportExport implements Export, WithMultipleSheets
                             }
 
                             if ($this->logoPath !== null) {
-                                $sheet->getRowDimension(1)->setRowHeight(30);
-                                $sheet->getRowDimension(2)->setRowHeight(16);
-                                $sheet->getRowDimension(3)->setRowHeight(16);
+                                // Tinggi tiga baris kop menampung logo 64 px agar
+                                // ukurannya sebanding dengan kop pratinjau/PDF.
+                                $sheet->getRowDimension(1)->setRowHeight(34);
+                                $sheet->getRowDimension(2)->setRowHeight(18);
+                                $sheet->getRowDimension(3)->setRowHeight(18);
 
                                 $drawing = new Drawing;
                                 $drawing->setPath($this->logoPath);
                                 $drawing->setResizeProportional(true);
-                                $drawing->setHeight(50);
+                                $drawing->setHeight(64);
                                 $drawing->setCoordinates('A1');
                                 $drawing->setOffsetX(4);
                                 $drawing->setOffsetY(4);
                                 $drawing->setWorksheet($sheet);
                             } else {
-                                $sheet->getRowDimension(1)->setRowHeight(22);
+                                $sheet->getRowDimension(1)->setRowHeight(24);
                             }
 
                             $sheet->getRowDimension(MonthlyReportExport::HEADING_ROW)->setRowHeight(20);

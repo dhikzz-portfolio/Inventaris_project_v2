@@ -10,8 +10,8 @@
                     <span class="material-icons-round" aria-hidden="true">menu</span>
                 </button>
                 <div class="flex min-w-0 items-center gap-2 md:hidden">
-                    @if ($institution->logo_path)
-                        <img src="{{ asset('storage/'.$institution->logo_path) }}" alt="" class="h-8 w-8 shrink-0 rounded-lg bg-white object-contain p-0.5 ring-1 ring-slate-200 dark:ring-slate-700">
+                    @if ($institution->logoUrl())
+                        <img src="{{ $institution->logoUrl() }}" alt="" class="h-8 w-8 shrink-0 rounded-lg bg-white object-contain p-0.5 ring-1 ring-slate-200 dark:ring-slate-700">
                     @else
                         <span class="material-icons-round shrink-0 text-xl text-brand-600" aria-hidden="true">school</span>
                     @endif

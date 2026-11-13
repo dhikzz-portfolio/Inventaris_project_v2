@@ -724,6 +724,51 @@ class ReportImportAndArchiveTest extends TestCase
         $this->assertSame('Catatan ekspor uji', $unit->notes);
     }
 
+    public function test_berkas_laporan_format_lama_ditolak_dengan_penjelasan_yang_jelas(): void
+    {
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [['1', 'Kursi Kerja', 'Umum', 'Ruang Guru', 'Gedung A/Lt 1', '3', 'Buah', '2024', 'BOS', 'Aktif', 'A.1', 'KRS-01', 'REG-01', '1500000']],
+                'ID Internal,nama_barang,kategori,ruangan,gedung_lt,jumlah,satuan,tahun,sumber_dana,status,kode_lokasi,kode_barang,no_register,nilai_tinggi',
+            ),
+            'mode' => 'update',
+        ])->assertSessionHasErrors('file');
+
+        $message = session('errors')->first('file');
+
+        $this->assertStringContainsString('format laporan lama', $message);
+        $this->assertStringContainsString('tidak dapat diimpor', $message);
+    }
+
+    public function test_pesan_header_menyebut_kolom_hilang_dan_header_yang_terbaca(): void
+    {
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv(
+                [['KRS-01', 'Kursi Kerja', 'A', '1', '1', 'Aktif']],
+                'kode_inventaris,nama_barang,gedung,lantai,no_ruangan,status',
+            ),
+            'mode' => 'update',
+        ])->assertSessionHasErrors('file');
+
+        $message = session('errors')->first('file');
+
+        $this->assertStringContainsString('kolom "kondisi" tidak ditemukan', $message);
+        $this->assertStringContainsString('header terbaca: kode_inventaris', $message);
+    }
+
+    public function test_berkas_tanpa_kolom_wajib_menyebut_semua_kolom_yang_hilang(): void
+    {
+        $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
+            'file' => $this->csv([['Kursi Kerja', 'Umum']], 'foo,bar'),
+            'mode' => 'update',
+        ])->assertSessionHasErrors('file');
+
+        $message = session('errors')->first('file');
+
+        $this->assertStringContainsString('kolom "kondisi", "status" tidak ditemukan', $message);
+        $this->assertStringContainsString('header terbaca: foo, bar', $message);
+    }
+
     public function test_kop_excel_memakai_logo_instansi_bila_tersedia(): void
     {
         Storage::fake('public');
@@ -745,6 +790,38 @@ class ReportImportAndArchiveTest extends TestCase
 
         $this->assertCount(1, $drawings);
         $this->assertSame('A1', $drawings[0]->getCoordinates());
+
+        // Logo harus cukup besar agar terbaca di kop hasil cetak.
+        $this->assertSame(64, $drawings[0]->getHeight());
+    }
+
+    public function test_logo_instansi_disajikan_lewat_rute_aplikasi(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('institution/logo.png', base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+        ));
+
+        InstitutionSetting::current()->update(['logo_path' => 'institution/logo.png']);
+
+        // Halaman pratinjau memakai rute aplikasi, bukan public/storage yang
+        // bergantung pada symlink.
+        $this->actingAs($this->wakasek)
+            ->get(route('reports.preview-excel', ['period' => now()->format('Y-m')]))
+            ->assertOk()
+            ->assertSee(InstitutionSetting::current()->logoUrl(), false);
+
+        $response = $this->get(route('settings.logo'))->assertOk();
+
+        $this->assertStringStartsWith('image/png', (string) $response->headers->get('content-type'));
+    }
+
+    public function test_logo_instansi_tidak_ada_mengembalikan_404(): void
+    {
+        Storage::fake('public');
+        InstitutionSetting::current()->update(['logo_path' => null]);
+
+        $this->get(route('settings.logo'))->assertNotFound();
     }
 
     public function test_format_berkas_tidak_didukung_ditolak(): void

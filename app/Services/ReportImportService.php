@@ -70,9 +70,50 @@ class ReportImportService
             }
         }
 
-        $this->assertHeaders($sheets->first() !== null ? $this->firstRowKeys($sheets->first()) : null);
+        $this->assertHeaders($this->closestHeadingRow($sheets->all()));
 
         return [];
+    }
+
+    /**
+     * Baris paling mendekati header template dari seluruh sheet.
+     *
+     * Dipakai hanya saat header wajib tidak ditemukan, agar pesan kesalahan
+     * menyebut isi berkas yang sebenarnya terbaca (dan dapat mengenali laporan
+     * format lama yang tidak memuat kolom Kondisi).
+     *
+     * @param  array<int, array<int, mixed>>  $sheets
+     * @return array{sheet: int, row: int, keys: list<string>}|null
+     */
+    private function closestHeadingRow(array $sheets): ?array
+    {
+        $best = null;
+        $bestMatches = 0;
+
+        foreach ($sheets as $sheetIndex => $sheet) {
+            foreach (array_slice($sheet, 0, 40, true) as $rowIndex => $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                if (collect($row)->filter(fn ($value): bool => filled($value))->isEmpty()) {
+                    continue;
+                }
+
+                $keys = $this->headingKeys($row);
+                $matches = count(array_filter(
+                    $this->requiredHeaders(),
+                    fn (array $aliases): bool => array_intersect($aliases, $keys) !== [],
+                ));
+
+                if ($best === null || $matches > $bestMatches) {
+                    $bestMatches = $matches;
+                    $best = ['sheet' => (int) $sheetIndex, 'row' => (int) $rowIndex, 'keys' => $keys];
+                }
+            }
+        }
+
+        return $best;
     }
 
     /**
@@ -148,37 +189,59 @@ class ReportImportService
     }
 
     /**
-     * @param  array<int, mixed>  $sheet
-     * @return list<string>|null
+     * Tolak berkas dengan header yang tidak sesuai template sebelum satu baris
+     * pun dianalisis. Pesan menyebut semua kolom wajib yang hilang, lokasi baris
+     * header, header yang terbaca, dan mengenali laporan format lama.
+     *
+     * @param  array{sheet: int, row: int, keys: list<string>}|null  $candidate
      */
-    private function firstRowKeys(array $sheet): ?array
+    private function assertHeaders(?array $candidate): void
     {
-        foreach ($sheet as $row) {
-            if (is_array($row) && collect($row)->filter(fn ($value) => filled($value))->isNotEmpty()) {
-                return $this->headingKeys($row);
+        $keys = $candidate['keys'] ?? [];
+
+        if ($this->looksLikeLegacyReport($keys)) {
+            throw ValidationException::withMessages([
+                'file' => 'Berkas ini memakai format laporan lama (rekap per barang, tanpa kolom Kondisi) sehingga tidak memuat data per unit dan tidak dapat diimpor. Buka halaman Laporan, unduh ulang laporan Excel periode tersebut dari tombol Excel (format terbaru), lalu impor berkas hasil unduhan itu. Untuk menambah data unit, gunakan Template Tabel Impor.',
+            ]);
+        }
+
+        $missing = [];
+
+        foreach ($this->requiredHeaders() as $label => $aliases) {
+            if (array_intersect($aliases, $keys) === []) {
+                $missing[] = "\"{$label}\"";
             }
         }
 
-        return null;
+        if ($missing === []) {
+            throw ValidationException::withMessages([
+                'file' => 'Berkas tidak memuat baris header yang dapat dibaca. Unduh Template Tabel Impor dan Panduan Impor, lalu gunakan header yang sama.',
+            ]);
+        }
+
+        $found = array_values(array_filter($keys, fn (string $key): bool => $key !== ''));
+        $location = $candidate === null
+            ? ''
+            : ' pada sheet '.($candidate['sheet'] + 1).' baris '.($candidate['row'] + 1);
+        $foundText = $found === [] ? 'tidak ada header yang terbaca' : 'header terbaca: '.implode(', ', $found);
+
+        throw ValidationException::withMessages([
+            'file' => 'Header kolom tidak sesuai template: kolom '.implode(', ', $missing)." tidak ditemukan{$location} ({$foundText}). Unduh Template Tabel Impor dan Panduan Impor, lalu gunakan header yang sama.",
+        ]);
     }
 
     /**
-     * Tolak berkas dengan header yang tidak sesuai template sebelum satu baris
-     * pun dianalisis. Pesan menyebut kolom wajib yang hilang.
+     * Laporan bulanan versi lama menyajikan rekap per katalog (Jumlah/Satuan)
+     * sehingga tidak memiliki kolom Kondisi per unit.
      *
-     * @param  list<string>|null  $available
+     * @param  list<string>  $keys
      */
-    private function assertHeaders(?array $available): void
+    private function looksLikeLegacyReport(array $keys): bool
     {
-        $available ??= [];
+        $legacyMarkers = ['id_internal', 'jumlah', 'satuan'];
 
-        foreach ($this->requiredHeaders() as $label => $aliases) {
-            if (array_intersect($aliases, $available) === []) {
-                throw ValidationException::withMessages([
-                    'file' => "Header kolom tidak sesuai template: kolom \"{$label}\" tidak ditemukan. Unduh Template Tabel Impor dan Panduan Impor, lalu gunakan header yang sama.",
-                ]);
-            }
-        }
+        return count(array_intersect($legacyMarkers, $keys)) >= 2
+            && array_intersect($this->requiredHeaders()['kondisi'], $keys) === [];
     }
 
     /** @param list<string> $keys */

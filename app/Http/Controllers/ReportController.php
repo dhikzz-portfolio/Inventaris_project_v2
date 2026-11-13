@@ -116,6 +116,7 @@ class ReportController extends Controller
             'page' => $page,
             'perPage' => $perPage,
             'summary' => $data['summary'],
+            'setting' => $data['setting'],
         ]);
     }
 

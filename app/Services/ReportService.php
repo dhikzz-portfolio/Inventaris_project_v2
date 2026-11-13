@@ -456,17 +456,28 @@ class ReportService
 
         $htmlPath = $directory.'/'.Str::uuid().'.html';
         $pdfPath = substr($htmlPath, 0, -5).'.pdf';
+        // Profil eksplisit: Chrome headless menolak berjalan tanpa direktori
+        // profil yang pasti ("Missing headless user data directory") ketika
+        // profil bawaan tidak dapat ditentukan, mis. saat dipanggil dari
+        // server PHP yang berjalan sebagai akun layanan.
+        $profilePath = $directory.'/profile-'.Str::uuid();
 
         try {
             File::put($htmlPath, $html);
+            File::ensureDirectoryExists($profilePath);
 
             $process = Process::timeout(180)->run([
                 $binary,
                 '--headless=new',
                 '--disable-gpu',
                 '--no-sandbox',
+                '--no-first-run',
+                '--disable-crash-reporter',
+                '--disable-dev-shm-usage',
+                '--hide-scrollbars',
                 '--no-pdf-header-footer',
-                '--print-to-pdf='.$pdfPath,
+                '--user-data-dir='.$this->printablePath($profilePath),
+                '--print-to-pdf='.$this->printablePath($pdfPath),
                 'file://'.$this->fileUrlPath($htmlPath),
             ]);
 
@@ -483,7 +494,14 @@ class ReportService
             return null;
         } finally {
             File::delete([$htmlPath, $pdfPath]);
+            File::deleteDirectory($profilePath);
         }
+    }
+
+    /** Path berkas untuk argumen CLI Chrome: selalu memakai pemisah garis miring. */
+    private function printablePath(string $path): string
+    {
+        return str_replace('\\', '/', $path);
     }
 
     /** Path berkas menjadi bagian URL file:// yang sah di Windows maupun POSIX. */

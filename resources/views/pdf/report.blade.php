@@ -8,8 +8,8 @@
         body { margin: 0; font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #111; }
         .kop { width: 100%; border-bottom: 3px solid #155dfc; padding-bottom: 6px; margin-bottom: 12px; }
         .kop img { max-width: 56px; max-height: 56px; }
-        .kop .instansi { font-size: 12pt; font-weight: bold; text-transform: uppercase; }
-        .kop .alamat { font-size: 8.5pt; }
+        .kop .instansi { font-size: 12pt; font-weight: bold; text-transform: uppercase; text-align: center; }
+        .kop .alamat { font-size: 8.5pt; text-align: center; }
         .judul { text-align: center; font-size: 11.5pt; font-weight: bold; text-transform: uppercase; margin: 8px 0 2px; }
         .periode { text-align: center; font-size: 9pt; margin-bottom: 12px; color: #444; }
         h3 { font-size: 9.5pt; margin: 12px 0 4px; background: #eff6ff; padding: 3px 5px; border-left: 4px solid #155dfc; }

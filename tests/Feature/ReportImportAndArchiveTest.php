@@ -7,6 +7,7 @@ use App\Exports\MonthlyReportExport;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
 use App\Models\Category;
+use App\Models\InstitutionSetting;
 use App\Models\Item;
 use App\Models\Report;
 use App\Models\Room;
@@ -18,6 +19,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Excel as ExcelWriter;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class ReportImportAndArchiveTest extends TestCase
@@ -695,7 +697,13 @@ class ReportImportAndArchiveTest extends TestCase
         $this->assertNotFalse($notesIndex);
         $this->assertSame('Catatan ekspor uji', $exportedRow[$notesIndex]);
 
-        $binary = Excel::raw(new MonthlyReportExport($data), ExcelWriter::XLSX);
+        $export = new MonthlyReportExport($data);
+        $sheetRows = $export->sheets()[0]->array();
+        $this->assertSame($data['setting']->institution_name, $sheetRows[0][0]);
+        $this->assertSame($unitTable['headings'], $sheetRows[MonthlyReportExport::HEADING_ROW - 1]);
+        $this->assertContains(MonthlyReportExport::SIGNATURE_MARKER, array_column($sheetRows, 0));
+
+        $binary = Excel::raw($export, ExcelWriter::XLSX);
 
         $this->actingAs($this->wakasek)->post(route('reports.import.preview'), [
             'file' => UploadedFile::fake()->createWithContent('laporan-bulanan.xlsx', $binary),
@@ -714,6 +722,29 @@ class ReportImportAndArchiveTest extends TestCase
 
         $this->assertSame('DIPINJAM', $unit->refresh()->status->value);
         $this->assertSame('Catatan ekspor uji', $unit->notes);
+    }
+
+    public function test_kop_excel_memakai_logo_instansi_bila_tersedia(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('logos/logo-sekolah.png', base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+        ));
+
+        InstitutionSetting::current()->update(['logo_path' => 'logos/logo-sekolah.png']);
+
+        $data = app(ReportService::class)->data(now()->format('Y-m'), 'SEMUA', null, $this->wakasek);
+        $binary = Excel::raw(new MonthlyReportExport($data), ExcelWriter::XLSX);
+
+        $path = tempnam(sys_get_temp_dir(), 'kop').'.xlsx';
+        file_put_contents($path, $binary);
+        $sheet = IOFactory::load($path)->getSheet(0);
+        @unlink($path);
+
+        $drawings = $sheet->getDrawingCollection();
+
+        $this->assertCount(1, $drawings);
+        $this->assertSame('A1', $drawings[0]->getCoordinates());
     }
 
     public function test_format_berkas_tidak_didukung_ditolak(): void

@@ -2,13 +2,19 @@
 
 namespace App\Exports;
 
+use App\Models\InstitutionSetting;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
@@ -18,9 +24,20 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * `tables()` adalah SATU-SATUNYA sumber bentuk tabel. PDF dan pratinjau Excel
  * memakai definisi yang sama sehingga jumlah baris, kode unit, keterangan,
  * status, dan lokasi tidak mungkin berbeda antar format.
+ *
+ * Setiap sheet diawali kop surat dan diakhiri blok tanda tangan. Baris header
+ * tabel berada di baris ke-8 dan blok tanda tangan dibuka penanda
+ * self::SIGNATURE_MARKER sehingga impor dapat melewati kop dan berhenti
+ * sebelum tanda tangan.
  */
 class MonthlyReportExport implements Export, WithMultipleSheets
 {
+    /** Penanda awal blok tanda tangan; dipakai ReportImportService. */
+    public const SIGNATURE_MARKER = 'Tanda Tangan';
+
+    /** Baris header tabel (1-based) setelah kop surat. */
+    public const HEADING_ROW = 8;
+
     public function __construct(private readonly array $data) {}
 
     /**
@@ -159,35 +176,169 @@ class MonthlyReportExport implements Export, WithMultipleSheets
 
     public function sheets(): array
     {
-        return collect(self::tables($this->data))
-            ->map(fn (array $table) => new class($table) implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
-            {
-                public function __construct(private readonly array $table) {}
+        $setting = $this->data['setting'] ?? InstitutionSetting::current();
+        $periodLabel = (string) ($this->data['periodLabel'] ?? '');
+        $scopeLabel = (string) ($this->data['scopeLabel'] ?? '');
 
-                public function styles(Worksheet $sheet): ?array
-                {
-                    return [
-                        1 => [
-                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
-                        ],
-                    ];
-                }
+        // Logo hanya dipakai bila berkasnya ada dan formatnya dapat disisipkan
+        // PhpSpreadsheet; selain itu kop tetap memakai seluruh lebar tabel.
+        $logoPath = null;
+
+        if (filled($setting->logo_path) && Storage::disk('public')->exists($setting->logo_path)) {
+            $candidate = Storage::disk('public')->path($setting->logo_path);
+            $size = @getimagesize($candidate);
+
+            if ($size !== false && in_array($size[2], [IMAGETYPE_PNG, IMAGETYPE_JPEG, IMAGETYPE_GIF, IMAGETYPE_BMP], true)) {
+                $logoPath = $candidate;
+            }
+        }
+
+        return collect(self::tables($this->data))
+            ->map(fn (array $table) => new class($table, $setting, $periodLabel, $scopeLabel, $logoPath) implements FromArray, ShouldAutoSize, WithEvents, WithStyles, WithTitle
+            {
+                public function __construct(
+                    private readonly array $table,
+                    private readonly InstitutionSetting $setting,
+                    private readonly string $periodLabel,
+                    private readonly string $scopeLabel,
+                    private readonly ?string $logoPath,
+                ) {}
 
                 public function title(): string
                 {
                     return $this->table['title'];
                 }
 
+                /**
+                 * Kop surat di baris 1-6, header tabel di baris 8, lalu data.
+                 * Blok tanda tangan dibuka penanda SIGNATURE_MARKER agar impor
+                 * tahu di mana data berakhir.
+                 *
+                 * @return list<list<string|int|float|null>>
+                 */
                 public function array(): array
                 {
-                    return $this->table['rows'];
+                    $width = count($this->table['headings']);
+                    $blank = array_fill(0, $width, '');
+
+                    // Teks kop selalu di kolom A dan di-merge selebar tabel, lalu
+                    // dipusatkan. Logo digambar di atas kolom A sehingga tidak
+                    // menggeser titik tengah kop.
+                    $rows = [
+                        $this->cell($width, 0, (string) $this->setting->institution_name),
+                        $this->cell($width, 0, (string) $this->setting->address),
+                        $this->cell($width, 0, 'Kode Lokasi/Instansi: '.$this->setting->location_code),
+                        $blank,
+                        $this->cell($width, 0, 'Laporan Inventaris & Aset Bulanan — '.$this->table['title']),
+                        $this->cell($width, 0, trim('Periode: '.$this->periodLabel.' • Cakupan: '.$this->scopeLabel)),
+                        $blank,
+                        $this->table['headings'],
+                    ];
+
+                    foreach ($this->table['rows'] as $row) {
+                        $rows[] = $row;
+                    }
+
+                    $rows[] = $blank;
+                    $rows[] = $this->cell($width, 0, MonthlyReportExport::SIGNATURE_MARKER);
+                    $rows[] = $this->cell($width, 0, 'Mengetahui,', 3, 'Petugas Inventaris,');
+                    $rows[] = $blank;
+                    $rows[] = $this->cell($width, 0, (string) $this->setting->headmaster_name, 3, '');
+                    $rows[] = $this->cell($width, 0, 'NIP. ..............................', 3, '');
+
+                    return $rows;
                 }
 
-                /** @return list<string> */
-                public function headings(): array
+                /**
+                 * @return list<string>
+                 */
+                private function cell(int $width, int $column, string $value, int $secondColumn = -1, string $second = ''): array
                 {
-                    return $this->table['headings'];
+                    $row = array_fill(0, $width, '');
+                    $row[$column] = $value;
+
+                    if ($secondColumn >= 0 && $secondColumn < $width) {
+                        $row[$secondColumn] = $second;
+                    }
+
+                    return $row;
+                }
+
+                public function styles(Worksheet $sheet): ?array
+                {
+                    $signatureRow = MonthlyReportExport::HEADING_ROW + count($this->table['rows']) + 2;
+
+                    // Kop surat (dan judul/periode) rata tengah di seluruh lebar tabel.
+                    return [
+                        1 => [
+                            'font' => ['bold' => true, 'size' => 14],
+                            'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
+                        ],
+                        2 => [
+                            'font' => ['size' => 9],
+                            'alignment' => ['horizontal' => 'center'],
+                        ],
+                        3 => [
+                            'font' => ['size' => 9],
+                            'alignment' => ['horizontal' => 'center'],
+                        ],
+                        5 => [
+                            'font' => ['bold' => true, 'size' => 12],
+                            'alignment' => ['horizontal' => 'center'],
+                        ],
+                        6 => [
+                            'font' => ['size' => 9],
+                            'alignment' => ['horizontal' => 'center'],
+                        ],
+                        MonthlyReportExport::HEADING_ROW => [
+                            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '155DFC']],
+                        ],
+                        $signatureRow => ['font' => ['italic' => true, 'color' => ['rgb' => '6B7280']]],
+                    ];
+                }
+
+                public function registerEvents(): array
+                {
+                    return [
+                        AfterSheet::class => function (AfterSheet $event): void {
+                            $sheet = $event->sheet->getDelegate();
+                            $lastColumn = Coordinate::stringFromColumnIndex(count($this->table['headings']));
+
+                            foreach ([1, 2, 3, 5, 6] as $row) {
+                                $sheet->mergeCells('A'.$row.':'.$lastColumn.$row);
+                            }
+
+                            if ($this->logoPath !== null) {
+                                $sheet->getRowDimension(1)->setRowHeight(30);
+                                $sheet->getRowDimension(2)->setRowHeight(16);
+                                $sheet->getRowDimension(3)->setRowHeight(16);
+
+                                $drawing = new Drawing;
+                                $drawing->setPath($this->logoPath);
+                                $drawing->setResizeProportional(true);
+                                $drawing->setHeight(50);
+                                $drawing->setCoordinates('A1');
+                                $drawing->setOffsetX(4);
+                                $drawing->setOffsetY(4);
+                                $drawing->setWorksheet($sheet);
+                            } else {
+                                $sheet->getRowDimension(1)->setRowHeight(22);
+                            }
+
+                            $sheet->getRowDimension(MonthlyReportExport::HEADING_ROW)->setRowHeight(20);
+                            $sheet->freezePane('A'.(MonthlyReportExport::HEADING_ROW + 1));
+
+                            // Cetak landscape selebar satu halaman dan dipusatkan
+                            // horizontal agar kop tetap di tengah kertas.
+                            $sheet->getPageSetup()
+                                ->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+                                ->setPaperSize(PageSetup::PAPERSIZE_A4)
+                                ->setFitToWidth(1)
+                                ->setFitToHeight(0);
+                            $sheet->getPageSetup()->setHorizontalCentered(true);
+                        },
+                    ];
                 }
             })
             ->all();

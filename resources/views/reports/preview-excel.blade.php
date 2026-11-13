@@ -65,6 +65,28 @@
     </div>
 
     <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        {{-- Kop surat: sama dengan kop pada berkas Excel. --}}
+        <div class="border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-6">
+            {{-- Kop surat: teks rata tengah selebar tabel, logo menempel di kiri
+                 tanpa menggeser titik tengah teks (sama dengan berkas Excel). --}}
+            <div class="relative border-b-2 border-brand-600 pb-3">
+                @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
+                    <img src="{{ asset('storage/'.$setting->logo_path) }}"
+                         alt="Logo {{ $setting->institution_name }}"
+                         class="absolute left-0 top-0 h-12 w-12 object-contain sm:h-14 sm:w-14">
+                @endif
+                <div class="px-14 text-center sm:px-16">
+                    <p class="text-base font-bold uppercase tracking-wide text-slate-900 dark:text-white">{{ $setting->institution_name }}</p>
+                    @if ($setting->address)
+                        <p class="text-xs text-slate-600 dark:text-slate-300">{{ $setting->address }}</p>
+                    @endif
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Kode Lokasi/Instansi: {{ $setting->location_code }}</p>
+                </div>
+            </div>
+            <p class="mt-3 text-center text-sm font-semibold text-slate-900 dark:text-slate-100">Laporan Inventaris &amp; Aset Bulanan — {{ $activeTable['title'] }}</p>
+            <p class="text-center text-xs text-slate-500 dark:text-slate-400">Periode: {{ $periodLabel }} • Cakupan: {{ $scopeLabel }}</p>
+        </div>
+
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
             <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $activeTable['title'] }}</p>
             <p class="text-xs text-slate-500 dark:text-slate-400">
@@ -125,6 +147,22 @@
                 @endif
             </div>
         @endif
+        {{-- Blok tanda tangan: sama dengan penutup berkas Excel. --}}
+        <div class="border-t border-slate-100 px-4 py-6 dark:border-slate-800 sm:px-6">
+            <p class="mb-5 text-xs italic text-slate-400">Tanda Tangan</p>
+            <div class="grid grid-cols-1 gap-6 text-xs text-slate-700 dark:text-slate-200 sm:grid-cols-2">
+                <div>
+                    <p>Mengetahui,</p>
+                    <p class="mt-12 font-semibold">{{ $setting->headmaster_name ?: '..............................' }}</p>
+                    <p class="text-slate-500 dark:text-slate-400">NIP. ..............................</p>
+                </div>
+                <div>
+                    <p>Petugas Inventaris,</p>
+                    <p class="mt-12 font-semibold">..............................</p>
+                    <p class="text-slate-500 dark:text-slate-400">NIP. ..............................</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <p class="mt-3 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">

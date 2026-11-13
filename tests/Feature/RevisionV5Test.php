@@ -253,7 +253,11 @@ class RevisionV5Test extends TestCase
             ->assertOk()
             ->assertSee('Pratinjau Excel')
             ->assertSee($data['units']->first()->inventory_code)
-            ->assertSee('Kode Inventaris');
+            ->assertSee('Kode Inventaris')
+            ->assertSee($data['setting']->institution_name)
+            ->assertSee('Kode Lokasi/Instansi:')
+            ->assertSee('Tanda Tangan')
+            ->assertSee('Petugas Inventaris,');
     }
 
     public function test_import_template_is_downloadable_and_wrong_headers_are_rejected(): void

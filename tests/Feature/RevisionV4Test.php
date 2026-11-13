@@ -166,9 +166,8 @@ class RevisionV4Test extends TestCase
         $this->assertStringContainsString('data lama tanpa rincian unit', $html);
 
         $sheets = (new MonthlyReportExport($data))->sheets();
-        $sheet = $sheets[4];
-        $this->assertContains('Kode Unit', $sheet->headings());
-        $this->assertCount(3, $sheet->array());
+        $this->assertContains('Kode Unit', MonthlyReportExport::tables($data)[4]['headings']);
+        $this->assertCount(3, MonthlyReportExport::tables($data)[4]['rows']);
     }
 
     public function test_report_scope_excludes_units_outside_lab_scope_in_a_mixed_write_off(): void

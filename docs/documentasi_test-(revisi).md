@@ -1101,3 +1101,64 @@ Verifikasi
 - Cek langsung  SHOW COLUMNS FROM write_off_units :  inventory_code  = varchar(32)
 
 Untuk server/deploy lain, cukup jalankan  php artisan migrate  setelah kode ini terpasang. Setelah itu pengajuan inventaris keluar untuk unit dengan nomor besar tidak akan error lagi.
+Ketemu penyebabnya, dan sudah saya perbaiki.
+
+Penyebab 500 di Laporan Bulanan
+
+Log-nya jelas: yang gagal adalah tombol Pratinjau/Unduh PDF ( laporan/export/pdf/... ). Chrome headless dipanggil tanpa direktori profil sehingga Chrome menolak jalan:
+-  ERROR:chrome\app\chrome_main.cc:210 Missing headless user data directory  (plus error crashpad)
+- Karena itu render PDF dianggap gagal, kode jatuh ke cadangan dompdf, lalu dompdf kehabisan memori di batas 512 MB ( Allowed memory size of 536870912 bytes exhausted  di  dompdf/Cellmap.php ) → fatal error → 500.
+
+Perbaikan ( app/Services/ReportService.php )
+- Chrome sekarang dijalankan dengan  --user-data-dir  eksplisit per permintaan (folder sementara unik di  storage/app/tmp/pdf , dihapus otomatis setelah selesai), jadi tidak lagi bergantung pada profil bawaan yang tidak bisa ditentukan saat dipanggil dari server PHP.
+- Ditambah  --disable-crash-reporter  (mematikan error crashpad yang ikut muncul),  --no-first-run ,  --disable-dev-shm-usage ,  --hide-scrollbars .
+- Path argumen  --user-data-dir  dan  --print-to-pdf  dinormalkan ke garis miring lewat helper baru  printablePath() , dan folder profil dibersihkan di blok  finally .
+
+Pengecekan yang dijalankan
+- Render lewat kode service yang sebenarnya (memanggil  renderPdfWithChrome() ): menghasilkan PDF valid — 11.951 byte, header  %PDF .
+-  php artisan test --compact tests/Feature/SecurityAccessTest.php --filter='test_manajer_dapat_mengekspor_laporan_pdf_dan_excel|test_laboran_hanya_mendapat_laporan_ruang_lingkupnya'  → 2 passed (8 assertions), termasuk route ekspor PDF.
+-  vendor/bin/pint --dirty --format agent  → passed.
+
+Batasan: saya tidak bisa mengulang klik dari browser dengan akun Anda (akun demo di database tidak tersedia untuk login otomatis), jadi verifikasi dilakukan pada jalur kode PDF yang tadinya gagal, bukan lewat sesi browser Anda. Silakan coba lagi Pratinjau PDF / Unduh PDF di halaman Laporan Bulanan. Kalau Chrome Anda tidak di lokasi standar, isi  CHROME_PATH  di  .env  dengan path  chrome.exe / msedge.exe . Perubahan ini belum di-commit.
+
+Kop surat dan blok tanda tangan sudah masuk ke semua sheet Excel, dan impor tetap membaca datanya.
+
+Yang berubah
+
+ app/Exports/MonthlyReportExport.php 
+- Setiap sheet (Unit, Peminjaman, Kerusakan, Mutasi Lokasi, Penghapusan, Pengadaan, Laporan Kerusakan) kini punya:
+- Kop surat baris 1–3: nama instansi (dari Pengaturan Institusi), alamat, kode lokasi/instansi — digabung selebar tabel, nama instansi tebal 14pt.
+- Judul laporan + periode/cakupan di baris 5–6.
+- Header tabel di baris 8 (tetap biru seperti sebelumnya).
+- Blok tanda tangan di akhir: "Mengetahui, … Petugas Inventaris,", nama kepala sekolah dari pengaturan, dan baris  NIP. ... , dibuka penanda  Tanda Tangan  (konstanta  SIGNATURE_MARKER ).
+- Baris beku di bawah header, tinggi baris kop dirapikan.  tables()  tidak diubah, jadi PDF dan pratinjau Excel tetap identik.
+
+ app/Services/ReportImportService.php 
+- Pembaca tidak lagi menganggap header ada di baris pertama: ia memindai 40 baris pertama tiap sheet, mencari baris yang memuat kolom wajib ( Kondisi  dan  Status ), lalu membaca data di bawahnya. Ini membuat sheet kop, sheet "Petunjuk", dan sheet transaksi lain otomatis diabaikan.
+- Pembacaan berhenti tepat di penanda  Tanda Tangan , jadi blok tanda tangan tidak pernah dianggap data.
+- Nomor baris pada pesan kesalahan pratinjau sekarang memakai nomor baris asli file (baris data pertama = 9), bukan asumsi header di baris 1.
+- Template impor dan CSV lama tetap jalan seperti biasa (header di baris 1).
+
+Verifikasi
+- Data asli cakupan SEMUA: 1.629 unit. File XLSX terbentuk (113 KB), kop berisi "SMK BAGIMU NEGERIKU SEMARANG" dan kode lokasi, header di baris 8, blok tanda tangan di baris 1.639. Hasil baca ulang impor: 1.629 baris — sama persis dengan jumlah unit, tanpa satu pun baris kop/tanda tangan ikut terbaca.
+-  tests/Feature/ReportImportAndArchiveTest.php  (termasuk uji pulang-pergi ekspor → impor): 29 passed (174 assertions).
+- Uji paritas PDF/Excel, template impor, dan pratinjau Excel: 3 passed (25 assertions).
+-  vendor/bin/pint --dirty --format agent : passed.
+
+Catatan: kop/tanda tangan hanya ada di berkas Excel; halaman Pratinjau Excel tetap menampilkan tabel saja. Perubahan belum di-commit.
+
+Fitur logo di kop Excel sudah terpasang sejak perubahan sebelumnya, dan saya sudah memeriksa ulang kodenya serta menjalankan tesnya. Yang membuat logo belum terlihat di berkas Excel Anda: Pengaturan Institusi saat ini belum punya logo ( logo_path = null , dan tidak ada berkas logo di  storage/app/public ).
+
+Cara mengaktifkannya
+1. Login sebagai Super Admin, buka  /pengaturan  (menu Pengaturan Instansi).
+2. Unggah Logo Instansi — disarankan PNG transparan, maksimal 2 MB (format yang bisa disematkan ke Excel: PNG, JPEG, GIF, BMP).
+3. Simpan, lalu buka Laporan Bulanan → Unduh Excel. Logo otomatis muncul di sel A1 tiap sheet, teks kop (nama instansi, alamat, kode lokasi) bergeser ke kolom B dan tetap selebar tabel.
+
+Yang sudah ada di kode ( app/Exports/MonthlyReportExport.php )
+- Logo dibaca dari  logo_path  di disk  public , disisipkan di A1 (tinggi 50 px, proporsional).
+- Bila logo tidak ada atau formatnya tidak didukung, kop kembali ke tata letak teks penuh tanpa menggeser kolom — ekspor tidak gagal.
+- Kop, header baris 8, dan blok tanda tangan tidak berubah, sehingga impor tetap membaca seluruh baris data.
+
+Verifikasi ulang: tes  test_kop_excel_memakai_logo_instansi_bila_tersedia  (unggah logo PNG ke disk  public , ekspor XLSX, lalu pastikan ada tepat 1 gambar di sel A1) → 1 passed. Sebelumnya tes pulang-pergi ekspor → impor juga lulus, jadi data tetap terbaca.
+
+Catatan: halaman Pratinjau Excel masih menampilkan kop teks tanpa logo. Perubahan belum di-commit.

@@ -6,6 +6,7 @@ use App\Enums\AcquisitionStatus;
 use App\Enums\Condition;
 use App\Enums\ItemStatus;
 use App\Enums\UnitStatus;
+use App\Exports\MonthlyReportExport;
 use App\Models\AssetUnit;
 use App\Models\AssetUnitCode;
 use App\Models\Category;
@@ -17,9 +18,9 @@ use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToArray as ToArrayConcern;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
@@ -39,7 +40,7 @@ class ReportImportService
     public function parse(UploadedFile $file): array
     {
         try {
-            $sheets = Excel::toArray(new class implements ToArrayConcern, WithHeadingRow
+            $sheets = Excel::toArray(new class implements ToArrayConcern
             {
                 public function array(array $array): void
                 {
@@ -57,34 +58,119 @@ class ReportImportService
             ->filter(fn ($sheet) => is_array($sheet) && $sheet !== [])
             ->values();
 
-        // Pilih sheet pertama yang memiliki seluruh header wajib. File ekspor
-        // laporan bulanan memakai sheet "Unit" di posisi pertama; template
-        // impor memakai sheet "Template Tabel Impor" di posisi pertama dan
-        // "Petunjuk" di posisi kedua yang tidak boleh dianggap sebagai data.
-        $rows = $sheets->first(fn (array $sheet) => $this->hasRequiredHeaders(collect($sheet)->first()));
+        // Header dicari, bukan diasumsikan di baris pertama: file ekspor
+        // laporan bulanan diawali kop surat. Sheet dipilih bila memuat seluruh
+        // header wajib, sehingga sheet "Petunjuk" dan sheet transaksi lain
+        // tidak dianggap sebagai data.
+        foreach ($sheets as $sheet) {
+            $headingIndex = $this->headingRowIndex($sheet);
 
-        if ($rows === null) {
-            $this->assertHeaders($sheets->first() !== null ? collect($sheets->first())->first() : null);
-
-            return [];
+            if ($headingIndex !== null) {
+                return $this->rowsAfterHeading($sheet, $headingIndex);
+            }
         }
 
-        return collect($rows)
-            ->filter(fn ($row) => is_array($row) && collect($row)->filter(fn ($value) => filled($value))->isNotEmpty())
-            ->map(fn (array $row) => $this->normalizeRow($row))
-            ->values()
-            ->all();
+        $this->assertHeaders($sheets->first() !== null ? $this->firstRowKeys($sheets->first()) : null);
+
+        return [];
+    }
+
+    /**
+     * Baris header pertama pada sheet yang memuat seluruh kolom wajib.
+     *
+     * @param  array<int, mixed>  $sheet
+     */
+    private function headingRowIndex(array $sheet): ?int
+    {
+        foreach (array_slice($sheet, 0, 40, true) as $index => $row) {
+            if (is_array($row) && $this->hasRequiredHeaders($this->headingKeys($row))) {
+                return (int) $index;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<int, mixed>  $row
+     * @return list<string>
+     */
+    private function headingKeys(array $row): array
+    {
+        return array_map(
+            fn ($cell): string => Str::slug(trim((string) $cell), '_'),
+            array_values($row),
+        );
+    }
+
+    /**
+     * Baris data setelah header, berhenti di penanda blok tanda tangan.
+     *
+     * @param  array<int, mixed>  $sheet
+     * @return list<array<string, mixed>>
+     */
+    private function rowsAfterHeading(array $sheet, int $headingIndex): array
+    {
+        $keys = $this->headingKeys($sheet[$headingIndex]);
+        $columnCount = count($keys);
+        $marker = Str::slug(MonthlyReportExport::SIGNATURE_MARKER, '_');
+        $rows = [];
+
+        foreach (array_slice($sheet, $headingIndex + 1) as $offset => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $cells = array_slice(array_pad(array_values($row), $columnCount, null), 0, $columnCount);
+
+            if (Str::slug(trim((string) ($cells[0] ?? '')), '_') === $marker) {
+                break;
+            }
+
+            if (collect($cells)->filter(fn ($value) => filled($value))->isEmpty()) {
+                continue;
+            }
+
+            $normalized = [];
+
+            foreach ($keys as $index => $key) {
+                if ($key !== '') {
+                    $normalized[$key] = $cells[$index] ?? null;
+                }
+            }
+
+            // Nomor baris asli pada file, dipakai pesan kesalahan pratinjau.
+            $normalized['__line'] = $headingIndex + $offset + 2;
+            $rows[] = $this->normalizeRow($normalized);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  array<int, mixed>  $sheet
+     * @return list<string>|null
+     */
+    private function firstRowKeys(array $sheet): ?array
+    {
+        foreach ($sheet as $row) {
+            if (is_array($row) && collect($row)->filter(fn ($value) => filled($value))->isNotEmpty()) {
+                return $this->headingKeys($row);
+            }
+        }
+
+        return null;
     }
 
     /**
      * Tolak berkas dengan header yang tidak sesuai template sebelum satu baris
      * pun dianalisis. Pesan menyebut kolom wajib yang hilang.
      *
-     * @param  array<string, mixed>|null  $row
+     * @param  list<string>|null  $available
      */
-    private function assertHeaders(?array $row): void
+    private function assertHeaders(?array $available): void
     {
-        $available = $row !== null ? array_keys($row) : [];
+        $available ??= [];
 
         foreach ($this->requiredHeaders() as $label => $aliases) {
             if (array_intersect($aliases, $available) === []) {
@@ -95,17 +181,11 @@ class ReportImportService
         }
     }
 
-    /** @param array<string, mixed>|null $row */
-    private function hasRequiredHeaders(?array $row): bool
+    /** @param list<string> $keys */
+    private function hasRequiredHeaders(array $keys): bool
     {
-        if ($row === null) {
-            return false;
-        }
-
-        $available = array_keys($row);
-
         foreach ($this->requiredHeaders() as $aliases) {
-            if (array_intersect($aliases, $available) === []) {
+            if (array_intersect($aliases, $keys) === []) {
                 return false;
             }
         }
@@ -146,6 +226,7 @@ class ReportImportService
         foreach ($rows as $index => $row) {
             $errors = [];
             $warnings = [];
+            $line = (int) ($row['__line'] ?? $index + 2);
             $code = $this->normalizeCode((string) ($row['kode_inventaris'] ?? ''));
             $autoCode = false;
 
@@ -156,11 +237,11 @@ class ReportImportService
             } elseif (! preg_match(InventoryCodeService::PATTERN, $code)) {
                 $errors[] = "Format kode {$code} tidak valid (contoh: G1-02-012-01).";
             } elseif (isset($seen[$code])) {
-                $errors[] = 'Kode ganda dengan baris '.($seen[$code] + 2).'.';
+                $errors[] = 'Kode ganda dengan baris '.$seen[$code].'.';
             }
 
             if ($code !== '') {
-                $seen[$code] = $index;
+                $seen[$code] = $line;
             }
 
             $condition = $this->resolveCondition((string) ($row['kondisi'] ?? ''));
@@ -321,7 +402,7 @@ class ReportImportService
             }
 
             $analyzed[] = [
-                'line' => $index + 2,
+                'line' => $line,
                 'code' => $code,
                 'name' => trim((string) ($row['nama_barang'] ?? '')),
                 'room_label' => $room?->roomLabel() ?? '—',
@@ -725,6 +806,8 @@ class ReportImportService
                 }
             }
         }
+
+        $normalized['__line'] = $row['__line'] ?? null;
 
         return $normalized;
     }

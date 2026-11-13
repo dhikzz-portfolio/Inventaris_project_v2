@@ -1024,7 +1024,6 @@ Verifikasi
 -  php artisan test --compact tests/Feature/ReportImportAndArchiveTest.php --filter="filter_hanya_baris_bermasalah|pratinjau"  → 3 tes lulus (23 assertion).
 -  vendor/bin/pint --dirty --format agent  → bersih;  php artisan view:cache  → Blade terkompilasi.
 
-<<<<<<< HEAD
 
 Apa yang diubah
 -  resources/js/app.js : fungsi yang menyuntikkan kotak "Cari pilihan…" terpisah di atas tiap dropdown saya hapus. Combobox  searchableSelect  sekarang mengirim nilai ke  input / change  pada hidden input, jadi binding Livewire ( wire:model.live ) tetap jalan.
@@ -1039,7 +1038,6 @@ Pengecekan yang dijalankan
 -  vendor/bin/pint --dirty --format agent  → passed.
 
 Batasan: interaksi buka-dropdown/ketik/pilih tidak saya uji di browser (tidak ada harness e2e di repo ini); yang terverifikasi adalah render server-side, kompilasi aset, dan seluruh test di atas. Perubahan belum di-commit, dan perubahan PDF/Chrome dari permintaan sebelumnya masih ada di working tree.
-=======
 1. Laporan kerusakan 500
 
 Penyebabnya di  resources/views/damage-reports/index.blade.php : controller mengirim  $classifications  dan  $statuses  sebagai array biasa ( Enum::cases() ), tetapi view memanggil  ->map()  pada array tersebut. Itu memicu:
@@ -1103,4 +1101,3 @@ Verifikasi
 - Cek langsung  SHOW COLUMNS FROM write_off_units :  inventory_code  = varchar(32)
 
 Untuk server/deploy lain, cukup jalankan  php artisan migrate  setelah kode ini terpasang. Setelah itu pengajuan inventaris keluar untuk unit dengan nomor besar tidak akan error lagi.
->>>>>>> 293b943dd7a57c1df4b9c7eb919c38e61bd8c931

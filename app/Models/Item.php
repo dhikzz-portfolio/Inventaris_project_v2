@@ -451,7 +451,11 @@ class Item extends Model
     {
         return ! $this->units()->exists()
             && ! $this->loanItems()->exists()
-            && ! $this->writeOffs()->exists();
+            && ! $this->writeOffs()->exists()
+            && ! $this->movements()->exists()
+            && ! $this->receipts()->exists()
+            && ! $this->allocations()->exists()
+            && ! $this->distributions()->exists();
     }
 
     public function isAcquisitionPending(): bool

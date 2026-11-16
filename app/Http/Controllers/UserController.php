@@ -13,8 +13,10 @@ use App\Models\User;
 use App\Models\UserRoomScope;
 use App\Rules\GmailAddress;
 use App\Services\NotifyApp;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -316,6 +318,30 @@ class UserController extends Controller
             'Pengguna tercatat sebagai pembuat kegiatan. Pertahankan akun agar relasi kegiatan tidak yatim.'
         );
 
+        try {
+            DB::transaction(function () use ($user): void {
+                // Penugasan ruangan adalah hak akses aktif, bukan riwayat
+                // transaksi, sehingga dilepas bersama akun.
+                $user->roomScopes()->delete();
+
+                // Penugasan yang dibuat akun ini tetap tersimpan, tetapi
+                // penanggung jawabnya dikosongkan agar dapat dihapus tanpa
+                // melanggar foreign key.
+                UserRoomScope::query()
+                    ->where('assigned_by', $user->id)
+                    ->update(['assigned_by' => null]);
+
+                $user->delete();
+            });
+        } catch (QueryException $exception) {
+            // Tabel transaksi (laporan kerusakan, mutasi, pengadaan, arsip
+            // laporan) masih menunjuk akun ini. Tolak dengan pesan yang dapat
+            // ditindaklanjuti, jangan tampilkan halaman 500.
+            report($exception);
+
+            abort(422, 'Pengguna masih terhubung dengan riwayat transaksi (peminjaman, laporan kerusakan, mutasi, pengadaan, atau arsip laporan) sehingga tidak dapat dihapus. Nonaktifkan akun atau ubah role-nya saja.');
+        }
+
         activity('pengguna')->performedOn($user)->causedBy($actor)
             ->withProperties([
                 'aksi' => 'HAPUS',
@@ -328,8 +354,6 @@ class UserController extends Controller
         NotifyApp::toAccountAdmins(NotificationType::AKUN,
             "Akun {$user->displayName()} dihapus oleh {$actor->displayName()}.",
             route('users.index'), $actor->id);
-
-        $user->delete();
 
         return back()->with('success', 'Pengguna dihapus.');
     }

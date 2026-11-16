@@ -2,10 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcquisitionAllocation;
+use App\Models\AssetUnitCode;
+use App\Models\AssetUnitMovement;
 use App\Models\Building;
 use App\Models\Category;
+use App\Models\Distribution;
+use App\Models\DistributionUnit;
+use App\Models\LoanItem;
 use App\Models\Major;
 use App\Models\Room;
+use App\Models\UserRoomScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -156,11 +163,31 @@ class MasterController extends Controller
     {
         abort_if($room->items()->exists() || $room->units()->exists(), 422, 'Ruangan masih menyimpan barang — mutasi barang terlebih dahulu.');
         abort_if($room->movementsFrom()->exists() || $room->movementsTo()->exists(), 422, 'Ruangan memiliki riwayat mutasi dan tidak dapat dihapus.');
+        abort_if($this->roomHasTransactionHistory($room), 422, 'Ruangan memiliki riwayat transaksi (kode unit lama, mutasi unit, pengadaan, distribusi, atau pengembalian peminjaman) sehingga tidak dapat dihapus. Riwayat tersebut dipertahankan untuk audit.');
+        abort_if(UserRoomScope::query()->where('room_id', $room->id)->exists(), 422, 'Ruangan masih ditugaskan ke akun laboran — lepaskan penugasan ruangan terlebih dahulu.');
 
         activity('master')->performedOn($room)->causedBy($request->user())->log('Menghapus ruangan');
         $room->delete();
 
         return back()->with('success', 'Ruangan dihapus.');
+    }
+
+    /**
+     * Riwayat lain yang menahan penghapusan ruangan melalui foreign key.
+     *
+     * Kode unit lama tetap menyimpan ruangan asal setelah unit dimutasi, dan
+     * transaksi pengadaan/distribusi/pengembalian juga menunjuk ruangan.
+     */
+    private function roomHasTransactionHistory(Room $room): bool
+    {
+        return AssetUnitCode::query()->where('room_id', $room->id)->exists()
+            || AssetUnitMovement::query()
+                ->where(fn ($query) => $query->where('from_room_id', $room->id)->orWhere('to_room_id', $room->id))
+                ->exists()
+            || AcquisitionAllocation::query()->where('room_id', $room->id)->exists()
+            || Distribution::query()->where('to_room_id', $room->id)->exists()
+            || DistributionUnit::query()->where('to_room_id', $room->id)->exists()
+            || LoanItem::query()->where('returned_room_id', $room->id)->exists();
     }
 
     /**

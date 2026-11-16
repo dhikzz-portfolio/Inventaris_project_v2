@@ -431,26 +431,33 @@ class ReportService
      *
      * Chrome/Edge headless dipakai lebih dulu karena dompdf membutuhkan >3 GB
      * RAM (dan ~3 menit) untuk rincian seluruh sekolah dengan 1.600+ unit,
-     * sementara Chrome menyelesaikannya dalam hitungan detik. dompdf tetap
-     * menjadi cadangan bila tidak ada peramban Chromium di server.
+     * sementara Chrome menyelesaikannya dalam hitungan detik. Setiap peramban
+     * dicoba pada mode headless baru dan lama: Chromium di Windows pernah
+     * merusak `--print-to-pdf` pada mode baru, sehingga mode lama diperlukan
+     * sebagai cadangan sebelum jatuh ke dompdf.
      */
     private function renderPdf(array $data): string
     {
         $html = view('pdf.report', $data)->render();
 
-        return $this->renderPdfWithChrome($html)
-            ?? Pdf::loadHTML($html)->setPaper('a4', 'landscape')->output();
-    }
+        foreach ($this->browserBinaries() as $binary) {
+            foreach (['--headless=new', '--headless=old'] as $headlessMode) {
+                $pdf = $this->renderPdfWithChrome($html, $binary, $headlessMode);
 
-    /** Cetak HTML menjadi PDF lewat Chrome/Edge headless; null bila tidak tersedia. */
-    private function renderPdfWithChrome(string $html): ?string
-    {
-        $binary = $this->chromeBinary();
-
-        if ($binary === null) {
-            return null;
+                if ($pdf !== null) {
+                    return $pdf;
+                }
+            }
         }
 
+        $this->prepareDompdfFallback();
+
+        return Pdf::loadHTML($html)->setPaper('a4', 'landscape')->output();
+    }
+
+    /** Cetak HTML menjadi PDF lewat Chrome/Edge headless; null bila gagal. */
+    private function renderPdfWithChrome(string $html, string $binary, string $headlessMode): ?string
+    {
         $directory = storage_path('app/tmp/pdf');
         File::ensureDirectoryExists($directory);
 
@@ -466,13 +473,14 @@ class ReportService
             File::put($htmlPath, $html);
             File::ensureDirectoryExists($profilePath);
 
-            $process = Process::timeout(180)->run([
+            $process = Process::timeout(120)->run([
                 $binary,
-                '--headless=new',
+                $headlessMode,
                 '--disable-gpu',
                 '--no-sandbox',
                 '--no-first-run',
                 '--disable-crash-reporter',
+                '--disable-breakpad',
                 '--disable-dev-shm-usage',
                 '--hide-scrollbars',
                 '--no-pdf-header-footer',
@@ -481,13 +489,21 @@ class ReportService
                 'file://'.$this->fileUrlPath($htmlPath),
             ]);
 
-            if (! $process->successful()) {
-                throw new RuntimeException('Chrome gagal mencetak PDF laporan: '.$process->errorOutput());
-            }
-
             $pdf = is_file($pdfPath) ? (string) file_get_contents($pdfPath) : '';
 
-            return $pdf !== '' ? $pdf : null;
+            // Chrome di Windows kadang menulis PDF dengan benar tetapi keluar
+            // dengan kode != 0 karena crashpad gagal mendaftar. Berkas yang
+            // sah tetap dipakai agar tidak jatuh ke dompdf yang boros memori.
+            if ($this->isPdfDocument($pdf)) {
+                return $pdf;
+            }
+
+            throw new RuntimeException(sprintf(
+                'Chrome gagal mencetak PDF laporan (%s, exit %s): %s',
+                $headlessMode,
+                $process->getExitCode() ?? '-',
+                trim($process->errorOutput()) ?: 'tidak ada keluaran galat',
+            ));
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -496,6 +512,44 @@ class ReportService
             File::delete([$htmlPath, $pdfPath]);
             File::deleteDirectory($profilePath);
         }
+    }
+
+    /** PDF utuh: diawali penanda berkas dan tidak terpotong di tengah. */
+    private function isPdfDocument(string $pdf): bool
+    {
+        return str_starts_with($pdf, '%PDF-') && strlen($pdf) > 1000;
+    }
+
+    /**
+     * Beri ruang memori tambahan untuk cadangan dompdf.
+     *
+     * Laporan besar tetap lebih baik dicetak lewat peramban; batas ini hanya
+     * mencegah fatal error 512 MB pada cakupan kecil/menengah ketika Chrome
+     * dan Edge sama-sama tidak tersedia.
+     */
+    private function prepareDompdfFallback(): void
+    {
+        $limit = ini_get('memory_limit');
+
+        if (is_string($limit) && $limit !== '-1' && $this->memoryLimitInBytes($limit) < 2048 * 1024 * 1024) {
+            @ini_set('memory_limit', '2048M');
+        }
+
+        if ((int) ini_get('max_execution_time') > 0) {
+            @set_time_limit(300);
+        }
+    }
+
+    private function memoryLimitInBytes(string $limit): int
+    {
+        $value = (int) $limit;
+
+        return match (strtolower(substr(trim($limit), -1))) {
+            'g' => $value * 1024 ** 3,
+            'm' => $value * 1024 ** 2,
+            'k' => $value * 1024,
+            default => $value,
+        };
     }
 
     /** Path berkas untuk argumen CLI Chrome: selalu memakai pemisah garis miring. */
@@ -512,16 +566,22 @@ class ReportService
         return (str_starts_with($path, '/') ? '' : '/').$path;
     }
 
-    /** Lokasi Chrome/Edge headless; dapat dipaksa lewat CHROME_PATH. */
-    private function chromeBinary(): ?string
+    /**
+     * Semua peramban Chromium yang tersedia, berurutan sesuai prioritas.
+     * Path dapat dipaksa lewat CHROME_PATH.
+     *
+     * @return list<string>
+     */
+    private function browserBinaries(): array
     {
         $configured = config('services.chrome.path');
+        $candidates = [];
 
-        if (is_string($configured) && $configured !== '' && is_file($configured)) {
-            return $configured;
+        if (is_string($configured) && $configured !== '') {
+            $candidates[] = $configured;
         }
 
-        $candidates = [
+        $candidates = array_merge($candidates, [
             '/usr/bin/google-chrome',
             '/usr/bin/google-chrome-stable',
             '/usr/bin/chromium',
@@ -533,7 +593,7 @@ class ReportService
             'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
             'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
             'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-        ];
+        ]);
 
         $localAppData = getenv('LOCALAPPDATA');
 
@@ -543,12 +603,9 @@ class ReportService
             $candidates[] = $localAppData.'/Microsoft/Edge/Application/msedge.exe';
         }
 
-        foreach ($candidates as $candidate) {
-            if (is_file($candidate)) {
-                return $candidate;
-            }
-        }
-
-        return null;
+        return array_values(array_unique(array_filter(
+            $candidates,
+            fn (string $candidate): bool => is_file($candidate),
+        )));
     }
 }

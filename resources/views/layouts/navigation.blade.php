@@ -18,10 +18,12 @@
                     <span class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $institution->institution_name }}</span>
                 </div>
                 <form action="{{ route('catalogs.index') }}" method="GET" role="search"
+                      x-data
                       class="hidden h-10 w-full max-w-sm items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-500 transition focus-within:border-brand-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100 md:flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:focus-within:border-brand-700 dark:focus-within:bg-slate-950 dark:focus-within:ring-brand-900/50">
                     <label for="global-catalog-search" class="material-icons-round text-lg text-slate-400" aria-hidden="true">search</label>
                     <input id="global-catalog-search" type="search" name="search" value="{{ request()->query('search') }}"
                            placeholder="Cari barang atau kode" aria-label="Cari barang atau kode"
+                           x-on:input.debounce.500ms="$el.form.requestSubmit()"
                            class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:ring-0 dark:text-slate-100">
                 </form>
             </div>

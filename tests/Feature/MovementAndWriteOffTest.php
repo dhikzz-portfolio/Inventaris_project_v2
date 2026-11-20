@@ -78,7 +78,7 @@ class MovementAndWriteOffTest extends TestCase
             ->assertSee('Filter')
             ->assertSeeInOrder(['id="movement-search"', 'id="movement-filter-panel"'], false)
             ->assertSee('movement-catalog', false)
-            ->assertSee('Terapkan filter');
+            ->assertSee('onchange="this.requestSubmit()"', false);
     }
 
     public function test_daftar_pindah_barang_dapat_dicari_berdasarkan_nama_barang_dan_kode_unit(): void

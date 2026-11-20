@@ -38,7 +38,7 @@
     ])
     @php($activeStatus = $tabs[$status ?? ''] ?? $tabs[''])
 
-    <form method="GET" action="{{ route('loans.index') }}" class="sticky top-16 z-20 mb-2 grid grid-cols-2 items-center gap-2 bg-slate-50/95 py-2 backdrop-blur sm:flex dark:bg-slate-950/95">
+    <form method="GET" action="{{ route('loans.index') }}" onchange="this.requestSubmit()" class="sticky top-16 z-20 mb-2 grid grid-cols-2 items-center gap-2 bg-slate-50/95 py-2 backdrop-blur sm:flex dark:bg-slate-950/95">
         @if (filled($status ?? null))
             <input type="hidden" name="status" value="{{ $status }}">
         @endif
@@ -62,9 +62,6 @@
                 placeholder="Cari status…" class="w-full sm:w-56" />
         </div>
         <div class="flex w-full gap-2 sm:w-auto">
-            <button type="submit" class="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 sm:flex-none">
-                Cari
-            </button>
             @if ($search !== '' || $status !== '')
                 <a href="{{ route('loans.index') }}"
                    class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">

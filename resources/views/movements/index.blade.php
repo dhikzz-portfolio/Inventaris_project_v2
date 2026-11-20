@@ -24,7 +24,8 @@
         $activeAdditionalFilterCount = collect($filters)->except('search')->filter(fn ($value) => $value !== null && $value !== '')->count();
     @endphp
     <form method="GET" action="{{ route('movements.index') }}"
-          x-data="{ filtersOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }}, ...directScanner(), submitForm() { this.$el.requestSubmit(); } }"
+          x-data="{ filtersOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }}, ...directScanner() }"
+          onchange="this.requestSubmit()"
           class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
         <div class="mb-3">
             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Filter Unit</h3>
@@ -151,10 +152,6 @@
                             Hapus filter
                         </a>
                     @endif
-                    <button type="submit"
-                            class="inline-flex min-h-9 items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-brand-600 dark:text-white">
-                        Terapkan filter
-                    </button>
                 </div>
             </div>
         </div>

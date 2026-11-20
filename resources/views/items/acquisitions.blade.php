@@ -43,7 +43,7 @@
         <div class="flex items-start gap-2"><span class="material-icons-round text-base text-green-700">verified</span><span>Admin memutuskan menyetujui atau menolak.</span></div>
     </div>
 
-    <form method="GET" action="{{ route('items.acquisitions') }}" role="search"
+    <form method="GET" action="{{ route('items.acquisitions') }}" role="search" onchange="this.requestSubmit()"
           class="mb-5 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row">
         @if ($statusFilter !== null)
             <input type="hidden" name="status" value="{{ $statusFilter }}">
@@ -56,9 +56,6 @@
                    class="min-h-10 w-full rounded-xl border-slate-200 bg-slate-50 py-2 pl-10 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:bg-slate-950">
         </div>
         <div class="flex shrink-0 gap-2">
-            <button type="submit" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 sm:flex-none">
-                <span class="material-icons-round text-base" aria-hidden="true">search</span> Cari
-            </button>
             @if ($search !== '')
                 <a href="{{ route('items.acquisitions', array_filter(['status' => $statusFilter])) }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                     Hapus

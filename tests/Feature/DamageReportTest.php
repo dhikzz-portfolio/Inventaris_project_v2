@@ -66,7 +66,7 @@ class DamageReportTest extends TestCase
                 'id="status"',
                 'id="room_id"',
             ], false)
-            ->assertSee('Terapkan');
+            ->assertSee('onchange="this.requestSubmit()"', false);
     }
 
     public function test_laboran_melaporkan_rusak_ringan_tanpa_menghapus_unit(): void

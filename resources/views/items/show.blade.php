@@ -1,10 +1,21 @@
+@php
+    $effective = $item->effectiveStatus();
+    $available = $item->availableQuantity();
+    $isDeleted = $effective === \App\Enums\ItemStatus::DIHAPUS;
+    $canBorrow = ! $isDeleted && $item->isRecordedInInventory() && $available > 0;
+    $locationLines = app(\App\Services\LabelService::class)->splitLocationCode((string) $item->location_code);
+@endphp
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-                <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <nav aria-label="Breadcrumb" class="mb-1 flex flex-wrap items-center gap-2 text-xs">
+                    <a href="{{ route('catalogs.index') }}" class="font-medium text-slate-500 transition hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300">Katalog Barang</a>
+                    <span class="text-slate-300 dark:text-slate-600" aria-hidden="true">/</span>
+                    <a href="{{ route('catalogs.show', $item) }}" class="max-w-[14rem] truncate font-medium text-slate-500 transition hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300">{{ $item->name }}</a>
+                </nav>
+                <div class="flex flex-wrap items-center gap-2">
                     <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">{{ $item->name }}</h2>
-                    @php($effective = $item->effectiveStatus())
                     <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $effective->badgeClass() }}">{{ $effective->label() }}</span>
                     @if ($item->is_high_value)
                         <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">NILAI TINGGI</span>
@@ -13,34 +24,97 @@
                         <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {{ $item->acquisitionStatusEnum()->badgeClass() }}">{{ $item->acquisitionStatusEnum()->label() }}</span>
                     @endif
                 </div>
-                <p class="font-mono text-sm text-slate-500 dark:text-slate-400">{{ $item->internal_id }}</p>
+                <p class="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400">{{ $item->internal_id }}</p>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex shrink-0 flex-wrap items-center gap-2">
                 <a href="{{ route('items.label', $item) }}" target="_blank"
-                   class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
                    title="Re-print label stiker">
-                    <span class="material-icons-round text-lg">print</span> Cetak Label
+                    <span class="material-icons-round text-lg" aria-hidden="true">print</span> Cetak Label
                 </a>
                 @if (auth()->user()->managesInventory())
                     <a href="{{ route('items.edit', $item) }}"
-                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-                        <span class="material-icons-round text-lg">edit</span> Ubah Data
+                       class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-brand-700 dark:hover:bg-slate-800 dark:hover:text-brand-300">
+                        <span class="material-icons-round text-base" aria-hidden="true">edit</span> Ubah Data
                     </a>
                 @endif
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
+                    <button type="button" @click="open = ! open" :aria-expanded="open.toString()" aria-controls="item-more-menu"
+                            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                        Lainnya
+                        <span class="material-icons-round text-base transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+                    </button>
+                    <div id="item-more-menu" x-show="open" x-cloak x-transition
+                         class="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-900">
+                        <a href="{{ route('items.acquisitions') }}"
+                           class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800">
+                            <span class="material-icons-round text-base text-slate-400" aria-hidden="true">list_alt</span> Lihat daftar pengadaan
+                        </a>
+                        <a href="{{ route('catalogs.show', $item) }}"
+                           class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800">
+                            <span class="material-icons-round text-base text-slate-400" aria-hidden="true">inventory_2</span> Kembali ke katalog
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </x-slot>
 
     @if (session('success'))
-        <div role="status" class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">{{ session('success') }}</div>
+        <div role="status" class="mb-4 flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">check_circle</span><span>{{ session('success') }}</span>
+        </div>
+    @endif
+    @if ($errors->any())
+        <div role="alert" class="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+            <span class="material-icons-round text-lg" aria-hidden="true">error_outline</span><span>{{ $errors->first() }}</span>
+        </div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    @if ($isDeleted)
+        <div role="status" class="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+            <span class="material-icons-round text-lg shrink-0" aria-hidden="true">warning_amber</span>
+            <span>Barang ini sudah dihapus. Peminjaman dinonaktifkan sampai status barang diubah kembali.</span>
+        </div>
+    @endif
+
+    {{-- Kartu ringkasan --}}
+    <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Jumlah</div>
+            <div class="mt-1 text-2xl font-bold leading-none {{ $item->quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white' }}">
+                {{ $item->quantity }} <span class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $item->unit }}</span>
+            </div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Tersedia</div>
+            <div class="mt-1 text-2xl font-bold leading-none {{ $available === 0 ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-400' }}">
+                {{ $available }} <span class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $item->unit }}</span>
+            </div>
+            @if ($item->qty_damaged > 0 || $item->qty_lost > 0 || $item->pendingLostQuantity() > 0)
+                <div class="mt-1.5 space-y-0.5 text-[10px] font-semibold">
+                    @if ($item->qty_damaged > 0)<div class="text-orange-700 dark:text-orange-300">Rusak: {{ $item->qty_damaged }} {{ $item->unit }}</div>@endif
+                    @if ($item->qty_lost > 0)<div class="text-red-600 dark:text-red-400">Hilang: {{ $item->qty_lost }} {{ $item->unit }}</div>@endif
+                    @if ($item->pendingLostQuantity() > 0)<div class="text-amber-700 dark:text-amber-300">Selisih belum ditutup: {{ $item->pendingLostQuantity() }}</div>@endif
+                </div>
+            @endif
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Tahun</div>
+            <div class="mt-1 text-2xl font-bold leading-none text-slate-900 dark:text-white">{{ $item->acquisition_year ?: '—' }}</div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Sumber dana</div>
+            <div class="mt-1 truncate text-lg font-bold leading-tight text-slate-900 dark:text-white" title="{{ $item->funding_source }}">{{ $item->funding_source ?: '—' }}</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         {{-- Kolom utama --}}
-        <div class="lg:col-span-2 space-y-5">
+        <div class="space-y-4 lg:col-span-2">
             @if ($item->acquisitionStatusEnum() && ! $item->isRecordedInInventory())
                 @php($acquisitionStatus = $item->acquisitionStatusEnum())
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
                             <span class="material-icons-round text-lg text-brand-600 dark:text-brand-300" aria-hidden="true">fact_check</span>
@@ -69,87 +143,129 @@
                     <a href="{{ route('items.acquisitions') }}" class="mt-3 inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
                         <span class="material-icons-round text-sm" aria-hidden="true">list_alt</span> Lihat daftar pengadaan
                     </a>
-                </div>
+                </section>
             @endif
 
-            {{-- Foto & spesifikasi --}}
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <div class="flex flex-col sm:flex-row gap-5">
-                    <div class="w-full sm:w-48 h-40 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+            {{-- Informasi barang --}}
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <h3 class="mb-3 flex items-center gap-2.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                        <span class="material-icons-round" aria-hidden="true">inventory_2</span>
+                    </span>
+                    Informasi barang
+                </h3>
+                <div class="flex flex-col gap-4 sm:flex-row">
+                    <div class="h-32 w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 sm:h-36 sm:w-40 dark:from-slate-800 dark:to-slate-700">
                         @if ($item->photo_path)
                             <img src="{{ asset('storage/'.$item->photo_path) }}" alt="{{ $item->name }}" class="h-full w-full object-cover">
                         @else
-                            <span class="material-icons-round text-6xl text-slate-400">inventory_2</span>
+                            <div class="flex h-full w-full items-center justify-center text-[11px] font-semibold text-slate-400 dark:text-slate-500">Tanpa foto</div>
                         @endif
                     </div>
-                    <div class="flex-1 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
-                        <p class="font-medium text-slate-800 dark:text-slate-100">{{ $item->specification ?: 'Tidak ada spesifikasi detail.' }}</p>
-                        <div class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
-                            <div><span class="text-gray-400">Kategori:</span> <strong>{{ $item->category?->name }}</strong></div>
-                            <div><span class="text-gray-400">Jumlah:</span> <strong>{{ $item->quantity }} {{ $item->unit }}</strong></div>
-                            <div><span class="text-gray-400">Tersedia:</span> <strong class="{{ $item->availableQuantity() === 0 ? 'text-red-600' : 'text-green-700' }}">{{ $item->availableQuantity() }} {{ $item->unit }}</strong>
-                                @if ($item->activeLoanRemainingQuantity() > 0)
-                                    <span class="text-[11px] text-blue-600">({{ $item->activeLoanRemainingQuantity() }} sedang di luar/dipinjam)</span>
-                                @endif
-                            </div>
-                            @if ($item->qty_damaged > 0 || $item->qty_lost > 0)
-                                <div class="text-[11px] text-red-600">
-                                    @if ($item->qty_damaged > 0) Rusak permanen: {{ $item->qty_damaged }} {{ $item->unit }}. @endif
-                                    @if ($item->qty_lost > 0) Hilang permanen: {{ $item->qty_lost }} {{ $item->unit }}. @endif
-                                </div>
-                            @endif
-                            @if ($item->pendingLostQuantity() > 0)
-                                <div class="text-[11px] text-amber-700">Selisih belum ditutup: {{ $item->pendingLostQuantity() }} {{ $item->unit }} (menunggu tindak lanjut).</div>
-                            @endif
-                            <div><span class="text-gray-400">Tahun:</span> <strong>{{ $item->acquisition_year }}</strong></div>
-                            <div><span class="text-gray-400">Sumber Dana:</span> <strong>{{ $item->funding_source }}</strong></div>
-                            <div><span class="text-gray-400">Ruangan:</span> <strong>{{ $item->room?->name }} ({{ $item->room?->code }}, Lt.{{ $item->room?->floor }})</strong></div>
-                            <div><span class="text-gray-400">Jurusan:</span> <strong>{{ $item->room?->major?->name ?: '-' }}</strong></div>
-                            <div><span class="text-gray-400">Tersedia:</span> <strong>{{ $item->availableQuantity() }} {{ $item->unit }}</strong></div>
+                    <dl class="grid flex-1 grid-cols-1 gap-x-4 gap-y-2.5 text-sm sm:grid-cols-2">
+                        <div>
+                            <dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Kategori</dt>
+                            <dd class="mt-0.5 break-words font-semibold text-slate-800 dark:text-slate-100">{{ $item->category?->name ?: '—' }}</dd>
                         </div>
+                        <div>
+                            <dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Ruangan</dt>
+                            <dd class="mt-0.5 break-words font-semibold text-slate-800 dark:text-slate-100">
+                                {{ $item->room?->name ?: '—' }}
+                                @if ($item->room)
+                                    <span class="font-normal text-slate-500 dark:text-slate-400">({{ $item->room->code }}, Lt.{{ $item->room->floor }})</span>
+                                @endif
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Jurusan</dt>
+                            <dd class="mt-0.5 break-words font-semibold text-slate-800 dark:text-slate-100">{{ $item->room?->major?->name ?: '—' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Spesifikasi</dt>
+                            <dd class="mt-0.5 break-words font-medium text-slate-700 dark:text-slate-200">{{ $item->specification ?: 'Tidak ada spesifikasi detail.' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </section>
+
+            {{-- Identitas inventaris + tombol copy --}}
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+                     x-data="{
+                        copied: null,
+                        copy(text, key) {
+                            const done = () => { this.copied = key; setTimeout(() => { this.copied = null; }, 1500); };
+                            if (navigator.clipboard && window.isSecureContext) {
+                                navigator.clipboard.writeText(text).then(done).catch(() => this.fallback(text, done));
+                            } else {
+                                this.fallback(text, done);
+                            }
+                        },
+                        fallback(text, done) {
+                            const ta = document.createElement('textarea');
+                            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                            document.body.appendChild(ta); ta.select();
+                            try { document.execCommand('copy'); } catch (e) {}
+                            document.body.removeChild(ta); done();
+                        }
+                     }">
+                <h3 class="mb-3 flex items-center gap-2.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                        <span class="material-icons-round" aria-hidden="true">tag</span>
+                    </span>
+                    Identitas inventaris
+                </h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800/60">
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">ID internal / spasial</p>
+                            <p class="mt-0.5 break-all font-mono text-sm font-bold text-slate-900 dark:text-slate-100">{{ $item->internal_id ?: '—' }}</p>
+                            <p class="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">Untuk pencarian ruangan</p>
+                        </div>
+                        <button type="button" data-copy="{{ $item->internal_id }}" @click="copy($el.dataset.copy, 'internal')"
+                                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                                aria-label="Salin ID internal" title="Salin ID internal">
+                            <span class="material-icons-round text-base" x-show="copied !== 'internal'">content_copy</span>
+                            <span class="material-icons-round text-base text-green-600 dark:text-green-400" x-show="copied === 'internal'" x-cloak>check</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800/60">
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Standar aset, baris 1 (kode lokasi/instansi)</p>
+                            <p class="mt-0.5 break-all font-mono text-sm font-bold text-slate-900 dark:text-slate-100">{{ $item->location_code ?: '—' }}</p>
+                            <p class="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">Untuk pelaporan dinas/yayasan</p>
+                        </div>
+                        <button type="button" data-copy="{{ $item->location_code }}" @click="copy($el.dataset.copy, 'location')"
+                                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                                aria-label="Salin kode lokasi" title="Salin kode lokasi">
+                            <span class="material-icons-round text-base" x-show="copied !== 'location'">content_copy</span>
+                            <span class="material-icons-round text-base text-green-600 dark:text-green-400" x-show="copied === 'location'" x-cloak>check</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800/60">
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Nomor register (opsional)</p>
+                            <p class="mt-0.5 break-all font-mono text-sm font-bold text-slate-900 dark:text-slate-100">{{ $item->register_no ?: '—' }}</p>
+                            <p class="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">Administratif, bukan kode inventaris unit</p>
+                        </div>
+                        <button type="button" data-copy="{{ $item->register_no }}" @click="copy($el.dataset.copy, 'register')"
+                                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                                aria-label="Salin nomor register" title="Salin nomor register">
+                            <span class="material-icons-round text-base" x-show="copied !== 'register'">content_copy</span>
+                            <span class="material-icons-round text-base text-green-600 dark:text-green-400" x-show="copied === 'register'" x-cloak>check</span>
+                        </button>
                     </div>
                 </div>
-            </div>
-
-            {{-- Dua format ID --}}
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-blue-600">tag</span> Identitas Inventaris
-                </h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <tr>
-                                <td class="w-40 py-2.5 pe-4 text-xs text-gray-500 sm:w-52">ID Internal / Spasial</td>
-                                <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->internal_id }}</td>
-                                <td class="hidden py-2.5 text-xs text-gray-400 sm:table-cell">Pencarian ruangan</td>
-                            </tr>
-                            <tr>
-                                <td class="w-40 py-2.5 pe-4 text-xs text-gray-500 sm:w-52">Standar Aset — Baris 1<br><span class="text-[10px]">Kode Lokasi/Instansi</span></td>
-                                <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->location_code }}</td>
-                                <td class="hidden py-2.5 text-xs text-gray-400 sm:table-cell">Pelaporan dinas/yayasan</td>
-                            </tr>
-                            <tr>
-                                <td class="w-40 py-2.5 pe-4 text-xs text-gray-500 sm:w-52">Nomor Register<br><span class="text-[10px]">opsional, administratif</span></td>
-                                <td class="py-2.5 font-mono font-semibold text-gray-800">{{ $item->register_no ?: '—' }}</td>
-                                <td class="hidden py-2.5 text-xs text-gray-400 sm:table-cell">Bukan kode inventaris unit</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
-                    <span>Label terakhir dicetak: {{ $item->last_label_printed_at?->format('d M Y H:i') ?: 'belum pernah' }}</span>
-                    <a href="{{ route('items.label', $item) }}" target="_blank" class="inline-flex min-h-8 items-center justify-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
-                        <span class="material-icons-round text-sm" aria-hidden="true">print</span> Re-print stiker
-                    </a>
-                </div>
-            </div>
+                <p class="mt-3 text-[11px] text-slate-400 dark:text-slate-500">Label terakhir dicetak: {{ $item->last_label_printed_at?->format('d M Y H:i') ?: 'belum pernah' }}</p>
+            </section>
 
             {{-- Kelompok spesifikasi & alokasi pengadaan --}}
             @if ($item->allocations->isNotEmpty())
-                <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                    <h3 class="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
-                        <span class="material-icons-round text-blue-600">account_tree</span> Kelompok Spesifikasi &amp; Alokasi Pengadaan
+                <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <h3 class="mb-3 flex items-center gap-2.5 text-base font-bold text-slate-900 dark:text-slate-100">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                            <span class="material-icons-round" aria-hidden="true">account_tree</span>
+                        </span>
+                        Kelompok Spesifikasi &amp; Alokasi Pengadaan
                     </h3>
                     <div class="overflow-x-auto">
                         <table class="w-full min-w-[640px] text-left text-xs">
@@ -175,80 +291,135 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </section>
             @endif
 
-            {{-- Riwayat peminjaman --}}
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-blue-600">history</span> Riwayat Peminjaman
-                    @if ($lastBorrower)
-                        <span class="ms-auto text-xs font-normal text-gray-500">
-                            Peminjam terakhir: <strong>{{ $lastBorrower->name }}</strong>
+            {{-- Riwayat (tab) --}}
+            <section class="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" x-data="{ tab: 'peminjaman' }">
+                <div class="flex flex-wrap items-center gap-1 border-b border-slate-100 px-2 pt-2 dark:border-slate-800">
+                    <h3 class="mb-1 me-2 flex items-center gap-2.5 px-2 text-base font-bold text-slate-900 dark:text-slate-100">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                            <span class="material-icons-round" aria-hidden="true">history</span>
                         </span>
+                        Riwayat
+                    </h3>
+                    <button type="button" @click="tab = 'peminjaman'"
+                            :class="tab === 'peminjaman' ? 'border-brand-600 text-brand-700 dark:text-brand-300' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+                            class="inline-flex min-h-9 items-center border-b-2 px-3 text-xs font-semibold transition">Peminjaman</button>
+                    <button type="button" @click="tab = 'mutasi'"
+                            :class="tab === 'mutasi' ? 'border-brand-600 text-brand-700 dark:text-brand-300' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+                            class="inline-flex min-h-9 items-center border-b-2 px-3 text-xs font-semibold transition">Mutasi lokasi</button>
+                    <button type="button" @click="tab = 'jadwal'"
+                            :class="tab === 'jadwal' ? 'border-brand-600 text-brand-700 dark:text-brand-300' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+                            class="inline-flex min-h-9 items-center border-b-2 px-3 text-xs font-semibold transition">Jadwal pemesanan</button>
+                </div>
+
+                {{-- Tab: Peminjaman --}}
+                <div x-show="tab === 'peminjaman'" x-cloak class="p-4">
+                    @if ($lastBorrower)
+                        <p class="mb-2 text-[11px] text-slate-500 dark:text-slate-400">Peminjam terakhir: <strong class="text-slate-700 dark:text-slate-200">{{ $lastBorrower->name }}</strong></p>
                     @endif
-                </h3>
-                @if ($loanHistory->isEmpty())
-                    <p class="text-sm text-gray-400">Belum ada riwayat peminjaman.</p>
-                @else
-                    <p class="mb-2 text-[11px] text-slate-400 md:hidden">Geser tabel ke samping untuk melihat semua kolom.</p>
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[700px] table-fixed text-sm">
-                            <colgroup>
-                                <col class="w-[18%]">
-                                <col class="w-[20%]">
-                                <col class="w-[19%]">
-                                <col class="w-[12%]">
-                                <col class="w-[16%]">
-                                <col class="w-[15%]">
-                            </colgroup>
-                            <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-                                <tr>
-                                    <th scope="col" class="px-3 py-3 text-left">Peminjam</th>
-                                    <th scope="col" class="px-3 py-3 text-left">Tujuan</th>
-                                    <th scope="col" class="px-3 py-3 text-left">Periode</th>
-                                    <th scope="col" class="px-2 py-3 text-center">Qty</th>
-                                    <th scope="col" class="px-2 py-3 text-center">Kondisi Kembali</th>
-                                    <th scope="col" class="px-2 py-3 text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                                @foreach ($loanHistory as $li)
-                                    <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
-                                        <td class="truncate px-3 py-4">
-                                            <a href="{{ route('loans.show', $li->loan) }}" class="font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $li->loan?->borrower?->name }}</a>
-                                            <div class="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">{{ $li->loan?->event?->name ?: '—' }}</div>
-                                        </td>
-                                        <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $li->loan?->purpose }}">{{ \Illuminate\Support\Str::limit($li->loan?->purpose, 40) }}</td>
-                                        <td class="whitespace-nowrap px-3 py-4 text-xs text-slate-600 dark:text-slate-300">{{ $li->loan?->start_date?->format('d/m/Y') }} – {{ $li->loan?->due_date?->format('d/m/Y') }}</td>
-                                        <td class="px-2 py-4 text-center">
-                                            <span class="inline-flex min-w-12 justify-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $li->qty_borrowed }} / {{ $li->qty_returned ?? '—' }}</span>
-                                        </td>
-                                        <td class="px-2 py-4 text-center text-xs">
-                                            @if ($li->condition_in)
-                                                <span class="inline-flex justify-center rounded-lg px-2 py-1 font-semibold {{ $li->condition_in->isDamaged() ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300' : 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' }}">{{ $li->condition_in->label() }}</span>
-                                            @else
-                                                <span class="text-slate-400 dark:text-slate-500">—</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-2 py-4 text-center">
-                                            <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $li->loan?->status?->badgeClass() }}">{{ $li->loan?->status?->label() }}</span>
-                                        </td>
+                    @if ($loanHistory->isEmpty())
+                        <p class="text-sm text-slate-400 dark:text-slate-500">Belum ada riwayat peminjaman.</p>
+                    @else
+                        <p class="mb-2 text-[11px] text-slate-400 md:hidden dark:text-slate-500">Geser tabel ke samping untuk melihat semua kolom.</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full min-w-[700px] table-fixed text-sm">
+                                <colgroup>
+                                    <col class="w-[18%]">
+                                    <col class="w-[20%]">
+                                    <col class="w-[19%]">
+                                    <col class="w-[12%]">
+                                    <col class="w-[16%]">
+                                    <col class="w-[15%]">
+                                </colgroup>
+                                <thead class="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                                    <tr>
+                                        <th scope="col" class="px-3 py-3 text-left">Peminjam</th>
+                                        <th scope="col" class="px-3 py-3 text-left">Tujuan</th>
+                                        <th scope="col" class="px-3 py-3 text-left">Periode</th>
+                                        <th scope="col" class="px-2 py-3 text-center">Qty</th>
+                                        <th scope="col" class="px-2 py-3 text-center">Kondisi Kembali</th>
+                                        <th scope="col" class="px-2 py-3 text-center">Status</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </div>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    @foreach ($loanHistory as $li)
+                                        <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                                            <td class="truncate px-3 py-4">
+                                                <a href="{{ route('loans.show', $li->loan) }}" class="font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $li->loan?->borrower?->name }}</a>
+                                                <div class="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">{{ $li->loan?->event?->name ?: '—' }}</div>
+                                            </td>
+                                            <td class="truncate px-3 py-4 text-xs text-slate-600 dark:text-slate-300" title="{{ $li->loan?->purpose }}">{{ \Illuminate\Support\Str::limit($li->loan?->purpose, 40) }}</td>
+                                            <td class="whitespace-nowrap px-3 py-4 text-xs text-slate-600 dark:text-slate-300">{{ $li->loan?->start_date?->format('d/m/Y') }} – {{ $li->loan?->due_date?->format('d/m/Y') }}</td>
+                                            <td class="px-2 py-4 text-center">
+                                                <span class="inline-flex min-w-12 justify-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ $li->qty_borrowed }} / {{ $li->qty_returned ?? '—' }}</span>
+                                            </td>
+                                            <td class="px-2 py-4 text-center text-xs">
+                                                @if ($li->condition_in)
+                                                    <span class="inline-flex justify-center rounded-lg px-2 py-1 font-semibold {{ $li->condition_in->isDamaged() ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300' : 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' }}">{{ $li->condition_in->label() }}</span>
+                                                @else
+                                                    <span class="text-slate-400 dark:text-slate-500">—</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-2 py-4 text-center">
+                                                <span class="inline-flex justify-center rounded-lg px-2 py-1 text-[10px] font-bold {{ $li->loan?->status?->badgeClass() }}">{{ $li->loan?->status?->label() }}</span>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Tab: Mutasi lokasi --}}
+                <div x-show="tab === 'mutasi'" x-cloak class="p-4">
+                    @if ($item->movements->isEmpty())
+                        <p class="text-sm text-slate-400 dark:text-slate-500">Belum pernah dipindahkan.</p>
+                    @else
+                        <ul class="space-y-2.5 text-xs">
+                            @foreach ($item->movements as $m)
+                                <li class="border-b border-dashed border-slate-100 pb-2 dark:border-slate-800">
+                                    <div class="flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                                        <span class="font-semibold">{{ $m->fromRoom?->code }}</span>
+                                        <span class="material-icons-round text-sm text-slate-400" aria-hidden="true">arrow_forward</span>
+                                        <span class="font-semibold">{{ $m->toRoom?->code }}</span>
+                                        <span class="ms-auto text-slate-400 dark:text-slate-500">{{ $m->moved_at?->format('d/m/Y') }}</span>
+                                    </div>
+                                    <div class="mt-0.5 text-slate-400 dark:text-slate-500">oleh {{ $m->mover?->name }}{{ $m->note ? ' — '.$m->note : '' }}</div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+
+                {{-- Tab: Jadwal pemesanan --}}
+                <div x-show="tab === 'jadwal'" x-cloak class="p-4">
+                    @if ($upcoming->isEmpty())
+                        <p class="text-sm text-slate-400 dark:text-slate-500">Belum ada pemesanan mendatang — barang bebas dibooking.</p>
+                    @else
+                        <ul class="space-y-2 text-sm">
+                            @foreach ($upcoming as $loan)
+                                <li class="flex items-center justify-between gap-2 border-b border-dashed border-slate-100 pb-2 dark:border-slate-800">
+                                    <div>
+                                        <div class="text-xs font-medium text-slate-700 dark:text-slate-200">{{ $loan->purpose }}</div>
+                                        <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ $loan->start_date->format('d/m/Y H:i') }} → {{ $loan->due_date->format('d/m/Y H:i') }}</div>
+                                    </div>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            </section>
         </div>
 
         {{-- Kolom kanan --}}
-        <div class="space-y-5">
-            {{-- QR & label preview (cerminan dari label cetak pdf.label_single) --}}
-            @php($locationLines = app(\App\Services\LabelService::class)->splitLocationCode((string) $item->location_code))
-            <div class="rounded-2xl border border-sky-100 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3">Pratinjau Label Stiker</h3>
+        <div class="space-y-4">
+            {{-- Pratinjau label stiker (QR) --}}
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                <h3 class="mb-3 text-sm font-bold text-slate-900 dark:text-slate-100">Label stiker</h3>
                 <div class="inline-block w-full max-w-[320px] border-2 border-slate-800 rounded-lg p-2.5 bg-white text-left">
                     <div class="flex items-center gap-2.5">
                         <div class="shrink-0 w-11 sm:w-14 flex items-center justify-center">
@@ -275,72 +446,52 @@
                     </div>
                 </div>
                 <a href="{{ route('items.label', $item) }}" target="_blank"
-                   class="mt-3 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
-                    <span class="material-icons-round text-lg">print</span> Cetak / Re-print Stiker
+                   class="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                    <span class="material-icons-round text-lg" aria-hidden="true">print</span> Cetak / Re-print Stiker
                 </a>
-            </div>
+                <p class="mt-2 text-[11px] text-slate-400 dark:text-slate-500">Terakhir dicetak {{ $item->last_label_printed_at?->format('d M Y, H:i') ?: 'belum pernah' }}</p>
+            </section>
 
-            {{-- Jadwal (anti-bentrok) --}}
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-blue-600">event_available</span> Jadwal Pemesanan
-                </h3>
-                @if ($upcoming->isEmpty())
-                    <p class="text-sm text-gray-400">Belum ada pemesanan mendatang — barang bebas dibooking.</p>
+            {{-- Ketersediaan --}}
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                <h3 class="mb-2 text-sm font-bold text-slate-900 dark:text-slate-100">Ketersediaan</h3>
+                @if ($canBorrow)
+                    <p class="text-xs leading-5 text-slate-500 dark:text-slate-400">Tersedia <strong class="text-green-700 dark:text-green-400">{{ $available }} {{ $item->unit }}</strong>. Barang dapat diajukan untuk dipinjam.</p>
+                    <a href="{{ route('loans.create') }}"
+                       class="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                        <span class="material-icons-round text-lg" aria-hidden="true">add_shopping_cart</span> Ajukan Peminjaman
+                    </a>
                 @else
-                    <ul class="space-y-2 text-sm">
-                        @foreach ($upcoming as $loan)
-                            <li class="flex items-center justify-between gap-2 border-b border-dashed border-gray-100 pb-2">
-                                <div>
-                                    <div class="text-gray-700 text-xs font-medium">{{ $loan->purpose }}</div>
-                                    <div class="text-[11px] text-gray-400">{{ $loan->start_date->format('d/m/Y H:i') }} → {{ $loan->due_date->format('d/m/Y H:i') }}</div>
-                                </div>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
+                    <p class="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Tidak bisa dipinjam:
+                        @if ($isDeleted)
+                            barang berstatus dihapus.
+                        @elseif (! $item->isRecordedInInventory())
+                            barang belum tercatat di inventaris.
+                        @else
+                            stok tersedia 0 {{ $item->unit }}.
+                        @endif
+                    </p>
+                    <button type="button" disabled
+                            class="mt-3 inline-flex min-h-10 w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-xl bg-slate-200 px-4 text-sm font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        <span class="material-icons-round text-lg" aria-hidden="true">block</span> Ajukan Peminjaman
+                    </button>
                 @endif
-                <a href="{{ route('loans.create') }}" class="mt-3 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
-                    <span class="material-icons-round text-lg">add_shopping_cart</span> Ajukan Peminjaman
-                </a>
-            </div>
-
-            {{-- Riwayat mutasi --}}
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-blue-600">swap_horiz</span> Riwayat Mutasi Lokasi
-                </h3>
-                @if ($item->movements->isEmpty())
-                    <p class="text-sm text-gray-400">Belum pernah dipindahkan.</p>
-                @else
-                    <ul class="space-y-2.5 text-xs">
-                        @foreach ($item->movements as $m)
-                            <li class="border-b border-dashed border-gray-100 pb-2">
-                                <div class="flex items-center gap-1 text-gray-700">
-                                    <span class="font-semibold">{{ $m->fromRoom?->code }}</span>
-                                    <span class="material-icons-round text-sm text-gray-400">arrow_forward</span>
-                                    <span class="font-semibold">{{ $m->toRoom?->code }}</span>
-                                    <span class="text-gray-400 ms-auto">{{ $m->moved_at?->format('d/m/Y') }}</span>
-                                </div>
-                                <div class="text-gray-400 mt-0.5">oleh {{ $m->mover?->name }}{{ $m->note ? ' — '.$m->note : '' }}</div>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </div>
+            </section>
 
             {{-- Peminjam terakhir --}}
             @if ($lastBorrower)
-                <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                    <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                        <span class="material-icons-round text-blue-600">person</span> Peminjam Terakhir
+                <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                    <h3 class="mb-2 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                        <span class="material-icons-round text-base text-brand-600 dark:text-brand-300" aria-hidden="true">person</span>
+                        Peminjam terakhir
                     </h3>
                     <div class="text-sm">
-                        <div class="font-medium text-gray-800">{{ $lastBorrower->name }}</div>
-                        <div class="text-xs text-gray-500">{{ $lastBorrower->email }} • {{ $lastBorrower->role }}</div>
-                        <div class="text-xs text-gray-400 mt-1">Dipinjam {{ $item->latestLoanItem()?->created_at?->diffForHumans() }}</div>
+                        <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $lastBorrower->name }}</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ $lastBorrower->email }} • {{ $lastBorrower->role }}</div>
+                        <div class="mt-1 text-[11px] text-slate-400 dark:text-slate-500">Dipinjam {{ $item->latestLoanItem()?->created_at?->diffForHumans() }}</div>
                     </div>
-                </div>
+                </section>
             @endif
         </div>
     </div>

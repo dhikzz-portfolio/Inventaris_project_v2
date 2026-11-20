@@ -67,6 +67,17 @@ class LabelAndQrTest extends TestCase
         $this->assertNotNull($this->item->refresh()->last_label_printed_at);
     }
 
+    public function test_cetak_ulang_label_satuan_muat_dalam_satu_halaman(): void
+    {
+        $this->actingAs($this->laboran);
+
+        $pdf = app(LabelService::class)->printSingle($this->item);
+        $pdf->output();
+
+        // Layout label tidak boleh meluber sehingga menghasilkan halaman kosong.
+        $this->assertSame(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
+    }
+
     public function test_cetak_label_massal_per_unit_menghasilkan_pdf(): void
     {
         $units = AssetUnit::query()

@@ -211,25 +211,35 @@
                         </div>
                     </section>
 
-                    <div x-show="mode === 'UNIT'" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <div x-show="mode === 'UNIT'"
+                         x-data="{ unitsOpen: {{ $activeFilterCount > 0 ? 'true' : 'false' }} }"
+                         class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
                         <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-4 dark:border-slate-800 dark:bg-slate-800/40 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                            <div class="flex min-w-0 items-center gap-3">
-                                <div class="min-w-0">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Unit</h3>
+                            <button type="button"
+                                    @click="unitsOpen = ! unitsOpen"
+                                    :aria-expanded="unitsOpen.toString()"
+                                    aria-controls="write-off-units-panel"
+                                    class="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                                <span class="material-icons-round shrink-0 text-lg text-brand-600 dark:text-brand-300" aria-hidden="true">inventory_2</span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="flex flex-wrap items-center gap-2">
+                                        <span class="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Unit</span>
                                         <span class="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">{{ number_format($units->total(), 0, ',', '.') }} unit</span>
-                                    </div>
-                                    <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                    </span>
+                                    <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
                                         Menampilkan {{ number_format($units->firstItem() ?? 0, 0, ',', '.') }}–{{ number_format($units->lastItem() ?? 0, 0, ',', '.') }} dari {{ number_format($units->total(), 0, ',', '.') }} unit
-                                    </p>
-                                </div>
-                            </div>
+                                    </span>
+                                </span>
+                                <span class="material-icons-round shrink-0 text-base text-slate-400 transition-transform duration-200 dark:text-slate-500"
+                                      :class="unitsOpen ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+                            </button>
                             <label class="inline-flex min-h-10 cursor-pointer items-center gap-2.5 self-start rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-brand-700 dark:hover:bg-slate-800 sm:self-auto">
                                 <input type="checkbox" x-model="selectAll" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
                                 Pilih semua sesuai filter
                             </label>
                         </div>
 
+                        <div id="write-off-units-panel" x-show="unitsOpen" x-cloak x-transition>
                         <div class="max-h-[60vh] space-y-3 overflow-y-auto overscroll-contain p-3 2xl:hidden">
                             @forelse ($units as $unit)
                                 @php($blocked = $unit->is_on_loan || $unit->has_pending_write_off || $unit->status === \App\Enums\UnitStatus::DIPINJAM)
@@ -343,6 +353,7 @@
                         </div>
                         <div class="border-t border-slate-100 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
                             <div class="w-full min-w-0 overflow-x-auto [&_nav>div]:min-w-max [&_nav>div]:!flex-nowrap">{{ $units->links() }}</div>
+                        </div>
                         </div>
                     </div>
                 </div>

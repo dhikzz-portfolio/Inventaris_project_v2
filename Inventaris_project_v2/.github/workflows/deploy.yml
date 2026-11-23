@@ -1,0 +1,192 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ============================================================================
+  # Stage 1: Build & Push Docker Image to Docker Hub
+  # ============================================================================
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            rizzzdev/smi-bn:latest
+            rizzzdev/smi-bn:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================================
+  # Stage 2: Pull Latest Image on VPS & Execute Docker Compose with Healthcheck
+  # ============================================================================
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          PROJECT_PATH: ${{ secrets.VPS_PROJECT_PATH }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          timeout: 10m
+          command_timeout: 15m
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,PROJECT_PATH
+          script: |
+            set -e
+
+            echo "=========================================================="
+            echo "🚀 1. Navigating to project directory: $PROJECT_PATH"
+            echo "=========================================================="
+            if [ ! -d "$PROJECT_PATH" ]; then
+              echo "❌ Error: Project path $PROJECT_PATH does not exist on VPS!"
+              exit 1
+            fi
+            cd "$PROJECT_PATH"
+
+            # Determine docker compose binary (v2 plugin vs v1 standalone)
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE="docker compose"
+            elif which docker-compose >/dev/null 2>&1; then
+              COMPOSE="docker-compose"
+            else
+              echo "❌ Error: Docker Compose is not installed on VPS."
+              exit 1
+            fi
+            echo "Using compose command: $COMPOSE"
+
+            echo "=========================================================="
+            echo "🔑 2. Logging in to Docker Hub (if token provided)"
+            echo "=========================================================="
+            if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+              echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            fi
+
+            echo "=========================================================="
+            echo "📦 3. Pulling latest image from Docker Hub"
+            echo "=========================================================="
+            docker pull rizzzdev/smi-bn:latest
+
+            if [ -d .git ]; then
+              echo "🔄 Updating git repository files..."
+              git fetch origin main || true
+              git reset --hard origin/main || true
+            fi
+
+            echo "=========================================================="
+            echo "🌐 4. Ensuring Docker networks exist"
+            echo "=========================================================="
+            docker network inspect backend >/dev/null 2>&1 || docker network create backend
+            docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
+
+            echo "=========================================================="
+            echo "📁 5. Preparing storage and cache directories"
+            echo "=========================================================="
+            mkdir -p storage/app/public/institution \
+                     storage/app/public/items \
+                     storage/app/private/livewire-tmp \
+                     storage/app/private/damage \
+                     storage/app/private/signatures \
+                     storage/app/private/write-offs \
+                     storage/app/private/reports \
+                     storage/framework/cache/data \
+                     storage/framework/sessions \
+                     storage/framework/views \
+                     storage/logs \
+                     bootstrap/cache
+            chmod -R 775 storage bootstrap/cache || true
+
+            echo "=========================================================="
+            echo "🚢 6. Deploying containers via $COMPOSE"
+            echo "=========================================================="
+            $COMPOSE pull app migration queue scheduler || true
+            $COMPOSE up -d --remove-orphans
+
+            echo "=========================================================="
+            echo "⏳ 7. Verifying Healthcheck Status"
+            echo "=========================================================="
+            TIMEOUT=120
+            INTERVAL=5
+            ELAPSED=0
+            APP_HEALTHY=false
+
+            echo "Waiting up to ${TIMEOUT}s for inventaris_app to become healthy..."
+
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+              APP_STATUS=$(docker inspect --format='{{json .State.Health.Status}}' inventaris_app 2>/dev/null || echo '"unknown"')
+
+              echo "[$ELAPSED s] App status: $APP_STATUS"
+
+              if [ "$APP_STATUS" = '"healthy"' ]; then
+                APP_HEALTHY=true
+                break
+              fi
+
+              # Check if container died unexpectedly
+              RUNNING=$(docker inspect --format='{{json .State.Running}}' inventaris_app 2>/dev/null || echo 'false')
+              if [ "$RUNNING" != 'true' ]; then
+                echo "❌ Container inventaris_app stopped or crashed!"
+                $COMPOSE logs --tail=50 app
+                exit 1
+              fi
+
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED + INTERVAL))
+            done
+
+            if [ "$APP_HEALTHY" != "true" ]; then
+              echo "❌ Healthcheck failed: inventaris_app did not become healthy within ${TIMEOUT}s!"
+              echo "--- Container logs for inventaris_app ---"
+              $COMPOSE logs --tail=100 app
+              exit 1
+            fi
+
+            echo "🔍 Testing HTTP probe on /up endpoint..."
+            HTTP_CODE=$(docker exec inventaris_app curl -s -o /dev/null -w "%{http_code}" http://localhost/up || echo "000")
+            echo "/up endpoint returned HTTP status: $HTTP_CODE"
+
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "❌ Application returned HTTP $HTTP_CODE instead of 200 on /up!"
+              $COMPOSE logs --tail=50 app
+              exit 1
+            fi
+
+            echo "=========================================================="
+            echo "🎉 8. Deployment Successful! Current Status:"
+            echo "=========================================================="
+            $COMPOSE ps

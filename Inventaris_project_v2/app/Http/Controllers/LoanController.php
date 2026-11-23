@@ -1,0 +1,868 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\BorrowerMode;
+use App\Enums\BorrowerType;
+use App\Enums\Condition;
+use App\Enums\Decision;
+use App\Enums\DocumentStatus;
+use App\Enums\LoanStatus;
+use App\Enums\ReturnStatus;
+use App\Enums\UnitStatus;
+use App\Exceptions\AvailabilityException;
+use App\Models\AssetUnit;
+use App\Models\InstitutionSetting;
+use App\Models\Loan;
+use App\Models\LoanItem;
+use App\Models\LoanItemUnit;
+use App\Services\BastService;
+use App\Services\InventoryCodeService;
+use App\Services\LoanService;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+class LoanController extends Controller
+{
+    /** Scope visibilitas peminjaman sesuai role (dipakai juga untuk mencegah IDOR). */
+    private function scopeFor(Request $request)
+    {
+        return Loan::query()->visibleTo($request->user());
+    }
+
+    /**
+     * Boleh memproses pinjaman? Laboran hanya untuk unit dalam jurusannya,
+     * dan SELURUH item harus berada dalam cakupan (bukan sebagian).
+     */
+    private function canActOn(Loan $loan, Request $request): bool
+    {
+        return $loan->canBeManagedBy($request->user());
+    }
+
+    // ================= AJUKAN (fallback non-Livewire) =================
+
+    public function create(): View
+    {
+        return view('loans.create');
+    }
+
+    public function store(Request $request, LoanService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'purpose' => ['required', 'string', 'min:3', 'max:500'],
+            'start_date' => ['required', 'date'],
+            'due_date' => ['required', 'date', 'after:start_date'],
+            'event_id' => ['nullable', 'exists:events,id'],
+            'lines' => ['required', 'array', 'min:1'],
+            'lines.*.item_id' => ['required', 'exists:item_catalogs,id'],
+            'lines.*.qty' => ['required', 'integer', 'min:1'],
+            'borrower_mode' => ['nullable', Rule::in(BorrowerMode::values())],
+            'borrower_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'borrower_name' => ['nullable', 'string', 'max:255'],
+            'borrower_category' => ['nullable', Rule::in(BorrowerType::values())],
+            'borrower_class' => ['nullable', 'string', 'max:50'],
+            'borrower_work_unit' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        try {
+            $loan = $service->requestLoan(
+                $request->user(),
+                $data['lines'],
+                $data['purpose'],
+                $data['start_date'],
+                $data['due_date'],
+                $data['event_id'] ?? null,
+                [
+                    'borrower_mode' => $data['borrower_mode'] ?? BorrowerMode::SELF->value,
+                    'borrower_user_id' => $data['borrower_user_id'] ?? null,
+                    'borrower_name' => $data['borrower_name'] ?? null,
+                    'borrower_category' => $data['borrower_category'] ?? null,
+                    'borrower_class' => $data['borrower_class'] ?? null,
+                    'borrower_work_unit' => $data['borrower_work_unit'] ?? null,
+                ]
+            );
+        } catch (AvailabilityException $e) {
+            return back()->withErrors(['lines' => $e->getMessage()])->withInput();
+        }
+
+        $message = match (true) {
+            $loan->status !== LoanStatus::APPROVED => "Request peminjaman #{$loan->id} terkirim — menunggu persetujuan.",
+            $request->user()->isApproverLevel2() => "Request peminjaman #{$loan->id} disetujui atas kewenangan Wakasek Sarpras — lanjutkan ke serah terima.",
+            default => "Request peminjaman #{$loan->id} disetujui otomatis untuk laboratorium yang Anda tugaskan — lanjutkan ke serah terima.",
+        };
+
+        return redirect()->route('loans.show', $loan)->with('success', $message);
+    }
+
+    // ================= DAFTAR =================
+
+    public function index(Request $request): View
+    {
+        $status = $request->query('status');
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim($validated['search'] ?? '');
+        $filteredLoans = fn () => $this->scopeFor($request)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $like = "%{$search}%";
+
+                    $query->where('purpose', 'like', $like)
+                        ->orWhereHas('borrower', fn ($borrower) => $borrower->where('name', 'like', $like))
+                        ->orWhereHas('event', fn ($event) => $event->where('name', 'like', $like))
+                        ->orWhereHas('loanItems.item', fn ($item) => $item->where('name', 'like', $like));
+
+                    if (ctype_digit($search)) {
+                        $query->orWhere('id', (int) $search);
+                    }
+                });
+            });
+
+        return view('loans.index', [
+            'loans' => $filteredLoans()
+                ->with(['borrower', 'requester', 'event', 'loanItems.item'])
+                ->when($status, fn ($q) => $q->where('status', $status))
+                ->latest()
+                ->paginate(12)
+                ->withQueryString(),
+            'status' => $status,
+            'search' => $search,
+            'counts' => [
+                'all' => $filteredLoans()->count(),
+                'PENDING' => $filteredLoans()->where('status', 'PENDING')->count(),
+                'APPROVED' => $filteredLoans()->where('status', 'APPROVED')->count(),
+                'DIPINJAM' => $filteredLoans()->where('status', 'DIPINJAM')->count(),
+                'SELESAI' => $filteredLoans()->where('status', 'SELESAI')->count(),
+                'DIBATALKAN' => $filteredLoans()->where('status', 'DIBATALKAN')->count(),
+            ],
+        ]);
+    }
+
+    public function show(Request $request, Loan $loan): View
+    {
+        abort_unless($loan->canBeViewedBy($request->user()), 403);
+
+        $loan->load([
+            'loanItems.item.category', 'loanItems.item.room', 'loanItems.unitAssignments',
+            'borrower.major', 'requester', 'event',
+            'approvals.approver', 'returner', 'handoverOfficer', 'canceller',
+        ]);
+
+        $canManage = $this->canActOn($loan, $request);
+        $nextLevel = $loan->nextApprovalLevelFor($request->user());
+
+        [$unitAssignments, $itemFilters, $filterOptions] = $this->loanItemDetailData($request, $loan);
+
+        return view('loans.show', [
+            'unitAssignments' => $unitAssignments,
+            'itemFilters' => $itemFilters,
+            'filterOptions' => $filterOptions,
+            'canViewDamagePhotos' => $request->user()->canApproveLoans(),
+            'loan' => $loan,
+            'nextLevel' => $nextLevel,
+            'canAct' => $loan->isPending() && $canManage && $nextLevel !== null,
+            'canManage' => $canManage,
+            'canCancel' => $loan->canBeCancelledBy($request->user())
+                && in_array($loan->status, [LoanStatus::PENDING, LoanStatus::APPROVED], true)
+                && $loan->handed_over_at === null,
+            'hasShortage' => $loan->loanItems->contains(fn ($li) => $li->hasShortage()),
+            'canManageDocuments' => $request->user()->canManageLoanDocuments(),
+        ]);
+    }
+
+    /**
+     * Data rincian barang per unit untuk halaman detail peminjaman.
+     *
+     * Filter hanya memakai kolom yang benar-benar tersimpan, dan seluruh
+     * query dibatasi pada unit milik transaksi ini.
+     *
+     * @return array{0: mixed, 1: array<string, string>, 2: array<string, mixed>}
+     */
+    private function loanItemDetailData(Request $request, Loan $loan): array
+    {
+        $filters = [
+            'search' => trim((string) $request->query('item_search', '')),
+            'category' => trim((string) $request->query('item_category', '')),
+            'catalog' => trim((string) $request->query('item_catalog', '')),
+            'specification' => trim((string) $request->query('item_spec', '')),
+            'building' => trim((string) $request->query('item_building', '')),
+            'room' => trim((string) $request->query('item_room', '')),
+            'condition' => trim((string) $request->query('item_condition', '')),
+            'status' => trim((string) $request->query('item_status', '')),
+            'validation' => trim((string) $request->query('item_validation', '')),
+            'photo' => trim((string) $request->query('item_photo', '')),
+            'from' => trim((string) $request->query('item_from', '')),
+            'to' => trim((string) $request->query('item_to', '')),
+        ];
+
+        $base = LoanItemUnit::query()
+            ->whereHas('loanItem', fn ($query) => $query->where('loan_id', $loan->id));
+
+        $options = (clone $base)
+            ->with(['unit.catalog.category', 'unit.room.building', 'unit.specification'])
+            ->get();
+
+        $assignments = $base
+            ->with([
+                'unit.catalog.category',
+                'unit.room.building',
+                'unit.specification',
+                'loanItem.item.category',
+                'confirmer',
+            ])
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $term = '%'.$filters['search'].'%';
+
+                $query->where(function ($query) use ($term) {
+                    $query->where('return_notes', 'like', $term)
+                        ->orWhereHas('loanItem.item', fn ($item) => $item
+                            ->where('name', 'like', $term)
+                            ->orWhere('internal_id', 'like', $term)
+                            ->orWhere('specification', 'like', $term))
+                        ->orWhereHas('unit', fn ($unit) => $unit
+                            ->where('inventory_code', 'like', $term)
+                            ->orWhereHas('catalog', fn ($catalog) => $catalog
+                                ->where('name', 'like', $term)
+                                ->orWhere('brand', 'like', $term)
+                                ->orWhere('model_type', 'like', $term))
+                            ->orWhereHas('specification', fn ($spec) => $spec
+                                ->where('brand', 'like', $term)
+                                ->orWhere('model_type', 'like', $term)
+                                ->orWhere('spec_code', 'like', $term))
+                            ->orWhereHas('room', fn ($room) => $room
+                                ->where('name', 'like', $term)
+                                ->orWhere('code', 'like', $term)));
+                });
+            })
+            ->when($filters['category'] !== '', fn ($query) => $query
+                ->whereHas('unit.catalog', fn ($catalog) => $catalog->where('category_id', $filters['category'])))
+            ->when($filters['catalog'] !== '', fn ($query) => $query
+                ->whereHas('unit', fn ($unit) => $unit->where('item_catalog_id', $filters['catalog'])))
+            ->when($filters['specification'] !== '', fn ($query) => $query
+                ->whereHas('unit', fn ($unit) => $unit->where('specification_id', $filters['specification'])))
+            ->when($filters['building'] !== '', fn ($query) => $query
+                ->whereHas('unit.room', fn ($room) => $room
+                    ->whereHas('building', fn ($building) => $building->where('code', $filters['building']))
+                    ->orWhere('building_letter', $filters['building'])))
+            ->when($filters['room'] !== '', fn ($query) => $query
+                ->whereHas('unit', fn ($unit) => $unit->where('room_id', $filters['room'])))
+            ->when($filters['condition'] !== '', fn ($query) => $query->where(function ($query) use ($filters) {
+                $query->where('condition_in', $filters['condition'])
+                    ->orWhere(fn ($inner) => $inner
+                        ->whereNull('condition_in')
+                        ->whereHas('unit', fn ($unit) => $unit->where('condition', $filters['condition'])));
+            }))
+            ->when($filters['status'] !== '', fn ($query) => $query
+                ->whereHas('unit', fn ($unit) => $unit->where('status', $filters['status'])))
+            ->when($filters['validation'] !== '', fn ($query) => $query
+                ->where('return_status', $filters['validation']))
+            ->when($filters['photo'] === 'ada', fn ($query) => $query->whereNotNull('damage_photo_path'))
+            ->when($filters['photo'] === 'tidak', fn ($query) => $query->whereNull('damage_photo_path'))
+            ->when($filters['from'] !== '', fn ($query) => $query->whereDate('confirmed_at', '>=', $filters['from']))
+            ->when($filters['to'] !== '', fn ($query) => $query->whereDate('confirmed_at', '<=', $filters['to']))
+            ->orderBy('id')
+            ->paginate(24)
+            ->withQueryString();
+
+        $unitRooms = $options->pluck('unit.room')->filter();
+
+        return [
+            $assignments,
+            $filters,
+            [
+                'categories' => $options->pluck('unit.catalog.category')->filter()->unique('id')->sortBy('name')->values(),
+                'catalogs' => $options->pluck('unit.catalog')->filter()->unique('id')->sortBy('name')->values(),
+                'specifications' => $options->pluck('unit.specification')->filter()->unique('id')
+                    ->sortBy(fn ($spec) => $spec->displayName())->values(),
+                'buildings' => $unitRooms->map(fn ($room) => $room->buildingCode())->filter()->unique()->sort()->values(),
+                'rooms' => $unitRooms->unique('id')->sortBy('code')->values(),
+                'conditions' => Condition::cases(),
+                'statuses' => UnitStatus::cases(),
+                'validations' => ReturnStatus::cases(),
+            ],
+        ];
+    }
+
+    // ================= PERSETUJUAN (Berjenjang + TTD Digital) =================
+
+    public function pending(Request $request): View
+    {
+        return view('loans.pending', [
+            'loans' => $this->scopeFor($request)
+                ->where('status', LoanStatus::PENDING->value)
+                ->with(['borrower.major', 'requester', 'event', 'loanItems.item.room.major'])
+                ->latest()
+                ->get(),
+        ]);
+    }
+
+    public function approve(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        if (! $loan->isPending()) {
+            return back()->withErrors(['decision' => $this->statusMessage($loan)]);
+        }
+
+        $data = $request->validate([
+            'note' => ['nullable', 'string', 'max:500'],
+            'signature' => ['nullable', 'string'],
+        ]);
+
+        // Tanda tangan digital bersifat opsional: dokumen resmi dapat dicetak
+        // dan ditandatangani secara fisik/manual.
+        $signaturePath = $this->storeSignature($data['signature'] ?? null, $loan);
+
+        try {
+            $service->decide($loan, $request->user(), Decision::APPROVED, $data['note'] ?? null, $signaturePath);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['decision' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Peminjaman disetujui.');
+    }
+
+    public function reject(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        if (! $loan->isPending()) {
+            return back()->withErrors(['decision' => $this->statusMessage($loan)]);
+        }
+
+        $data = $request->validate([
+            'note' => ['required', 'string', 'max:500'],
+            'signature' => ['nullable', 'string'],
+        ]);
+
+        $signaturePath = $this->storeSignature($data['signature'] ?? null, $loan);
+
+        try {
+            $service->decide($loan, $request->user(), Decision::REJECTED, $data['note'], $signaturePath);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['decision' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Peminjaman ditolak.');
+    }
+
+    /** Pesan status yang jelas untuk antarmuka (bukan halaman exception). */
+    private function statusMessage(Loan $loan): string
+    {
+        return match ($loan->status) {
+            LoanStatus::PENDING => 'Peminjaman masih menunggu persetujuan yang diwajibkan.',
+            LoanStatus::APPROVED => 'Peminjaman sudah disetujui dan siap diserahterimakan.',
+            LoanStatus::DIPINJAM => 'Barang sudah diserahkan pada peminjaman ini.',
+            LoanStatus::SELESAI => 'Peminjaman sudah selesai.',
+            LoanStatus::DITOLAK => 'Peminjaman sudah ditolak.',
+            LoanStatus::DIBATALKAN => 'Peminjaman sudah dibatalkan.',
+            default => 'Status peminjaman tidak dapat diproses.',
+        };
+    }
+
+    /** Simpan gambar TTD digital (dataURL base64) ke storage. */
+    private function storeSignature(?string $dataUrl, Loan $loan): ?string
+    {
+        if (! $dataUrl || ! preg_match('#^data:image/(png|jpeg);base64,#', $dataUrl, $m)) {
+            return null;
+        }
+
+        $binary = base64_decode(substr($dataUrl, strpos($dataUrl, ',') + 1));
+        if ($binary === false) {
+            return null;
+        }
+
+        $ext = $m[1] === 'jpeg' ? 'jpg' : 'png';
+        $path = sprintf('signatures/loan-%d-L%d-%s.%s', $loan->id, $loan->approvals()->max('level') + 1 ?? 1, now()->format('YmdHis'), $ext);
+        \Storage::disk('local')->put($path, $binary);
+
+        return $path;
+    }
+
+    // ================= PENGEMBALIAN =================
+
+    public function returns(Request $request): View
+    {
+        return view('loans.returns', [
+            'loans' => $this->scopeFor($request)
+                ->whereIn('status', [LoanStatus::APPROVED->value, LoanStatus::DIPINJAM->value])
+                ->with(['borrower', 'requester', 'event', 'loanItems.item'])
+                ->orderBy('due_date')
+                ->paginate(12),
+        ]);
+    }
+
+    public function returnForm(Request $request, Loan $loan): View|RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        if (! in_array($loan->status, [LoanStatus::APPROVED, LoanStatus::DIPINJAM], true)) {
+            return redirect()->route('loans.show', $loan)
+                ->withErrors(['return' => $this->statusMessage($loan).' Pengembalian hanya dapat diproses untuk peminjaman yang disetujui atau sedang dipinjam.']);
+        }
+
+        $loan->load(['loanItems.item.room', 'borrower']);
+
+        return view('loans.return_form', ['loan' => $loan]);
+    }
+
+    public function handoverForm(Request $request, Loan $loan): View|RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        // Status yang belum memenuhi syarat menghasilkan pesan yang jelas di
+        // antarmuka, bukan halaman exception mentah.
+        $blocker = $loan->handoverBlocker();
+
+        if ($blocker !== null) {
+            return redirect()->route('loans.show', $loan)
+                ->withErrors(['handover' => $blocker.' Serah terima hanya dapat dilakukan setelah persetujuan yang diwajibkan terpenuhi.']);
+        }
+
+        $loan->load([
+            'loanItems.item.category',
+            'loanItems.item.room.building',
+            'loanItems.item.room.units',
+            'borrower',
+        ]);
+
+        return view('loans.handover_form', [
+            'loan' => $loan,
+            'availableUnits' => $this->availableUnitsForHandover($loan, $request),
+        ]);
+    }
+
+    /**
+     * Resolusi hasil scan QR pada halaman serah terima.
+     *
+     * Isi QR tidak pernah dipercaya mentah: identitas unit dicari ulang dari
+     * database, lalu diperiksa terhadap peminjaman yang sedang diproses,
+     * kelayakan unit, duplikasi pilihan, dan batas jumlah per baris.
+     */
+    public function scanHandoverUnit(Request $request, Loan $loan): JsonResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        $blocker = $loan->handoverBlocker();
+
+        if ($blocker !== null) {
+            return response()->json([
+                'status' => 'unavailable',
+                'message' => $blocker,
+            ], 409);
+        }
+
+        $code = trim((string) $request->query('code', ''));
+        $unitId = $request->query('unit_id');
+        $selected = array_values(array_unique(array_map('intval', (array) $request->query('selected', []))));
+
+        // QR unit berisi URL (mis. /scan?u=12&c=G1-02-12). Ambil petunjuknya,
+        // lalu tetap verifikasi ulang ke database.
+        if (preg_match('#^https?://#i', $code) === 1) {
+            $parts = parse_url($code) ?: [];
+            parse_str((string) ($parts['query'] ?? ''), $query);
+
+            if ($unitId === null && isset($query['u'])) {
+                $unitId = $query['u'];
+            }
+
+            $code = isset($query['c']) ? (string) $query['c'] : basename((string) ($parts['path'] ?? ''));
+        }
+
+        $unit = null;
+
+        if ($unitId !== null && ctype_digit((string) $unitId)) {
+            $unit = AssetUnit::query()->find((int) $unitId);
+        }
+
+        if ($unit === null && $code !== '') {
+            $unit = app(InventoryCodeService::class)->resolve($code);
+        }
+
+        if ($unit === null) {
+            return response()->json([
+                'status' => 'missing',
+                'message' => 'QR tidak dikenali. Periksa stiker atau masukkan kode inventaris secara manual.',
+            ], 404);
+        }
+
+        if (! AssetUnit::query()->visibleTo($request->user())->whereKey($unit->id)->exists()) {
+            return response()->json([
+                'status' => 'restricted',
+                'message' => 'Unit ini berada di luar cakupan akses Anda.',
+            ], 403);
+        }
+
+        $loanItems = $loan->loanItems()->with('item')->get();
+        $loanItem = $loanItems->firstWhere('item_id', (int) $unit->item_catalog_id);
+
+        if ($loanItem === null) {
+            return response()->json([
+                'status' => 'not_in_loan',
+                'message' => 'Unit tidak termasuk dalam peminjaman ini.',
+            ], 422);
+        }
+
+        $alreadyAssigned = LoanItemUnit::query()
+            ->where('asset_unit_id', $unit->id)
+            ->whereIn('loan_item_id', $loanItems->pluck('id'))
+            ->exists();
+
+        if ($alreadyAssigned) {
+            return response()->json([
+                'status' => 'already_handed_over',
+                'message' => 'Unit sudah diserahkan pada peminjaman ini.',
+            ], 409);
+        }
+
+        if (in_array((int) $unit->id, $selected, true)) {
+            return response()->json([
+                'status' => 'duplicate',
+                'message' => 'Unit sudah dipilih sebelumnya.',
+            ], 409);
+        }
+
+        $selectedForItem = AssetUnit::query()
+            ->whereIn('id', $selected)
+            ->where('item_catalog_id', $loanItem->item_id)
+            ->count();
+
+        if ($selectedForItem >= (int) $loanItem->qty_borrowed) {
+            return response()->json([
+                'status' => 'limit',
+                'message' => 'Jumlah unit untuk barang ini sudah mencapai batas penyerahan.',
+            ], 409);
+        }
+
+        $ineligible = match (true) {
+            $unit->status !== UnitStatus::AKTIF => 'Unit tidak aktif dan tidak memenuhi syarat penyerahan.',
+            $unit->condition !== Condition::BAIK => 'Unit tidak dalam kondisi baik dan tidak memenuhi syarat penyerahan.',
+            $unit->isCurrentlyOnLoan() => 'Unit sedang dipinjam dan tidak memenuhi syarat penyerahan.',
+            default => null,
+        };
+
+        if ($ineligible !== null) {
+            return response()->json([
+                'status' => 'ineligible',
+                'message' => $ineligible,
+            ], 422);
+        }
+
+        $unit->load(['specification', 'room.building']);
+        $room = $unit->room;
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Unit berhasil ditambahkan.',
+            'unit' => [
+                'id' => (int) $unit->id,
+                'loan_item_id' => (int) $loanItem->id,
+                'inventory_code' => $unit->inventory_code,
+                'item_name' => $loanItem->item?->name,
+                'specification' => $unit->specification?->displayName() ?: $loanItem->item?->specification,
+                'brand' => $loanItem->item?->brand,
+                'model_type' => $loanItem->item?->model_type,
+                'building' => $room?->buildingCode(),
+                'floor' => $room?->floor,
+                'room' => $room?->name,
+                'room_code' => $room?->code,
+                'condition' => $unit->condition->label(),
+                'status' => $unit->status->label(),
+                'remaining_slots' => max(0, (int) $loanItem->qty_borrowed - $selectedForItem - 1),
+            ],
+        ]);
+    }
+
+    /**
+     * Unit yang dapat diserahkan untuk setiap baris peminjaman.
+     * Hanya unit dalam cakupan petugas, aktif, kondisi baik, dan belum dipinjam.
+     *
+     * @return array<int, array{item_id: int, item: Item, room: Room|null, qty_borrowed: int, units: Collection<int, AssetUnit>}>
+     */
+    private function availableUnitsForHandover(Loan $loan, Request $request): array
+    {
+        $user = $request->user();
+
+        // Jangan memakai toArray(): model & koleksi unit harus tetap berupa objek
+        // agar template dapat memakai $item->name dan $units->isEmpty().
+        return $loan->loanItems->mapWithKeys(fn (LoanItem $li) => [
+            $li->id => [
+                'item_id' => $li->item_id,
+                'item' => $li->item,
+                'room' => $li->item?->room,
+                'qty_borrowed' => (int) $li->qty_borrowed,
+                'units' => AssetUnit::visibleTo($user)
+                    ->with(['specification', 'room.building'])
+                    ->where('item_catalog_id', $li->item_id)
+                    ->where('status', UnitStatus::AKTIF->value)
+                    ->where('condition', Condition::BAIK->value)
+                    ->whereNotIn('id', function ($q) {
+                        $q->select('asset_unit_id')
+                            ->from((new LoanItemUnit)->getTable())
+                            ->whereNull('returned_at');
+                    })
+                    ->orderBy('inventory_code')
+                    ->get(),
+            ],
+        ])->all();
+    }
+
+    /** Fallback non-Livewire untuk pengembalian tervalidasi. */
+    public function processReturn(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        if (! in_array($loan->status, [LoanStatus::APPROVED, LoanStatus::DIPINJAM], true)) {
+            return back()->withErrors(['rows' => $this->statusMessage($loan).' Pengembalian hanya dapat diproses untuk peminjaman yang disetujui atau sedang dipinjam.']);
+        }
+
+        $data = $request->validate([
+            'rows' => ['required', 'array'],
+            'rows.*.loan_item_id' => ['required', 'integer'],
+            'rows.*.qty_returned' => ['required', 'integer', 'min:0'],
+            'rows.*.condition_in' => ['required', 'in:BAIK,RUSAK_RINGAN,RUSAK_BERAT'],
+            'rows.*.returned_room_id' => ['required', 'exists:rooms,id'],
+            'rows.*.damage_photo' => ['nullable', 'image', 'max:4096'],
+            'rows.*.return_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $service->processReturn($loan, $request->user(), $data['rows']);
+
+        return redirect()->route('loans.show', $loan)
+            ->with('success', 'Pengembalian diproses.');
+    }
+
+    /** Selesaikan pengembalian setelah backend memeriksa ulang seluruh unit. */
+    public function finishReturn(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        try {
+            $service->completeReturn($loan, $request->user());
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['finish' => $e->getMessage()]);
+        }
+
+        return redirect()->route('loans.show', $loan)
+            ->with('success', 'Pengembalian selesai — seluruh unit telah dikonfirmasi.');
+    }
+
+    /** Wakasek menutup pinjaman dengan selisih (barang tetap berflag Hilang). */
+    public function closeShortage(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request) && $request->user()->isApproverLevel2(), 403);
+
+        try {
+            $service->closeWithShortage($loan, $request->user());
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['decision' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Pinjaman ditutup — selisih tercatat sebagai barang Hilang beserta riwayat peminjam terakhir.');
+    }
+
+    public function handover(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        abort_unless($this->canActOn($loan, $request), 403);
+
+        $data = $request->validate([
+            'note' => ['nullable', 'string', 'max:500'],
+            'unit_assignments' => ['nullable', 'array'],
+            'unit_assignments.*' => ['array'],
+            'unit_assignments.*.loan_item_id' => ['nullable', 'integer', 'exists:loan_items,id'],
+            'unit_assignments.*.item_id' => ['nullable', 'integer', 'exists:item_catalogs,id'],
+            'unit_assignments.*.unit_ids' => ['present', 'array'],
+            'unit_assignments.*.unit_ids.*' => ['required', 'integer', 'exists:asset_units,id'],
+        ]);
+
+        $unitAssignments = $this->normalizeUnitAssignments($loan, $data['unit_assignments'] ?? []);
+
+        try {
+            $service->handover($loan, $request->user(), $unitAssignments, $data['note'] ?? null);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['handover' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Barang diserahterimakan — status peminjaman kini Sedang Dipinjam.');
+    }
+
+    // ================= STATUS DOKUMEN =================
+
+    /** Dokumen dicetak (cetak fisik). */
+    public function markDocumentPrinted(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        return $this->updateDocumentStatus($request, $loan, $service, DocumentStatus::DICETAK);
+    }
+
+    /** Dokumen sudah ditandatangani secara fisik/manual oleh pihak terkait. */
+    public function markDocumentSignedPhysical(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        return $this->updateDocumentStatus($request, $loan, $service, DocumentStatus::DITANDATANGANI_FISIK);
+    }
+
+    /** Dokumen sudah ditandatangani secara digital (hanya bila ada TTD digital tersimpan). */
+    public function markDocumentSignedDigital(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        return $this->updateDocumentStatus($request, $loan, $service, DocumentStatus::DITANDATANGANI_DIGITAL);
+    }
+
+    /**
+     * Status dokumen terpisah dari status transaksi: mencatat cetak/tanda tangan
+     * tidak pernah mengubah kelayakan transaksi peminjaman.
+     */
+    private function updateDocumentStatus(Request $request, Loan $loan, LoanService $service, DocumentStatus $status): RedirectResponse
+    {
+        abort_unless($loan->canBeViewedBy($request->user()), 403);
+        abort_unless($request->user()->canManageLoanDocuments(), 403);
+
+        try {
+            $service->markDocumentStatus($loan, $request->user(), $status);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['document' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Status dokumen diperbarui: '.$status->label().'.');
+    }
+
+    /**
+     * Samakan bentuk payload penugasan unit menjadi identitas baris peminjaman
+     * yang sudah terverifikasi. Kunci array dipakai sebagai identitas baris
+     * peminjaman (loan_items.id) agar klien tidak perlu mengirim ulang data
+     * katalog yang sudah diketahui server.
+     *
+     * @param  array<int|string, array<string, mixed>>  $assignments
+     * @return array<int, array{loan_item_id: int, item_id: int, unit_ids: list<int>}>
+     */
+    private function normalizeUnitAssignments(Loan $loan, array $assignments): array
+    {
+        if ($assignments === []) {
+            return [];
+        }
+
+        $loanItems = $loan->loanItems()->get();
+        $byId = $loanItems->keyBy('id');
+        $byItemId = $loanItems->groupBy('item_id');
+
+        $normalized = [];
+        $previouslyAssigned = [];
+
+        foreach ($assignments as $key => $assignment) {
+            $unitIds = array_values(array_unique(array_map('intval', (array) ($assignment['unit_ids'] ?? []))));
+            if ($unitIds === []) {
+                continue;
+            }
+
+            $loanItem = null;
+            $candidate = (int) ($assignment['loan_item_id'] ?? 0);
+            if ($candidate > 0) {
+                $loanItem = $byId->get($candidate);
+            }
+
+            if ($loanItem === null) {
+                $itemId = (int) ($assignment['item_id'] ?? 0);
+                if ($itemId > 0) {
+                    $loanItem = $byItemId->get($itemId)?->first();
+                }
+            }
+
+            if ($loanItem === null) {
+                $keyId = (int) $key;
+                $loanItem = $byId->get($keyId) ?? $byItemId->get($keyId)?->first();
+            }
+
+            if ($loanItem === null) {
+                throw ValidationException::withMessages([
+                    'handover' => 'Baris peminjaman untuk unit yang dipilih tidak ditemukan.',
+                ]);
+            }
+
+            if (count($unitIds) > (int) $loanItem->qty_borrowed) {
+                throw ValidationException::withMessages([
+                    'handover' => 'Jumlah unit yang dipilih melebihi jumlah yang dipinjam pada baris ini.',
+                ]);
+            }
+
+            // Satu unit fisik tidak boleh dipilih pada dua baris sekaligus.
+            if (array_intersect($unitIds, $previouslyAssigned) !== []) {
+                throw ValidationException::withMessages([
+                    'handover' => 'Unit yang sama tidak boleh dipilih lebih dari sekali.',
+                ]);
+            }
+
+            $previouslyAssigned = array_merge($previouslyAssigned, $unitIds);
+
+            $normalized[] = [
+                'loan_item_id' => (int) $loanItem->id,
+                'item_id' => (int) $loanItem->item_id,
+                'unit_ids' => $unitIds,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    public function cancel(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        abort_unless($loan->canBeViewedBy($request->user()), 403);
+
+        $reason = $request->validate(['cancel_reason' => ['nullable', 'string', 'max:500']])['cancel_reason'] ?? null;
+
+        try {
+            $service->cancel($loan, $request->user(), $reason);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['cancel' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Peminjaman dibatalkan dan jadwalnya tidak lagi memblokir ketersediaan.');
+    }
+
+    /**
+     * Pratinjau surat sebelum dicetak — tanpa mewajibkan unduh PDF.
+     * Hak akses sama dengan detail transaksi (peminjam hanya miliknya).
+     */
+    public function previewLetter(Request $request, Loan $loan): View
+    {
+        abort_unless($loan->canBeViewedBy($request->user()), 403);
+
+        $loan->load([
+            'loanItems.item.category',
+            'loanItems.item.room',
+            'loanItems.unitAssignments.unit',
+            'borrower.major',
+            'event',
+            'approvals.approver',
+            'handoverOfficer',
+        ]);
+
+        $bast = app(BastService::class);
+
+        return view('loans.letter_preview', [
+            'loan' => $loan,
+            'setting' => InstitutionSetting::current(),
+            'title' => $bast->documentTitle($loan),
+            'documentNumber' => $bast->documentNumber($loan),
+        ]);
+    }
+
+    public function downloadBast(Request $request, Loan $loan)
+    {
+        abort_unless($loan->canBeViewedBy($request->user()), 403);
+
+        // Selalu generate ulang agar BAST memuat tanda tangan/approval terbaru.
+        $path = app(BastService::class)->generateForLoan($loan);
+
+        $filename = $loan->event_id
+            ? 'BAST-'.$loan->id.'.pdf'
+            : 'Surat-Peminjaman-'.$loan->id.'.pdf';
+
+        return \Storage::disk('local')->download($path, $filename);
+    }
+}

@@ -37,6 +37,11 @@ class DashboardAndReportingTest extends TestCase
     {
         $this->actingAs($this->wakasek);
 
+        // Request pembuka mengompilasi seluruh Blade view yang dipakai
+        // dashboard. Produksi memakai view cache hasil `php artisan view:cache`,
+        // jadi biaya kompilasi sekali jalan itu tidak ikut diukur.
+        $this->get(route('dashboard'))->assertOk();
+
         $start = microtime(true);
         $response = $this->get(route('dashboard'));
         $duration = microtime(true) - $start;

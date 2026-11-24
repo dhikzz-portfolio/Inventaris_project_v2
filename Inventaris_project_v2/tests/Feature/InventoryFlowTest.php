@@ -248,10 +248,13 @@ class InventoryFlowTest extends TestCase
 
     public function test_label_barang_dicetak_sebagai_pdf(): void
     {
-        $this->actingAs($this->laboran)
+        $response = $this->actingAs($this->laboran)
             ->get(route('items.label', $this->item))
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
+
+        // Browser tidak boleh menyajikan PDF lama saat tata letak label berubah.
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
     public function test_laporan_pdf_dan_excel_dapat_diunduh(): void

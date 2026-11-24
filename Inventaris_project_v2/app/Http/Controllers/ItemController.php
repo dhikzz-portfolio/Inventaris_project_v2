@@ -909,6 +909,13 @@ class ItemController extends Controller
     {
         $this->ensureVisible($item);
 
-        return $labels->printSingle($item)->stream('label-'.$item->internal_id.'.pdf');
+        $response = $labels->printSingle($item)->stream('label-'.$item->internal_id.'.pdf');
+
+        // Label selalu dirender ulang; jangan sampai browser menampilkan PDF lama
+        // dari cache saat tata letak label berubah.
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+
+        return $response;
     }
 }

@@ -3,20 +3,21 @@
         $current = $paginator->currentPage();
         $last = $paginator->lastPage();
 
-        // Jendela halaman: maksimal 3 nomor di sekitar halaman aktif.
-    $start = max(1, $current - 1);
-    $end = min($last, $current + 1);
+        // Paginasi per kelompok 5 halaman. Setiap kelompok menampilkan nomor
+        // halaman internalnya ditambah panah lompat ke kelompok sebelumnya dan
+        // berikutnya, sehingga daftar nomor tetap singkat walau halaman banyak.
+        $groupSize = 5;
+        $groupStart = intdiv($current - 1, $groupSize) * $groupSize + 1;
+        $groupEnd = min($groupStart + $groupSize - 1, $last);
 
-    if ($start === 1) {
-        $end = min($last, 3);
-    }
+        $hasPreviousGroup = $groupStart > 1;
+        $hasNextGroup = $groupEnd < $last;
 
-    if ($end === $last) {
-        $start = max(1, $last - 2);
-    }
+        $previousGroupStart = max(1, $groupStart - $groupSize);
+        $previousGroupEnd = $groupStart - 1;
 
-        $showStartEllipsis = $start > 2;
-        $showEndEllipsis = $end < $last - 1;
+        $nextGroupStart = $groupEnd + 1;
+        $nextGroupEnd = min($nextGroupStart + $groupSize - 1, $last);
     @endphp
     <nav role="navigation" aria-label="Navigasi halaman" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-sm text-slate-600 dark:text-slate-400">
@@ -26,53 +27,30 @@
         </p>
 
         <div class="flex flex-wrap items-center justify-center gap-1.5 sm:justify-end">
-            {{-- Previous --}}
-            @if ($paginator->onFirstPage())
-                <span aria-disabled="true" aria-label="Halaman sebelumnya" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-300 dark:border-slate-700 dark:text-slate-600">
-                    <span class="material-icons-round text-base" aria-hidden="true">chevron_left</span>
-                </span>
-            @else
-                <a href="{{ $paginator->previousPageUrl() }}" rel="prev" aria-label="Halaman sebelumnya" wire:click.prevent="previousPage('{{ $paginator->getPageName() }}')" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+            {{-- Lompat ke kelompok sebelumnya --}}
+            @if ($hasPreviousGroup)
+                <a href="{{ $paginator->url($previousGroupStart) }}" rel="prev" aria-label="Halaman {{ $previousGroupStart }} sampai {{ $previousGroupEnd }}"
+                   class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
                     <span class="material-icons-round text-base" aria-hidden="true">chevron_left</span>
                 </a>
             @endif
 
-            {{-- Halaman pertama --}}
-            @if ($start > 1)
-                <a href="{{ $paginator->url(1) }}" aria-label="Ke halaman 1" wire:click.prevent="gotoPage(1, '{{ $paginator->getPageName() }}')" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-xs text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">1</a>
-            @endif
-
-            @if ($showStartEllipsis)
-                <span aria-hidden="true" class="inline-flex h-8 w-8 items-center justify-center text-xs text-slate-400">...</span>
-            @endif
-
-            {{-- Nomor halaman di sekitar halaman aktif --}}
-            @for ($page = $start; $page <= $end; $page++)
+            {{-- Nomor halaman dalam kelompok aktif --}}
+            @for ($page = $groupStart; $page <= $groupEnd; $page++)
                 @if ($page === $current)
-                    <span aria-current="page" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white">{{ $page }}</span>
+                    <span aria-current="page" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-600 bg-brand-600 text-sm font-semibold text-white">{{ $page }}</span>
                 @else
-                    <a href="{{ $paginator->url($page) }}" aria-label="Ke halaman {{ $page }}" wire:click.prevent="gotoPage({{ $page }}, '{{ $paginator->getPageName() }}')" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-xs text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">{{ $page }}</a>
+                    <a href="{{ $paginator->url($page) }}" aria-label="Ke halaman {{ $page }}"
+                       class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-sm text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">{{ $page }}</a>
                 @endif
             @endfor
 
-            @if ($showEndEllipsis)
-                <span aria-hidden="true" class="inline-flex h-8 w-8 items-center justify-center text-xs text-slate-400">...</span>
-            @endif
-
-            {{-- Halaman terakhir --}}
-            @if ($end < $last)
-                <a href="{{ $paginator->url($last) }}" aria-label="Ke halaman {{ $last }}" wire:click.prevent="gotoPage({{ $last }}, '{{ $paginator->getPageName() }}')" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-xs text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">{{ $last }}</a>
-            @endif
-
-            {{-- Next --}}
-            @if ($paginator->hasMorePages())
-                <a href="{{ $paginator->nextPageUrl() }}" rel="next" aria-label="Halaman selanjutnya" wire:click.prevent="nextPage('{{ $paginator->getPageName() }}')" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+            {{-- Lompat ke kelompok berikutnya --}}
+            @if ($hasNextGroup)
+                <a href="{{ $paginator->url($nextGroupStart) }}" rel="next" aria-label="Halaman {{ $nextGroupStart }} sampai {{ $nextGroupEnd }}"
+                   class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
                     <span class="material-icons-round text-base" aria-hidden="true">chevron_right</span>
                 </a>
-            @else
-                <span aria-disabled="true" aria-label="Halaman selanjutnya" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-300 dark:border-slate-700 dark:text-slate-600">
-                    <span class="material-icons-round text-base" aria-hidden="true">chevron_right</span>
-                </span>
             @endif
         </div>
     </nav>

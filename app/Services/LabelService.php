@@ -60,6 +60,34 @@ class LabelService
         return 'data:image/png;base64,'.base64_encode($this->renderQrPng($this->unitQrPayload($unit)));
     }
 
+    /**
+     * Ukuran halaman label unit (pt). Halaman sama dengan kotak biru label agar
+     * hasil cetak pas dengan frame stiker pre-print tanpa sisa margin putih.
+     */
+    public const UNIT_LABEL_SIZE = [212, 80];
+
+    /**
+     * Kandidat ukuran font [nama barang, merek/tipe], dari paling besar ke
+     * paling kecil. Pasangan pertama yang membuat label tetap muat di satu
+     * halaman dipakai.
+     */
+    private const UNIT_LABEL_FONT_SIZES = [
+        [9, 7],
+        [9, 6.5],
+        [8.5, 6.5],
+        [8.5, 6],
+        [8, 6],
+        [7.5, 5.8],
+        [7, 5.5],
+        [6.5, 5.5],
+    ];
+
+    /**
+     * Batas tinggi kotak label (pt) agar halaman 80 pt tidak meluap.
+     * Kotak setinggi 79.5 pt masih menyisakan 0.5 pt di dalam halaman.
+     */
+    private const UNIT_LABEL_MAX_HEIGHT = 79.5;
+
     /** Label per unit fisik (revisi 2.1). */
     public function printUnit(AssetUnit $unit): \Barryvdh\DomPDF\PDF
     {
@@ -72,13 +100,98 @@ class LabelService
             ->causedBy(auth()->user())
             ->log('Mencetak label unit '.$unit->inventory_code);
 
-        return Pdf::loadView('pdf.unit_label', [
+        $data = [
             // Label harus membaca identitas dari unit → spesifikasi, bukan dari
             // data pengadaan pertama pada katalog.
             'unit' => $unit->loadMissing(['catalog', 'specification', 'room.building']),
             'setting' => $setting,
             'qr' => $this->unitQrDataUrl($unit),
-        ])->setPaper([0, 0, 260, 120], 'pt');
+        ];
+
+        [$nameSize, $identitySize] = $this->unitLabelFontSizes($data);
+
+        return Pdf::loadView('pdf.unit_label', [
+            ...$data,
+            'nameSize' => $nameSize,
+            'identitySize' => $identitySize,
+        ])->setPaper([0, 0, ...self::UNIT_LABEL_SIZE], 'pt');
+    }
+
+    /**
+     * Pilih ukuran font [nama, merek/tipe] terbesar yang masih muat satu halaman.
+     *
+     * Nama barang bisa sangat panjang dan merek/tipe spesifikasi juga panjang,
+     * sehingga pada ukuran terbesar teks membungkus lebih banyak baris dan kotak
+     * label melebihi halaman. Kandidat dicoba berurutan sampai ada yang muat.
+     *
+     * @param  array{unit: AssetUnit, setting: InstitutionSetting, qr: string}  $data
+     * @return array{0: float, 1: float}
+     */
+    protected function unitLabelFontSizes(array $data): array
+    {
+        $fallback = self::UNIT_LABEL_FONT_SIZES[array_key_last(self::UNIT_LABEL_FONT_SIZES)];
+
+        foreach (self::UNIT_LABEL_FONT_SIZES as [$nameSize, $identitySize]) {
+            $height = $this->unitLabelHeight($data + [
+                'nameSize' => $nameSize,
+                'identitySize' => $identitySize,
+            ]);
+
+            if ($height <= self::UNIT_LABEL_MAX_HEIGHT) {
+                return [(float) $nameSize, (float) $identitySize];
+            }
+        }
+
+        return [(float) $fallback[0], (float) $fallback[1]];
+    }
+
+    /**
+     * Ukur tinggi kotak label (pt) dari hasil render Dompdf.
+     *
+     * Kotak label tidak punya tinggi tetap, jadi tingginya dibaca dari frame
+     * `.label` saat tahap render selesai — cara paling akurat karena mengikuti
+     * pembungkusan teks asli.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function unitLabelHeight(array $data): float
+    {
+        // Halaman dibuat jauh lebih tinggi dari label dan tinggi kotak dilepas
+        // (`measure`) agar pengukuran mengikuti isi sebenarnya, bukan tinggi
+        // tetap label, serta tidak terpotong oleh pemenggalan halaman.
+        $probe = Pdf::loadView('pdf.unit_label', $data + ['measure' => true])
+            ->setPaper([0, 0, self::UNIT_LABEL_SIZE[0], 400], 'pt');
+
+        $height = 0.0;
+
+        $probe->getDomPDF()->setCallbacks([[
+            'event' => 'end_page_render',
+            'f' => function ($frame) use (&$height): void {
+                $stack = [$frame];
+
+                while ($stack) {
+                    $current = array_pop($stack);
+
+                    if (! is_object($current) || ! method_exists($current, 'get_node')) {
+                        continue;
+                    }
+
+                    $node = $current->get_node();
+
+                    if ($node instanceof \DOMElement && str_contains((string) $node->getAttribute('class'), 'label')) {
+                        $height = max($height, $current->get_border_box()['h']);
+                    }
+
+                    for ($child = $current->get_first_child(); $child; $child = $child->get_next_sibling()) {
+                        $stack[] = $child;
+                    }
+                }
+            },
+        ]]);
+
+        $probe->render();
+
+        return $height;
     }
 
     /**

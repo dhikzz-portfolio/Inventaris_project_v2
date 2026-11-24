@@ -437,10 +437,11 @@ class RevisionV3AuditTest extends TestCase
         $pdf = app(LabelService::class)->printUnit($unit)->output();
 
         $this->assertStringStartsWith('%PDF', $pdf);
-        $this->assertMatchesRegularExpression(
-            '/\/MediaBox\s*\[\s*0(?:\.0+)?\s+0(?:\.0+)?\s+260(?:\.0+)?\s+120(?:\.0+)?\s*\]/',
-            $pdf
-        );
+        // Halaman PDF sama dengan kotak biru label sehingga tidak ada sisa margin putih.
+        $this->assertMatchesRegularExpression('/\/MediaBox\s*\[\s*0(?:\.0+)?\s+0(?:\.0+)?\s+212(?:\.0+)?\s+80(?:\.0+)?\s*\]/', $pdf);
+
+        // Label harus utuh dalam satu halaman, bukan terbelah dua.
+        $this->assertSame(1, preg_match_all('/\/Type\s*\/Page[^s]/', $pdf));
 
         $dataUrl = app(LabelService::class)->unitQrDataUrl($unit);
         $binary = base64_decode(substr($dataUrl, strlen('data:image/png;base64,')));
@@ -450,10 +451,14 @@ class RevisionV3AuditTest extends TestCase
         $this->assertSame(imagesx($image), imagesy($image));
         $this->assertGreaterThan(100, imagesx($image));
 
-        $this->actingAs($this->wakasek)
+        $response = $this->actingAs($this->wakasek)
             ->get(route('units.label', $unit))
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
+
+        // PDF label tidak boleh tersimpan di cache browser agar ukuran halaman
+        // terbaru selalu yang ditampilkan.
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
     public function test_report_page_exposes_consistent_action_buttons(): void

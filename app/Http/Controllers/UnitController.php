@@ -358,7 +358,14 @@ class UnitController extends Controller
             404
         );
 
-        return $labels->printUnit($unit)->stream('label-'.$unit->inventory_code.'.pdf');
+        $response = $labels->printUnit($unit)->stream('label-'.$unit->inventory_code.'.pdf');
+
+        // Label selalu dirender ulang; jangan sampai browser menampilkan PDF lama
+        // dari cache saat ukuran halaman label berubah.
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+
+        return $response;
     }
 
     public function move(Request $request, AssetUnit $unit, InventoryCodeService $codes): RedirectResponse

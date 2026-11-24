@@ -22,7 +22,7 @@
         }
 
         /* Suppress inline whitespace between table cells */
-        .label tr, .label td {
+        .grid tr, .grid td {
             font-size: 0;
         }
 
@@ -32,119 +32,153 @@
             background-color: #ffffff;
         }
 
-        /* Label Container — 1 stiker = 1 halaman penuh */
+        /* Label Container — 1 stiker = 1 halaman penuh.
+           Dompdf memakai model content-box (box-sizing diabaikan), jadi ukuran
+           konten ini belum termasuk border 2pt: 256 + 4 = 260pt lebar dan
+           115.5 + 4 = 119.5pt tinggi, menyisakan 0.5pt halaman agar pembulatan
+           sub-piksel tidak melahirkan halaman kedua yang kosong. */
         .label {
-            width: 244pt;
-            margin: 12pt auto 0;
+            width: 256pt;
+            height: 115.5pt;
+            margin: 0;
             border: 2pt solid #2563eb;
             border-radius: 6pt;
-            font-size: 0;
-            table-layout: fixed;
         }
 
-        .label td {
-            font-size: initial;
+        /* Pembagian tinggi konten: badan label 96.5pt + footer institusi 19pt
+           (18pt tinggi + 1pt garis atas).
+
+           Tabel tidak dipakai di sini: Dompdf mengabaikan table-layout, sehingga
+           kolom tengah menyempit dan nama barang pecah/overlap. Posisi absolut
+           memberi lebar kolom yang pasti di setiap mesin cetak. */
+        .label-body {
+            position: relative;
+            height: 96.5pt;
         }
 
         /* Logo Section */
-        .logo-cell {
-            width: 52pt;
-            padding: 4pt 0 0;
-            text-align: left;
-            vertical-align: middle;
+        .logo-box {
+            position: absolute;
+            left: 7pt;
+            top: 25.25pt;
+            width: 46pt;
+            height: 46pt;
         }
 
-        .logo-cell img {
-            width: 38pt;
-            height: 38pt;
+        .logo-box img {
+            width: 46pt;
+            height: 46pt;
         }
 
         .logo-fallback {
-            width: 38pt;
-            font-size: 5pt;
-            padding: 3pt;
+            font-size: 5.5pt;
+            line-height: 1.3;
+            text-align: center;
+            color: #475569;
         }
 
-        /* Content Section */
-        .content-cell {
-            padding: 2pt 2pt 0;
+        /* Content Section — kolom tengah antara logo dan QR. */
+        .content-box {
+            position: absolute;
+            left: 60pt;
+            top: 0;
+            width: 140pt;
             text-align: center;
+        }
+
+        /* Tinggi sel dipakai Dompdf sebagai tinggi baris, sehingga
+           vertical-align: middle benar-benar menengahkan isi label. */
+        .content-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .content-box td {
+            height: 96.5pt;
+            padding: 0;
             vertical-align: middle;
+            text-align: center;
         }
 
         .item-name {
-            font-size: 9pt;
+            font-size: 11pt;
             font-weight: bold;
             text-transform: uppercase;
-            line-height: 1.1;
+            letter-spacing: 0.3pt;
+            line-height: 1.15;
             color: #111827;
-            padding-bottom: 1pt;
+            padding-bottom: 2.5pt;
         }
 
         .codes {
             font-family: 'Courier New', monospace;
-            font-size: 10pt;
+            font-size: 11.5pt;
             font-weight: bold;
-            letter-spacing: 0.1pt;
-            line-height: 1.2;
+            letter-spacing: 0.2pt;
+            line-height: 1.3;
             color: #1e40af;
-            padding-top: 1pt;
+            padding-top: 2pt;
         }
 
         /* QR Code Section */
-        .qr-cell {
-            width: 52pt;
-            padding: 4pt 0 0;
-            text-align: right;
-            vertical-align: middle;
+        .qr-box {
+            position: absolute;
+            right: 7pt;
+            top: 25.25pt;
+            width: 46pt;
+            height: 46pt;
         }
 
-        .qr-cell img {
-            width: 38pt;
-            height: 38pt;
+        .qr-box img {
+            width: 46pt;
+            height: 46pt;
         }
 
         /* Footer */
         .footer {
+            height: 18pt;
+            line-height: 17pt;
             border-top: 1pt solid #93c5fd;
-            padding: 3pt 4pt 2pt;
-            font-size: 7pt;
+            padding: 0 4pt;
+            font-size: 7.5pt;
             font-weight: bold;
-            letter-spacing: 0.3pt;
+            letter-spacing: 0.6pt;
             text-align: center;
             text-transform: uppercase;
             color: #1e40af;
         }    </style>
 </head>
 <body>
-    <table class="label">
-        <tr>
-            <td class="logo-cell">
+    <div class="label">
+        <div class="label-body">
+            <div class="logo-box">
                 @if ($setting->logo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo_path))
                     <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($setting->logo_path) }}" alt="Logo">
                 @else
                     <div class="logo-fallback">LOGO<br>SEKOLAH</div>
                 @endif
-            </td>
+            </div>
 
-            <td class="content-cell">
-                <div class="content-inner">
-                    <div class="item-name">{{ $item->name }}</div>
-                    <div class="codes">
-                        {!! implode('<br>', array_map('e', $locationLines)) !!}
-                    </div>
-                </div>
-            </td>
+            <div class="content-box">
+                <table class="content-table">
+                    <tr>
+                        <td>
+                            <div class="item-name">{{ $item->name }}</div>
+                            <div class="codes">
+                                {!! implode('<br>', array_map('e', $locationLines)) !!}
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
-            <td class="qr-cell">
+            <div class="qr-box">
                 <img src="{{ $qr }}" alt="QR Code">
-            </td>
-        </tr>
-        <tr>
-            <td colspan="3" class="footer">
-                {{ $setting->institution_name }}
-            </td>
-        </tr>
-    </table>
+            </div>
+        </div>
+        <div class="footer">
+            {{ $setting->institution_name }}
+        </div>
+    </div>
 </body>
 </html>

@@ -83,11 +83,10 @@ class LabelService
     ];
 
     /**
-     * Batas tinggi kotak label saat diukur (pt). Divider dan footer diposisikan
-     * absolut 18 pt dari dasar halaman, jadi nama + tabel identitas harus muat
-     * di atasnya: isi maksimal 56 pt, ditambah padding 10 pt dan border 5 pt.
+     * Batas tinggi kotak label (pt) agar halaman 80 pt tidak meluap.
+     * Kotak setinggi 79.5 pt masih menyisakan 0.5 pt di dalam halaman.
      */
-    private const UNIT_LABEL_MAX_HEIGHT = 71.0;
+    private const UNIT_LABEL_MAX_HEIGHT = 79.5;
 
     /** Label per unit fisik (revisi 2.1). */
     public function printUnit(AssetUnit $unit): \Barryvdh\DomPDF\PDF
@@ -121,7 +120,7 @@ class LabelService
     /**
      * Pilih ukuran font [nama, merek/tipe] terbesar yang masih muat satu halaman.
      *
-     * Nama barang bisa sangat panjang dan merek/tipe spesifikasi juga panjang,
+     * Nama barang mencapai 49 karakter dan merek/tipe spesifikasi juga panjang,
      * sehingga pada ukuran terbesar teks membungkus lebih banyak baris dan kotak
      * label melebihi halaman. Kandidat dicoba berurutan sampai ada yang muat.
      *
@@ -157,10 +156,9 @@ class LabelService
      */
     protected function unitLabelHeight(array $data): float
     {
-        // Halaman dibuat jauh lebih tinggi dari label dan tinggi kotak dilepas
-        // (`measure`) agar pengukuran mengikuti isi sebenarnya, bukan tinggi
-        // tetap label, serta tidak terpotong oleh pemenggalan halaman.
-        $probe = Pdf::loadView('pdf.unit_label', $data + ['measure' => true])
+        // Halaman dibuat jauh lebih tinggi dari label agar pengukuran tidak
+        // terpotong oleh pemenggalan halaman.
+        $probe = Pdf::loadView('pdf.unit_label', $data)
             ->setPaper([0, 0, self::UNIT_LABEL_SIZE[0], 400], 'pt');
 
         $height = 0.0;

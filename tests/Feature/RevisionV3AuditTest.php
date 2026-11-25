@@ -437,9 +437,9 @@ class RevisionV3AuditTest extends TestCase
         $pdf = app(LabelService::class)->printUnit($unit)->output();
 
         $this->assertStringStartsWith('%PDF', $pdf);
-        // Halaman PDF sama dengan kotak biru label sehingga tidak ada sisa margin putih.
-        $this->assertMatchesRegularExpression('/\/MediaBox\s*\[\s*0(?:\.0+)?\s+0(?:\.0+)?\s+212(?:\.0+)?\s+80(?:\.0+)?\s*\]/', $pdf);
-
+        $this->assertMatchesRegularExpression('/\/MediaBox\s*\[\s*0(?:\.0+)?\s+0(?:\.0+)?\s+212(?:\.0+)?\s+80(?:\.0+)?\s*\]/',
+            $pdf
+        );
         // Label harus utuh dalam satu halaman, bukan terbelah dua.
         $this->assertSame(1, preg_match_all('/\/Type\s*\/Page[^s]/', $pdf));
 

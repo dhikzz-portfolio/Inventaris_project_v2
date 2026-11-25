@@ -29,9 +29,7 @@
            kedua. */
         .label {
             width: 189pt;
-            /* Saat LabelService mengukur tinggi isi, tinggi tetap dilepas agar
-               hasil ukur mengikuti pembungkusan teks sebenarnya. */
-            height: {{ ($measure ?? false) ? 'auto' : '65pt' }};
+            height: 65pt;
             position: relative;
             border: 2.5pt solid #2563eb;
             border-radius: 7pt;
@@ -62,6 +60,7 @@
         .spesifikasi {
             color: #64748b;
             line-height: 1.2;
+            font-size: 85%;
         }
 
         .kode-unit {
@@ -80,6 +79,7 @@
 
         /* Kaki label ditempel ke dasar kotak biru; sisa tinggi kotak dipakai
            sebagai jarak bernapas di atas garis pemisah. */
+        /* Garis pemisah sedikit dipindahkan ke atas agar lebih terpusat di tengah kotak */
         .divider {
             position: absolute;
             left: 9pt;
@@ -88,8 +88,7 @@
             border-top: 1pt solid #a9c4ea;
         }
 
-        /* Footer sedikit naik agar rapi di tengah vertikal antara divider dan
-           batas bawah kotak. */
+        /* Footer sedikit NAIK agar rapi di tengah vertikal antara divider dan batas bawah kotak */
         .footer {
             position: absolute;
             left: 9pt;

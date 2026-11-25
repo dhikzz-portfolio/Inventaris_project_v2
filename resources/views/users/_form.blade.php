@@ -1,0 +1,277 @@
+@php
+    $editing = $user !== null;
+    $currentRole = old('role', $user?->role ?? \App\Enums\Role::MEMBER->value);
+    $currentType = old('borrower_type', $user?->borrower_type?->value);
+    $currentOperatorCategory = old('operator_category', $user?->operator_category?->value);
+    $selectedRooms = old('room_ids', $user?->roomScopes?->pluck('room_id')->all() ?? []);
+    $labRoomOptions = $labRooms->map(fn ($room) => [
+        'id' => (int) $room->id,
+        'major_id' => $room->major_id ? (int) $room->major_id : null,
+        'label' => trim(($room->code ? $room->code.' — ' : '').$room->name),
+    ])->values();
+@endphp
+
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5"
+     x-data="userForm({
+         role: '{{ $currentRole }}',
+         type: '{{ $currentType }}',
+         initialMajor: {{ (int) old('major_id', $user?->major_id ?? 0) }},
+         rooms: {{ \Illuminate\Support\Js::from($labRoomOptions) }},
+         initialRooms: {{ \Illuminate\Support\Js::from(array_map('intval', $selectedRooms)) }}
+     })">
+    <div class="flex items-center justify-between gap-2 mb-4">
+        <h3 class="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
+            <span class="material-icons-round text-amber-600">{{ $editing ? 'manage_accounts' : 'person_add' }}</span>
+            {{ $editing ? 'Ubah Pengguna' : 'Tambah Pengguna' }}
+        </h3>
+        @if ($editing)
+            <a href="{{ route('users.index') }}" class="inline-flex min-h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">← Batal</a>
+        @endif
+    </div>
+
+    @if ($editing)
+        <div class="mb-4 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
+            Mengubah: <strong>{{ $user->displayName() }}</strong> (<span class="font-mono">{{ $user->email }}</span>)
+        </div>
+    @endif
+
+    <form method="POST" action="{{ $action }}" class="space-y-5">
+        @csrf
+        @if ($method !== 'POST')
+            @method($method)
+        @endif
+
+        {{-- Identitas --}}
+        <fieldset class="space-y-3">
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Identitas</legend>
+
+            <div>
+                <x-input-label value="Nama Lengkap *" />
+                <input type="text" name="name" value="{{ old('name', $user?->name) }}" required
+                       class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                @error('name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div x-show="type !== 'SISWA'" x-cloak>
+                    <x-input-label value="Gelar (guru/staf)" />
+                    <input type="text" name="degree" value="{{ old('degree', $user?->degree) }}" placeholder="S.Kom, S.Pd"
+                           :disabled="type === 'SISWA'"
+                           class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500 disabled:bg-slate-100 disabled:text-slate-400">
+                    <p class="mt-1 text-[11px] text-gray-400">Tidak tersedia untuk peminjam kategori siswa.</p>
+                    @error('degree') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <x-input-label value="Email Gmail" />
+                    <input type="email" name="email" value="{{ old('email', $user?->email) }}" placeholder="nama@gmail.com"
+                           class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    @error('email') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div x-show="role === 'MEMBER'" x-cloak>
+                    <x-input-label value="Jurusan" />
+                    <select name="major_id"
+                            :disabled="role !== 'MEMBER' || ['GURU', 'STAF'].includes(type)"
+                            class="mt-1 block w-full rounded-lg border-gray-300 text-sm disabled:bg-slate-100 disabled:text-slate-400">
+                        <option value="">— tanpa jurusan —</option>
+                        @foreach ($majors as $major)
+                            <option value="{{ $major->id }}" @selected(old('major_id', $user?->major_id) == $major->id)>{{ $major->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-[11px] text-gray-400">Jurusan peminjam; tidak tersedia untuk kategori guru/staf. Jurusan Operator diatur pada bagian cakupan laboratorium.</p>
+                    @error('major_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+            </div>
+        </fieldset>
+
+        {{-- Keamanan --}}
+        <fieldset class="space-y-3 border-t border-gray-100 pt-4">
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Keamanan</legend>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <x-input-label :value="$editing ? 'Password baru (opsional)' : 'Password *'" />
+                    <input type="password" name="password" @required(! $editing) class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    @error('password') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <x-input-label value="Ulangi password" />
+                    <input type="password" name="password_confirmation" @required(! $editing) class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                </div>
+            </div>
+            <p class="text-[11px] text-gray-400">Minimal 8 karakter. Role Super Admin utama tidak dapat ditetapkan dari halaman administrasi akun.</p>
+        </fieldset>
+
+        {{-- Status akun --}}
+        <fieldset class="border-t border-gray-100 pt-4">
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Status Akun</legend>
+            <input type="hidden" name="is_active" value="0">
+            <label class="flex items-center gap-2 text-xs text-gray-700">
+                <input type="checkbox" name="is_active" value="1"
+                       class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                       @checked(old('is_active', $user?->isActive() ?? true))>
+                <span>Aktif — akun nonaktif tidak dapat login dan sesi aktifnya diputus.</span>
+            </label>
+            @error('is_active') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            <p class="text-[11px] text-gray-400">Login pertama tidak mewajibkan penggantian password. Pengguna dapat menggantinya secara sukarela dari halaman profil.</p>
+        </fieldset>
+
+        {{-- Role --}}
+        <fieldset class="border-t border-gray-100 pt-4">
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Role Sistem *</legend>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                @foreach ($roles as $role)
+                    <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs transition has-[:checked]:border-amber-500 has-[:checked]:ring-2 has-[:checked]:ring-amber-500/20">
+                        <input type="radio" name="role" value="{{ $role->value }}" x-model="role" required
+                               class="mt-0.5 text-amber-600 focus:ring-amber-500"
+                               @checked($currentRole === $role->value)>
+                        <span>
+                            <span class="block font-semibold text-gray-800">{{ $role->label() }}</span>
+                            <span class="block text-[10px] text-gray-400">{{ $role->value }}</span>
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+            @error('role') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+        </fieldset>
+
+        {{-- Kategori peminjam --}}
+        {{-- Kategori operator --}}
+        <fieldset class="border-t border-gray-100 pt-4 space-y-3" x-show="role === 'OPERATOR'" x-cloak>
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Kategori Operator</legend>
+            <p class="text-[11px] text-gray-400">Kategori hanya membedakan identitas; permission tetap mengikuti role Operator.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                @foreach ($operatorCategories as $category)
+                    <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs has-[:checked]:border-amber-500 has-[:checked]:ring-2 has-[:checked]:ring-amber-500/20">
+                        <input type="radio" name="operator_category" value="{{ $category->value }}"
+                               class="text-amber-600 focus:ring-amber-500"
+                               @checked($currentOperatorCategory === $category->value)>
+                        <span class="font-medium text-gray-700">{{ $category->label() }}</span>
+                    </label>
+                @endforeach
+            </div>
+            @error('operator_category') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+        </fieldset>
+
+        <fieldset class="border-t border-gray-100 pt-4 space-y-3" x-show="role === 'MEMBER'" x-cloak>
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Kategori Peminjam</legend>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                @foreach ($borrowerTypes as $type)
+                    <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs has-[:checked]:border-amber-500 has-[:checked]:ring-2 has-[:checked]:ring-amber-500/20">
+                        <input type="radio" name="borrower_type" value="{{ $type->value }}" x-model="type"
+                               class="text-amber-600 focus:ring-amber-500"
+                               @checked($currentType === $type->value)>
+                        <span class="font-medium text-gray-700">{{ $type->label() }}</span>
+                    </label>
+                @endforeach
+            </div>
+            @error('borrower_type') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="type === 'SISWA'" x-cloak>
+                <div>
+                    <x-input-label value="Kelas siswa" />
+                    <input type="text" name="class_name" value="{{ old('class_name', $user?->class_name) }}" placeholder="X RPL 1"
+                           class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500">
+                    @error('class_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+            </div>
+        </fieldset>
+
+        {{-- Cakupan laboratorium berdasarkan jurusan --}}
+        <fieldset class="border-t border-gray-100 pt-4 space-y-3" x-show="role === 'OPERATOR'" x-cloak>
+            <legend class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Cakupan Laboratorium</legend>
+
+            <div>
+                <x-input-label value="Jurusan Operator" />
+                <select name="major_id" x-model.number="majorId" @change="syncRooms()"
+                        :disabled="role !== 'OPERATOR'"
+                        class="mt-1 block w-full rounded-lg border-gray-300 text-sm focus:ring-amber-500 focus:border-amber-500 disabled:bg-slate-100 disabled:text-slate-400">
+                    <option value="">— pilih jurusan —</option>
+                    @foreach ($majors as $major)
+                        <option value="{{ $major->id }}">{{ $major->name }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-[11px] text-gray-400">Operator hanya memiliki satu jurusan. Seluruh laboratorium jurusan aktif secara default.</p>
+                @error('major_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-[11px] text-gray-500">
+                    <span class="font-semibold" x-text="selectedRooms.length"></span> dari
+                    <span x-text="filteredRooms.length"></span> laboratorium dipilih.
+                </p>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="selectAllRooms()" :disabled="filteredRooms.length === 0"
+                            class="rounded-md border border-gray-300 px-2 py-1 text-[10px] font-semibold text-gray-600 disabled:opacity-40">Pilih semua</button>
+                    <button type="button" @click="clearRooms()"
+                            class="rounded-md border border-gray-300 px-2 py-1 text-[10px] font-semibold text-gray-600">Kosongkan</button>
+                </div>
+            </div>
+
+            <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 p-2 space-y-1">
+                <template x-for="room in filteredRooms" :key="room.id">
+                    <label class="flex items-center gap-2 text-xs text-gray-700 px-1 py-0.5">
+                        <input type="checkbox" name="room_ids[]" :value="room.id" x-model="selectedRooms"
+                               class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        <span x-text="room.label"></span>
+                    </label>
+                </template>
+                <p x-show="filteredRooms.length === 0" class="px-1 text-xs text-gray-400"
+                   x-text="majorId ? 'Jurusan ini belum memiliki laboratorium pada master ruangan.' : 'Pilih jurusan terlebih dahulu.'"></p>
+            </div>
+            @error('room_ids') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+        </fieldset>
+
+        <div class="flex items-center gap-2 border-t border-gray-100 pt-4">
+            <button type="submit"
+                    class="flex-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold py-2.5">
+                {{ $submitLabel }}
+            </button>
+            <a href="{{ $editing ? route('users.index') : route('users.index') }}"
+               class="px-4 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-600">Batal</a>
+        </div>
+    </form>
+
+    @if ($editing && $user->id !== auth()->id())
+        <form method="POST" action="{{ route('users.destroy', $user) }}" class="mt-3"
+              onsubmit="return confirm('Hapus pengguna {{ $user->name }}? Akun dengan riwayat peminjaman tidak dapat dihapus.')">
+            @csrf
+            @method('DELETE')
+            <button class="inline-flex min-h-9 w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60">Hapus Pengguna</button>
+        </form>
+    @endif
+</div>
+
+@push('scripts')
+    <script>
+        function userForm(config) {
+            return {
+                role: config.role,
+                type: config.type,
+                majorId: Number(config.initialMajor) || '',
+                rooms: config.rooms || [],
+                selectedRooms: (config.initialRooms || []).map(Number),
+
+                get filteredRooms() {
+                    if (!this.majorId) return [];
+                    return this.rooms.filter((room) => Number(room.major_id) === Number(this.majorId));
+                },
+
+                /** Perubahan jurusan tidak menyisakan laboratorium lama yang tidak valid. */
+                syncRooms() {
+                    this.selectedRooms = this.filteredRooms.map((room) => Number(room.id));
+                },
+
+                selectAllRooms() {
+                    this.selectedRooms = this.filteredRooms.map((room) => Number(room.id));
+                },
+
+                clearRooms() {
+                    this.selectedRooms = [];
+                },
+            };
+        }
+    </script>
+@endpush

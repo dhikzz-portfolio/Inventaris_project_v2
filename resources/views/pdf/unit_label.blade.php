@@ -21,36 +21,39 @@
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; font-family: Helvetica, Arial, sans-serif; color: #111827; }
 
-        /* Dompdf memakai model content-box (box-sizing diabaikan), jadi ukuran ini
-           belum termasuk padding 9pt kiri/kanan serta 6pt/4pt atas-bawah dan border
-           2.5pt: 189 + 18 + 5 = 212pt dan 65 + 10 + 5 = 80pt, tepat seukuran
-           halaman. Kotak biru menutup seluruh halaman seperti frame pada stiker
-           pre-print, tanpa sisa margin putih. LabelService memilih ukuran font
-           yang menjaga isi tetap di dalam tinggi 65pt (satu halaman). */
+        /* Dompdf memakai model content-box (box-sizing diabaikan), jadi lebar ini
+           belum termasuk padding 9pt kiri/kanan dan border 2.5pt: 189 + 18 + 5 =
+           212pt, tepat selebar halaman. Tinggi 65pt membuat kotak biru
+           (65 + padding 10 + border 5 = 80pt) mengisi penuh tinggi halaman
+           seperti frame pada stiker pre-print, tanpa sisa putih maupun halaman
+           kedua. */
         .label {
             width: 189pt;
             /* Saat LabelService mengukur tinggi isi, tinggi tetap dilepas agar
                hasil ukur mengikuti pembungkusan teks sebenarnya. */
             height: {{ ($measure ?? false) ? 'auto' : '65pt' }};
+            position: relative;
             border: 2.5pt solid #2563eb;
             border-radius: 7pt;
             padding: 6pt 9pt 4pt;
         }
 
-        /* Nama barang memakai lebar penuh label. Di kolom sempit nama panjang
-           butuh 4-5 baris sehingga label pecah ke halaman lain. */
+        /* Nama barang memakai lebar penuh label. Di kolom sempit (83pt) nama
+           49 karakter butuh 4-5 baris sehingga label pecah ke halaman lain. */
         .nama {
             font-weight: bold;
             text-transform: uppercase;
             text-align: center;
             line-height: 1.05;
             color: #111827;
+            margin-bottom: 3pt;
         }
 
         table.inner { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 2pt; }
         table.inner td { padding: 0; vertical-align: middle; }
 
-        .logo-cell { width: 30pt; text-align: left; }
+        /* Lebar 30pt mengizinkan logo sekurang-kurangnya 28pt + 1pt margin each side */
+        .logo-cell { width: 30pt; text-align: left; margin-right: 2pt; }
         .logo-cell img { max-width: 29pt; max-height: 29pt; }
         .logo-fallback { font-size: 6pt; font-weight: bold; color: #475569; line-height: 1.2; }
 
@@ -75,13 +78,23 @@
         .qr-cell { width: 29pt; text-align: right; }
         .qr-cell img { width: 28pt; height: 28pt; }
 
+        /* Kaki label ditempel ke dasar kotak biru; sisa tinggi kotak dipakai
+           sebagai jarak bernapas di atas garis pemisah. */
         .divider {
-            margin-top: 3.5pt;
+            position: absolute;
+            left: 9pt;
+            right: 9pt;
+            bottom: 18pt;
             border-top: 1pt solid #a9c4ea;
         }
 
+        /* Footer sedikit naik agar rapi di tengah vertikal antara divider dan
+           batas bawah kotak. */
         .footer {
-            margin-top: 0.5pt;
+            position: absolute;
+            left: 9pt;
+            right: 9pt;
+            bottom: 7pt;
             font-size: 7.5pt;
             font-weight: bold;
             letter-spacing: 0.7pt;

@@ -83,10 +83,11 @@ class LabelService
     ];
 
     /**
-     * Batas tinggi kotak label (pt) agar halaman 80 pt tidak meluap.
-     * Kotak setinggi 79.5 pt masih menyisakan 0.5 pt di dalam halaman.
+     * Batas tinggi kotak label saat diukur (pt). Divider dan footer diposisikan
+     * absolut 18 pt dari dasar halaman, jadi nama + tabel identitas harus muat
+     * di atasnya: isi maksimal 56 pt, ditambah padding 10 pt dan border 5 pt.
      */
-    private const UNIT_LABEL_MAX_HEIGHT = 79.5;
+    private const UNIT_LABEL_MAX_HEIGHT = 71.0;
 
     /** Label per unit fisik (revisi 2.1). */
     public function printUnit(AssetUnit $unit): \Barryvdh\DomPDF\PDF

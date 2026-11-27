@@ -21,15 +21,15 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div class="md:col-span-2">
                 <x-input-label for="asset_unit_id" value="Unit inventaris *" />
-                <select id="asset_unit_id" name="asset_unit_id" required
-                        class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">— pilih unit —</option>
-                    @foreach ($units as $unit)
-                        <option value="{{ $unit->id }}" @selected((string) old('asset_unit_id', $selectedUnitId) === (string) $unit->id)>
-                            {{ $unit->inventory_code }} — {{ $unit->catalog?->name }} ({{ $unit->room?->code }}, kondisi: {{ $unit->condition->label() }})
-                        </option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="asset_unit_id" name="asset_unit_id" required
+                                     :selected="$selectedUnitId"
+                                     :options="$units->map(fn ($unit) => [
+                                         'value' => (string) $unit->id,
+                                         'label' => $unit->inventory_code.' — '.($unit->catalog?->name ?? '-'),
+                                         'hint' => ($unit->room?->code ?? '-').' · kondisi: '.$unit->condition->label(),
+                                     ])->values()->all()"
+                                     placeholder="Cari kode unit atau nama barang…" empty-text="Unit tidak ditemukan."
+                                     aria-label="Unit inventaris" class="mt-1 w-full" />
                 @if ($units->isEmpty())
                     <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">Tidak ada unit inventaris pada ruang lingkup Anda.</p>
                 @endif

@@ -70,7 +70,7 @@
 
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
             <div class="flex items-center gap-2">
-                <span>{{ $catalogs->total() }} jenis barang ditemukan</span>
+                <span>{{ $catalogs->total() }} jenis barang ditemukan · total {{ $totalUnits }} unit</span>
                 @if ($activeFilters > 0)
                     <button wire:click="resetFilters" class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-blue-700 transition hover:bg-blue-100 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-950">
                         <span class="material-icons-round text-sm">filter_alt_off</span> Reset filter
@@ -98,7 +98,7 @@
                 <div class="flex flex-1 flex-col p-3">
                     <div class="flex items-start justify-between gap-2">
                         <h3 class="line-clamp-2 min-w-0 text-sm font-semibold leading-snug text-slate-800 group-hover:text-brand-700 dark:text-slate-100 dark:group-hover:text-brand-300">{{ $catalog->name }}</h3>
-                        <span class="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-900/60 dark:text-brand-300">{{ $catalog->units_count }}</span>
+                        <span class="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-900/60 dark:text-brand-300" title="Jumlah unit">{{ $catalog->units_count }} unit</span>
                     </div>
                     <div class="mt-1 space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                         <div class="line-clamp-1">{{ $catalog->category?->name }}</div>

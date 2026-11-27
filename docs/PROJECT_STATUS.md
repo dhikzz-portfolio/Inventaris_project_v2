@@ -1,6 +1,6 @@
 # Project Status
 
-Tanggal: **3 November 2026**
+Tanggal: **27 November 2026**
 Versi: v2 + revisi **2.1**, **revisi lanjutan 22 Oktober 2026**, **revisi besar 24 Oktober 2026**, **revisi besar V2 26 Oktober 2026**, **revisi validasi pengembalian per unit 28 Oktober 2026**, **revisi serah terima/validasi/rincian barang 29 Oktober 2026**, **revisi V3 2 November 2026** (sinkronisasi label/QR ke spesifikasi unit, pengadaan dari katalog lama, field pengguna per kategori, password dua tahap, PIC kegiatan, hapus kegiatan terbatas, ringkasan peminjaman adaptif), **revisi V4 2 November 2026** (laporan penghapusan lintas katalog, anti-duplikasi unit, sinkronisasi stok, backfill CSV, invalidasi sesi, otorisasi Super Admin, QR aman, konkurensi MySQL, Playwright E2E, responsif 8 breakpoint), dan **revisi V5 2 November 2026** (alur pengadaan tiga tahap Laboran → Ketua Laboran → Wakasek, penerimaan barang sebelum inventaris, laporan bulanan ber-cakupan role + pengadaan/kerusakan, pelaporan kerusakan rusak ringan/berat, Master Data Ketua Laboran read-only, role Super Admin Pengguna). Rincian: `REVISION_V2.md`, `REVISION_V3.md`, `DECISIONS.md` butir 38–42, `PENDING_DECISIONS.md`, dan `TESTING.md` bagian 12–16.
 
 Revisi V6 (3 November 2026): mutasi multi-lokasi dalam satu transaksi (`asset_unit_movements.movement_no`), pencarian nama/spesifikasi pada cetak label, notifikasi berbasis role/cakupan dengan penjaga tautan, serta notifikasi laporan kerusakan dan administrasi akun. Rincian: `DECISIONS.md` butir 40–42 dan `TESTING.md` bagian "Revisi V6".
@@ -10,6 +10,8 @@ Revisi V7 (3 November 2026): peminjaman atas nama diri sendiri/orang lain dengan
 Revisi V8 (5 November 2026): katalog tanpa merek dengan jumlah/satuan sebagai data inti, beberapa kelompok spesifikasi per katalog (tahun, sumber dana, jumlah), kondisi dan keterangan per alokasi ruangan, penerimaan barang per alokasi dengan laporan kerusakan otomatis yang idempoten, label tiga mode role-permission (Bisa Edit / Hanya Lihat / Sembunyikan) beserta perbaikan audit perubahan, filter kategori pengguna, penonaktifan registrasi publik, penghapusan kewajiban ganti password login pertama, dan cakupan laboratorium Operator berdasarkan jurusan. Rincian: `REVISION_V8.md`.
 
 Revisi V9 (5 November 2026): pengadaan mode **stok** (katalog + jumlah tanpa ruangan/spesifikasi), penerimaan aktual ke `procurement_receipts`, distribusi berbasis sisa stok dengan banyak alokasi ruangan dan kelompok spesifikasi per alokasi, perhitungan sisa stok tanpa penghitungan ganda, riwayat status operasional (`asset_unit_status_logs`) dengan alasan wajib untuk perubahan manual, serta filter merek/model/kondisi/status pada katalog. Alur alokasi lama dipertahankan sebagai jalur kompatibilitas. Rincian dan batasan: `REVISION_V9.md`.
+
+Revisi UI (27 November 2026): badge **N unit** pada setiap kartu katalog, ringkasan **jenis barang ditemukan · total N unit** pada hasil filter (dihitung dari seluruh hasil filter, bukan hanya halaman aktif), serta pemilihan data barang — katalog pada Inventaris Keluar, katalog dan spesifikasi pada Distribusi, dan unit pada form Laporan Kerusakan — memakai combobox `x-searchable-select` yang dapat dicari. Rincian: `DECISIONS.md` butir 43, `TESTING.md` bagian "Revisi UI (27 November 2026)", dan bagian 8 di bawah.
 
 > Catatan V8: baris lama pada tabel di bawah yang masih menyebut registrasi mandiri atau wajib ganti password menggambarkan kondisi sebelum V8; perilaku aktif mengikuti `REVISION_V8.md`.
 
@@ -86,9 +88,9 @@ Pengujian suite penuh per revisi V7: **378 passed, 0 skipped, 2053 assertions** 
 | Autentikasi & sesi                      | VERIFIED    | Login email/password, rate limit 5 percobaan, logout POST, registrasi Gmail mandiri (role Peminjam), verifikasi email belum aktif |
 | Role & permission                       | VERIFIED    | 4 role final (`SUPER_ADMIN`, `KETUA_LABORAN`, `LABORAN`, `PEMINJAM`) + middleware Spatie; kategori peminjam di `borrower_type` |
 | Dashboard                               | VERIFIED    | Data unit/katalog nyata, grafik Chart.js, cakupan per role (sekolah/lab/ruangan), personal vs operasional |
-| Katalog jenis barang                    | VERIFIED    | Tabel `item_catalogs`; hierarki 3 tingkat (katalog → spesifikasi → unit); jumlah unit dihitung dari unit; pencarian/filter/pagination |
+| Katalog jenis barang                    | VERIFIED    | Tabel `item_catalogs`; hierarki 3 tingkat (katalog → spesifikasi → unit); jumlah unit dihitung dari unit (badge `N unit`); ringkasan `X jenis barang ditemukan · total N unit` dari seluruh hasil filter; pencarian/filter/pagination dengan combobox |
 | Spesifikasi merek & tipe/model          | VERIFIED    | Tabel `specifications`; satu katalog banyak spesifikasi, satu spesifikasi banyak unit; nilai `Tanpa Merek`/`Tidak Ditentukan`; halaman spesifikasi + filter gabungan |
-| Distribusi per spesifikasi              | VERIFIED    | `distributions` + `distribution_units`; stok per merek/tipe dihitung terpisah, batas stok & unit sekali alokasi ditegakkan |
+| Distribusi per spesifikasi              | VERIFIED    | `distributions` + `distribution_units`; stok per merek/tipe dihitung terpisah, batas stok & unit sekali alokasi ditegakkan; katalog & spesifikasi dipilih lewat combobox pencarian dengan keterangan sisa stok |
 | Unit inventaris fisik                   | VERIFIED    | Tabel `asset_units`; kondisi/status/catatan dapat diubah sesuai role dan tercatat di audit log       |
 | Kode inventaris `G1-02-12`              | VERIFIED    | Validasi pola/lokasi, ledger kode, transaksi + unique index, batas 99, larangan daur ulang         |
 | Detail katalog & pencarian kode         | VERIFIED    | Pencarian exact/prefix, pesan format, scope, empty state, pagination 25 unit                       |
@@ -168,3 +170,15 @@ Pengujian suite penuh per revisi V7: **378 passed, 0 skipped, 2053 assertions** 
 | Regresi suite Feature | **PASS** | 352 tes, 1919 assertions, 0 gagal (dijalankan bertahap); `npm run build` + `view:cache` berhasil |
 
 Keputusan bisnis di `PENDING_DECISIONS.md` **tidak berubah**: pembatasan aman tetap aktif, alur persetujuan yang belum disepakati tidak diaktifkan. Cetak fisik label dan verifikasi email tetap **BELUM DIVERIFIKASI**.
+
+## 8. Revisi UI (27 November 2026) — jumlah unit katalog dan combobox data barang
+
+| Perubahan | Status | Bukti |
+| --- | --- | --- |
+| Badge jumlah unit pada kartu katalog | **IMPLEMENTED & TESTED** | `resources/views/livewire/catalog/catalog-directory.blade.php` menampilkan `{{ $catalog->units_count }} unit` dengan tooltip "Jumlah unit" |
+| Ringkasan total unit hasil filter | **IMPLEMENTED & TESTED** | `CatalogDirectory::render()` menghitung `$totalUnits` dengan `AssetUnit::visibleTo()` + subquery ID katalog hasil filter; `CatalogFilterTest::test_ringkasan_menampilkan_total_unit_dari_hasil_filter` |
+| Combobox pemilihan data barang | **IMPLEMENTED & TESTED** | `x-searchable-select` dipakai di Inventaris Keluar (katalog), Distribusi stok (katalog), Distribusi spesifikasi (spesifikasi), dan Laporan Kerusakan (unit) |
+
+Hasil tes terarah: `CatalogFilterTest` + `SearchableCatalogTest` **12 passed** (46 assertions); `MovementAndWriteOffTest` + `StockDistributionTest` + `SpecificationDistributionTest` + `DamageReportTest` **46 passed** (297 assertions). `vendor/bin/pint --dirty --format agent` dan `php artisan view:cache` berhasil.
+
+Batasan: interaksi buka/ketik/pilih combobox belum diuji end-to-end di browser; yang diverifikasi adalah render server-side, kompilasi Blade, dan tes fitur di atas.

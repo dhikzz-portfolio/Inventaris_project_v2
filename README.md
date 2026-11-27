@@ -12,7 +12,8 @@ Dibangun dengan **Laravel 13 + Livewire 4 + Blade + Alpine.js (bawaan Livewire) 
 
 - **Autentikasi username/password** (bukan email), 4 role final: `SUPER_ADMIN` (Wakasek Sarpras), `KETUA_LABORAN` (Ketua Laboran), `LABORAN` (Laboran/K3), `PEMINJAM`. Kategori siswa/guru/staf disimpan terpisah di `users.borrower_type`.
 - **Dashboard berbeda per role** dengan statistik aktual dan grafik Chart.js.
-- **Katalog aset** dengan pencarian debounce, filter kategori/ruangan/status, pagination, stok tersedia per unit, dan riwayat lengkap.
+- **Katalog aset** dengan pencarian debounce, filter kategori/ruangan/status, pagination, stok tersedia per unit, dan riwayat lengkap. Setiap kartu menampilkan jumlah unit (`N unit`), dan hasil filter merangkum `X jenis barang ditemukan · total N unit` dari seluruh hasil, bukan hanya halaman aktif.
+- **Combobox pencarian untuk data barang**: pemilihan katalog (Inventaris Keluar), katalog + spesifikasi (Distribusi), dan unit (Laporan Kerusakan) bisa diketik untuk menyaring pilihan.
 - **(2.1) Katalog jenis barang terpisah dari unit fisik**: satu entri "Kursi" dengan jumlah 23, sementara setiap kursi memiliki baris unit, lokasi, kondisi, dan kode sendiri.
 - **(2.1) Kode inventaris `G1-02-12`** (Gedung G, lantai 1, ruang 02, unit 12), diterbitkan otomatis per ruangan dan divalidasi terhadap lokasi serta keunikan.
 - **(2.1) Detail katalog & pencarian unit**: daftar unit per katalog, pencarian kode lengkap/awalan, filter gedung/lantai/ruangan/kondisi/status/tahun, sorting kode, pagination, dan pembatasan cakupan akses.

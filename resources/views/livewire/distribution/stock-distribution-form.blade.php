@@ -10,15 +10,14 @@
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div class="lg:col-span-2">
                 <label for="stock-catalog" class="block text-sm font-medium text-slate-700 dark:text-slate-300">1. Katalog dengan stok diterima *</label>
-                <select id="stock-catalog" wire:model.live="catalogId"
-                        class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">— pilih katalog —</option>
-                    @foreach ($catalogs as $option)
-                        <option value="{{ $option['id'] }}">
-                            {{ $option['name'] }}{{ $option['category'] ? ' — '.$option['category'] : '' }} (sisa {{ $option['remaining'] }})
-                        </option>
-                    @endforeach
-                </select>
+                <x-searchable-select id="stock-catalog" wire-model="catalogId" :selected="$catalogId"
+                                     :options="$catalogs->map(fn ($option) => [
+                                         'value' => (string) $option['id'],
+                                         'label' => $option['name'],
+                                         'hint' => ($option['category'] ? $option['category'].' · ' : '').'sisa '.$option['remaining'].' unit',
+                                     ])->values()->all()"
+                                     placeholder="Cari katalog barang…" empty-text="Katalog tidak ditemukan."
+                                     aria-label="Katalog dengan stok diterima" class="mt-1 w-full" />
                 @error('catalogId') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                     Hanya katalog dengan penerimaan tercatat yang tampil. Sisa stok = jumlah diterima − jumlah yang sudah didistribusikan.

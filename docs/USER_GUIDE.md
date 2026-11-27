@@ -41,8 +41,9 @@ Katalog kini bertingkat tiga: **katalog (jenis barang) → spesifikasi (merek + 
 
 1. Buka menu **Katalog**.
 2. Setiap kartu mewakili **jenis barang** (mis. Kursi Umum), bukan satu barang fisik maupun satu merek.
-3. Angka jumlah unit adalah agregasi seluruh spesifikasi dan unit dalam cakupan akses Anda.
-4. Gunakan pencarian, filter (kategori/gedung/lantai/ruangan/ketersediaan), dan pagination.
+3. Setiap kartu menampilkan badge **N unit** (tooltip "Jumlah unit"); angkanya agregasi seluruh spesifikasi dan unit dalam cakupan akses Anda.
+4. Di atas daftar, ringkasan hasil filter menampilkan **X jenis barang ditemukan · total N unit**. Total unit dihitung dari **seluruh hasil filter**, bukan hanya halaman yang sedang tampil, dan ikut berubah saat pencarian/filter diganti.
+5. Gunakan pencarian, filter (kategori/gedung/lantai/ruangan/ketersediaan), dan pagination. Kolom filter berupa **combobox**: klik lalu ketik untuk menyaring pilihan, pilih dengan klik atau tombol panah, dan tekan **X** untuk mengosongkan.
 
 ### Tingkat 2 — daftar spesifikasi
 
@@ -148,7 +149,7 @@ Tombol kamera mengambang / menu **Scan QR**. Arahkan kamera ke stiker. Jika kame
 
 - **Pengadaan Barang**: isi data katalog dan jumlah unit. Jika dibuat oleh Ketua Laboran, status pengadaan `PENDING` dan menunggu Wakasek; jika oleh Wakasek, langsung disetujui.
 - **Mutasi Lokasi** (⚠ 2.1): pilih unit dan ruangan tujuan. Kode baru diterbitkan, kode lama disimpan sebagai riwayat, dan label wajib dicetak ulang.
-- **Inventaris Keluar**: ajukan penghapusan per unit dengan alasan dan **Berita Acara** (PDF/gambar). Status unit baru berubah setelah disetujui Wakasek. Unit dengan riwayat tidak dihapus permanen.
+- **Inventaris Keluar**: ajukan penghapusan per unit dengan alasan dan **Berita Acara** (PDF/gambar). Status unit baru berubah setelah disetujui Wakasek. Unit dengan riwayat tidak dihapus permanen. Pada mode **Seluruh katalog**, katalog dipilih lewat combobox yang bisa dicari (ketik nama atau kategori); panel ringkasan katalog muncul setelah katalog dipilih.
 - **Master Data**: tambah/ubah/hapus jurusan, **gedung**, ruangan, kategori. Penghapusan ditolak jika masih dipakai. Lima jurusan awal: RPL, DKV, KLN, TP, TKP.
 - **Hapus/Nonaktifkan Katalog**: di detail katalog tersedia tindakan dengan konfirmasi. Katalog tanpa unit/transaksi dihapus permanen; katalog berunit atau bertransaksi diarsipkan (`archived_at`) dan tidak lagi ditawarkan untuk peminjaman baru.
 - **Label**: pilih satu/beberapa unit → **Cetak Massal**. Label satuan dan re-print ada di detail unit.
@@ -238,6 +239,7 @@ Status dokumen peminjaman **terpisah** dari status transaksi:
 - Jangan menutup pinjaman dengan selisih sebelum barang benar-benar dicari.
 - Unduh BAST setelah approval lengkap agar memuat tanda tangan terbaru.
 - Di ponsel, gunakan mode gelap saat kondisi ruangan redup.
+- Semua pemilihan data barang memakai combobox pencarian: katalog pada Inventaris Keluar, katalog + spesifikasi pada Distribusi, dan unit pada form Laporan Kerusakan. Ketik sebagian nama atau kode untuk menyaring, gunakan panah atas/bawah lalu Enter untuk memilih, dan Esc untuk menutup tanpa mengubah pilihan.
 
 ## 12. Fitur baru revisi V2
 
@@ -266,7 +268,7 @@ Status dokumen peminjaman **terpisah** dari status transaksi:
 ### Distribusi berdasarkan merek & tipe/model
 
 1. Buka **Distribusi** (Ketua Laboran dan Wakasek/Super Admin).
-2. Pilih **katalog → spesifikasi (merek + tipe/model) → jumlah → lokasi tujuan**; panel kanan menampilkan stok setiap spesifikasi secara terpisah.
+2. Pilih **katalog → spesifikasi (merek + tipe/model) → jumlah → lokasi tujuan**; panel kanan menampilkan stok setiap spesifikasi secara terpisah. Katalog dan spesifikasi dipilih lewat **combobox** yang bisa dicari — opsi katalog menampilkan kategori + sisa stok, opsi spesifikasi menampilkan "Tersedia N unit".
 3. Ringkasan sebelum simpan menampilkan stok spesifikasi, jumlah distribusi, tujuan, dan sisa stok.
 4. Distribusi melebihi stok spesifikasi ditolak. Unit yang sudah didistribusikan atau sedang dipinjam tidak dapat dipakai lagi; stok merek lain tidak ikut terpakai.
 5. Setiap unit mendapat kode baru dan riwayat distribusi terhubung hingga kode inventarisnya (lihat riwayat pada halaman distribusi atau detail unit).

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Catalog\CatalogDirectory;
 use App\Livewire\Catalog\SpecificationDirectory;
+use App\Models\AssetUnit;
 use App\Models\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,6 +73,25 @@ class CatalogFilterTest extends TestCase
             ->test(CatalogDirectory::class)
             ->set('status', 'AKTIF')
             ->assertSee('Kursi Umum');
+    }
+
+    public function test_ringkasan_menampilkan_total_unit_dari_hasil_filter(): void
+    {
+        $totalUnits = AssetUnit::query()
+            ->where('status', '!=', 'DIHAPUS')
+            ->whereIn('item_catalog_id', Item::query()->approved()->notArchived()->select('item_catalogs.id'))
+            ->count();
+
+        Livewire::actingAs($this->wakasek)
+            ->test(CatalogDirectory::class)
+            ->assertViewHas('totalUnits', $totalUnits)
+            ->assertSee('jenis barang ditemukan · total '.$totalUnits.' unit');
+
+        // Filter ikut mempersempit total unit yang dilaporkan.
+        Livewire::actingAs($this->wakasek)
+            ->test(CatalogDirectory::class)
+            ->set('search', 'Kursi')
+            ->assertViewHas('totalUnits', fn (int $total) => $total > 0 && $total < $totalUnits);
     }
 
     public function test_reset_filter_mengosongkan_seluruh_pilihan(): void

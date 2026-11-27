@@ -189,13 +189,10 @@
 
                         <div x-show="mode === 'CATALOG'" x-cloak class="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                             <x-input-label for="catalog_id" value="Katalog yang dihapus seluruh unitnya *" />
-                            <select id="catalog_id" name="catalog_id" x-model.number="catalogId"
-                                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-red-500 focus:ring-red-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                                <option value="">— pilih katalog —</option>
-                                @foreach ($catalogs as $catalog)
-                                    <option value="{{ $catalog->id }}" @selected(old('catalog_id') == $catalog->id)>{{ $catalog->name }}</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-select id="catalog_id" name="catalog_id" x-model.number="catalogId"
+                                                 :options="$catalogs->map(fn ($catalog) => ['value' => (string) $catalog->id, 'label' => $catalog->name])->values()->all()"
+                                                 placeholder="Cari katalog barang…" empty-text="Katalog tidak ditemukan."
+                                                 class="mt-1 w-full" />
                             <p class="text-[11px] text-red-700 dark:text-red-300">Tindakan ini mencakup seluruh unit yang memenuhi syarat dalam katalog, bukan hanya unit di halaman ini.</p>
                         </div>
 

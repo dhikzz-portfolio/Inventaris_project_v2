@@ -100,14 +100,15 @@
 
                 <div class="sm:col-span-2">
                     <label for="distribution-specification" class="block text-sm font-medium text-slate-700 dark:text-slate-300">2. Merek &amp; tipe/model *</label>
-                    <select id="distribution-specification" wire:model.live="specificationId"
-                            @disabled($specifications->isEmpty())
-                            class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 disabled:bg-slate-50 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
-                        <option value="">— pilih spesifikasi —</option>
-                        @foreach ($specifications as $option)
-                            <option value="{{ $option['id'] }}">{{ $option['label'] }} — tersedia {{ $option['available'] }} unit</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select id="distribution-specification" wire-model="specificationId" :selected="$specificationId"
+                                         :disabled="$specifications->isEmpty()"
+                                         :options="$specifications->map(fn ($option) => [
+                                             'value' => (string) $option['id'],
+                                             'label' => $option['label'],
+                                             'hint' => 'Tersedia '.$option['available'].' unit',
+                                         ])->values()->all()"
+                                         placeholder="Cari merek atau tipe/model…" empty-text="Spesifikasi tidak ditemukan."
+                                         aria-label="Merek dan tipe/model" class="mt-1 w-full" />
                     @if ($catalogId !== '' && $specifications->isEmpty())
                         <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">Katalog ini belum memiliki spesifikasi/unit yang dapat didistribusikan.</p>
                     @endif

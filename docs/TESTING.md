@@ -510,3 +510,21 @@ SQLite in-memory, locale `id`, timezone `Asia/Jakarta`, tanpa skip. `vendor/bin/
 | Menu & panduan | Menu "Akun Pengguna" tidak tampil untuk Super Admin Sarpras; halaman impor menampilkan tautan unduh contoh |
 
 Tidak dijalankan ulang pada revisi ini: Playwright E2E, audit responsif, uji MySQL konkuren, cetak fisik, dan pemindai QR fisik. Status tersebut tetap **BELUM DIVERIFIKASI**.
+
+## Revisi UI (27 November 2026) — jumlah unit katalog dan combobox data barang
+
+Tes baru:
+
+- `CatalogFilterTest::test_ringkasan_menampilkan_total_unit_dari_hasil_filter` — `totalUnits` sama dengan hitungan `AssetUnit` (`visibleTo`, status bukan `DIHAPUS`) untuk katalog hasil filter, dan angka menyempit saat pencarian diisi `Kursi`.
+
+Perintah terarah:
+
+```bash
+php artisan test --compact tests/Feature/CatalogFilterTest.php tests/Feature/SearchableCatalogTest.php
+php artisan test --compact tests/Feature/MovementAndWriteOffTest.php tests/Feature/StockDistributionTest.php \
+  tests/Feature/SpecificationDistributionTest.php tests/Feature/DamageReportTest.php
+```
+
+Hasil: **12 passed** (46 assertions) dan **46 passed** (297 assertions). `vendor/bin/pint --dirty --format agent` **PASS**; `php artisan view:cache` berhasil (lalu `view:clear`).
+
+Batasan: interaksi buka/ketik/pilih pada combobox tidak diuji di browser; verifikasi terbatas pada render server-side, kompilasi Blade, dan tes di atas. Playwright E2E, audit responsif, cetak fisik, dan uji beban tidak dijalankan ulang.

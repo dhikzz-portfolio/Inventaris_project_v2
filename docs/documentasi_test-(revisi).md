@@ -1190,3 +1190,32 @@ yang sudah diverifikasi:
 catatan: efek ini cuma ketemu bila hasil ekspor baru dibuka (ganti nama file atau unduh ulang). Coba export ulang  laporan-2026-11-seluruh-sekolah  dan buka, lihat kolom lebih rapat + keterangan memendek.
 
 Kalau masih terasa terlalu lebar atau keterangan kurang jelas, wacananya kita tarik minimal lebar tertentu tiap kolom atau potong oleh jumlah kata.
+
+Keterangan jumlah unit katalog dan combobox pemilihan data barang
+
+Perubahan
+
+ resources/views/livewire/catalog/catalog-directory.blade.php 
+- Badge pada setiap kartu katalog kini berbunyi  N unit  (sebelumnya angka polos) dengan tooltip "Jumlah unit".
+- Ringkasan hasil filter menjadi  X jenis barang ditemukan · total N unit .
+
+ app/Livewire/Catalog/CatalogDirectory.php 
+- Menghitung  $totalUnits  dari seluruh hasil filter (bukan halaman aktif) memakai cakupan unit yang sama dengan badge kartu:  AssetUnit::visibleTo()  + status bukan  DIHAPUS  +  whereIn('item_catalog_id', (clone $query)->select('item_catalogs.id')) , lalu dikirim ke view.
+
+Combobox pengganti dropdown data barang (memakai komponen  x-searchable-select  yang sudah ada):
+-  resources/views/write-offs/index.blade.php  — katalog ( x-model.number="catalogId" ,  name="catalog_id" , placeholder "Cari katalog barang…").
+-  resources/views/livewire/distribution/stock-distribution-form.blade.php  — katalog ( wire-model="catalogId" , hint kategori + sisa stok).
+-  resources/views/livewire/distribution/distribution-form.blade.php  — spesifikasi ( wire-model="specificationId" , hint "Tersedia N unit").
+-  resources/views/damage-reports/create.blade.php  — unit ( name="asset_unit_id" ,  required , hint kode ruangan + kondisi).
+
+Tes
+-  tests/Feature/CatalogFilterTest.php : tes baru  test_ringkasan_menampilkan_total_unit_dari_hasil_filter  membandingkan  totalUnits  dengan hitungan  AssetUnit  untuk katalog hasil filter dan memastikan angka menyempit saat pencarian  Kursi .
+
+Verifikasi
+-  php artisan test --compact tests/Feature/CatalogFilterTest.php tests/Feature/SearchableCatalogTest.php  → 12 passed (46 assertions).
+-  php artisan test --compact tests/Feature/MovementAndWriteOffTest.php tests/Feature/StockDistributionTest.php tests/Feature/SpecificationDistributionTest.php tests/Feature/DamageReportTest.php  → 46 passed (297 assertions).
+-  vendor/bin/pint --dirty --format agent  → passed;  php artisan view:cache  → sukses (lalu  php artisan view:clear ).
+
+Dokumentasi yang diselaraskan:  USER_GUIDE.md  (badge, ringkasan hasil filter, combobox pada katalog/Inventaris Keluar/Distribusi/Laporan Kerusakan),  PROJECT_STATUS.md  (catatan revisi + bagian 8),  DECISIONS.md  (butir 43),  TESTING.md , dan  README.md .
+
+Batasan: interaksi buka/ketik/pilih combobox belum diuji di browser; yang terverifikasi adalah render server-side, kompilasi Blade, dan tes fitur terkait. Perubahan belum di-commit.

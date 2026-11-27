@@ -4,6 +4,7 @@ namespace App\Livewire\Catalog;
 
 use App\Enums\Condition;
 use App\Enums\UnitStatus;
+use App\Models\AssetUnit;
 use App\Models\Building;
 use App\Models\Category;
 use App\Models\Item;
@@ -176,8 +177,17 @@ class CatalogDirectory extends Component
                 ->where('condition', 'BAIK'));
         }
 
+        // Total unit dari seluruh katalog hasil filter (bukan hanya halaman ini),
+        // memakai cakupan unit yang sama dengan badge jumlah unit pada kartu.
+        $totalUnits = AssetUnit::query()
+            ->visibleTo($user)
+            ->where('status', '!=', 'DIHAPUS')
+            ->whereIn('item_catalog_id', (clone $query)->select('item_catalogs.id'))
+            ->count();
+
         return view('livewire.catalog.catalog-directory', [
             'catalogs' => $query->orderBy('name')->paginate($this->perPage),
+            'totalUnits' => $totalUnits,
             'categories' => Category::orderBy('name')->get(),
             'rooms' => Room::query()
                 ->when($this->building !== '', fn ($q) => $q->where('building_letter', $this->building))

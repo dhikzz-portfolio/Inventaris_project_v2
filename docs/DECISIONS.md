@@ -283,3 +283,9 @@ Nomor keputusan **tidak diubah** agar referensi lama tetap valid. Keputusan yang
 - **Keputusan**: Input pencarian halaman cetak label menerima kode unit (prefix) maupun nama barang, spesifikasi katalog, serta merek/tipe unit. Hasil tetap satu baris per unit dengan kode, spesifikasi, dan lokasi masing-masing.
 - **Rasional**: Pengguna mengenali barang dari namanya, bukan hanya kode; pencarian kode yang sudah ada tetap dipertahankan.
 - **Konsekuensi**: Pencarian nama tidak membuat katalog/unit baru dan tetap dibatasi cakupan akses serta filter aktif.
+
+## 43. Jumlah Unit Katalog dan Combobox Pemilihan Data Barang (Revisi 27 November 2026)
+
+- **Keputusan**: Setiap kartu katalog menampilkan badge `N unit`. Ringkasan hasil filter menampilkan `X jenis barang ditemukan · total N unit`, dengan `N` dihitung dari **seluruh hasil filter** (bukan hanya halaman aktif) memakai cakupan unit yang sama dengan badge kartu: `AssetUnit::visibleTo()` dan status bukan `DIHAPUS`, dibatasi subquery ID katalog hasil filter. Seluruh kolom pemilihan data barang memakai komponen yang sudah ada, `x-searchable-select`: katalog pada Inventaris Keluar, katalog dan spesifikasi pada Distribusi, serta unit pada form Laporan Kerusakan.
+- **Rasional**: Jumlah unit adalah informasi utama saat memilih barang, dan daftar katalog/spesifikasi/unit yang panjang sulit dipakai lewat dropdown biasa. Satu komponen menjaga perilaku pencarian, navigasi keyboard, dan pengosongan nilai tetap sama dengan filter yang sudah memakai combobox.
+- **Konsekuensi**: Ringkasan menambah satu query agregat per render; angkanya konsisten dengan pagination karena dihitung dari subquery hasil filter, bukan dari baris halaman aktif. Combobox mengirim nilai melalui `input`/`change` pada hidden input sehingga `x-model` maupun `wire:model.live` tetap bekerja. Filter ruangan, gedung, status, dan kondisi tidak berubah.

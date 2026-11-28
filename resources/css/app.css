@@ -21,6 +21,7 @@
     --color-brand-700: #1447e6;
     --color-brand-800: #193cb8;
     --color-brand-900: #1c398e;
+    --color-brand-950: #172554;
 }
 
 @layer base {
@@ -30,6 +31,25 @@
 
     html {
         -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Seleksi teks memakai warna aksi utama dan tetap kontras di kedua tema. */
+    ::selection {
+        background-color: var(--color-brand-600);
+        color: #ffffff;
+    }
+
+    .dark ::selection {
+        background-color: var(--color-brand-500);
+        color: #ffffff;
+    }
+
+    /*
+     * Judul halaman dan deskripsinya selalu berjarak sama, sehingga header
+     * tidak perlu mengulang margin di setiap view.
+     */
+    header h2 + p {
+        margin-top: 0.25rem;
     }
 
     body {
@@ -62,7 +82,7 @@
     }
 
     :focus-visible {
-        outline-color: #155dfc;
+        outline-color: var(--color-brand-600);
     }
 
     /* Area aman untuk iPhone (notch / home indicator). */

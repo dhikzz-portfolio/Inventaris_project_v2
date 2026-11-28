@@ -26,7 +26,7 @@
     <form method="GET" action="{{ route('movements.index') }}"
           x-data="{ filtersOpen: {{ $activeAdditionalFilterCount > 0 ? 'true' : 'false' }}, ...directScanner() }"
           onchange="this.requestSubmit()"
-          class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+          class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
         <div class="mb-3">
             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Filter Unit</h3>
             <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Cari nama barang atau kode unit, atau gunakan filter lanjutan.</p>
@@ -164,7 +164,7 @@
 
         <div class="space-y-5">
             {{-- Daftar unit: tinggi dibatasi + header tabel menempel --}}
-            <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">
                     <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Unit ({{ $units->total() }})</h3>
                     <div class="flex flex-wrap items-center gap-2">
@@ -319,7 +319,7 @@
             </div>
 
             {{-- Panel tujuan: di bawah daftar unit --}}
-            <div class="space-y-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+            <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                 <h3 class="flex flex-wrap items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600">place</span> Tujuan perpindahan
                     <span class="ml-auto rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
@@ -478,7 +478,7 @@
         );
     @endphp
 
-    <div class="mt-6 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5"
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5"
          x-data="{ openHistory: {} }">
         <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
             <span class="material-icons-round text-brand-600">route</span> Riwayat perpindahan barang ({{ $movements->total() }} unit)

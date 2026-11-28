@@ -11,7 +11,7 @@
     <div class="mx-auto max-w-4xl space-y-4" x-data="scanner()" x-init="init()">
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {{-- Kamera --}}
-            <div class="flex flex-col rounded-xl border border-sky-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600 dark:text-brand-400" aria-hidden="true">qr_code_scanner</span>
                     Pindai QR
@@ -61,7 +61,7 @@
             </div>
 
             {{-- Input manual --}}
-            <div class="flex flex-col rounded-xl border border-sky-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600 dark:text-brand-400" aria-hidden="true">keyboard</span>
                     Input Manual
@@ -88,7 +88,7 @@
         </div>
 
         @if ($result !== null)
-            <div class="rounded-xl border border-sky-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900" id="scan-result">
+            <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900" id="scan-result">
                 @if ($result['status'] === 'found')
                     <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
                         <div class="min-w-0">
@@ -186,7 +186,7 @@
                         </a>
                     </div>
                 @elseif ($result['status'] === 'catalog')
-                    <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                    <div class="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-900 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-200">
                         Kode ini adalah ID internal katalog lama: <strong>{{ $result['name'] }}</strong> ({{ $result['code'] }}).
                         <a href="{{ $result['url'] }}"
                            class="ms-1 inline-flex min-h-7 items-center justify-center rounded bg-brand-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">

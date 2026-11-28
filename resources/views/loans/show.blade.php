@@ -54,7 +54,7 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-3 lg:gap-5">
+    <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-3 lg:gap-4">
         <div class="space-y-4 lg:col-span-2">
             {{-- Rincian barang --}}
             @php
@@ -861,7 +861,7 @@
                     </div>
 
                     <a href="{{ route('loans.bast', $loan) }}" target="_blank"
-                       class="mb-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                       class="mb-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                         {{ $loan->event ? 'Surat Peminjaman & Berita Acara' : 'Buat Surat Peminjaman' }}
                     </a>
 

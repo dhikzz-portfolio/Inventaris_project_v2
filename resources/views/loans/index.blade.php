@@ -160,7 +160,7 @@
 
     <div class="grid max-h-[65vh] gap-2 overflow-y-auto overscroll-contain pr-1 md:hidden">
         @forelse ($loans as $loan)
-            <article class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex items-center justify-between gap-2">
                     <div class="min-w-0">
                         @unless ($isSelfServiceBorrower)

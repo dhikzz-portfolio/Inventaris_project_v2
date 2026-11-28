@@ -158,7 +158,7 @@
                 <input type="hidden" name="unit_ids[]" :value="unitId">
             </template>
 
-            <div class="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-3">
+            <div class="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
                 <div class="min-w-0 space-y-4 xl:col-span-2">
                     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                         <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">

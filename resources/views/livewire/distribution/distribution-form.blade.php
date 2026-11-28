@@ -6,8 +6,8 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <form wire:submit="submit" class="lg:col-span-2 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <form wire:submit="submit" class="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 text-base font-bold text-slate-900 dark:text-slate-100">Pilih barang yang didistribusikan</h3>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">

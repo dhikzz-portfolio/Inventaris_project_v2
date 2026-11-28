@@ -21,11 +21,12 @@
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
-                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporan Bulanan</h2>            <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per gedung, kategori, ruangan, atau jurusan</p>
+                <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Laporan Bulanan</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Ekspor PDF/Excel per bulan, difilter per gedung, kategori, ruangan, atau jurusan</p>
             </div>
             @if (auth()->user()->managesInventory())
                 <a href="{{ route('reports.import.form') }}"
-                   class="inline-flex min-h-10 items-center gap-1.5 self-start rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:self-auto">
+                   class="inline-flex min-h-10 items-center justify-center gap-1.5 self-start rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:self-auto">
                     <span class="material-icons-round text-lg" aria-hidden="true">upload</span> Impor Laporan
                 </a>
             @endif
@@ -39,7 +40,7 @@
         <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
 
-    <div class="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" x-data="reportForm()">
+    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" x-data="reportForm()">
         <div class="flex items-center gap-2 border-b border-slate-100 px-4 py-3.5 dark:border-slate-800 sm:px-5">
             <span class="material-icons-round text-lg text-brand-600" aria-hidden="true">tune</span>
             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Parameter laporan</h3>
@@ -109,7 +110,7 @@
                         <input type="hidden" name="scope" :value="scope">
                         <input type="hidden" name="scope_id" :value="scope === 'SEMUA' ? '' : scopeId">
                         <input type="hidden" name="condition" :value="condition">
-                        <button :disabled="submitting" class="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60 dark:focus:ring-offset-slate-900 sm:w-auto">
+                        <button :disabled="submitting" class="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60 dark:focus:ring-offset-slate-900 sm:w-auto">
                             <span class="material-icons-round text-lg" aria-hidden="true">archive</span>
                             <span x-text="submitting ? 'Menyimpan...' : 'Simpan ke Arsip'"></span>
                         </button>

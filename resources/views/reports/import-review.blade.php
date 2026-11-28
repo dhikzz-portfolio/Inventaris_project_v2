@@ -3,7 +3,7 @@
         $modeLabel = $preview['mode'] === 'create' ? 'Tambahkan unit baru' : 'Perbarui data yang sudah ada';
         $actionLabels = ['BUAT' => 'Tambah', 'PERBARUI' => 'Perbarui', 'DITOLAK' => 'Ditolak'];
         $actionStyles = [
-            'BUAT' => 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200',
+            'BUAT' => 'bg-brand-100 text-brand-800 dark:bg-brand-950/60 dark:text-brand-200',
             'PERBARUI' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200',
             'DITOLAK' => 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-200',
         ];
@@ -16,7 +16,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
                 <h2 class="flex items-center gap-2 text-xl font-bold leading-tight text-slate-900 dark:text-white">
-                    <span class="material-icons-round text-blue-600" aria-hidden="true">fact_check</span> Pemeriksaan Berkas Impor
+                    <span class="material-icons-round text-brand-600" aria-hidden="true">fact_check</span> Pemeriksaan Berkas Impor
                 </h2>
                 <p class="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">
                     <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">{{ $filename }}</span>
@@ -43,12 +43,12 @@
         <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
 
-    <div class="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-xl border border-sky-100 bg-white px-4 py-3 text-xs text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+    <div class="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
         <span><strong class="text-slate-800 dark:text-slate-100">Total baris:</strong> {{ $preview['summary']['total'] }}</span>
         <span><strong class="text-green-700 dark:text-green-300">Siap diimpor:</strong> {{ $preview['summary']['valid'] }}</span>
         <span><strong class="{{ $preview['summary']['invalid'] > 0 ? 'text-red-600 dark:text-red-300' : 'text-slate-800 dark:text-slate-100' }}">Perlu diperbaiki:</strong> {{ $preview['summary']['invalid'] }}</span>
         <span class="inline-flex items-center gap-1">
-            <span class="material-icons-round text-sm text-blue-600 dark:text-blue-300" aria-hidden="true">add_circle</span> {{ $readyCreate }} baru
+            <span class="material-icons-round text-sm text-brand-600 dark:text-brand-300" aria-hidden="true">add_circle</span> {{ $readyCreate }} baru
         </span>
         <span class="inline-flex items-center gap-1">
             <span class="material-icons-round text-sm text-amber-600 dark:text-amber-300" aria-hidden="true">sync</span> {{ $readyUpdate }} diperbarui
@@ -67,13 +67,13 @@
         </span>
     </div>
 
-    <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
             <div class="flex flex-wrap items-center gap-2">
                 <p class="me-1 text-sm font-semibold text-slate-800 dark:text-slate-100">Rincian Baris Berkas</p>
                 <a href="{{ route('reports.import.review') }}"
                    @class([
                        'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition',
-                       'bg-blue-600 text-white shadow-sm' => $filter === 'all',
+                       'bg-brand-600 text-white shadow-sm' => $filter === 'all',
                        'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800' => $filter !== 'all',
                    ])>Semua
                     <span @class([
@@ -131,7 +131,7 @@
                             <td class="px-3 py-2 text-slate-400 dark:text-slate-500">{{ $row['line'] }}</td>
                             <td class="whitespace-nowrap px-3 py-2 font-mono font-semibold text-slate-800 dark:text-slate-100">{{ $row['code'] ?: '—' }}
                                 @if ($row['auto_code'] ?? false)
-                                    <span class="ms-1 rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-blue-700 dark:bg-blue-950/60 dark:text-blue-200">otomatis</span>
+                                    <span class="ms-1 rounded bg-brand-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-950/60 dark:text-brand-200">otomatis</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2 text-slate-700 dark:text-slate-200">{{ $row['name'] ?: '—' }}

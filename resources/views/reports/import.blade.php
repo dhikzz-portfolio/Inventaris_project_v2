@@ -32,35 +32,35 @@
     @endunless
 
     @if ($hasPreview ?? false)
-        <div role="status" class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+        <div role="status" class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-200">
             <span class="flex items-start gap-2">
                 <span class="material-icons-round text-base">fact_check</span>
                 <span>Ada berkas yang sudah diperiksa tetapi belum diimpor.</span>
             </span>
-            <a href="{{ route('reports.import.review') }}" class="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-bold text-white transition hover:bg-blue-700">
+            <a href="{{ route('reports.import.review') }}" class="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-xs font-bold text-white transition hover:bg-brand-700">
                 Buka pemeriksaan berkas <span class="material-icons-round text-sm">arrow_forward</span>
             </a>
         </div>
     @endif
 
-    <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div class="flex items-start gap-2.5">
-                <span class="material-icons-round shrink-0 text-blue-600">upload_file</span>
+                <span class="material-icons-round shrink-0 text-brand-600">upload_file</span>
                 <div>
                     <p class="text-sm font-bold text-slate-800 dark:text-slate-100">1. Pilih berkas</p>
                     <p class="text-xs text-slate-500 dark:text-slate-400">Gunakan template XLSX (sheet Template Tabel Impor + Petunjuk) atau CSV yang datanya rapi per baris.</p>
                 </div>
             </div>
             <div class="flex items-start gap-2.5">
-                <span class="material-icons-round shrink-0 text-blue-600">fact_check</span>
+                <span class="material-icons-round shrink-0 text-brand-600">fact_check</span>
                 <div>
                     <p class="text-sm font-bold text-slate-800 dark:text-slate-100">2. Periksa hasil</p>
                     <p class="text-xs text-slate-500 dark:text-slate-400">Hasil pemeriksaan tampil di halaman khusus berisi tabel baris yang aman dan yang perlu dibetulkan.</p>
                 </div>
             </div>
             <div class="flex items-start gap-2.5">
-                <span class="material-icons-round shrink-0 text-blue-600">save</span>
+                <span class="material-icons-round shrink-0 text-brand-600">save</span>
                 <div>
                     <p class="text-sm font-bold text-slate-800 dark:text-slate-100">3. Simpan</p>
                     <p class="text-xs text-slate-500 dark:text-slate-400">Tekan tombol impor di halaman pemeriksaan. Tidak ada data yang dihapus.</p>
@@ -69,10 +69,10 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div class="self-start rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div class="self-start rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                <span class="material-icons-round text-blue-600">upload_file</span> Unggah Berkas
+                <span class="material-icons-round text-brand-600">upload_file</span> Unggah Berkas
             </h3>
 
             <form method="POST" action="{{ route('reports.import.preview') }}" enctype="multipart/form-data" class="space-y-4">
@@ -80,7 +80,7 @@
                 <div>
                     <x-input-label value="File data *" />
                     <input type="file" name="file" accept=".csv,.txt,.xlsx" required
-                           class="mt-1 block w-full rounded-xl border border-slate-300 bg-white text-sm text-slate-600 file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-300 dark:file:bg-slate-800 dark:file:text-slate-200">
+                           class="mt-1 block w-full rounded-xl border border-slate-300 bg-white text-sm text-slate-600 file:me-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:font-semibold file:text-brand-700 hover:file:bg-brand-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-300 dark:file:bg-slate-800 dark:file:text-slate-200">
                     <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Format CSV atau XLSX, ukuran maksimal 2 MB. Baris pertama harus berisi nama kolom.</p>
                 </div>
 
@@ -88,16 +88,16 @@
                     <x-input-label for="mode-update" value="Pilih tindakan *" />
                     <div class="mt-1 space-y-2">
                         <label for="mode-update"
-                               class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-blue-300 hover:bg-blue-50/40 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/70 has-[:checked]:ring-2 has-[:checked]:ring-blue-200 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 dark:has-[:checked]:border-blue-500 dark:has-[:checked]:bg-blue-950/40 dark:has-[:checked]:ring-blue-900">
-                            <input id="mode-update" type="radio" name="mode" value="update" checked class="mt-0.5 h-4 w-4 border-slate-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900">
+                               class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-brand-300 hover:bg-brand-50/40 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/70 has-[:checked]:ring-2 has-[:checked]:ring-brand-200 dark:border-slate-700 dark:hover:border-brand-800 dark:hover:bg-brand-950/30 dark:has-[:checked]:border-brand-500 dark:has-[:checked]:bg-brand-950/40 dark:has-[:checked]:ring-brand-900">
+                            <input id="mode-update" type="radio" name="mode" value="update" checked class="mt-0.5 h-4 w-4 border-slate-300 bg-white text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
                             <span>
                                 <strong class="block text-sm text-slate-800 dark:text-slate-100">Perbarui data yang sudah ada</strong>
                                 <span class="text-slate-500 dark:text-slate-400">Hanya mengubah unit yang kodenya sudah terdaftar. Tidak membuat unit baru.</span>
                             </span>
                         </label>
                         <label for="mode-create"
-                               class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-blue-300 hover:bg-blue-50/40 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/70 has-[:checked]:ring-2 has-[:checked]:ring-blue-200 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 dark:has-[:checked]:border-blue-500 dark:has-[:checked]:bg-blue-950/40 dark:has-[:checked]:ring-blue-900">
-                            <input id="mode-create" type="radio" name="mode" value="create" class="mt-0.5 h-4 w-4 border-slate-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900">
+                               class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 p-3 text-xs transition hover:border-brand-300 hover:bg-brand-50/40 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/70 has-[:checked]:ring-2 has-[:checked]:ring-brand-200 dark:border-slate-700 dark:hover:border-brand-800 dark:hover:bg-brand-950/30 dark:has-[:checked]:border-brand-500 dark:has-[:checked]:bg-brand-950/40 dark:has-[:checked]:ring-brand-900">
+                            <input id="mode-create" type="radio" name="mode" value="create" class="mt-0.5 h-4 w-4 border-slate-300 bg-white text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
                             <span>
                                 <strong class="block text-sm text-slate-800 dark:text-slate-100">Tambahkan unit baru</strong>
                                 <span class="text-slate-500 dark:text-slate-400">Dipakai untuk menambahkan banyak unit. Ruangan harus sudah ada; katalog baru dibuat otomatis bila belum terdaftar.</span>
@@ -110,7 +110,7 @@
                     </p>
                 </div>
 
-                <button class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                <button class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                     <span class="material-icons-round text-lg">search</span> Periksa Berkas
                 </button>
             </form>
@@ -140,11 +140,11 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:col-span-2">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:col-span-2">
             <div class="mb-4 flex flex-wrap items-start justify-between gap-2">
                 <div>
                     <h3 class="flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                        <span class="material-icons-round text-blue-600">history</span> Laporan Impor
+                        <span class="material-icons-round text-brand-600">history</span> Laporan Impor
                     </h3>
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Riwayat 10 impor terakhir yang berhasil disimpan, termasuk jumlah unit yang dibuat dan diperbarui.</p>
                 </div>

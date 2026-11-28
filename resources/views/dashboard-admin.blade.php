@@ -15,13 +15,15 @@
 
     <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         @foreach ($stats as $stat)
-            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <div class="flex items-center justify-between gap-2">
-                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ $stat['label'] }}</p>
-                    <span class="material-icons-round text-base text-brand-600" aria-hidden="true">{{ $stat['icon'] }}</span>
+            <div class="flex min-h-[112px] flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="min-w-0 text-[11px] font-semibold uppercase leading-4 tracking-wide text-slate-500 dark:text-slate-400">{{ $stat['label'] }}</p>
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300">
+                        <span class="material-icons-round text-lg" aria-hidden="true">{{ $stat['icon'] }}</span>
+                    </span>
                 </div>
-                <p class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{{ number_format($stat['value'], 0, ',', '.') }}</p>
-                <p class="text-[10px] text-slate-400">{{ $stat['unit'] }}</p>
+                <p class="mt-2 text-2xl font-bold leading-none tabular-nums text-slate-900 dark:text-slate-100">{{ number_format($stat['value'], 0, ',', '.') }}</p>
+                <p class="mt-auto pt-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">{{ $stat['unit'] }}</p>
             </div>
         @endforeach
     </div>

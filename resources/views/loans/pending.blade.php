@@ -59,7 +59,7 @@
                 <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <div class="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
                         <div class="flex min-w-0 items-start gap-3">
-                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950/60 dark:text-brand-300">
                                 {{ $borrowerInitials ?: 'P' }}
                             </span>
                             <div class="min-w-0 flex-1">
@@ -104,7 +104,7 @@
 
                         <div class="shrink-0 sm:pl-[3.25rem] lg:pl-0">
                             <a href="{{ route('loans.show', $loan) }}"
-                               class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800 lg:w-auto dark:focus:ring-offset-slate-900">
+                               class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800 lg:w-auto dark:focus:ring-offset-slate-900">
                                 <span class="material-icons-round text-base" aria-hidden="true">check</span> Proses Persetujuan
                             </a>
                         </div>

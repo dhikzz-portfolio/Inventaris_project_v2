@@ -1,10 +1,10 @@
 <section class="space-y-6">
     <header>
-        <h2 class="text-lg font-medium text-gray-900">
+        <h2 class="text-lg font-medium text-slate-900">
             {{ __('Hapus akun') }}
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600">
+        <p class="mt-1 text-sm text-slate-600">
             {{ __('Setelah akun dihapus, seluruh data dan berkas di dalamnya ikut terhapus permanen. Sebelum menghapus, unduh dulu data yang masih Anda butuhkan.') }}
         </p>
     </header>
@@ -19,11 +19,11 @@
             @csrf
             @method('delete')
 
-            <h2 class="text-lg font-medium text-gray-900">
+            <h2 class="text-lg font-medium text-slate-900">
                 {{ __('Yakin ingin menghapus akun Anda?') }}
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="mt-1 text-sm text-slate-600">
                 {{ __('Setelah dihapus, data akun tidak bisa dikembalikan. Masukkan kata sandi untuk memastikan Anda ingin menghapus akun ini secara permanen.') }}
             </p>
 

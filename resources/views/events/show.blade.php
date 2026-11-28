@@ -16,7 +16,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 @if (auth()->user()->managesInventory())
                     <a href="{{ route('events.bast', $event) }}" target="_blank"
-                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                         <span class="material-icons-round text-lg">description</span> Berita Acara Gabungan (PDF)
                     </a>
                 @endif
@@ -33,24 +33,24 @@
     @endif
 
     @if ($event->description)
-        <div class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 text-sm leading-relaxed text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{{ $event->description }}</div>
+        <div class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{{ $event->description }}</div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div class="lg:col-span-2 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                <span class="material-icons-round text-blue-600">receipt_long</span> Peminjaman Terikat Kegiatan ({{ $event->loans->count() }})
+                <span class="material-icons-round text-brand-600">receipt_long</span> Peminjaman Terikat Kegiatan ({{ $event->loans->count() }})
             </h3>
 
             @if ($event->loans->isEmpty())
-                <p class="text-sm text-gray-400">Belum ada peminjaman terikat. Pilih kegiatan ini saat mengajukan peminjaman.</p>
+                <p class="text-sm text-slate-400">Belum ada peminjaman terikat. Pilih kegiatan ini saat mengajukan peminjaman.</p>
             @else
                 <div class="space-y-4">
                     @foreach ($event->loans as $loan)
                         <div class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
                             <div class="flex items-center justify-between gap-2 flex-wrap">
                                 <div>
-                                    <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">#{{ $loan->id }} — {{ $loan->borrower?->name }}</a>
+                                    <a href="{{ route('loans.show', $loan) }}" class="font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">#{{ $loan->id }} — {{ $loan->borrower?->name }}</a>
                                     <div class="text-xs text-slate-500 dark:text-slate-400">{{ $loan->start_date->format('d/m/Y H:i') }} → {{ $loan->due_date->format('d/m/Y H:i') }}</div>
                                 </div>
                                 <span class="text-[10px] font-bold px-2 py-1 rounded-full {{ $loan->status->badgeClass() }}">{{ $loan->status->label() }}</span>
@@ -58,7 +58,7 @@
                             <ul class="mt-2 space-y-1">
                                 @foreach ($loan->loanItems as $li)
                                     <li class="flex items-center justify-between border-b border-dashed border-slate-100 pb-2 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                                        <span>{{ $li->item?->name }} <span class="font-mono text-gray-400">({{ $li->item?->internal_id }})</span></span>
+                                        <span>{{ $li->item?->name }} <span class="font-mono text-slate-400">({{ $li->item?->internal_id }})</span></span>
                                         <span>×{{ $li->qty_borrowed }}
                                             @if ($li->qty_returned !== null)
                                                 • kembali {{ $li->qty_returned }}
@@ -80,12 +80,12 @@
         </div>
 
         <div class="space-y-5">
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                    <span class="material-icons-round text-blue-600">inventory_2</span> ID Barang Dibooking ({{ $bookedItems->count() }})
+                    <span class="material-icons-round text-brand-600">inventory_2</span> ID Barang Dibooking ({{ $bookedItems->count() }})
                 </h3>
                 @if ($bookedItems->isEmpty())
-                    <p class="text-sm text-gray-400">Belum ada.</p>
+                    <p class="text-sm text-slate-400">Belum ada.</p>
                 @else
                     <div class="flex flex-wrap gap-1.5">
                         @foreach ($bookedItems as $id)
@@ -102,45 +102,45 @@
             </div>
 
             @if ($event->isManageableBy(auth()->user()))
-                <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <h3 class="mb-3 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                        <span class="material-icons-round text-blue-600">edit_calendar</span> Kelola Kegiatan
+                        <span class="material-icons-round text-brand-600">edit_calendar</span> Kelola Kegiatan
                     </h3>
                     <form method="POST" action="{{ route('events.update', $event) }}" class="space-y-2.5">
                         @csrf
                         @method('PATCH')
                         <div>
-                            <label class="block text-[11px] font-semibold text-gray-500 mb-1">Status *</label>
-                            <select name="status" class="w-full rounded-lg border-gray-300 text-sm" required>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Status *</label>
+                            <select name="status" class="w-full rounded-lg border-slate-300 text-sm" required>
                                 @foreach ($statuses as $status)
                                     <option value="{{ $status->value }}" @selected($event->status === $status)>{{ $status->label() }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[11px] font-semibold text-gray-500 mb-1">Nama kegiatan *</label>
-                            <input type="text" name="name" value="{{ $event->name }}" required class="w-full rounded-lg border-gray-300 text-xs">
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Nama kegiatan *</label>
+                            <input type="text" name="name" value="{{ $event->name }}" required class="w-full rounded-lg border-slate-300 text-xs">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-semibold text-gray-500 mb-1">Penanggung jawab *</label>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Penanggung jawab *</label>
                             @include('events._pic_fields', ['picUsers' => $picUsers, 'event' => $event])
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-[11px] font-semibold text-gray-500 mb-1">Mulai *</label>
-                                <input type="date" name="start_date" value="{{ $event->start_date->toDateString() }}" required class="w-full rounded-lg border-gray-300 text-xs">
+                                <label class="block text-[11px] font-semibold text-slate-500 mb-1">Mulai *</label>
+                                <input type="date" name="start_date" value="{{ $event->start_date->toDateString() }}" required class="w-full rounded-lg border-slate-300 text-xs">
                             </div>
                             <div>
-                                <label class="block text-[11px] font-semibold text-gray-500 mb-1">Selesai *</label>
-                                <input type="date" name="end_date" value="{{ $event->end_date->toDateString() }}" required class="w-full rounded-lg border-gray-300 text-xs">
+                                <label class="block text-[11px] font-semibold text-slate-500 mb-1">Selesai *</label>
+                                <input type="date" name="end_date" value="{{ $event->end_date->toDateString() }}" required class="w-full rounded-lg border-slate-300 text-xs">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[11px] font-semibold text-gray-500 mb-1">Deskripsi</label>
-                            <textarea name="description" rows="2" class="w-full rounded-lg border-gray-300 text-xs">{{ $event->description }}</textarea>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">Deskripsi</label>
+                            <textarea name="description" rows="2" class="w-full rounded-lg border-slate-300 text-xs">{{ $event->description }}</textarea>
                         </div>
                         <button type="submit" class="w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold py-2">Simpan Perubahan</button>
-                        <p class="text-[10px] text-gray-400">Status kegiatan tidak mengubah status persetujuan peminjaman.</p>
+                        <p class="text-[10px] text-slate-400">Status kegiatan tidak mengubah status persetujuan peminjaman.</p>
                     </form>
 
                     @if (auth()->user()?->isSuperAdmin() || (int) $event->created_by === (int) auth()->id())
@@ -168,11 +168,11 @@
                 </div>
             @endif
 
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <h3 class="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-1.5">
-                    <span class="material-icons-round text-blue-600">how_to_reg</span> Alur Kegiatan
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <h3 class="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-1.5">
+                    <span class="material-icons-round text-brand-600">how_to_reg</span> Alur Kegiatan
                 </h3>
-                <ol class="list-decimal ms-4 space-y-1.5 text-gray-600 text-xs">
+                <ol class="list-decimal ms-4 space-y-1.5 text-slate-600 text-xs">
                     <li>Peminjam mengajukan peminjaman <strong>dengan memilih kegiatan ini</strong>.</li>
                     <li>Laboran menyetujui (Wakasek untuk barang bernilai tinggi).</li>
                     <li>Berita Acara resmi dibuat otomatis (PDF siap tanda tangan).</li>

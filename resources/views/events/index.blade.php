@@ -25,18 +25,18 @@
         @endforeach
     </div>
 
-    <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
+    <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         @if (auth()->user()->canRecordActivities() || auth()->user()->managesInventory())
-        <div class="self-start rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="self-start rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 flex items-center gap-1.5 text-base font-bold text-slate-900 dark:text-slate-100">
-                <span class="material-icons-round text-blue-600">event_available</span> Catat Kegiatan
+                <span class="material-icons-round text-brand-600">event_available</span> Catat Kegiatan
             </h3>
             <form method="POST" action="{{ route('events.store') }}" class="space-y-3">
                 @csrf
                 <div>
                     <x-input-label value="Nama Kegiatan *" />
                     <input type="text" name="name" value="{{ old('name') }}" required
-                           class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+                           class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
                            placeholder="Ujian Akhir Semester 2026...">
                 </div>
                 <div>
@@ -49,17 +49,17 @@
                     <div>
                         <x-input-label value="Mulai *" />
                         <input type="date" name="start_date" value="{{ old('start_date', now()->toDateString()) }}" required
-                               class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                               class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     </div>
                     <div>
                         <x-input-label value="Selesai *" />
                         <input type="date" name="end_date" value="{{ old('end_date', now()->toDateString()) }}" required
-                               class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                               class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     </div>
                 </div>
                 <div>
                     <x-input-label value="Status Kegiatan *" />
-                    <select name="status" required class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                    <select name="status" required class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         @foreach ($statuses as $status)
                             <option value="{{ $status->value }}" @selected(old('status', \App\Enums\EventStatus::BELUM_BERJALAN->value) === $status->value)>{{ $status->label() }}</option>
                         @endforeach
@@ -67,22 +67,22 @@
                 </div>
                 <div>
                     <x-input-label value="Deskripsi" />
-                    <textarea name="description" rows="2" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">{{ old('description') }}</textarea>
+                    <textarea name="description" rows="2" class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">{{ old('description') }}</textarea>
                 </div>
-                <x-primary-button class="w-full justify-center bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Simpan Kegiatan</x-primary-button>
+                <x-primary-button class="w-full justify-center bg-brand-600 hover:bg-brand-700 focus:ring-brand-500">Simpan Kegiatan</x-primary-button>
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">Mencatat kegiatan tidak memberi akses pengelolaan inventaris.</p>
             </form>
         </div>
         @endif
 
-        <div class="{{ auth()->user()->canRecordActivities() || auth()->user()->managesInventory() ? 'lg:col-span-2' : 'lg:col-span-3' }} min-w-0 self-start overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="{{ auth()->user()->canRecordActivities() || auth()->user()->managesInventory() ? 'lg:col-span-2' : 'lg:col-span-3' }} min-w-0 self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div role="region" aria-label="Daftar kegiatan" tabindex="0"
                  class="max-h-[65vh] divide-y divide-slate-100 overflow-y-auto overscroll-contain focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:divide-slate-800 lg:max-h-[calc(100vh-12rem)]">
                 @forelse ($events as $event)
                 <article class="min-w-0 space-y-3 p-4 sm:p-5">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <a href="{{ route('events.show', $event) }}" class="break-words text-sm font-semibold text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $event->name }}</a>
+                            <a href="{{ route('events.show', $event) }}" class="break-words text-sm font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $event->name }}</a>
                             @if ($event->description)
                                 <p class="mt-1 break-words text-xs text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($event->description, 90) }}</p>
                             @endif
@@ -96,7 +96,7 @@
                             <dd class="mt-0.5 break-words text-xs font-medium text-slate-700 dark:text-slate-200">
                                 {{ $event->picDisplayName() ?: '—' }}
                                 @if ($event->picIsUserAccount())
-                                    <span class="block text-[10px] text-blue-600 dark:text-blue-300">akun terdaftar</span>
+                                    <span class="block text-[10px] text-brand-600 dark:text-brand-300">akun terdaftar</span>
                                 @endif
                             </dd>
                         </div>

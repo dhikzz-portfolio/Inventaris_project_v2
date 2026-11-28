@@ -35,22 +35,17 @@
         </div>
     </x-slot>
 
-    <div class="min-h-full -m-4 bg-sky-50/80 p-4 sm:-m-5 sm:p-5 md:-m-6 md:p-6 dark:bg-slate-950/30">
-        <section class="relative isolate mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-sky-200 via-sky-100 to-cyan-100 p-5 text-slate-800 shadow-lg shadow-sky-900/5 sm:p-6 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700 dark:text-white">
-            <div class="pointer-events-none absolute -right-2 -top-8 z-0 hidden h-44 w-56 opacity-90 sm:block" aria-hidden="true">
-                <span class="absolute right-7 top-0 h-24 w-24 rounded-full bg-amber-100/90 blur-sm dark:bg-amber-500/10"></span>
-                <span class="absolute right-14 top-14 h-20 w-24 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
-                <span class="absolute right-2 top-20 h-16 w-24 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
-                <span class="absolute right-20 top-24 h-14 w-20 rounded-full bg-white/90 dark:bg-slate-600/30"></span>
-            </div>
-            <div class="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+        <section class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50/70 via-white to-white shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
+            <div class="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
                 <div class="min-w-0">
-                    <p class="text-sm font-medium text-sky-800 dark:text-sky-200">Selamat datang, {{ $dashboardUser->greetingName() }}</p>
-                    <h3 class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">Selamat datang, {{ $dashboardUser->greetingName() }}</p>
+                    <h3 class="mt-1 text-lg font-bold tracking-tight text-slate-900 sm:text-xl dark:text-white">
                         @if ($mode !== 'operational')
                             Ajukan peminjaman barang
                         @elseif ($dashboardUser->isSuperAdmin())
-                            Pantau barang sekolah                         @elseif ($dashboardUser->isEditorValidator())
+                            Pantau barang sekolah
+                        @elseif ($dashboardUser->isEditorValidator())
                             Kelola barang laboratorium
                         @elseif ($dashboardUser->isAdmin())
                             Kelola inventaris sekolah
@@ -58,56 +53,43 @@
                             Barang laboratorium Anda
                         @endif
                     </h3>
-                    <p class="mt-2 max-w-2xl text-xs leading-relaxed text-sky-800/80 sm:text-sm dark:text-slate-300">
+                    <p class="mt-2 max-w-2xl text-xs leading-relaxed text-slate-500 sm:text-sm dark:text-slate-300">
                         @if ($mode !== 'operational')
                             Ajukan peminjaman dan pantau statusnya di sini.
                         @elseif ($dashboardUser->isSuperAdmin())
-                            Lihat kondisi barang, permintaan pinjam, dan kegiatan terbaru di {{ $scopeLabel }}.                         @elseif ($dashboardUser->isEditorValidator())
+                            Lihat kondisi barang, permintaan pinjam, dan kegiatan terbaru di {{ $scopeLabel }}.
+                        @elseif ($dashboardUser->isEditorValidator())
                             Kelola barang dan permintaan pinjam dari {{ $scopeLabel }}.
                         @elseif ($dashboardUser->isAdmin())
                             Kelola barang dan permintaan pinjam di seluruh sekolah.
                         @else
                             Tinjau barang dan permintaan pinjam di {{ $scopeLabel }}.
                         @endif
-
-                    @if ($mode !== 'operational')
-                        <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
-                            <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
-                            Lihat katalog
-                        </a>
-                    @else
-                        @if ($dashboardUser->can('catalogs.view'))
-                            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
-                                <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
-                                Lihat katalog
-                            </a>
-                        @endif
-                    @endif
                     </p>
                 </div>
                 <div class="flex flex-col gap-2 sm:flex-row lg:shrink-0">
                     @if ($mode !== 'operational')
-                        <a href="{{ route('loans.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <a href="{{ route('loans.create') }}" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                             <span class="material-icons-round text-lg" aria-hidden="true">add_shopping_cart</span>
                             Ajukan peminjaman
                         </a>
-                        <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                        <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                             <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
                             Lihat katalog
                         </a>
                     @else
                         @if ($dashboardUser->managesInventory())
-                            <a href="{{ route('items.create') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <a href="{{ route('items.create') }}" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                                 <span class="material-icons-round text-lg" aria-hidden="true">add_box</span>
                                 Tambah barang
                             </a>
                         @else
-                            <a href="{{ route('scan') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <a href="{{ route('scan') }}" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                                 <span class="material-icons-round text-lg" aria-hidden="true">qr_code_scanner</span>
                                 Pindai kode barang
                             </a>
                         @endif
-                        <a href="{{ route('loans.pending') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/80 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                        <a href="{{ route('loans.pending') }}" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                             <span class="material-icons-round text-lg" aria-hidden="true">how_to_reg</span>
                             Permintaan pinjam
                             @if ($stats[3]['value'] > 0)
@@ -115,7 +97,7 @@
                             @endif
                         </a>
                         @if ($dashboardUser->can('catalogs.view'))
-                            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white/50 px-4 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                                 <span class="material-icons-round text-lg" aria-hidden="true">inventory_2</span>
                                 Lihat barang
                             </a>
@@ -402,7 +384,7 @@
                                 <span class="material-icons-round" aria-hidden="true">inventory_2</span>
                             </span>
                         </div>
-                        <a href="{{ route('catalogs.index') }}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700">
+                        <a href="{{ route('catalogs.index') }}" class="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                             Buka katalog
                             <span class="material-icons-round text-lg" aria-hidden="true">arrow_forward</span>
                         </a>

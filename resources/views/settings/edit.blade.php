@@ -19,9 +19,9 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data"
-              class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
+              class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
             @csrf
             <div class="space-y-4">
                 <div>
@@ -49,29 +49,29 @@
                 <div>
                     <x-input-label value="Logo Instansi (PNG transparan direkomendasikan)" />
                     <input type="file" name="logo" accept="image/*"
-                           class="mt-1 block w-full rounded-xl border border-slate-300 bg-white text-sm text-slate-700 file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200 dark:file:bg-blue-950/50 dark:file:text-blue-300" />
+                           class="mt-1 block w-full rounded-xl border border-slate-300 bg-white text-sm text-slate-700 file:me-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:font-semibold file:text-brand-700 hover:file:bg-brand-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200 dark:file:bg-brand-950/50 dark:file:text-brand-300" />
                 </div>
 
-                <x-primary-button class="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Simpan Pengaturan</x-primary-button>
+                <x-primary-button class="bg-brand-600 hover:bg-brand-700 focus:ring-brand-500">Simpan Pengaturan</x-primary-button>
             </div>
         </form>
 
-        <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
             <h3 class="mb-4 text-base font-bold text-slate-900 dark:text-slate-100">Pratinjau Label Stiker</h3>
             <div class="border-2 border-slate-800 rounded-lg p-4 max-w-md bg-white">
                 <div class="flex items-center gap-3">
-                    <div class="w-14 h-14 flex items-center justify-center border border-gray-200 rounded bg-gray-50 overflow-hidden shrink-0">
+                    <div class="w-14 h-14 flex items-center justify-center border border-slate-200 rounded bg-gray-50 overflow-hidden shrink-0">
                         @if ($setting->logoUrl())
                             <img src="{{ $setting->logoUrl() }}" alt="Logo" class="max-w-full max-h-full object-contain">
                         @else
-                            <span class="material-icons-round text-3xl text-gray-400">image</span>
+                            <span class="material-icons-round text-3xl text-slate-400">image</span>
                         @endif
                     </div>
                     <div class="flex-1 leading-tight">
                         <div class="font-mono text-sm font-bold">{{ $setting->location_code }}</div>
                         <div class="font-mono text-xs font-bold mt-1">01.01.11.04.01.0001</div>
                     </div>
-                    <div class="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-[9px] text-gray-400 text-center">QR<br>CODE</div>
+                    <div class="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-[9px] text-slate-400 text-center">QR<br>CODE</div>
                 </div>
                 <div class="mt-3 border-t border-black pt-1 text-[10px] font-bold uppercase text-center">
                     {{ $setting->institution_name }}

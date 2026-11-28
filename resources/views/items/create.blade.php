@@ -37,7 +37,7 @@
                 <p class="text-sm text-slate-500 dark:text-slate-400">Catat katalog, kelompok spesifikasi, dan alokasi ruangan dalam satu pengajuan.</p>
             </div>
             <a href="{{ route('catalogs.index') }}"
-                class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-slate-800">←
+                class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800">←
                 Kembali ke katalog</a>
         </div>
     </x-slot>
@@ -54,7 +54,7 @@
     @endif
 
     <form method="POST" action="{{ route('items.store') }}" enctype="multipart/form-data"
-        class="max-w-6xl rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6"
+        class="max-w-6xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6"
         x-data="procurement({
             rooms: {{ \Illuminate\Support\Js::from($roomOptions) }},
             catalogs: {{ \Illuminate\Support\Js::from($catalogMap) }},
@@ -76,11 +76,11 @@
 
         {{-- Bagian A — Katalog --}}
         <div class="flex items-center gap-2 mb-4">
-            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">A</span>
+            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">A</span>
             <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Data Katalog</h3>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
                 <x-input-label for="catalog_search" value="Katalog barang *" />
                 <div class="relative mt-1" @click.outside="catalogOpen = false">
@@ -96,7 +96,7 @@
                         :placeholder="selectedCatalog ? selectedCatalog.name : 'Ketik nama atau kategori katalog…'"
                         autocomplete="off" role="combobox" aria-autocomplete="list"
                         aria-controls="catalog-options" :aria-expanded="catalogOpen.toString()"
-                        class="block w-full rounded-xl border-slate-300 bg-white pr-16 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                        class="block w-full rounded-xl border-slate-300 bg-white pr-16 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     <button type="button" x-show="catalogId" x-cloak @mousedown.prevent="clearCatalog()"
                         aria-label="Hapus pilihan katalog"
                         class="absolute right-8 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200">
@@ -110,8 +110,8 @@
                         <template x-for="(option, index) in filteredCatalogs" :key="option.id">
                             <li role="option" @mousedown.prevent="selectCatalog(option.id)"
                                 @mouseenter="catalogHighlight = index" :aria-selected="catalogId === option.id"
-                                :class="catalogHighlight === index ? 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' : 'text-slate-700 dark:text-slate-200'"
-                                class="cursor-pointer px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-950/40">
+                                :class="catalogHighlight === index ? 'bg-brand-50 text-brand-800 dark:bg-brand-950/40 dark:text-brand-200' : 'text-slate-700 dark:text-slate-200'"
+                                class="cursor-pointer px-3 py-2 text-sm hover:bg-brand-50 dark:hover:bg-brand-950/40">
                                 <span class="block font-medium" x-text="option.name"></span>
                                 <span x-show="option.category_name" class="block text-[11px] text-slate-500 dark:text-slate-400" x-text="option.category_name"></span>
                             </li>
@@ -121,7 +121,7 @@
                             <span class="mt-1 block">Ketik nama barang baru di atas untuk membuat katalog baru.</span>
                         </li>
                         <li x-show="canCreateNew" role="option" @mousedown.prevent="startNewCatalog()"
-                            class="cursor-pointer border-t border-slate-100 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50 dark:border-slate-800 dark:text-blue-300 dark:hover:bg-blue-950/40">
+                            class="cursor-pointer border-t border-slate-100 px-3 py-2 text-sm text-brand-700 hover:bg-brand-50 dark:border-slate-800 dark:text-brand-300 dark:hover:bg-brand-950/40">
                             <span class="flex items-start gap-1.5 font-semibold">
                                 <span class="material-icons-round text-base" aria-hidden="true">add_circle</span>
                                 <span>Buat katalog baru: &ldquo;<span x-text="catalogQuery.trim()"></span>&rdquo;</span>
@@ -141,7 +141,7 @@
                     Ketik untuk mencari katalog yang sudah ada. Bila nama belum terdaftar, pilih <strong>Buat katalog baru</strong> lalu tentukan kategori — nama katalog yang sudah ada tidak dapat dibuat ulang.
                 </p>
                 <div x-show="catalogId" x-cloak
-                    class="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+                    class="mt-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-200">
                     <span class="font-semibold" x-text="selectedCatalog?.name"></span>
                     — kategori otomatis: <span class="font-semibold" x-text="selectedCatalog?.category_name || '—'"></span>.
                 </div>
@@ -162,7 +162,7 @@
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kategori ditentukan untuk katalog baru. Bila memilih katalog yang sudah ada, kategori terisi otomatis dan tidak dapat diubah.</p>
             </div>
             <div class="md:col-span-2" x-show="catalogId" x-cloak>
-                <div class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+                <div class="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-200">
                     Katalog terpilih: <strong x-text="selectedCatalog?.name"></strong> — kategori otomatis: <strong x-text="selectedCatalog?.category_name || '—'"></strong>. Nama dan kategori tidak dapat diubah.
                 </div>
             </div>
@@ -194,12 +194,12 @@
             <div>
                 <x-input-label for="photo" value="Foto Barang (opsional)" />
                 <input id="photo" name="photo" type="file" accept="image/*"
-                    class="mt-1 block w-full text-sm text-slate-600 file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-blue-700 hover:file:bg-blue-100 dark:text-slate-300 dark:file:bg-blue-950 dark:file:text-blue-300" />
+                    class="mt-1 block w-full text-sm text-slate-600 file:me-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-brand-700 hover:file:bg-brand-100 dark:text-slate-300 dark:file:bg-brand-950 dark:file:text-brand-300" />
             </div>
 
             <label class="flex items-center gap-2 md:col-span-2">
                 <input type="checkbox" name="is_high_value" value="1" @checked(old('is_high_value'))
-                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600">
+                    class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600">
                 <span class="text-sm text-slate-700 dark:text-slate-300">Barang <strong>bernilai tinggi</strong> — pengajuan oleh Operator wajib persetujuan Admin.</span>
             </label>
         </div>
@@ -208,7 +208,7 @@
         <div class="mt-8 border-t border-slate-100 pt-6 dark:border-slate-700">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">B</span>
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">B</span>
                     <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Kelompok Spesifikasi &amp; Alokasi Ruangan</h3>
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-400">
@@ -232,39 +232,39 @@
                                     • Sisa <span x-text="groupRemaining(group)"></span>
                                 </span>
                                 <button type="button" @click="removeGroup(groupIndex)" :disabled="groups.length === 1"
-                                    class="text-[11px] font-semibold text-red-600 hover:underline disabled:text-gray-300 disabled:no-underline">Hapus kelompok</button>
+                                    class="text-[11px] font-semibold text-red-600 hover:underline disabled:text-slate-300 disabled:no-underline">Hapus kelompok</button>
                             </div>
                         </div>
 
                         <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-12">
                             <div class="sm:col-span-3">
-                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Merek</label>
+                                <label class="mb-1 block text-[11px] font-semibold text-slate-500">Merek</label>
                                 <input type="text" x-model="group.brand" :name="'spec_groups[' + groupIndex + '][brand]'"
                                     placeholder="mis. Logitech / Tanpa Merek"
-                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div class="sm:col-span-3">
-                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Tipe / model</label>
+                                <label class="mb-1 block text-[11px] font-semibold text-slate-500">Tipe / model</label>
                                 <input type="text" x-model="group.model_type" :name="'spec_groups[' + groupIndex + '][model_type]'"
                                     placeholder="mis. K120"
-                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Tahun</label>
+                                <label class="mb-1 block text-[11px] font-semibold text-slate-500">Tahun</label>
                                 <input type="number" min="1990" max="{{ now()->year + 1 }}" x-model.number="group.acquisition_year"
                                     :name="'spec_groups[' + groupIndex + '][acquisition_year]'"
-                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Sumber dana</label>
+                                <label class="mb-1 block text-[11px] font-semibold text-slate-500">Sumber dana</label>
                                 <input type="text" x-model="group.funding_source" :name="'spec_groups[' + groupIndex + '][funding_source]'"
-                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="mb-1 block text-[11px] font-semibold text-gray-500">Jumlah *</label>
+                                <label class="mb-1 block text-[11px] font-semibold text-slate-500">Jumlah *</label>
                                 <input type="number" min="1" required x-model.number="group.quantity"
                                     :name="'spec_groups[' + groupIndex + '][quantity]'"
-                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                             </div>
                         </div>
 
@@ -273,9 +273,9 @@
                                 <div class="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
                                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-12">
                                         <div class="sm:col-span-2">
-                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Gedung</label>
+                                            <label class="mb-1 block text-[11px] font-semibold text-slate-500">Gedung</label>
                                             <select x-model.number="row.building_id" @change="row.room_id = ''"
-                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                                 <option value="">— gedung —</option>
                                                 <template x-for="building in buildings" :key="building.id">
                                                     <option :value="building.id" x-text="building.name"></option>
@@ -283,10 +283,10 @@
                                             </select>
                                         </div>
                                         <div class="sm:col-span-3">
-                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Ruangan *</label>
+                                            <label class="mb-1 block text-[11px] font-semibold text-slate-500">Ruangan *</label>
                                             <select x-model.number="row.room_id" required
                                                 :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][room_id]'"
-                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                                 <option value="">— ruangan —</option>
                                                 <template x-for="room in roomsFor(row)" :key="room.id">
                                                     <option :value="room.id" x-text="(room.code ? room.code + ' — ' : '') + (room.name || '')"></option>
@@ -294,54 +294,54 @@
                                             </select>
                                         </div>
                                         <div class="sm:col-span-1">
-                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Jumlah *</label>
+                                            <label class="mb-1 block text-[11px] font-semibold text-slate-500">Jumlah *</label>
                                             <input type="number" min="1" required x-model.number="row.quantity"
                                                 :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][quantity]'"
-                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                         </div>
                                         <div class="sm:col-span-2">
-                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Kondisi</label>
+                                            <label class="mb-1 block text-[11px] font-semibold text-slate-500">Kondisi</label>
                                             <select x-model="row.condition"
                                                 :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][condition]'"
-                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                                 <template x-for="condition in conditions" :key="condition.value">
                                                     <option :value="condition.value" x-text="condition.label"></option>
                                                 </template>
                                             </select>
                                         </div>
                                         <div class="sm:col-span-2">
-                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Status</label>
+                                            <label class="mb-1 block text-[11px] font-semibold text-slate-500">Status</label>
                                             <select x-model="row.status"
                                                 :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][status]'"
-                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                                 <template x-for="status in statuses" :key="status.value">
                                                     <option :value="status.value" x-text="status.label"></option>
                                                 </template>
                                             </select>
                                         </div>
                                         <div class="sm:col-span-2">
-                                            <label class="mb-1 block text-[11px] font-semibold text-gray-500">Keterangan</label>
+                                            <label class="mb-1 block text-[11px] font-semibold text-slate-500">Keterangan</label>
                                             <input type="text" maxlength="500" x-model="row.note"
                                                 :name="'spec_groups[' + groupIndex + '][allocations][' + rowIndex + '][note]'"
                                                 placeholder="mis. kemasan penyok"
-                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                         </div>
                                     </div>
 
-                                    <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-500">
+                                    <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
                                         <span>
                                             Lantai <strong x-text="rowMeta(row).floor ?? '—'"></strong>
                                             • Kode lokasi <span class="font-mono" x-text="rowMeta(row).code ?? '—'"></span>
                                             • Pratinjau kode <span class="font-mono font-bold text-slate-800 dark:text-slate-100" x-text="preview(row)"></span>
                                         </span>
                                         <button type="button" @click="removeAllocation(group, rowIndex)" :disabled="group.allocations.length === 1"
-                                            class="font-semibold text-red-600 hover:underline disabled:text-gray-300 disabled:no-underline">Hapus baris</button>
+                                            class="font-semibold text-red-600 hover:underline disabled:text-slate-300 disabled:no-underline">Hapus baris</button>
                                     </div>
                                 </div>
                             </template>
 
                             <button type="button" @click="addAllocation(group)"
-                                class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-[11px] font-bold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-[11px] font-bold text-brand-700 transition hover:bg-brand-100 dark:border-brand-900 dark:bg-brand-950/40 dark:text-brand-300">
                                 <span class="material-icons-round text-sm">add</span> Tambah ruangan
                             </button>
                         </div>
@@ -371,7 +371,7 @@
         </div>
 
         <div class="mt-6 flex items-center gap-3">
-            <x-primary-button class="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+            <x-primary-button class="bg-brand-600 hover:bg-brand-700 focus:ring-brand-500"
                 x-bind:disabled="!canSubmit">
                 Ajukan Pengadaan
             </x-primary-button>

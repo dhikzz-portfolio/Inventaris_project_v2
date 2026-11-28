@@ -8,12 +8,12 @@
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{{ route('users.index') }}"
-                   class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                   class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
                     <span class="material-icons-round text-lg" aria-hidden="true">arrow_back</span> Daftar Akun
                 </a>
                 @unless ($user->isSuperAdmin())
                     <a href="{{ route('users.index', ['edit' => $user->id]) }}"
-                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700">
+                       class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700">
                         <span class="material-icons-round text-lg" aria-hidden="true">edit</span> Ubah Akun
                     </a>
                 @endunless
@@ -25,9 +25,9 @@
         <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
 
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div class="space-y-5 lg:col-span-2">
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="mb-3 text-base font-bold text-slate-900 dark:text-slate-100">Informasi Akun</h3>
                 <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <div><dt class="text-xs text-slate-500 dark:text-slate-400">Role</dt><dd class="font-semibold text-slate-800 dark:text-slate-100">{{ \App\Enums\Role::tryFrom($user->role)?->label() ?? $user->role }}</dd></div>
@@ -41,14 +41,14 @@
                 </dl>
             </div>
 
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="mb-3 text-base font-bold text-slate-900 dark:text-slate-100">Riwayat Perubahan Akun</h3>
                 @if ($history->isEmpty())
                     <p class="rounded-xl bg-slate-50 px-3 py-5 text-sm text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">Belum ada perubahan akun yang tercatat.</p>
                 @else
                     <ol class="space-y-3">
                         @foreach ($history as $entry)
-                            <li class="border-l-2 border-blue-200 pl-3 dark:border-blue-900">
+                            <li class="border-l-2 border-brand-200 pl-3 dark:border-brand-900">
                                 <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $entry->description }}</p>
                                 <p class="text-[11px] text-slate-500 dark:text-slate-400">
                                     {{ $entry->causer?->name ?? 'Sistem' }} • {{ $entry->created_at?->format('d M Y H:i') }}
@@ -65,7 +65,7 @@
         </div>
 
         <div class="space-y-5">
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="mb-3 text-base font-bold text-slate-900 dark:text-slate-100">Cakupan Akses</h3>
                 @if ($user->roomScopes->isEmpty())
                     <p class="text-sm text-slate-500 dark:text-slate-400">Tidak ada cakupan laboratorium khusus.</p>
@@ -81,7 +81,7 @@
             </div>
 
             @if (! $user->isSuperAdmin())
-                <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <h3 class="mb-2 text-base font-bold text-slate-900 dark:text-slate-100">Status Akun</h3>
                     <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">Nonaktifkan akun untuk memutus akses tanpa menghapus riwayat.</p>
                     <form method="POST" action="{{ route('users.status', $user) }}" onsubmit="return confirm('Ubah status akun ini?')">

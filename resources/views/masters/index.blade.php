@@ -34,7 +34,7 @@
     <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{{ $errors->first() }}</div>
     @endif
 
-    <div class="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
+    <div class="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
         {{-- Master Gedung --}}
         <section class="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="flex items-center gap-3">
@@ -134,7 +134,7 @@
                             <span class="min-w-0 px-3 py-2 text-xs text-slate-600 dark:text-slate-300">
                                 <span class="flex min-w-0 items-center gap-1">
                                     <span class="truncate">{{ $room->building?->name ?? $room->building_letter }} · Lt. {{ $room->floor }} · {{ str_pad((string) $room->room_no, 2, '0', STR_PAD_LEFT) }}</span>
-                                    @if ($room->is_lab)<span class="shrink-0 rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">LAB</span>@endif
+                                    @if ($room->is_lab)<span class="shrink-0 rounded-md bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-950/50 dark:text-brand-300">LAB</span>@endif
                                 </span>
                             </span>
                             <span class="truncate px-3 py-2 text-right text-xs text-slate-600 dark:text-slate-300">{{ $room->major?->code ?: $room->major?->name ?: '—' }}</span>

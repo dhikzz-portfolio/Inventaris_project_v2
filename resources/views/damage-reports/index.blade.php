@@ -6,7 +6,7 @@
                 <p class="text-sm text-slate-500 dark:text-slate-400">Pemantauan kondisi barang. Laporan tidak menghapus unit maupun mengurangi stok.</p>
             </div>
             @if (auth()->user()->isOperator() || auth()->user()->isSuperAdmin())
-                <a href="{{ route('damage-reports.create') }}" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                <a href="{{ route('damage-reports.create') }}" class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                     <span class="material-icons-round text-lg" aria-hidden="true">report</span> Laporkan Kerusakan
                 </a>
             @endif
@@ -19,15 +19,15 @@
 
     <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
-            <div class="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Rusak Ringan</div>
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Rusak Ringan</div>
             <div class="mt-1 text-2xl font-bold text-amber-900 dark:text-amber-100">{{ $summary['ringan'] }}</div>
         </div>
         <div class="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
-            <div class="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">Rusak Berat</div>
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">Rusak Berat</div>
             <div class="mt-1 text-2xl font-bold text-red-900 dark:text-red-100">{{ $summary['berat'] }}</div>
         </div>
         <div class="rounded-2xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900 dark:bg-sky-950/30">
-            <div class="text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">Belum Selesai</div>
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">Belum Selesai</div>
             <div class="mt-1 text-2xl font-bold text-sky-900 dark:text-sky-100">{{ $summary['terbuka'] }}</div>
         </div>
     </div>
@@ -38,20 +38,20 @@
     <form method="GET" action="{{ route('damage-reports.index') }}"
           x-data="{ filtersOpen: {{ $activeFilterCount > 0 ? 'true' : 'false' }} }"
           onchange="this.requestSubmit()"
-          class="mb-4 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
             <div class="min-w-0 flex-1">
                 <x-input-label for="q" value="Cari kode / nama barang" />
                 <input id="q" name="q" type="search" value="{{ $filters['q'] ?? '' }}" placeholder="mis. G1-02 atau Kursi"
-                       class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                       class="mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             </div>
             <button type="button" @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen.toString()"
                     aria-controls="damage-report-filter-panel"
-                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 self-end rounded-xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-blue-900/30">
+                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 self-end rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
                 <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
                 Filter
                 @if ($activeFilterCount > 0)
-                    <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800 dark:bg-blue-900 dark:text-blue-200">{{ $activeFilterCount }}</span>
+                    <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $activeFilterCount }}</span>
                 @endif
                 <span class="material-icons-round text-base text-slate-400 transition-transform" :class="filtersOpen ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
             </button>
@@ -91,7 +91,7 @@
         </div>
     </form>
 
-    <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="overflow-x-auto">
             <table class="w-full min-w-[900px] table-fixed text-sm">
                 <colgroup>
@@ -119,7 +119,7 @@
                         <tr class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
                             <td class="whitespace-nowrap px-3 py-4 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">{{ $report->unit?->inventory_code }}</td>
                             <td class="px-3 py-4">
-                                <a href="{{ route('damage-reports.show', $report) }}" class="font-semibold text-slate-800 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300">{{ $report->unit?->catalog?->name }}</a>
+                                <a href="{{ route('damage-reports.show', $report) }}" class="font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300">{{ $report->unit?->catalog?->name }}</a>
                                 <div class="truncate text-[11px] text-slate-500 dark:text-slate-400" title="{{ $report->unit?->specification?->displayName() }}">{{ $report->unit?->specification?->displayName() }}</div>
                             </td>
                             <td class="px-3 py-4 text-xs text-slate-600 dark:text-slate-300">{{ $report->unit?->room?->code }}</td>

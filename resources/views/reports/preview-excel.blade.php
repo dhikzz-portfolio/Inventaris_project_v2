@@ -26,18 +26,18 @@
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{{ route('reports.index') }}"
-                   class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                   class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                     <span class="material-icons-round text-lg" aria-hidden="true">arrow_back</span> Kembali
                 </a>
                 <a href="{{ route('reports.export', $common + ['type' => 'excel']) }}"
-                   class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-green-700">
+                   class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                     <span class="material-icons-round text-lg" aria-hidden="true">download</span> Unduh Excel
                 </a>
             </div>
         </div>
     </x-slot>
 
-    <div class="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border border-sky-100 bg-white px-4 py-3 text-xs text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+    <div class="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
         <span><strong>Periode:</strong> {{ $periodLabel }}</span>
         <span><strong>Cakupan:</strong> {{ $scopeLabel }}</span>
         <span><strong>Total unit:</strong> {{ $summary['total_unit'] }}</span>
@@ -51,7 +51,7 @@
                role="tab" aria-selected="{{ $index === $sheetIndex ? 'true' : 'false' }}"
                @class([
                    'inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition',
-                   'bg-blue-600 text-white shadow-sm' => $index === $sheetIndex,
+                   'bg-brand-600 text-white shadow-sm' => $index === $sheetIndex,
                    'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800' => $index !== $sheetIndex,
                ])>
                 {{ $table['title'] }}
@@ -64,7 +64,7 @@
         @endforeach
     </div>
 
-    <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         {{-- Kop surat: sama dengan kop pada berkas Excel. --}}
         <div class="border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-6">
             {{-- Kop surat: teks rata tengah selebar tabel, logo menempel di kiri

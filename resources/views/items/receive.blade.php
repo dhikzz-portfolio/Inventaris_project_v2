@@ -19,7 +19,7 @@
         </div>
     @endif
 
-    <div class="mb-4 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="mb-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="text-base font-bold text-slate-900 dark:text-slate-100">{{ $item->name }}</div>
         <div class="mt-1 text-xs text-slate-600 dark:text-slate-300">
             {{ $item->quantity }} {{ $item->unit }} • {{ $item->category?->name }} • {{ $item->acquisitionStatusEnum()?->label() }}
@@ -32,7 +32,7 @@
 
     <form method="POST" action="{{ route('items.acquisitions.receive', $item) }}" enctype="multipart/form-data"
           x-data="{ submitting: false }" @submit="submitting = true"
-          class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         @csrf
 
         @if ($item->allocations->isEmpty())
@@ -49,14 +49,14 @@
                     <input id="received-total" type="number" min="0" max="{{ (int) $item->quantity }}"
                            name="received_total"
                            value="{{ old('received_total', (int) $item->quantity) }}"
-                           class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                           class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                     <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Maks. {{ (int) $item->quantity }} {{ $item->unit }} sesuai pengadaan.</p>
                 </div>
 
                 <div class="sm:col-span-4">
                     <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300" for="received-condition">Kondisi fisik dominan</label>
                     <select id="received-condition" name="condition"
-                            class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                            class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         @foreach ($conditions as $condition)
                             <option value="{{ $condition->value }}" @selected(old('condition', \App\Enums\Condition::BAIK->value) === $condition->value)>{{ $condition->label() }}</option>
                         @endforeach
@@ -67,7 +67,7 @@
                     <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300" for="received-note">Keterangan</label>
                     <input id="received-note" type="text" maxlength="500" name="note" value="{{ old('note') }}"
                            placeholder="mis. 2 unit belum dikirim"
-                           class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                           class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                 </div>
             </div>
 
@@ -113,13 +113,13 @@
                             <input id="received-{{ $key }}" type="number" min="0" max="{{ $allocation->quantity }}"
                                    name="received[{{ $key }}][quantity]"
                                    value="{{ old('received.'.$key.'.quantity', $allocation->received_quantity ?? $allocation->quantity) }}"
-                                   class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                   class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         </div>
 
                         <div class="sm:col-span-4">
                             <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300" for="condition-{{ $key }}">Kondisi fisik</label>
                             <select id="condition-{{ $key }}" name="received[{{ $key }}][condition]"
-                                    class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 @foreach ($conditions as $condition)
                                     <option value="{{ $condition->value }}" @selected($conditionValue === $condition->value)>{{ $condition->label() }}</option>
                                 @endforeach
@@ -131,7 +131,7 @@
                             <input id="note-{{ $key }}" type="text" maxlength="500" name="received[{{ $key }}][note]"
                                    value="{{ $noteValue }}"
                                    placeholder="mis. kemasan penyok / 1 unit belum dikirim"
-                                   class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                   class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                         </div>
                     </div>
                 </div>
@@ -146,7 +146,7 @@
         @endif
 
         <div class="mt-5 flex justify-end">
-            <button :disabled="submitting" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60">
+            <button :disabled="submitting" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-wait disabled:opacity-60">
                 <span class="material-icons-round text-lg" aria-hidden="true">save</span>
                 <span x-text="submitting ? 'Menyimpan…' : 'Simpan penerimaan'"></span>
             </button>

@@ -236,7 +236,7 @@
                     @endphp
                     <section data-item-section="{{ $loanItemId }}"
                              x-show="(visibleCount[{{ $loanItemId }}] ?? 0) > 0"
-                             class="min-w-0 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+                             class="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
                                 <div class="mb-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">

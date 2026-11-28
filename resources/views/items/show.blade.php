@@ -426,22 +426,22 @@
                             @if ($institutionLogo = \App\Models\InstitutionSetting::current()->logoUrl())
                                 <img src="{{ $institutionLogo }}" class="max-h-12 sm:max-h-14 w-auto object-contain" alt="logo">
                             @else
-                                <span class="text-[9px] font-bold text-gray-400">LOGO<br>SEKOLAH</span>
+                                <span class="text-[9px] font-bold text-slate-400">LOGO<br>SEKOLAH</span>
                             @endif
                         </div>
                         <div class="min-w-0 flex-1">
-                            <div class="font-mono font-bold text-gray-900 leading-tight text-[16px] sm:text-[19px] break-words">
+                            <div class="font-mono font-bold text-slate-900 leading-tight text-[16px] sm:text-[19px] break-words">
                                 @foreach ($locationLines as $locationLine)
                                     {{ $locationLine }}@unless($loop->last)<br>@endunless
                                 @endforeach
                             </div>
-                            <div class="font-bold text-gray-900 leading-tight text-xs sm:text-sm mt-0.5 break-words uppercase">
+                            <div class="font-bold text-slate-900 leading-tight text-xs sm:text-sm mt-0.5 break-words uppercase">
                                 {{ $item->name }}
                             </div>
                         </div>
                         <img src="{{ app(\App\Services\LabelService::class)->qrDataUrl($item) }}" alt="QR" class="shrink-0 h-12 w-12 sm:h-14 sm:w-14">
                     </div>
-                    <div class="mt-2 border-t border-slate-800 pt-1 text-center text-[9px] sm:text-[10px] font-bold uppercase text-gray-900">
+                    <div class="mt-2 border-t border-slate-800 pt-1 text-center text-[9px] sm:text-[10px] font-bold uppercase text-slate-900">
                         {{ \App\Models\InstitutionSetting::current()->institution_name }}
                     </div>
                 </div>

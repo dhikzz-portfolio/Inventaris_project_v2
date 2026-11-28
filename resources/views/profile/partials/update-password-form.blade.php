@@ -23,7 +23,7 @@
     {{-- Tahap 1: peringatan sebelum formulir dibuka. --}}
     <div x-show="!confirmOpen && !showForm" x-cloak class="mt-6">
         <button type="button" @click="confirmOpen = true"
-                class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
             <span class="material-icons-round text-base" aria-hidden="true">lock_reset</span>
             Ubah Kata Sandi
         </button>
@@ -31,7 +31,7 @@
 
     {{-- Modal konfirmasi: bukan pengganti verifikasi kata sandi lama. --}}
     <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="password-confirm-title">
-        <div class="w-full max-w-md rounded-2xl border border-sky-100 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
             <h3 id="password-confirm-title" class="text-base font-bold text-slate-900 dark:text-slate-100">Ubah kata sandi?</h3>
             <p class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                 Anda akan mengganti kata sandi akun ini. Anda wajib memasukkan kata sandi lama sebelum kata sandi baru disimpan.
@@ -42,7 +42,7 @@
                     Batal
                 </button>
                 <button type="button" @click="confirmOpen = false; showForm = true"
-                        class="min-h-10 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                        class="min-h-10 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700">
                     Lanjutkan
                 </button>
             </div>

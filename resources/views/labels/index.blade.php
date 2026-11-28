@@ -25,7 +25,7 @@
             $activeFilterCount = collect($filters)->filter(fn ($value) => $value !== null && $value !== '')->count();
         @endphp
         <div x-data="{ filtersOpen: {{ $activeFilterCount > 0 ? 'true' : 'false' }} }"
-             class="overflow-hidden rounded-xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+             class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <form method="GET" action="{{ route('labels.index') }}" onchange="this.requestSubmit()">
                 <div class="flex flex-col gap-2 p-3 sm:flex-row sm:items-end">
                     <label for="label-search" class="sr-only">Cari kode unit atau nama barang</label>
@@ -103,7 +103,7 @@
                 @endif
             @endforeach
 
-            <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <input type="hidden" name="select_all" value="0">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">
                     <div class="flex items-center gap-2">

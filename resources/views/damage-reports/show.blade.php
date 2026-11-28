@@ -18,7 +18,7 @@
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div class="space-y-4 lg:col-span-2">
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $report->classification->badgeClass() }}">{{ $report->classification->label() }}</span>
                     <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $report->status->badgeClass() }}">{{ $report->status->label() }}</span>
@@ -62,11 +62,11 @@
                 @endif
             </div>
 
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="mb-3 text-sm font-bold text-slate-800 dark:text-slate-100">Riwayat Penanganan</h3>
                 <ol class="space-y-3">
                     @foreach ($logs as $log)
-                        <li class="border-l-2 border-blue-200 pl-3 dark:border-blue-900">
+                        <li class="border-l-2 border-brand-200 pl-3 dark:border-brand-900">
                             <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $log->action }}</div>
                             <div class="text-xs text-slate-500 dark:text-slate-400">
                                 {{ $log->user?->name ?? 'Sistem' }} • {{ $log->created_at->format('d M Y H:i') }}
@@ -82,7 +82,7 @@
         </div>
 
         <div class="space-y-4">
-            <div class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100">Perbarui Status Penanganan</h3>
                 @if ($canUpdate && count($statuses) > 0)
                     <form method="POST" action="{{ route('damage-reports.update', $report) }}" class="mt-3 space-y-3" x-data="{ submitting: false }" @submit="submitting = true">
@@ -91,7 +91,7 @@
                         <div>
                             <x-input-label for="status" value="Status baru" />
                             <select id="status" name="status" required
-                                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                                    class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
                                 @foreach ($statuses as $status)
                                     <option value="{{ $status->value }}">{{ $status->label() }}</option>
                                 @endforeach
@@ -100,9 +100,9 @@
                         <div>
                             <x-input-label for="note" value="Catatan penanganan" />
                             <textarea id="note" name="note" rows="3" maxlength="1000"
-                                      class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"></textarea>
+                                      class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"></textarea>
                         </div>
-                        <button :disabled="submitting" class="inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+                        <button :disabled="submitting" class="inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
                             <span x-text="submitting ? 'Menyimpan…' : 'Simpan status'"></span>
                         </button>
                     </form>

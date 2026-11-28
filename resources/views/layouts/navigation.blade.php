@@ -1,5 +1,5 @@
 <nav class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 shadow-sm shadow-slate-900/[0.02] backdrop-blur-xl safe-area-top dark:border-slate-800 dark:bg-slate-900/90 dark:shadow-black/10">
-    <div class="mx-auto w-full max-w-7xl px-4 sm:px-5 md:px-6 2xl:max-w-[1600px]">
+    <div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 2xl:max-w-[1600px]">
         <div class="flex h-16 items-center justify-between gap-3">
             <div class="flex min-w-0 flex-1 items-center gap-3">
                 <button @click="menuOpen = ! menuOpen"
@@ -19,7 +19,7 @@
                 </div>
                 <form action="{{ route('catalogs.index') }}" method="GET" role="search"
                       x-data
-                      class="hidden h-10 w-full max-w-sm items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-500 transition focus-within:border-brand-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100 md:flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:focus-within:border-brand-700 dark:focus-within:bg-slate-950 dark:focus-within:ring-brand-900/50">
+                      class="hidden h-10 w-full max-w-md items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-500 transition focus-within:border-brand-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100 md:flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:focus-within:border-brand-700 dark:focus-within:bg-slate-950 dark:focus-within:ring-brand-900/50">
                     <label for="global-catalog-search" class="material-icons-round text-lg text-slate-400" aria-hidden="true">search</label>
                     <input id="global-catalog-search" type="search" name="search" value="{{ request()->query('search') }}"
                            placeholder="Cari barang atau kode" aria-label="Cari barang atau kode"
@@ -31,13 +31,13 @@
             <div class="flex shrink-0 items-center gap-2 sm:gap-3">
                 <button type="button" x-data="{ dark: document.documentElement.classList.contains('dark') }"
                         @click="dark = !dark; document.documentElement.classList.toggle('dark', dark); localStorage.setItem('theme', dark ? 'dark' : 'light')"
-                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                         :title="dark ? 'Mode terang' : 'Mode gelap'" aria-label="Ganti tema">
                     <span class="material-icons-round" aria-hidden="true" x-text="dark ? 'light_mode' : 'dark_mode'">dark_mode</span>
                 </button>
 
                 @php($unread = auth()->user()?->unreadNotifications()->count() ?? 0)
-                <a href="{{ route('notifications.index') }}" class="relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Notifikasi" title="Notifikasi">
+                <a href="{{ route('notifications.index') }}" class="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Notifikasi" title="Notifikasi">
                     <span class="material-icons-round" aria-hidden="true">notifications</span>
                     @if ($unread > 0)
                         <span class="absolute right-1 top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{{ $unread > 99 ? '99+' : $unread }}</span>
@@ -46,8 +46,8 @@
 
                 <x-dropdown align="right" width="56">
                     <x-slot name="trigger">
-                        <button class="flex max-w-[12rem] items-center gap-2 rounded-xl border border-slate-200 bg-white px-1.5 py-1.5 text-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">
-                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-xs font-bold text-white">
+                        <button class="flex max-w-[12rem] items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 text-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">
+                            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-xs font-bold text-white">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                             </span>
                             <span class="hidden min-w-0 text-left leading-tight sm:block">

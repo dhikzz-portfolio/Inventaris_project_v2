@@ -1,4 +1,4 @@
-<div wire:poll.10s class="mt-5 overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+<div wire:poll.10s class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
     <div class="flex flex-col gap-1 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
         <div class="flex flex-wrap items-center gap-2">
             <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Riwayat Inventaris Keluar</h3>

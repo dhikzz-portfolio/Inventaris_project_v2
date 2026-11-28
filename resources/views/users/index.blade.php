@@ -20,21 +20,41 @@
     @endif
 
     <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total akun</p>
-            <p class="mt-1 text-2xl font-bold text-slate-800 dark:text-slate-100">{{ $stats['total'] }}</p>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-2">
+                <p class="text-[11px] font-semibold uppercase leading-4 tracking-wide text-slate-500 dark:text-slate-400">Total akun</p>
+                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    <span class="material-icons-round text-lg" aria-hidden="true">group</span>
+                </span>
+            </div>
+            <p class="mt-2 text-2xl font-bold leading-none tabular-nums text-slate-900 dark:text-slate-100">{{ $stats['total'] }}</p>
         </div>
-        <div class="rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/40">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-300">Aktif</p>
-            <p class="mt-1 text-2xl font-bold text-green-800 dark:text-green-200">{{ $stats['active'] }}</p>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-2">
+                <p class="text-[11px] font-semibold uppercase leading-4 tracking-wide text-slate-500 dark:text-slate-400">Aktif</p>
+                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600 dark:bg-green-950/50 dark:text-green-300">
+                    <span class="material-icons-round text-lg" aria-hidden="true">check_circle</span>
+                </span>
+            </div>
+            <p class="mt-2 text-2xl font-bold leading-none tabular-nums text-slate-900 dark:text-slate-100">{{ $stats['active'] }}</p>
         </div>
-        <div class="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/40">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">Nonaktif</p>
-            <p class="mt-1 text-2xl font-bold text-red-800 dark:text-red-200">{{ $stats['inactive'] }}</p>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-2">
+                <p class="text-[11px] font-semibold uppercase leading-4 tracking-wide text-slate-500 dark:text-slate-400">Nonaktif</p>
+                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300">
+                    <span class="material-icons-round text-lg" aria-hidden="true">block</span>
+                </span>
+            </div>
+            <p class="mt-2 text-2xl font-bold leading-none tabular-nums text-slate-900 dark:text-slate-100">{{ $stats['inactive'] }}</p>
         </div>
-        <div class="rounded-xl border border-fuchsia-200 bg-fuchsia-50 p-3 dark:border-fuchsia-900 dark:bg-fuchsia-950/40">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-fuchsia-700 dark:text-fuchsia-300">Super Admin</p>
-            <p class="mt-1 text-2xl font-bold text-fuchsia-800 dark:text-fuchsia-200">{{ $stats['account_admins'] }}</p>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-2">
+                <p class="text-[11px] font-semibold uppercase leading-4 tracking-wide text-slate-500 dark:text-slate-400">Super Admin</p>
+                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-300">
+                    <span class="material-icons-round text-lg" aria-hidden="true">admin_panel_settings</span>
+                </span>
+            </div>
+            <p class="mt-2 text-2xl font-bold leading-none tabular-nums text-slate-900 dark:text-slate-100">{{ $stats['account_admins'] }}</p>
         </div>
     </div>
 
@@ -42,19 +62,19 @@
     <form method="GET" action="{{ route('users.index') }}"
           x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }"
           onchange="this.requestSubmit()"
-          class="mb-4 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          class="mb-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
           <div class="min-w-0 flex-1">
             <label for="user-search" class="sr-only">Cari akun</label>
             <input id="user-search" type="search" name="search" value="{{ $filters['search'] }}" placeholder="Cari nama, email, kelas, atau unit kerja"
-                   class="min-h-10 w-full rounded-xl border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                   class="min-h-10 w-full rounded-xl border-slate-300 bg-white px-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
           </div>
           <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen" aria-controls="user-filter-panel"
-                  class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-blue-900/30">
+                  class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-brand-800 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-900/30">
               <span class="material-icons-round text-base" aria-hidden="true">filter_list</span>
               Filter
               @if ($selectedFilterCount > 0)
-                  <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800 dark:bg-blue-900 dark:text-blue-200">{{ $selectedFilterCount }}</span>
+                  <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200">{{ $selectedFilterCount }}</span>
               @endif
           </button>
         </div>
@@ -101,7 +121,7 @@
         </div>
     </form>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="lg:col-span-1">
             @if ($editUser)
                 @include('users._form', [
@@ -120,7 +140,7 @@
             @endif
         </div>
 
-        <div class="lg:col-span-2 self-start overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="lg:col-span-2 self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">Daftar Pengguna</div>
             <div class="hidden overflow-x-auto md:block">
                 <table class="w-full min-w-[820px] table-fixed text-sm">
@@ -142,7 +162,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         @foreach ($users as $user)
-                            <tr class="{{ $editUser && $editUser->id === $user->id ? 'bg-blue-50 dark:bg-blue-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60' }}">
+                            <tr class="{{ $editUser && $editUser->id === $user->id ? 'bg-brand-50 dark:bg-brand-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60' }}">
                                 <td class="px-3 py-4">
                                     <div class="flex flex-wrap items-center gap-1.5 font-medium text-slate-800 dark:text-slate-100">
                                         {{ $user->displayName() }}
@@ -156,7 +176,7 @@
                                     <span @class([
                                         'inline-flex rounded-lg px-2.5 py-1 text-[10px] font-bold',
                                         'bg-purple-100 text-purple-700' => $user->role === 'SUPER_ADMIN',
-                                        'bg-blue-100 text-blue-700' => $user->role === 'ADMIN',
+                                        'bg-brand-100 text-brand-700' => $user->role === 'ADMIN',
                                         'bg-teal-100 text-teal-700' => $user->role === 'EDITOR_VALIDATOR',
                                         'bg-amber-100 text-amber-700' => $user->role === 'OPERATOR',
                                         'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => $user->role === 'MEMBER',
@@ -168,7 +188,7 @@
                                         <div class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Kategori: {{ $user->borrower_type->label() }}@if($user->class_name) • {{ $user->class_name }}@endif</div>
                                     @endif
                                     @if ($user->roomScopes->isNotEmpty())
-                                        <div class="mt-1 truncate text-[10px] text-blue-700 dark:text-blue-300" title="{{ $user->roomScopes->pluck('room.name')->implode(', ') }}">{{ $user->roomScopes->pluck('room.name')->implode(', ') }}</div>
+                                        <div class="mt-1 truncate text-[10px] text-brand-700 dark:text-brand-300" title="{{ $user->roomScopes->pluck('room.name')->implode(', ') }}">{{ $user->roomScopes->pluck('room.name')->implode(', ') }}</div>
                                     @endif
                                 </td>
                                 <td class="px-2 py-4 text-center text-xs text-slate-500 dark:text-slate-400">{{ $user->last_login_at?->format('d M Y H:i') ?: 'belum pernah' }}</td>
@@ -201,7 +221,7 @@
                 @foreach ($users as $user)
                     <article @class([
                         'space-y-3 p-4',
-                        'bg-blue-50 dark:bg-blue-950/30' => $editUser && $editUser->id === $user->id,
+                        'bg-brand-50 dark:bg-brand-950/30' => $editUser && $editUser->id === $user->id,
                     ])>
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
@@ -212,7 +232,7 @@
                             </div>                                    <span @class([
                                 'shrink-0 rounded-full px-2 py-1 text-[10px] font-bold',
                                 'bg-purple-100 text-purple-700' => $user->role === 'SUPER_ADMIN',
-                                'bg-blue-100 text-blue-700' => $user->role === 'ADMIN',
+                                'bg-brand-100 text-brand-700' => $user->role === 'ADMIN',
                                 'bg-teal-100 text-teal-700' => $user->role === 'EDITOR_VALIDATOR',
                                 'bg-amber-100 text-amber-700' => $user->role === 'OPERATOR',
                                 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => $user->role === 'MEMBER',
@@ -224,7 +244,7 @@
                                 <p class="text-[11px]">Kategori: {{ $user->borrower_type->label() }}@if($user->class_name) • {{ $user->class_name }}@endif</p>
                             @endif
                             @if ($user->roomScopes->isNotEmpty())
-                                <p class="text-[11px] text-blue-700 dark:text-blue-300">{{ $user->roomScopes->pluck('room.name')->implode(', ') }}</p>
+                                <p class="text-[11px] text-brand-700 dark:text-brand-300">{{ $user->roomScopes->pluck('room.name')->implode(', ') }}</p>
                             @endif
                         </div>
                         <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-slate-500">

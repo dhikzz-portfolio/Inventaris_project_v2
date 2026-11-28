@@ -6,7 +6,7 @@
         </div>
     @endif
 
-    <form wire:submit="submit" class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <form wire:submit="submit" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div class="lg:col-span-2">
                 <label for="stock-catalog" class="block text-sm font-medium text-slate-700 dark:text-slate-300">1. Katalog dengan stok diterima *</label>

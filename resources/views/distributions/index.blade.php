@@ -1,11 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-start justify-between gap-3 flex-wrap">
+        <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 class="text-xl font-bold leading-tight text-slate-900 dark:text-white">Distribusi barang</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">Tentukan merek, model, ruangan, kondisi, dan status unit dari stok yang sudah diterima.</p>
             </div>
-            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">← Katalog barang</a>
+            <a href="{{ route('catalogs.index') }}" class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                <span class="material-icons-round text-lg" aria-hidden="true">arrow_back</span>
+                Katalog barang
+            </a>
         </div>
     </x-slot>
 

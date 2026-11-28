@@ -1,5 +1,5 @@
 <div @class([
-    'grid grid-cols-1 gap-5 lg:grid-cols-5',
+    'grid grid-cols-1 gap-4 lg:grid-cols-5',
     'pb-16 md:pb-0' => $cart !== [],
 ])>
     {{-- Kiri: cari barang + keranjang --}}
@@ -14,7 +14,7 @@
                 ['value' => 'unavailable', 'label' => 'Tidak ada unit tersedia'],
             ];
         @endphp
-        <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="order-1 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
+        <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="order-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
             <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">add_shopping_cart</span> 1. Pilih barang dari katalog
             </h3>
@@ -105,7 +105,7 @@
             @endif
         </div>
 
-        <div class="order-2 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
+        <div class="order-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
             <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">shopping_basket</span> 2. Keranjang peminjaman ({{ count($cart) }} jenis barang)
             </h3>
@@ -215,7 +215,7 @@
         </div>
 
         {{-- Kalender ketersediaan --}}
-        <div class="order-3 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
+        <div class="order-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:order-none">
             <div class="mb-4 flex items-center justify-between gap-2">
                 <h3 class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                     <span class="material-icons-round text-brand-600" aria-hidden="true">calendar_month</span> Ketersediaan
@@ -267,7 +267,7 @@
 
     {{-- Kanan: form pengajuan --}}
     <div class="order-4 lg:order-none lg:col-span-2 lg:flex" id="loan-request-form">
-        <div class="flex w-full flex-col rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex w-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h3 class="mb-4 flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                 <span class="material-icons-round text-brand-600" aria-hidden="true">edit_note</span> 3. Detail pengajuan
             </h3>

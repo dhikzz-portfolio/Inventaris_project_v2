@@ -1,6 +1,6 @@
 <div>
     <div class="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="text-xs font-medium text-slate-500 dark:text-slate-400">Jumlah unit</div>
             <div class="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-white">{{ $totalUnits }}</div>
         </div>
@@ -12,7 +12,7 @@
             <div class="text-xs font-medium text-slate-500 dark:text-slate-400">Rusak</div>
             <div class="mt-1 text-2xl font-bold tabular-nums text-amber-700 dark:text-amber-300">{{ $damagedUnits }}</div>
         </div>
-        <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div class="text-xs font-medium text-slate-500 dark:text-slate-400">Spesifikasi</div>
             <div class="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $specification->brand ?: 'Tanpa Merek' }}</div>
             <div class="text-xs text-slate-500 dark:text-slate-400">{{ $specification->model_type ?: 'Tidak Ditentukan' }}</div>
@@ -30,7 +30,7 @@
         $conditionFilterOptions = collect($conditions)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
         $statusFilterOptions = collect($statuses)->map(fn ($option) => ['value' => $option->value, 'label' => $option->label()])->values()->all();
     @endphp
-    <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mb-5 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div x-data="{ filtersOpen: {{ $selectedFilterCount > 0 ? 'true' : 'false' }} }" class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="flex flex-col gap-2 sm:flex-row">
             <div class="relative min-w-0 flex-1">
                 <span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true">search</span>
@@ -87,7 +87,7 @@
         </div>
     </div>
 
-    <div class="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div class="space-y-3 p-3 lg:hidden" wire:loading.class="opacity-60">
             @forelse ($units as $unit)
                 <article class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">

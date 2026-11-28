@@ -7,19 +7,19 @@
     <input type="hidden" name="pic_mode" :value="mode">
 
     <div class="grid grid-cols-2 gap-2" role="group" aria-label="Jenis penanggung jawab">
-        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:border-slate-600 dark:has-[:checked]:bg-blue-950/40">
-            <input type="radio" x-model="mode" value="user" class="text-blue-600 focus:ring-blue-500">
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 dark:border-slate-600 dark:has-[:checked]:bg-brand-950/40">
+            <input type="radio" x-model="mode" value="user" class="text-brand-600 focus:ring-brand-500">
             <span class="font-semibold text-slate-700 dark:text-slate-200">Akun pengguna</span>
         </label>
-        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:border-slate-600 dark:has-[:checked]:bg-blue-950/40">
-            <input type="radio" x-model="mode" value="custom" class="text-blue-600 focus:ring-blue-500">
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 dark:border-slate-600 dark:has-[:checked]:bg-brand-950/40">
+            <input type="radio" x-model="mode" value="custom" class="text-brand-600 focus:ring-brand-500">
             <span class="font-semibold text-slate-700 dark:text-slate-200">Nama khusus</span>
         </label>
     </div>
 
     <div x-show="mode === 'user'" x-cloak>
         <select name="pic_user_id" :disabled="mode !== 'user'"
-                class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+                class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
             <option value="">— cari/pilih nama pengguna —</option>
             @foreach ($picUsers as $picUser)
                 <option value="{{ $picUser->id }}" @selected((string) $selectedPicId === (string) $picUser->id)>
@@ -34,7 +34,7 @@
         <input type="text" name="pic_name" :disabled="mode !== 'custom'"
                value="{{ old('pic_name', $event?->pic_name) }}" maxlength="255"
                placeholder="Panitia MPLS 2026, OSIS, MPK, atau organisasi sekolah"
-               class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
+               class="block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100">
         <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Nama khusus tidak membuat akun pengguna baru.</p>
     </div>
 
